@@ -1,0 +1,35 @@
+{
+  "head": "5f236856dea1844c23c871d0a7af850fb506133e",
+  "controls": [
+    {
+      "event": "pull_request",
+      "os": "ubuntu",
+      "status": "passed",
+      "durationMs": 200.7006389999999,
+      "fullName": "S02 durable local ingress explicitly resolves unknown-owner triage once exact registry evidence exists, retaining prior provenance"
+    },
+    {
+      "event": "pull_request",
+      "os": "windows",
+      "status": "passed",
+      "durationMs": 407.37369999999964,
+      "fullName": "S02 durable local ingress explicitly resolves unknown-owner triage once exact registry evidence exists, retaining prior provenance"
+    },
+    {
+      "event": "push",
+      "os": "windows",
+      "status": "failed",
+      "durationMs": 5033.1591,
+      "fullName": "S02 durable local ingress explicitly resolves unknown-owner triage once exact registry evidence exists, retaining prior provenance"
+    },
+    {
+      "event": "push",
+      "os": "ubuntu",
+      "status": "passed",
+      "durationMs": 182.1417570000001,
+      "fullName": "S02 durable local ingress explicitly resolves unknown-owner triage once exact registry evidence exists, retaining prior provenance"
+    }
+  ],
+  "limitMs": 5000,
+  "causeEstablished": false
+}

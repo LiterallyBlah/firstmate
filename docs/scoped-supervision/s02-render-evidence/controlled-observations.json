@@ -1,0 +1,420 @@
+{
+  "observations": [
+    {
+      "mode": "cold-held-control",
+      "failure": null,
+      "events": [
+        {
+          "type": "pointerdown",
+          "at": 659.1000000089407,
+          "x": 127.52999877929688,
+          "y": 850,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            836,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "mousedown",
+          "at": 659.2000000029802,
+          "x": 127,
+          "y": 850,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            836,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "pointerup",
+          "at": 660.2999999970198,
+          "x": 127.52999877929688,
+          "y": 850,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            836,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "mouseup",
+          "at": 660.4000000059605,
+          "x": 127,
+          "y": 850,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            836,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "click",
+          "at": 660.7000000029802,
+          "x": 127,
+          "y": 850,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            836,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        }
+      ],
+      "positions": [
+        {
+          "at": 36.400000005960464,
+          "box": null
+        },
+        {
+          "at": 540,
+          "box": [
+            84.984375,
+            836,
+            85.09375,
+            28
+          ]
+        }
+      ],
+      "body": "Deck\nScene: Pirate voyage\nFirstMate Home\nDeck\nLoading the deck...\n3 need you ·\nAnswer the next\n6 waiting\n6 working\n0 idle\nDeck\nDecisions\n1 of 3\n‹\n›\nAll\nwaiting just now · harbour · This machine\n⋯\nDecision a\nTHE FIRST MATE ASKS\nA long complete decision question with the current review. Which approach should we take?\nTO READ FIRST\nhttps://example.com/review\nTHE FIRST MATE SUGGESTS\nUse the cautious option\nSends: Choose cautious\nOR ANSWER IN YOUR OWN WORDS\nSend answer\nSnooze ▾\nDiscuss first\nI answered in chat\nStays in Needs you until you answer or snooze it."
+    },
+    {
+      "mode": "release-during-press",
+      "failure": "TimeoutError: locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByLabel('FirstMate decisions', { exact: true }).getByRole('button', { name: 'Back to Deck', exact: true }) to be visible\u001b[22m\n",
+      "events": [
+        {
+          "type": "pointerdown",
+          "at": 489.20000000298023,
+          "x": 127.52999877929688,
+          "y": 850,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            836,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "mousedown",
+          "at": 489.40000000596046,
+          "x": 127,
+          "y": 850,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            836,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "pointerup",
+          "at": 772.1000000089407,
+          "x": 127.52999877929688,
+          "y": 850,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">6 waiting at the wheel</div>",
+          "legendTarget": false,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "mouseup",
+          "at": 772.2000000029802,
+          "x": 127,
+          "y": 850,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">6 waiting at the wheel</div>",
+          "legendTarget": false,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "click",
+          "at": 772.7000000029802,
+          "x": 127,
+          "y": 850,
+          "target": "<div class=\"css-view-g5y9jx\" style=\"gap: 4px;\"><div class=\"css-view-g5y9jx\" data-testid=\"firstmate-deck-decision-legend\" style=\"flex-flow: wrap; align-items: center; gap: 8px; padding-top: 4px; padding-bottom: 4px;\"><div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(161, 165, 164); font-size: 12px;\">3 need you ·</div><button aria-label=\"Answer the next\" role=\"button\" tabindex=\"0\" class=\"css-view-g5y9jx r-cursor-1loqt21 r-touchAction-1otgn73\" type=\"button\" style=\"padding-top: 6px; padding",
+          "legendTarget": false,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        }
+      ],
+      "positions": [
+        {
+          "at": 13.800000011920929,
+          "box": null
+        },
+        {
+          "at": 362.5,
+          "box": [
+            84.984375,
+            836,
+            85.09375,
+            28
+          ]
+        },
+        {
+          "at": 658.7000000029802,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ]
+        }
+      ],
+      "body": "Deck\nScene: Pirate voyage\nFirstMate Home\nPirate voyage\nDrawn with WebGL · 12 on deck\n3\n3 need you ·\nAnswer the next\n6 waiting at the wheel\n6 working the rigging\n0 resting below deck\nSuggestions (1)\nPoint at a sailor to see who it is; click one to focus it and act on it."
+    },
+    {
+      "mode": "settled-control",
+      "failure": null,
+      "events": [
+        {
+          "type": "pointerdown",
+          "at": 654.9000000059605,
+          "x": 127.52999877929688,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "mousedown",
+          "at": 655,
+          "x": 127,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "pointerup",
+          "at": 656.4000000059605,
+          "x": 127.52999877929688,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "mouseup",
+          "at": 656.4000000059605,
+          "x": 127,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "click",
+          "at": 656.7000000029802,
+          "x": 127,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        }
+      ],
+      "positions": [
+        {
+          "at": 14.700000002980232,
+          "box": null
+        },
+        {
+          "at": 349.80000001192093,
+          "box": [
+            84.984375,
+            836,
+            85.09375,
+            28
+          ]
+        },
+        {
+          "at": 572,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ]
+        }
+      ],
+      "body": "Deck\nScene: Pirate voyage\nFirstMate Home\nPirate voyage\nDrawn with WebGL · 12 on deck\n3\n3 need you ·\nAnswer the next\n6 waiting at the wheel\n6 working the rigging\n0 resting below deck\nSuggestions (1)\nPoint at a sailor to see who it is; click one to focus it and act on it.\nDeck\nDecisions\n1 of 3\n‹\n›\nAll\nwaiting just now · harbour · This machine\n⋯\nDecision a\nTHE FIRST MATE ASKS\nA long complete decision question with the current review. Which approach should we take?\nTO READ FIRST\nhttps://example.com/review\nTHE FIRST MATE SUGGESTS\nUse the cautious option\nSends: Choose cautious\nOR ANSWER IN YOUR OWN WORDS\nSend answer\nSnooze ▾\nDiscuss first\nI answered in chat\nStays in Needs you until you answer or snooze it."
+    },
+    {
+      "mode": "locator-release-during-press",
+      "failure": "TimeoutError: locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByLabel('FirstMate decisions', { exact: true }).getByRole('button', { name: 'Back to Deck', exact: true }) to be visible\u001b[22m\n",
+      "events": [
+        {
+          "type": "pointerdown",
+          "at": 493.6000000089407,
+          "x": 127.52999877929688,
+          "y": 850,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            836,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "mousedown",
+          "at": 493.70000000298023,
+          "x": 127,
+          "y": 850,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            836,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "pointerup",
+          "at": 2008,
+          "x": 127.52999877929688,
+          "y": 850,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">6 waiting at the wheel</div>",
+          "legendTarget": false,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "mouseup",
+          "at": 2008.1000000089407,
+          "x": 127,
+          "y": 850,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">6 waiting at the wheel</div>",
+          "legendTarget": false,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "click",
+          "at": 2008.7999999970198,
+          "x": 127,
+          "y": 850,
+          "target": "<div class=\"css-view-g5y9jx\" style=\"gap: 4px;\"><div class=\"css-view-g5y9jx\" data-testid=\"firstmate-deck-decision-legend\" style=\"flex-flow: wrap; align-items: center; gap: 8px; padding-top: 4px; padding-bottom: 4px;\"><div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(161, 165, 164); font-size: 12px;\">3 need you ·</div><button aria-label=\"Answer the next\" role=\"button\" tabindex=\"0\" class=\"css-view-g5y9jx r-cursor-1loqt21 r-touchAction-1otgn73\" type=\"button\" style=\"padding-top: 6px; padding",
+          "legendTarget": false,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        }
+      ],
+      "positions": [
+        {
+          "at": 15.700000002980232,
+          "box": null
+        },
+        {
+          "at": 365.70000000298023,
+          "box": [
+            84.984375,
+            836,
+            85.09375,
+            28
+          ]
+        },
+        {
+          "at": 645.2000000029802,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ]
+        }
+      ],
+      "body": "Deck\nScene: Pirate voyage\nFirstMate Home\nPirate voyage\nDrawn with WebGL · 12 on deck\n3\n3 need you ·\nAnswer the next\n6 waiting at the wheel\n6 working the rigging\n0 resting below deck\nSuggestions (1)\nPoint at a sailor to see who it is; click one to focus it and act on it."
+    }
+  ],
+  "errors": []
+}

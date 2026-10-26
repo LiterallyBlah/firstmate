@@ -1,6 +1,7 @@
 /** Scoped storage/status contracts. No transport or session activation is installed. */
 import { z } from "zod";
 import { PlanId, type WorkflowPlan } from "./workflow-plans";
+import type { InboxProjection } from "./supervision-inbox";
 import type { AcceptedScopedCommand, OperationHold, PolicyApproval, PolicyEvidence, PolicyRule, PolicySource, ScopedDecision, ScopedOutbox } from "./supervision-policy";
 
 export const SupervisionHash = z.string().length(64).regex(/^[0-9a-f]{64}$/);
@@ -84,6 +85,7 @@ export const SupervisionBackendSchema = z.object({
   state: z.enum(["active", "prepared", "held", "retired"]), sourceHash: SupervisionHash.nullable(), version: positive,
 }).strict();
 export const SupervisionRowKind = z.enum(["scope", "binding", "task", "attempt", "effect", "backend", "workflow", "retirement", "blob",
+  "inbox-event", "inbox-assignment", "inbox-source", "inbox-mailbox", "inbox-offer", "inbox-request",
   "policy-source", "policy-rule", "policy-evidence", "approval", "decision", "outbox", "operation-hold", "command"]);
 export const SupervisionExpectedSchema = z.object({ kind: SupervisionRowKind, id: text(1024), version: count }).strict();
 export const SupervisionActorSchema = z.object({
@@ -124,5 +126,6 @@ export interface SupervisionStatus {
   plans: { scopeId: string; plan: WorkflowPlan }[];
   retirements: { scopeId: string; plan: string; evidence: string; hash: string }[];
   retainedOwnership: SupervisionOwnership[];
+  inbox: InboxProjection;
   index: { schema: 1; sequence: number; hash: string | null; taskOwners: Record<string, string>; effectKeys: Record<string, string> };
 }

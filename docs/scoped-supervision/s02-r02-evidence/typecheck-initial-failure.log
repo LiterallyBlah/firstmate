@@ -1,0 +1,4 @@
+test/supervision-r02.test.ts(13,32): error TS2345: Argument of type 'URL' is not assignable to parameter of type 'string | URL'.
+  Type 'URL' is not assignable to type 'import("node:url").URL'.
+    The types of 'searchParams[Symbol.iterator]()' are incompatible between these types.
+      Property '[Symbol.dispose]' is missing in type 'IterableIterator<[string, string]>' but required in type 'URLSearchParamsIterator<[string, string]>'.

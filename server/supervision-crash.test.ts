@@ -29,14 +29,25 @@ afterAll(() => captureLedger("crash"));
 async function launch(config: object) {
   const path = join(process.env.PASEO_HOME!, `${randomUUID()}.json`); await writeFile(path, JSON.stringify(config));
   const child = spawn(process.execPath, [bundle, path], { windowsHide: true, stdio: ["ignore", "pipe", "pipe", "ipc"], env: { ...process.env } });
-  children.add(child); let stdout = "", stderr = "";
+  children.add(child); let stdout = "", stderr = "", crashBoundary: string | null = null;
   child.stdout!.on("data", bytes => { stdout += String(bytes); }); child.stderr!.on("data", bytes => { stderr += String(bytes); });
-  const done = new Promise<{ code: number | null; signal: NodeJS.Signals | null; stdout: string; stderr: string }>((resolve, reject) => {
+  child.on("message", message => {
+    if (typeof message === "object" && message && "crashBoundary" in message && typeof message.crashBoundary === "string") {
+      crashBoundary = message.crashBoundary;
+      child.send({ crashAck: crashBoundary });
+    }
+  });
+  const done = new Promise<{ code: number | null; signal: NodeJS.Signals | null; stdout: string; stderr: string; crashBoundary: string | null }>((resolve, reject) => {
     const timeout = setTimeout(() => { child.kill("SIGKILL"); reject(new Error(`Fixture child timed out: ${stdout} ${stderr}`)); }, 20000);
     child.once("error", error => { clearTimeout(timeout); reject(error); });
-    child.once("close", (code, signal) => { clearTimeout(timeout); children.delete(child); resolve({ code, signal, stdout, stderr }); });
+    child.once("close", (code, signal) => { clearTimeout(timeout); children.delete(child); resolve({ code, signal, stdout, stderr, crashBoundary }); });
   });
   return { child, done, output: () => stdout };
+}
+function expectTargetCrash(result: Awaited<Awaited<ReturnType<typeof launch>>["done"]>, point: string) {
+  expect(result.crashBoundary, `Child did not reach ${point}: ${JSON.stringify(result)}`).toBe(point);
+  expect(result.stderr).toBe("");
+  expect(result.code === 0).toBe(false);
 }
 async function fixture() {
   const directory = join(process.env.PASEO_HOME!, randomUUID()), home = join(directory, "home"), dataRoot = join(directory, "data");
@@ -59,6 +70,7 @@ describe("actual child-process / filesystem publication", () => {
       const coordinators = await readdir(join(store.root, "coordinators")).catch((error: unknown) => [String(error)]);
       expect(result.stderr, `child exit ${result.code}, signal ${result.signal}, coordinators [${coordinators.join(", ")}]`).toBe("");
     }
+    expectTargetCrash(result, point);
     expect(result.stdout).toBe(""); expect(result.code === 0).toBe(false);
     const status = await store.read();
     const exposed = point === "publication:linked", beforeTip = ["tip:written", "tip:synced"].includes(point);
@@ -116,10 +128,23 @@ describe("actual child-process / filesystem publication", () => {
     const barrier: SupervisionMutation[] = [{ kind: "scope", value: { ...scope(store.homeId), mode: "legacy", state: "transferring", version: 2 } },
       { kind: "backend", value: { planId: "legacy", ownerScopeId: ids.scope, backend: "legacy", state: "prepared", sourceHash: hash, version: 2 } }];
     const worker = await launch({ home, dataRoot, mode: "crash", crash: point, mutations: barrier, expected: expected(barrier, 1), requestId: randomUUID() });
-    expect((await worker.done).code === 0).toBe(false);
+    expectTargetCrash(await worker.done, point);
     const routing = await store.backend("legacy"); expect(routing).toMatchObject({ backend: "legacy", held: true });
     expect((await store.read()).sequence).toBe(point === "publication:linked" ? 2 : 1);
     // This is the journal barrier only. S07 owns source/delivery inventory and actual backend switching.
+  }, 30000);
+  it("distinguishes a refused process identity before claim from the requested publication crash", async () => {
+    const { store, home, dataRoot } = await fixture(), mutations = seed(store.homeId);
+    const worker = await launch({ home, dataRoot, mode: "crash", crash: "tip:written", unknownProcessIdentity: true,
+      mutations, expected: expected(mutations), requestId: randomUUID() });
+    const result = await worker.done;
+    expect(result).toMatchObject({ code: 2, crashBoundary: null, stdout: "" });
+    expect(JSON.parse(result.stderr)).toMatchObject({ code: "UNSUPPORTED" });
+    expect(() => expectTargetCrash(result, "tip:written")).toThrow("Child did not reach tip:written");
+    expect(await readdir(join(store.root, "coordinators"))).toEqual([]);
+    // First acquisition is generation 1: this is not a recovery of the requested killed writer.
+    expect(await store.acquireCoordinator()).toBe(1);
+    await store.releaseCoordinator();
   }, 30000);
   it("refuses a live overlapping installation, then permits only explicit released handoff", async () => {
     const { store, home, dataRoot } = await fixture();

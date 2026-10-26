@@ -1,0 +1,61 @@
+{
+  "format": "firstmate.s02-next-mailbox-held-command/1",
+  "attempt": "721eacfe-c21c-4161-9c06-7d78d2c20ecd",
+  "parent": "5db4abac4f46c553f1491a36babdf531f3ffcbb1",
+  "executionAuthorized": false,
+  "case": "mailbox-actual-2",
+  "caseId": "0734c8fe-f6fd-4747-a64e-e8b1191213ea",
+  "nonce": "98a01146-13e8-466d-aa94-860d189e0271",
+  "cwd": "C:\\Users\\micha\\.paseo\\worktrees\\23z5sbxl\\fm-ss-s02",
+  "executable": "C:\\Program Files\\nodejs\\node.exe",
+  "nodeVersion": "v24.18.0",
+  "nodeSha256": "9a4eb5f1c29c6a2e93852ead46b999e284a6a5ca8bab4d4e241d587d025a52de",
+  "powershellSha256": "60c9b29843624dd8af6b6a7b26147753be6aeef65098b9a503cc50850afe410f",
+  "arguments": [
+    "C:\\Users\\micha\\.paseo\\worktrees\\23z5sbxl\\fm-ss-s02\\docs\\scoped-supervision\\mailbox-next-qualification\\launcher.mjs"
+  ],
+  "powershellCommand": "& 'C:\\Program Files\\nodejs\\node.exe' 'C:\\Users\\micha\\.paseo\\worktrees\\23z5sbxl\\fm-ss-s02\\docs\\scoped-supervision\\mailbox-next-qualification\\launcher.mjs'",
+  "caseDirectory": "C:\\Users\\micha\\.paseo\\worktrees\\23z5sbxl\\fm-ss-s02\\.local\\s02-product-qualification\\mailbox-actual-2",
+  "activeDispatch": "C:\\Users\\micha\\.paseo\\worktrees\\23z5sbxl\\fm-ss-s02\\.local\\s02-product-qualification\\mailbox-actual-2.dispatch.json",
+  "outerDirectory": "C:\\Users\\micha\\.paseo\\worktrees\\23z5sbxl\\fm-ss-s02\\.local\\s02-product-qualification\\mailbox-actual-2.outer",
+  "pinsSha256": "3b081e6dfa824077748f77f4866a18ca841ac4e8ea7c3d3a0d8dff66850e9d89",
+  "controllerSha256": "dd90397fb5ab71d7f3d32bb2d127baf47ab981951f0df2e902e95e81612f9aaa",
+  "templateSha256": "26f1df4550e89c55f6bdcad706c7c232424bed0700169e0649cac816f314f785",
+  "outerPinsSha256": "6fda4d3279410a9c79b9e2b5f1e3e2e9a869676019d2d39ded028053642aeadb",
+  "launcherSha256": "419eca6e8c1876d1e782bbbd783b88365c2dcef7d1f9858a95bc4df9102dc3f6",
+  "helperSha256": "fb4317d6614e12cc7b494c52fc76c78f79f18941671112c689f3f9a399b93617",
+  "nativeSourceSha256": "a61098b3bb597af66232592bf0e2e2caa1db25c0a42f5aee66529e8983ce339b",
+  "limits": {
+    "fileBytes": 2097152,
+    "finalFrameBytes": 32768,
+    "streamBytes": 65536,
+    "entryBytes": 4096,
+    "members": 8,
+    "terminalSamples": 8,
+    "events": 64,
+    "errors": 8,
+    "nativeDeadlineMs": 5000,
+    "closureMs": 8000,
+    "outerDeadlineMs": 15000,
+    "outerGraceMs": 3000
+  },
+  "activation": "Only after exact-source review and named admission: verify all pins/images and all three paths absent; exclusively write the inactive template bytes to activeDispatch with create-new/wx, close and read back. No overwrite/reset/retry. Then invoke only the frozen launcher command once.",
+  "discovery": "offline inert mirror with same relative final path; controller additionally requires actual final-path exactly-two discovery before helper spawn. No configuration/callback evaluation.",
+  "stopConditions": [
+    "any source/image/absence/dispatch mismatch",
+    "one terminal result including spawn failure or refusal",
+    "wrong/extra/skipped/retried test or framework/assertion failure",
+    "capture/query/output/recording loss/error",
+    "missing controller spawn/exit/close or stdout/stderr EOF/close",
+    "missing post-disposal callback receipt",
+    "unknown owned-set closure"
+  ],
+  "historicalClosures": [
+    "C2:failed/unknown",
+    "normal1:failed/unknown",
+    "normal2:failed/unknown"
+  ],
+  "historicalActual1": "consumed; failed zero tests/no callbacks; closure accepted only for that case; external controller exit/close absent",
+  "anotherCaseAuthorized": false,
+  "fullProductQualified": false
+}

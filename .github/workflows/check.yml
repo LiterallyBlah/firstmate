@@ -46,7 +46,8 @@ jobs:
       # a test that normally takes 0.2–4 s hits Vitest's 5 s default: 9 of 101 Windows test steps, Ubuntu 0. On
       # Windows only, the default becomes 20 s (slowest default-timeout test ~4 s + the largest pause). Explicit
       # per-test/per-file timeouts and every assertion are unchanged; Ubuntu keeps the 5 s default.
-      - run: npm test -- --reporter=default --reporter=json --outputFile=.local/s01/ci-tests.json ${{ matrix.os == 'windows-latest' && '--testTimeout=20000' || '' }}
+      # Retain the qualified S02 two-worker budget.
+      - run: npm test -- --maxWorkers=2 --reporter=default --reporter=json --outputFile=.local/s01/ci-tests.json ${{ matrix.os == 'windows-latest' && '--testTimeout=20000' || '' }}
         env:
           # Test setup must override an enabled journal on developer machines.
           FIRSTMATE_RECEIPT_JOURNAL: "1"

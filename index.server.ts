@@ -27,6 +27,9 @@ import { pluginDir } from "./server/data-dir";
 import { join } from "node:path";
 import { pageReceiptTimeline } from "./shared/receipts";
 import { ReportCache, loadFleet, readAgentTools } from "./server/fleet";
+import { SupervisionStore } from "./server/supervision-store";
+import { supervisionInboxStatus, hasScopedWorker } from "./server/supervision-status";
+import { readSupervisionInbox } from "./shared/supervision-rpc";
 import { listDeckSettings, readDeckEngine, readDeckSetting } from "./server/deck-settings";
 import { listDeckSettings as listDeckSettingsRpc, loadDeckEngine, loadDeckSetting } from "./shared/deck-rpc";
 import { findFiles, listDirectory, readTextFile, requireHome, writeTextFile } from "./server/files";
@@ -100,6 +103,9 @@ import {
 } from "./shared/remote-crew";
 
 export default function contribute(server: PluginServerContext) {
+  // Read-only S02 surface. No initialize/coordinator, ingress attachment, offer runner or activation flag.
+  const readSupervision = async () => new SupervisionStore(pluginDir(), resolveHome(await readFirstmateConfig())).read();
+  server.handle(readSupervisionInbox, async input => supervisionInboxStatus(await readSupervision(), input));
   const stopWorkflows = startWorkflowService();
   server.handle(ensureSharedTerminalRpc, ({ workspaceId }, { paseo }) => ensureSharedTerminal(paseo, workspaceId));
   const updates = new UpdateService();
@@ -334,7 +340,11 @@ export default function contribute(server: PluginServerContext) {
 
   const unregisterRelay = registerSteerRelay(server, steers);
   // A crewmate whose finish the first mate has been told about leaves Paseo's "Ready to review"; see server/crew-seen.ts.
-  const unregisterCrewSeen = registerCrewSeen(server, readFirstmateConfig);
+  const unregisterCrewSeen = registerCrewSeen(server, readFirstmateConfig, undefined, undefined,
+    async () => {
+      const snapshot = await readSupervision();
+      return agentId => snapshot.freshness !== "held" && !hasScopedWorker(snapshot, agentId);
+    });
   // The first mate's tool calls and its crew's turn ends, for the receipt journal; idle while it is off.
   const unregisterReceipts = registerReceiptObservers(server, readFirstmateConfig, attention.ended);
   const unregisterAttention = attention.register(server, (paseo, config) =>

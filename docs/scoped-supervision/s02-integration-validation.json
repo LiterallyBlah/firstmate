@@ -1,0 +1,264 @@
+{
+  "format": "firstmate.s02-integration-validation/1",
+  "generatedAt": "2026-10-25T00:00:06.526Z",
+  "parents": [
+    "2ac5979ccbe1a171d2e0ae51b506404328ac5f14",
+    "b02540b9041fc68672f75120c2f5eed685732b3a"
+  ],
+  "base": "a75abc21552e14615d02b443efe2a068c84bac1c",
+  "platform": "win32",
+  "node": "v24.18.0",
+  "branch": "fm/fm-ss-s02",
+  "normalMerge": true,
+  "sourceDigestEncoding": "SHA-256 of exact staged Git blob bytes; excludes this receipt",
+  "sources": {
+    ".github/workflows/check.yml": "3e3d2e52cf37d38a9e00ee140ed3c0d2c4ff8020710d9f5193d3e3bd4ec13b2f",
+    "docs/scoped-supervision/S02-R02-corrections.md": "e79b15d6e6317dbc5e5e62c036e77a18a3947be1ace00f91a971dc49cf4b13a0",
+    "docs/scoped-supervision/S02-integration.md": "44351dfd4553a813d6f04f1be4f0ba2cc2d60897179918e584b911f80ee5585c",
+    "docs/scoped-supervision/S02.md": "621fc8db49cf30c2ff78a0a24c50f7bca76218963226c1ee5a5e79e8f29ab63e",
+    "docs/scoped-supervision/S03-R03-corrections.md": "32a2606b46b03d0b0cdc17f72849d2677554233fb88e613314e96c427440da1b",
+    "docs/scoped-supervision/S03.md": "8494c5c1b9d00736fe3e26e6cb14b1468abaf19727a8582fbfa61aa30da1bfdf",
+    "docs/scoped-supervision/s02-integration-evidence/counterfactuals.json": "18bd3f5ecc23fb37651645bd28a7b8b65fbdf087a5ce82ed5455af49aec49eda",
+    "docs/scoped-supervision/s02-integration-evidence/helper-source.json": "c0fcb99f5600b0322b3db3c654bbdcea9a48e6dd61ad076f3e0d23b34c637d2d",
+    "docs/scoped-supervision/s02-integration-evidence/marker-red.json": "e16a20a53ba3a9ab71cee82eb066631d50dea09755b80c16950ca208178cf512",
+    "docs/scoped-supervision/s02-r02-evidence/red.json": "da6375713d7165c4ebb65775620ab04404e7563fa9efa599d37db87e28944822",
+    "docs/scoped-supervision/s02-r02-evidence/red.log": "e147d6f3c5e2bc8a09cf3484084d2239146d26cca0a073f124b825814d6f82d4",
+    "docs/scoped-supervision/s02-r02-evidence/typecheck-initial-failure.log": "3ad6cbd9a84fddd5ac31d66dbefdbc8acc8947e8b912cf87c34e7960df87d329",
+    "docs/scoped-supervision/s02-r02-validation.json": "e1b34c4866db47051c0b02fbfb67f921280655fdef35013f58d442372c6e4eb4",
+    "docs/scoped-supervision/s02-validation.json": "b078f20d12e45fc99385cfeac3db70922a353fd4f433f79f1418a909b9bb2b19",
+    "docs/scoped-supervision/s03-r03-validation.json": "cf8c386daffb0fb5aa1abb06a078d944982bb410db4baba13858f5c73e21a149",
+    "docs/scoped-supervision/s03-validation.json": "e2f223293970601de6baf7d2e4454c6300e8c1d5c3764189e1e047fa50badfe6",
+    "index.server.ts": "50bd1f6e74cca7db13ad80b9ee7e3d4f73efd9d284cb299e7006722e44bfd6ab",
+    "server/crew-seen.ts": "3adba5858fab80f4830004acfcd254a4b1979e6a60f4fcc866cdf0ac34319959",
+    "server/decision-answer.ts": "0a492657568db99f9266161ad8f6a4c4709786f796107a2aa5b4b27b0700c300",
+    "server/needs-you-service.ts": "7e6f74dcdb1e438fa966acad342b217769bcb9a28fc0a1afd947be85fc226bca",
+    "server/supervision-commands.test.ts": "734a19fba6d8eeb354e5b5d29283875d3f0b8e370df7101dab6e26d23eb3fadf",
+    "server/supervision-commands.ts": "815e44a76a91c99707d798729ddf2947a55efd7bfb40aff2ba487f61c4753ebb",
+    "server/supervision-crash.test.ts": "e9d5cad3a49714a32b4ed0aaed85e043ae97ba09d3691229ea20489f70c1d57b",
+    "server/supervision-events.test.ts": "677c0a062be6ea8df844b4619304b4572f8e5ae10d48b9797ee8a812fc6c6b06",
+    "server/supervision-events.ts": "2198f7746d94193ced435a16b162be96d1934621151083baf7728a31db89e1ff",
+    "server/supervision-inbox-state.ts": "9dc2ad7eee8afbb692acdcec681c36c53efdd4e817f9b6a03928c2afe0bb9be5",
+    "server/supervision-inbox.test.ts": "44bfc09f6d21240f915c3175e9b847f0e8d9317e14a1f6dc3488f4dcd0694e95",
+    "server/supervision-inbox.ts": "68bd004df7063b93902d86bf8651bf450bb4de6a54e5c6f811886414409aa031",
+    "server/supervision-integration.test.ts": "ab420cf6050f17a6b6365a28aa1a8e0d86693d5e0b3760c01b963432c17840ec",
+    "server/supervision-policy.ts": "a92a1e6dc75fabcaee95458a8d8a69182241607fec30c31a3e5b37e6a0c5efb0",
+    "server/supervision-status.ts": "4271374d3aaec3dd92f258a47779474c56c51658855279fcbb4a55113d34a41c",
+    "server/supervision-store.ts": "342ce53e1cba6c9d63ea4c96bf2308ee34a32968cbad9249fc452611d1b86a74",
+    "server/workflow-close-review.test.ts": "6d3c880aa392056c3d4cb8e3e3a1492c30457663fa7b85caddb58c9ab6fa6c9b",
+    "server/workflow-plans.ts": "7cbdaba1637de5559f1cc6bff9c55199529b89ae3777d249ad7769ffbf869d2c",
+    "server/workflow-service.ts": "c289c823c4cf97ffc6b584e9c3de93a5ea33013c2d3272bccdf4c40534a3dd25",
+    "shared/needs-you.ts": "568b5f40036e1313afe94358d879a04e706fc7beab637bf04a91d37ad51ee8f2",
+    "shared/supervision-inbox.ts": "95c4419c72afed14308dc7a9db1fab0bea58355c75df653afc63a82be7ca42cb",
+    "shared/supervision-policy.ts": "044ab1d82345f98f0f7450222cd90ca9311fc0f2ffa5b0d76010ae591c3daf30",
+    "shared/supervision-rpc.ts": "dbb9237aebade9a086688e1b0ac4f99be87cfd3fcc7c21d0cb7ed0aa98532902",
+    "shared/supervision.ts": "b66b2c26665e227b10db5f168044fba3a028b3499c459d92ff2e5862653e204b",
+    "test/fixtures/supervision-r02/.gitattributes": "4dfccf3e03b653552f3c23235d716e7c930657d4f13fd1754e0676938db5c4a5",
+    "test/fixtures/supervision-r02/r02-review.test.ts.txt": "6e6d564d70ee92fe26bfe9e1c5b61f949f3118b2b8aa2bd4e86caa2af0f821b8",
+    "test/supervision-child.ts": "66094333a2494d71a43ed8bfab2a989ac623befe6e186bbb9366e2de098dd0fb",
+    "test/supervision-inbox-fixture.ts": "e0cc96dc2cb5b5d686cf5141fe80f35757485261fa2063028c3c8af227ba453e",
+    "test/supervision-r02.test.ts": "4d3b83ac4bb9375552bd2a8a67fd920d616d9fb621f064491d95b6db645386c5",
+    "test/workflow-close-context.test.ts": "fc95a1cf8aabd63c83b0d1d2d359828c362efd7bf8accaa30f9b662c05a9ac24",
+    "test/workflow-close-context.ts": "5fe21c62b5526decee7cdd63200b3b5463df82261ca8624ec928373dd95e6fc7"
+  },
+  "preservation": {
+    "s02Unique": {
+      "docs/scoped-supervision/S02-R02-corrections.md": "e79b15d6e6317dbc5e5e62c036e77a18a3947be1ace00f91a971dc49cf4b13a0",
+      "docs/scoped-supervision/S02.md": "621fc8db49cf30c2ff78a0a24c50f7bca76218963226c1ee5a5e79e8f29ab63e",
+      "docs/scoped-supervision/s02-r02-evidence/red.json": "da6375713d7165c4ebb65775620ab04404e7563fa9efa599d37db87e28944822",
+      "docs/scoped-supervision/s02-r02-evidence/red.log": "e147d6f3c5e2bc8a09cf3484084d2239146d26cca0a073f124b825814d6f82d4",
+      "docs/scoped-supervision/s02-r02-evidence/typecheck-initial-failure.log": "3ad6cbd9a84fddd5ac31d66dbefdbc8acc8947e8b912cf87c34e7960df87d329",
+      "docs/scoped-supervision/s02-validation.json": "b078f20d12e45fc99385cfeac3db70922a353fd4f433f79f1418a909b9bb2b19",
+      "index.server.ts": "50bd1f6e74cca7db13ad80b9ee7e3d4f73efd9d284cb299e7006722e44bfd6ab",
+      "server/crew-seen.ts": "3adba5858fab80f4830004acfcd254a4b1979e6a60f4fcc866cdf0ac34319959",
+      "server/supervision-events.test.ts": "677c0a062be6ea8df844b4619304b4572f8e5ae10d48b9797ee8a812fc6c6b06",
+      "server/supervision-events.ts": "2198f7746d94193ced435a16b162be96d1934621151083baf7728a31db89e1ff",
+      "server/supervision-inbox-state.ts": "9dc2ad7eee8afbb692acdcec681c36c53efdd4e817f9b6a03928c2afe0bb9be5",
+      "server/supervision-inbox.test.ts": "44bfc09f6d21240f915c3175e9b847f0e8d9317e14a1f6dc3488f4dcd0694e95",
+      "server/supervision-inbox.ts": "68bd004df7063b93902d86bf8651bf450bb4de6a54e5c6f811886414409aa031",
+      "server/supervision-status.ts": "4271374d3aaec3dd92f258a47779474c56c51658855279fcbb4a55113d34a41c",
+      "shared/supervision-inbox.ts": "95c4419c72afed14308dc7a9db1fab0bea58355c75df653afc63a82be7ca42cb",
+      "shared/supervision-rpc.ts": "dbb9237aebade9a086688e1b0ac4f99be87cfd3fcc7c21d0cb7ed0aa98532902",
+      "test/fixtures/supervision-r02/.gitattributes": "4dfccf3e03b653552f3c23235d716e7c930657d4f13fd1754e0676938db5c4a5",
+      "test/fixtures/supervision-r02/r02-review.test.ts.txt": "6e6d564d70ee92fe26bfe9e1c5b61f949f3118b2b8aa2bd4e86caa2af0f821b8",
+      "test/supervision-inbox-fixture.ts": "e0cc96dc2cb5b5d686cf5141fe80f35757485261fa2063028c3c8af227ba453e",
+      "test/supervision-r02.test.ts": "4d3b83ac4bb9375552bd2a8a67fd920d616d9fb621f064491d95b6db645386c5",
+      "docs/scoped-supervision/s02-r02-validation.json": "e1b34c4866db47051c0b02fbfb67f921280655fdef35013f58d442372c6e4eb4"
+    },
+    "s03Unique": {
+      "docs/scoped-supervision/S03-R03-corrections.md": "32a2606b46b03d0b0cdc17f72849d2677554233fb88e613314e96c427440da1b",
+      "docs/scoped-supervision/S03.md": "8494c5c1b9d00736fe3e26e6cb14b1468abaf19727a8582fbfa61aa30da1bfdf",
+      "docs/scoped-supervision/s03-r03-validation.json": "cf8c386daffb0fb5aa1abb06a078d944982bb410db4baba13858f5c73e21a149",
+      "docs/scoped-supervision/s03-validation.json": "e2f223293970601de6baf7d2e4454c6300e8c1d5c3764189e1e047fa50badfe6",
+      "server/decision-answer.ts": "0a492657568db99f9266161ad8f6a4c4709786f796107a2aa5b4b27b0700c300",
+      "server/needs-you-service.ts": "7e6f74dcdb1e438fa966acad342b217769bcb9a28fc0a1afd947be85fc226bca",
+      "server/supervision-commands.test.ts": "734a19fba6d8eeb354e5b5d29283875d3f0b8e370df7101dab6e26d23eb3fadf",
+      "server/supervision-commands.ts": "815e44a76a91c99707d798729ddf2947a55efd7bfb40aff2ba487f61c4753ebb",
+      "server/supervision-policy.ts": "a92a1e6dc75fabcaee95458a8d8a69182241607fec30c31a3e5b37e6a0c5efb0",
+      "server/workflow-plans.ts": "7cbdaba1637de5559f1cc6bff9c55199529b89ae3777d249ad7769ffbf869d2c",
+      "server/workflow-service.ts": "c289c823c4cf97ffc6b584e9c3de93a5ea33013c2d3272bccdf4c40534a3dd25",
+      "shared/needs-you.ts": "568b5f40036e1313afe94358d879a04e706fc7beab637bf04a91d37ad51ee8f2",
+      "shared/supervision-policy.ts": "044ab1d82345f98f0f7450222cd90ca9311fc0f2ffa5b0d76010ae591c3daf30"
+    },
+    "quiet": {
+      "index.server.ts": "50bd1f6e74cca7db13ad80b9ee7e3d4f73efd9d284cb299e7006722e44bfd6ab",
+      "server/crew-seen.ts": "3adba5858fab80f4830004acfcd254a4b1979e6a60f4fcc866cdf0ac34319959",
+      "server/receipt-observers.ts": "7a13dc6e98e6530a4afb03eb35f8142c943d3d85124e2fdfade709ae841eaec6",
+      "server/watches.ts": "33c0657e82cbe5841cdf6ef20dce0dd163899b04869a91bf33b52770c39a0480",
+      "server/watch-service.ts": "dc6b57672322c9a758055f2435e72b87ce68bedbe7b55e4e3239c77e59ca9881",
+      "templates/tools/launch.mjs": "1023178498a89286402ede81f3281c13ab5bd6ec427687d0d3a0b90a326750c7",
+      "templates/tools/workflow.mjs": "36c8d8831c130ff2b81434338da2cc7228c834c05521966a74ed297b940cfd5b",
+      "templates/data/charter.md": "3bd15040400c5617c4ca47ee12b949ef89f3c1c68ef0b74225374e816e0cd9a2",
+      "package-lock.json": "655f3e6c78801ecc92e64c1695c439f575aa8d573e40ce2759d710054f4c104a",
+      "server/supervision-process.ts": "6fb194ea0bc0954174736dcec78ab517c06b52eb68787b6660b590f54864c382",
+      "vitest.config.mjs": "fcf9643f57880f7922d865aec1d48f538137e7a74ba72fffa0a506d980b31c81"
+    }
+  },
+  "reviewedInput": {
+    "path": "FirstMate home data/fm-ss-r02-rereview/report.md",
+    "sha256": "b335626aa6db22cee023e95288cc03dc67dce0773b524a0044223c250f06d9e9"
+  },
+  "conflictResolution": {
+    "paths": [
+      "server/supervision-store.ts",
+      "shared/supervision.ts"
+    ],
+    "retained": "Both import/row-kind families, inbox and policy projections, all admission/replay validators, limits and checked-command path",
+    "additionalGuard": "checkInboxRequest at shared commit prevents publishing a command batch that inbox replay rejects",
+    "negativeEvidence": {
+      "path": ".local/s02-integration/marker-red.json",
+      "sha256": "e16a20a53ba3a9ab71cee82eb066631d50dea09755b80c16950ca208178cf512",
+      "success": false,
+      "passed": 0,
+      "failed": 1,
+      "skipped": 1,
+      "files": 1
+    }
+  },
+  "historicalCI": [
+    {
+      "path": ".local/s02-r02/ci-push-windows/s01/ci-tests.json",
+      "sha256": "94b533d74265386fd382f40dc354136c8298c76d1379d719c2ea8c41e5f3f631",
+      "passed": 2499,
+      "failed": 7,
+      "skipped": 4
+    },
+    {
+      "path": ".local/s02-r02/ci-push-windows-attempt2/s01/ci-tests.json",
+      "sha256": "9f613fd44a0347664250646b7529e44815c08f6666be8483894e0a250abfd5f1",
+      "passed": 2503,
+      "failed": 3,
+      "skipped": 4
+    },
+    {
+      "path": ".local/s02-r02/ci-pr-windows/s01/ci-tests.json",
+      "sha256": "374d6f7c6e2b2e504f0913800f847e4708cb2279693ef02eccdb70d43bb0f20e",
+      "passed": 2506,
+      "failed": 0,
+      "skipped": 4
+    }
+  ],
+  "historicalAttribution": {
+    "exactChildStderr": "not emitted by old harness; unrecoverable from retained reports",
+    "counterfactuals": "pre-bootstrap Node crypto failure and post-bootstrap identity refusal reproduce generation1; healthy target crash yields generation2",
+    "workflow": "Exact extracted global-store helper writes B after A resumes; captured context writes only A",
+    "contention": "Both failed close cases overlap CLI workflow work at three file workers; passing PR cases do not. Contributor, not proof of historical child exit.",
+    "newQualification": "Exact acknowledged crash point, per-test captured/aborted/drained workflow fixture, explicit two-worker CI envelope; no assertion or timeout weakening"
+  },
+  "assertionPreservation": {
+    "originalWorkflowExpectLines": 18,
+    "exactOrderedExpectLinesRetained": true,
+    "processIdentitySourceUnchanged": true,
+    "vitestDefaultTimeoutConfigUnchanged": true,
+    "ciWorkers": 2,
+    "childTimeoutMs": 20000,
+    "crashTimeoutMs": 30000
+  },
+  "commands": {
+    "typecheck": {
+      "command": "node node_modules/typescript/bin/tsc --noEmit",
+      "exitCode": 0,
+      "path": ".local/s02-integration/typecheck-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "affected": {
+      "command": "node node_modules/vitest/vitest.mjs run test/supervision-r02.test.ts test/workflow-close-context.test.ts server/supervision-events.test.ts server/supervision-inbox.test.ts server/supervision-store.test.ts server/supervision-ownership.test.ts server/supervision-process.test.ts server/supervision-crash.test.ts server/supervision-workflows.test.ts server/supervision-commands.test.ts server/supervision-integration.test.ts server/workflow-close-review.test.ts server/crew-seen.test.ts --maxWorkers=2 --reporter=default --reporter=json --outputFile=.local/s02-integration/affected.json",
+      "exitCode": 0,
+      "path": ".local/s02-integration/affected.json",
+      "sha256": "1d4d189683d838f86ebfcad1a0f485e05731d79a0be0095256c26f773e76a30c",
+      "success": true,
+      "passed": 191,
+      "failed": 0,
+      "skipped": 0,
+      "files": 13,
+      "log": {
+        "path": ".local/s02-integration/affected.log",
+        "sha256": "035ee32407834e21449932a5687672b0073b3842e5756af45a101ddd3365e569"
+      }
+    },
+    "full": {
+      "command": "FIRSTMATE_RECEIPT_JOURNAL=1 node node_modules/vitest/vitest.mjs run --maxWorkers=2 --reporter=default --reporter=json --outputFile=.local/s02-integration/full.json",
+      "exitCode": 0,
+      "path": ".local/s02-integration/full.json",
+      "sha256": "2e23ad8008f91e891501c53c0f90f804996021904479f51ae9105d700d4f549d",
+      "success": true,
+      "passed": 2551,
+      "failed": 0,
+      "skipped": 3,
+      "files": 172,
+      "log": {
+        "path": ".local/s02-integration/full.log",
+        "sha256": "fc702b258edb53cbb49dc8d95f0a70bdec55c3db22a84f94c5ce5c7c1289f319"
+      }
+    },
+    "diagnostic": {
+      "path": ".local/s02-integration/diagnostic-tests.json",
+      "sha256": "14c9051f04c504599864a22457b92c0a9aa56be2f848f1ab0a8cb73fefe8e494",
+      "success": true,
+      "passed": 31,
+      "failed": 0,
+      "skipped": 0,
+      "files": 4,
+      "log": {
+        "path": ".local/s02-integration/diagnostic-tests.log",
+        "sha256": "055066457e39596404e72d009dafd6fbb7ae64af2f95742df6a27d6523d8b93f"
+      }
+    },
+    "bundle": {
+      "command": "node .local/s02-integration/bundle-smoke.mjs",
+      "exitCode": 0,
+      "runtime": "v24.18.0",
+      "format": "cjs",
+      "export": "module.exports function (auto default-only entry)",
+      "homeFilesBefore": [],
+      "homeFilesAfter": [],
+      "invokedContribution": false,
+      "artifactSha256": "96261acdd0c36d45bbfbba96fdbe7f7d3c6239bd90464e2e9d08bfbcd4c2d11d"
+    }
+  },
+  "retainedProbeFiles": {
+    "diagnostics.ts": "4396214ffbe56fdc8db27f4a7f039b155000f8ad6d828e77438e560001de94ce",
+    "build-diagnostics.mjs": "308bad3e685e776f22e4276ee52c36776090a3d08d857f233659ed7437e5bcd1",
+    "legacy-helper.ts": "4ece0760fca98b8850ecc0d796b8d91736fefc5b4f7a25e58c14b1005a923199",
+    "captured-helper.ts": "9cd42e60ea3e40aa6233cc14c0a85eaaec7ea5a3183a0ab4488f80ce85eddefb",
+    "after-bootstrap.cjs": "9010dbdbc57408a4cdde83e15895b8929feb368c3253255d0a7bad25cb6e7dd4",
+    "diagnostics.json": "18bd3f5ecc23fb37651645bd28a7b8b65fbdf087a5ce82ed5455af49aec49eda",
+    "diagnostics-first-counterfactual.json": "df60ac1bc78c8abe0ac76bd816112045eceae8a8945451a5beb71ac524afb61b",
+    "comparison.log": "f7db8773c5fef243ddf9036716def843a90c133575a9b3ec68772f41f91fea10",
+    "ctx7-docs.log": "a0bb2dedb75b49ebbd35f84f248a8af37d79716df41f4b66a6757c3629e7198b",
+    "build-diagnostics-initial-failure.log": "e5bc82d877cbdd2c7c9f9c80e2ca29756c632266dee435371b74320f010fc750",
+    "typecheck-initial-failure.log": "0e5c0efa34fcbef1c99bbc9f2c8c81f7b210f071dc592db53d008d3882bd23f5"
+  },
+  "boundary": {
+    "historyRewritten": false,
+    "forcePush": false,
+    "featuresEnabled": false,
+    "liveRoutingOrWatchChanges": false,
+    "pluginInstallOrReload": false,
+    "modelOrProviderCalls": 0,
+    "delegatedAgents": 0,
+    "defaultBranchMerge": false,
+    "independentIntegrationReviewRequired": true,
+    "historicalChildExitCauseEstablished": false,
+    "activationQualified": false
+  }
+}

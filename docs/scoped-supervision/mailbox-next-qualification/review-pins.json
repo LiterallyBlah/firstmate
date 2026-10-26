@@ -1,0 +1,33 @@
+{
+  "format": "firstmate.s02-mailbox-review-sources/1",
+  "runtimePinsSha256": "3b081e6dfa824077748f77f4866a18ca841ac4e8ea7c3d3a0d8dff66850e9d89",
+  "comparisonFiles": [
+    "docs/scoped-supervision/owner-capability/root.mjs",
+    "docs/scoped-supervision/owner-capability/capture.mjs"
+  ],
+  "outerComparisonFiles": [
+    "docs/scoped-supervision/mailbox-qualification/worker.mjs",
+    "docs/scoped-supervision/mailbox-qualification/child.mjs",
+    "docs/scoped-supervision/mailbox-qualification/product.mjs",
+    "docs/scoped-supervision/mailbox-qualification/lifecycle.mjs",
+    "docs/scoped-supervision/mailbox-qualification/io.mjs",
+    "docs/scoped-supervision/mailbox-qualification/root.mjs",
+    "docs/scoped-supervision/mailbox-qualification/capture.mjs"
+  ],
+  "files": {
+    "docs/scoped-supervision/mailbox-next-qualification/adapter.controls.mjs": "871c1c90773244f3fdc38b28e0232584eca99e2f25eb6e45b2a43f27ec6f9d45",
+    "docs/scoped-supervision/mailbox-next-qualification/discovery.controls.mjs": "c526204120aa77ce428ea0a6a975711303f77bbbfff8de2ae0f2b15705c9fa71",
+    "docs/scoped-supervision/mailbox-next-qualification/outer.controls.mjs": "84ac4f6c967be827130a9f8c2ae45cb3e735173d70a028aef7ba3123a1f24d63",
+    "docs/scoped-supervision/mailbox-qualification/capture.mjs": "875933e8b1235230305e8f25162ec94b1f5dc0d85bed9fa4b16cf02f919cfa99",
+    "docs/scoped-supervision/mailbox-qualification/child.mjs": "5eda3fa963b1c68a97b4b79d8117e61f90d7de325ce41d76f6d6b3810c8c9f9e",
+    "docs/scoped-supervision/mailbox-qualification/contract.mjs": "df68a09ff695caedbb6d2bb1f9c95dce6bd3c0f8b7e01334dc241141edd44120",
+    "docs/scoped-supervision/mailbox-qualification/io.mjs": "3962ce722667339a7e7611d1b8123ec5381f76c7ac4ffc171d1af08db885b490",
+    "docs/scoped-supervision/mailbox-qualification/lifecycle.mjs": "4058c181345294fc790440aca3172a688b0dfcd46d81073ab91dd59b08ead7ee",
+    "docs/scoped-supervision/mailbox-qualification/product.mjs": "6d4e01c0064c3b4339bc92cb83410164e225002fd403aa056e138e070c7e2a13",
+    "docs/scoped-supervision/mailbox-qualification/root.mjs": "9fc52a21eeee7f311cda8a55214cfe08c494532a4b703da9fbf844df7f3ba727",
+    "docs/scoped-supervision/mailbox-qualification/worker.mjs": "5152314b6dbf567b022be8c4b20a0b815a8b0beea720e2a238e7d291220b1ae0",
+    "docs/scoped-supervision/owner-capability/member-input.mjs": "d390443907f312491b4e186aa150064bd80c2e2d20d7f73fd794afe20e019c3b",
+    "docs/scoped-supervision/owner-capability/root-gate-input.mjs": "8eae1e94f23619133789613cf9bb3c3a362a195af62303a1afd8818f18f53c5f",
+    "docs/scoped-supervision/owner-capability/root.mjs": "9fc52a21eeee7f311cda8a55214cfe08c494532a4b703da9fbf844df7f3ba727"
+  }
+}

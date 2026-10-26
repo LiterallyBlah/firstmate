@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { join } from "node:path";
+import { checkPanelReturn } from "./panel-return-check.mjs";
 
 const brief = `# Which pilot should run first?
 
@@ -99,13 +100,7 @@ export async function checkPolish(pageAt, output) {
   }
   for (const view of ["deck", "board", "crew"]) {
     const page = await pageAt(`view=${view}`, 1440);
-    const label = view === "crew" ? "List" : view === "deck" ? "Deck" : "Board";
-    if (view === "deck")
-      await page.getByTestId("firstmate-deck-decision-legend").getByRole("button", { name: "Answer the next", exact: true }).click();
-    else
-      await page.getByRole("button", { name: /^Needs you, 3 items/ }).click();
-    await button(drawerFor(page), `Back to ${label}`).click();
-    assert.equal(await drawerFor(page).count(), 0);
+    await checkPanelReturn(page, view);
     await page.close();
   }
   for (const width of [638, 900]) {

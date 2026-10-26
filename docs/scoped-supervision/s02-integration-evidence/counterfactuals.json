@@ -1,0 +1,65 @@
+{
+  "platform": "win32",
+  "node": "v24.18.0",
+  "crash": [
+    {
+      "mode": "preboot",
+      "missingSystemRoot": true,
+      "elapsedMs": 437,
+      "code": 134,
+      "signal": null,
+      "stdout": "",
+      "stderr": "\r\n  #  C:\\Program Files\\nodejs\\node.exe[72688]: std::shared_ptr<InitializationResultImpl> __cdecl node::InitializeOncePerProcessInternal(const std::vector<std::string> &, ProcessInitializationFlags::Flags) at src\\node.cc:1224\r\n  #  Assertion failed: ncrypto::CSPRNG(nullptr, 0)\r\n\r\n----- Native stack trace -----\r\n\r\n 1: 00007FF6E7DE342A node::MultiIsolatePlatform::DisposeIsolate+749418\r\n 2: 00007FF6E7E44D73 node::InitializeOncePerProcess+3171\r\n 3: 00007FF6E7E4510D node::Start+445\r\n 4: 00007FF6E7EFD222 node::AsyncResource::CallbackScope::CallbackScope+610\r\n 5: 00007FF6E811BBB4 node::AsyncResource::CallbackScope::CallbackScope+2223092\r\n 6: 00007FF86228DDA7 BaseThreadInitThunk+23\r\n 7: 00007FF863D5EE4C RtlUserThreadStart+44\r\n",
+      "coordinatorFilesBeforeParentAcquire": [],
+      "generation": 1,
+      "before": {
+        "sequence": 0,
+        "freshness": "current"
+      }
+    },
+    {
+      "mode": "postboot",
+      "missingSystemRoot": true,
+      "elapsedMs": 446,
+      "code": 2,
+      "signal": null,
+      "stdout": "",
+      "stderr": "{\"code\":\"UNSUPPORTED\",\"message\":\"Cannot verify this process start identity.\"}",
+      "coordinatorFilesBeforeParentAcquire": [],
+      "generation": 1,
+      "before": {
+        "sequence": 0,
+        "freshness": "current"
+      }
+    },
+    {
+      "mode": "healthy",
+      "missingSystemRoot": false,
+      "elapsedMs": 842,
+      "code": 1,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "coordinatorFilesBeforeParentAcquire": [
+        "000000000001.json"
+      ],
+      "generation": 2,
+      "before": {
+        "sequence": 0,
+        "freshness": "current"
+      }
+    }
+  ],
+  "workflow": [
+    {
+      "captured": false,
+      "a": "planned",
+      "b": "done"
+    },
+    {
+      "captured": true,
+      "a": "done",
+      "b": "planned"
+    }
+  ]
+}

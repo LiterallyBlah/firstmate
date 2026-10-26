@@ -1,0 +1,335 @@
+{
+  "name": "native",
+  "elapsed": 284.265,
+  "gateTriggered": false,
+  "pending": [],
+  "spanCount": 800,
+  "groups": {
+    "exact-source-case": {
+      "count": 1,
+      "total": 283.8505,
+      "max": 283.8505,
+      "errors": []
+    },
+    "store.initialize": {
+      "count": 1,
+      "total": 7.147500000000036,
+      "max": 7.147500000000036,
+      "errors": []
+    },
+    "fs.mkdir": {
+      "count": 4,
+      "total": 2.421199999999885,
+      "max": 1.5226000000000113,
+      "errors": []
+    },
+    "fs.readdir": {
+      "count": 73,
+      "total": 8.463999999999942,
+      "max": 1.1032000000000153,
+      "errors": []
+    },
+    "store.publish(identity)": {
+      "count": 1,
+      "total": 4.13880000000006,
+      "max": 4.13880000000006,
+      "errors": []
+    },
+    "fs.open": {
+      "count": 22,
+      "total": 6.435000000000173,
+      "max": 0.5383999999999105,
+      "errors": []
+    },
+    "fs.writeFile": {
+      "count": 22,
+      "total": 3.2124999999998636,
+      "max": 0.3240000000000691,
+      "errors": []
+    },
+    "fs.sync": {
+      "count": 22,
+      "total": 19.079799999999977,
+      "max": 2.3291000000000395,
+      "errors": []
+    },
+    "fs.close": {
+      "count": 22,
+      "total": 1.6184999999998126,
+      "max": 0.17060000000003583,
+      "errors": []
+    },
+    "fs.link": {
+      "count": 22,
+      "total": 6.322999999999865,
+      "max": 0.3369999999999891,
+      "errors": [
+        "EEXIST"
+      ]
+    },
+    "fs.unlink": {
+      "count": 22,
+      "total": 3.932800000000043,
+      "max": 0.27899999999999636,
+      "errors": []
+    },
+    "store.acquireCoordinator": {
+      "count": 1,
+      "total": 5.661299999999983,
+      "max": 5.661299999999983,
+      "errors": []
+    },
+    "store.scan": {
+      "count": 16,
+      "total": 203.78149999999994,
+      "max": 21.623500000000035,
+      "errors": []
+    },
+    "fs.readFile": {
+      "count": 265,
+      "total": 130.83389999999952,
+      "max": 0.8238000000000056,
+      "errors": [
+        "ENOENT",
+        "ENOENT",
+        "ENOENT",
+        "ENOENT",
+        "ENOENT",
+        "ENOENT",
+        "ENOENT",
+        "ENOENT"
+      ]
+    },
+    "store.coordinators": {
+      "count": 24,
+      "total": 16.454999999999814,
+      "max": 1.1573000000000775,
+      "errors": []
+    },
+    "store.publish(coordinator)": {
+      "count": 1,
+      "total": 3.649799999999914,
+      "max": 3.649799999999914,
+      "errors": []
+    },
+    "store.transact": {
+      "count": 6,
+      "total": 125.85149999999976,
+      "max": 28.96819999999991,
+      "errors": []
+    },
+    "store.commit": {
+      "count": 6,
+      "total": 43.20349999999985,
+      "max": 9.11869999999999,
+      "errors": []
+    },
+    "store.assertCoordinator": {
+      "count": 8,
+      "total": 6.689600000000269,
+      "max": 1.1211000000000695,
+      "errors": []
+    },
+    "store.apply": {
+      "count": 47,
+      "total": 9.031999999999925,
+      "max": 1.3120000000000118,
+      "errors": []
+    },
+    "store.checkBlobs": {
+      "count": 47,
+      "total": 6.93209999999965,
+      "max": 0.6486999999999625,
+      "errors": []
+    },
+    "store.publish(tip)": {
+      "count": 6,
+      "total": 11.567499999999995,
+      "max": 2.071900000000028,
+      "errors": []
+    },
+    "store.publish(event)": {
+      "count": 6,
+      "total": 9.916100000000029,
+      "max": 1.7391999999999825,
+      "errors": []
+    },
+    "store.publish(publication)": {
+      "count": 6,
+      "total": 9.87009999999998,
+      "max": 1.7568999999999733,
+      "errors": []
+    },
+    "events.admit": {
+      "count": 2,
+      "total": 83.6527000000001,
+      "max": 45.09540000000004,
+      "errors": []
+    },
+    "store.read": {
+      "count": 7,
+      "total": 111.4974000000002,
+      "max": 21.663800000000037,
+      "errors": []
+    },
+    "fs.stat": {
+      "count": 135,
+      "total": 15.569299999999771,
+      "max": 0.2198000000000775,
+      "errors": []
+    },
+    "store.putBlob": {
+      "count": 2,
+      "total": 24.15309999999988,
+      "max": 14.714399999999955,
+      "errors": []
+    },
+    "events.resolve": {
+      "count": 2,
+      "total": 58.4846,
+      "max": 43.121099999999956,
+      "errors": [
+        "UNKNOWN_OWNER"
+      ]
+    },
+    "inbox.prepare": {
+      "count": 1,
+      "total": 50.61180000000002,
+      "max": 50.61180000000002,
+      "errors": []
+    }
+  },
+  "top": [
+    {
+      "id": 10,
+      "parent": 7,
+      "name": "fs.sync",
+      "at": 6.070699999999988,
+      "path": "579d717b-1c6e-4a05-9914-5386f374d0e0/data/supervision/430168f1c6c8d9d674133c7b9970e5ec17729e23705c0f6c7a846615f9ee1824/identity.json.00fe5006-8607-460f-ae24-fd8bface5e85.tmp",
+      "duration": 2.3291000000000395,
+      "error": null,
+      "ancestors": [
+        "fs.sync",
+        "store.publish(identity)",
+        "store.initialize#1",
+        "exact-source-case"
+      ]
+    },
+    {
+      "id": 25,
+      "parent": 22,
+      "name": "fs.sync",
+      "at": 11.975700000000074,
+      "path": "579d717b-1c6e-4a05-9914-5386f374d0e0/data/supervision/430168f1c6c8d9d674133c7b9970e5ec17729e23705c0f6c7a846615f9ee1824/coordinators/000000000001.json.c93a96bf-21f4-48c8-b10c-666bd0b32967.tmp",
+      "duration": 2.2649999999999864,
+      "error": null,
+      "ancestors": [
+        "fs.sync",
+        "store.publish(coordinator)",
+        "store.acquireCoordinator#1",
+        "exact-source-case"
+      ]
+    },
+    {
+      "id": 2,
+      "parent": 1,
+      "name": "fs.mkdir",
+      "at": 2.346400000000017,
+      "path": "579d717b-1c6e-4a05-9914-5386f374d0e0/data/supervision/430168f1c6c8d9d674133c7b9970e5ec17729e23705c0f6c7a846615f9ee1824",
+      "duration": 1.5226000000000113,
+      "error": null,
+      "ancestors": [
+        "fs.mkdir",
+        "store.initialize#1",
+        "exact-source-case"
+      ]
+    },
+    {
+      "id": 237,
+      "parent": 199,
+      "name": "fs.sync",
+      "at": 95.31360000000006,
+      "path": "579d717b-1c6e-4a05-9914-5386f374d0e0/data/supervision/430168f1c6c8d9d674133c7b9970e5ec17729e23705c0f6c7a846615f9ee1824/blobs/12be39fdea3651a12e0975c46c3d4981ae2def5381bc7b330109e36221bb43c4.15eb9ac1-c2cf-4d81-bab1-4acbf0e72c80.tmp",
+      "duration": 1.123899999999935,
+      "error": null,
+      "ancestors": [
+        "fs.sync",
+        "store.putBlob#2",
+        "events.admit#2",
+        "exact-source-case"
+      ]
+    },
+    {
+      "id": 70,
+      "parent": 69,
+      "name": "fs.readdir",
+      "at": 33.6019,
+      "path": "579d717b-1c6e-4a05-9914-5386f374d0e0/data/supervision/430168f1c6c8d9d674133c7b9970e5ec17729e23705c0f6c7a846615f9ee1824",
+      "duration": 1.1032000000000153,
+      "error": null,
+      "ancestors": [
+        "fs.readdir",
+        "store.scan#3",
+        "store.read#1",
+        "events.admit#1",
+        "exact-source-case"
+      ]
+    },
+    {
+      "id": 113,
+      "parent": 87,
+      "name": "fs.sync",
+      "at": 51.56209999999999,
+      "path": "579d717b-1c6e-4a05-9914-5386f374d0e0/data/supervision/430168f1c6c8d9d674133c7b9970e5ec17729e23705c0f6c7a846615f9ee1824/blobs/12be39fdea3651a12e0975c46c3d4981ae2def5381bc7b330109e36221bb43c4.563583fe-6652-4414-a28f-e4be36ea4d17.tmp",
+      "duration": 1.0985000000000582,
+      "error": null,
+      "ancestors": [
+        "fs.sync",
+        "store.putBlob#1",
+        "events.admit#1",
+        "exact-source-case"
+      ]
+    },
+    {
+      "id": 782,
+      "parent": 779,
+      "name": "fs.sync",
+      "at": 278.5694,
+      "path": "579d717b-1c6e-4a05-9914-5386f374d0e0/data/supervision/430168f1c6c8d9d674133c7b9970e5ec17729e23705c0f6c7a846615f9ee1824/transactions/000000000006.tip.json.63ec07af-9d07-4a0d-a7fb-af8e10cb0154.tmp",
+      "duration": 0.9644000000000688,
+      "error": null,
+      "ancestors": [
+        "fs.sync",
+        "store.publish(tip)",
+        "store.commit#6",
+        "store.transact#6",
+        "inbox.prepare#1",
+        "exact-source-case"
+      ]
+    },
+    {
+      "id": 284,
+      "parent": 281,
+      "name": "fs.sync",
+      "at": 111.40460000000007,
+      "path": "579d717b-1c6e-4a05-9914-5386f374d0e0/data/supervision/430168f1c6c8d9d674133c7b9970e5ec17729e23705c0f6c7a846615f9ee1824/transactions/000000000003.tip.json.af4ada37-6cc3-406e-b01e-e8f4cb32fb01.tmp",
+      "duration": 0.8608999999999014,
+      "error": null,
+      "ancestors": [
+        "fs.sync",
+        "store.publish(tip)",
+        "store.commit#3",
+        "store.transact#3",
+        "events.admit#2",
+        "exact-source-case"
+      ]
+    }
+  ],
+  "gateEligible": [
+    {
+      "id": 576,
+      "path": "579d717b-1c6e-4a05-9914-5386f374d0e0/data/supervision/430168f1c6c8d9d674133c7b9970e5ec17729e23705c0f6c7a846615f9ee1824/transactions/000000000005.event.json.a5dfa499-fd85-4349-bc12-0d60f0f187b0.tmp",
+      "duration": 0.6061000000000831
+    }
+  ]
+}

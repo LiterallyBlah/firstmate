@@ -1,0 +1,21 @@
+{
+  "acceptedHead": "508eff9df937dce3adf95d9e03fd8ddc6d263b2b",
+  "reviewSha256": "537167c4e8fac2cdc286eac2396d39230cbdd6e98b2544404686df87cc0d37da",
+  "originalCI": {
+    "run": 40144985559,
+    "job": 121024291195
+  },
+  "files": {
+    "controlled-observations.json": "6ada69b07fcbcbca755c969781e20756893620c61b6d490c960262f182b48d49",
+    "cold-and-settled-observations.json": "932b309baa44231beee41da0c12a0790ac521fff20238b38bf8890c8f086033d",
+    "regression-red.log": "9e0b3abb5a1efc91c15060a28738ace7c83f035971574461156569f9171579e5",
+    "regression-green.log": "e7770cb881a033ce9dc114677714a5c7256bb5a6c169d447754af72a45191817",
+    "panel-return-before-fix.mjs": "5ec38aa8f7d4106e19d4bb9c0b22690b7b5824360d33aeb4846a5748ea8485b0",
+    "startup-regression-before-fix.mjs": "dc0086dc03ed93f269d29f9b069b9ae3c1fa4ec65e64dde22e0a4df617fb8739",
+    "controlled-missing-drawer.png": "2ba25a10295e47bd7df70a7c0341ba4b827fbb6acaf109ecc8402e023b608b1b",
+    "controlled-settled-drawer.png": "06cffc0e8a8a0bfbce6a8d4f61fd0a89324b0e204a2209f9e97d8d7ac5392715",
+    "original-ci-failure.log": "e02c91b8b266d5ea57a7443777382a32ae01322c37b81fafddc80cf075a69ba3",
+    "original-ci-failure.png": "33989424a6cf9709c4e3d1f79cb31b31144fb8ac833fc15d04d4464309ca3333",
+    "reproduce.mjs": "e092a4dc0e526204181d7f1175128814e689a9c780f06da68aaba350448239d1"
+  }
+}
