@@ -1,12 +1,11 @@
-/** S04 dispatch partition and the scope helper's request consumer. Unwired: no service loop starts it,
- * and `processWorkflowRequests` only applies the legacy guard when a caller passes one.
+/** S04 dispatch partition and the scope helper's request consumer. No service loop starts it.
+ * The normal workflowStore supplies the legacy guard; direct fixture stores may inject one.
  * The request file's actor is cooperative (same-user files), never an authenticated principal.
  */
 import { readdir, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { z } from "zod";
 import type { SupervisionActor } from "../shared/supervision";
-import type { WorkflowCommand } from "../shared/workflow-plans";
 import { resolveInHome } from "./files";
 import { serialized } from "./serialize";
 import { publish } from "./submissions";
@@ -15,41 +14,51 @@ import { recordContinuation, type ContinuationRecord } from "./supervision-conti
 import type { SupervisionGateway } from "./supervision-effects";
 import type { SupervisionStore } from "./supervision-store";
 import type { WorkflowPlanStore } from "./workflow-plans";
+import { InboxResultSchema } from "../shared/supervision-inbox";
+import { SupervisionUuid } from "../shared/supervision";
+import type { SupervisionInbox } from "./supervision-inbox";
+import { supervisionInboxStatus } from "./supervision-status";
+import { SupervisionError } from "./supervision-store";
 
-const READS = ["plans", "show", "agenda", "lint"];
-export function commandPlan(command: WorkflowCommand): string | null {
-  return command.op === "draft" || command.op === "revise" ? command.definition.id : command.op === "implicit" ? command.launch.id : "plan" in command ? command.plan : null;
-}
-/** Legacy helper/board/decision writes refuse plans the scoped store owns or retains. An unreadable
- * scoped store still answers from its retained ownership capsules; it never blocks unrelated legacy work.
- */
-export async function legacyRoute(supervision: SupervisionStore, command: WorkflowCommand): Promise<void> {
-  if (READS.includes(command.op)) return;
-  const plan = commandPlan(command);
-  if (!plan) return;
-  const status = await supervision.read();
-  if (status.freshness === "uninitialized") return;
-  if (status.backends.some(b => b.planId === plan) || status.retainedOwnership.some(o => o.workflows.some(w => w.plan === plan)))
-    throw new Error(`Plan ${plan} is owned by a scoped supervisor; the legacy first-mate helper cannot change it.`);
-}
-/** Scoped commands refuse any plan the legacy store owns, has quarantined, or cannot currently prove absent. */
-export async function scopeRoute(legacy: WorkflowPlanStore, plan: string): Promise<void> {
-  const read = await legacy.read();
-  if (read.unavailable) throw new Error("The legacy plan store is unavailable; a scoped command cannot prove its target is not legacy.");
-  if (read.plans.some(p => p.definition.id === plan) || read.quarantined.some(q => q.plan === plan))
-    throw new Error(`Plan ${plan} belongs to the legacy first mate; the scope helper cannot change it.`);
-}
+import { commandPlan, scopeRoute } from "./supervision-routing";
+export { commandPlan, scopeRoute, legacyRoute } from "./supervision-routing";
 
+const inboxTarget = { requestId: SupervisionUuid, scopeId: SupervisionUuid, epoch: z.number().int().positive(), offerId: SupervisionUuid };
+const ScopeInboxCommand = z.discriminatedUnion("op", [
+  z.object({ ...inboxTarget, op: z.literal("ack"), eventIds: z.array(SupervisionUuid).min(1).max(32) }).strict(),
+  z.object({ ...inboxTarget, op: z.literal("handle"), results: z.array(z.object({ eventId: SupervisionUuid, result: InboxResultSchema }).strict()).min(1).max(32) }).strict(),
+]);
+const ScopeOutboxCommand = z.object({ requestId: SupervisionUuid, scopeId: SupervisionUuid, epoch: z.number().int().positive(),
+  scopeVersion: z.number().int().positive(), outboxId: SupervisionUuid, resultRef: z.string().min(1).max(256) }).strict();
+const ScopeReadCommand = z.object({ scopeId: SupervisionUuid, epoch: z.number().int().positive(),
+  page: z.enum(["inbox", "outbox"]), after: z.number().int().nonnegative().default(0) }).strict();
 export const ScopeRequestSchema = z.object({ id: z.uuid(), actor: z.string().min(1).max(256),
-  kind: z.enum(["plan", "continuation"]), input: z.unknown() }).strict();
+  kind: z.enum(["plan", "continuation", "inbox", "outbox", "read"]), input: z.unknown() }).strict();
 export interface ScopeHandlers {
   commands: SupervisionCommands; gateway: SupervisionGateway | null; store: SupervisionStore; legacy: WorkflowPlanStore;
-  globalMateId: () => Promise<string | null>; continuationsEnabled?: boolean;
+  globalMateId: () => Promise<string | null>; continuationsEnabled?: boolean; inbox?: SupervisionInbox;
 }
 /** One request: guest scope principal, partition check, then the same checked S03/S04 paths. */
 export async function handleScopeRequest(request: z.infer<typeof ScopeRequestSchema>, handlers: ScopeHandlers): Promise<unknown> {
   if (request.actor === await handlers.globalMateId()) throw new Error("The global first mate is not a scope principal; it keeps using workflow.mjs.");
   const actor: SupervisionActor = { kind: "agent", id: request.actor, source: "scope-helper/request-file" };
+  if (request.kind === "read") {
+    const input = ScopeReadCommand.parse(request.input), status = await handlers.store.read();
+    const binding = status.bindings.find(b => b.scopeId === input.scopeId);
+    if (binding?.agentId !== actor.id || binding.epoch !== input.epoch) throw new SupervisionError("UNKNOWN_OWNER", "Read the current bound scope; this helper never grants the global role.");
+    if (input.page === "inbox") return supervisionInboxStatus(status, { scopeId: input.scopeId, after: input.after });
+    const rows = status.outbox.filter(o => o.ownerScopeId === input.scopeId && o.state === "pending");
+    const entries = rows.slice(input.after, input.after + 8);
+    return { freshness: status.freshness, sequence: status.sequence, entries, nextAfter: input.after + entries.length,
+      hasMore: rows.length > input.after + entries.length };
+  }
+  if (request.kind === "outbox") return handlers.commands.acknowledge(ScopeOutboxCommand.parse(request.input), actor);
+  if (request.kind === "inbox") {
+    if (!handlers.inbox) throw new Error("Scoped mailbox handling is not enabled.");
+    const input = ScopeInboxCommand.parse(request.input);
+    return input.op === "ack" ? handlers.inbox.acknowledge(input.scopeId, input.epoch, input.offerId, input.eventIds, input.requestId, actor.id) :
+      handlers.inbox.handle(input.scopeId, input.epoch, input.offerId, input.results, input.requestId, actor.id);
+  }
   if (request.kind === "continuation") {
     const input = request.input as ContinuationRecord;
     await scopeRoute(handlers.legacy, input.planId);
@@ -57,7 +66,7 @@ export async function handleScopeRequest(request: z.infer<typeof ScopeRequestSch
   }
   const input = ScopedPlanCommandSchema.parse(request.input), plan = commandPlan(input.command);
   if (!plan) throw new Error("Scoped commands name exactly one plan.");
-  await scopeRoute(handlers.legacy, plan);
+  await scopeRoute(handlers.legacy, plan, input.command);
   // One dispatch path: a scoped start always reserves its attempt and effects through the gateway.
   if (["start", "implicit", "claim"].includes(input.command.op)) {
     if (!handlers.gateway) throw new Error("Scoped starts need the S04 gateway; it is not enabled.");

@@ -46,7 +46,7 @@ export async function main(argv) {
     if (!["file", "request-id"].includes(key) || key in options || !rest[i + 1]) throw new Error("Invalid or repeated option.");
     options[key] = rest[i + 1];
   }
-  if (!["plan", "continuation"].includes(kind) || !options.file) throw new Error("Usage: scope.mjs plan|continuation --file <json> [--request-id <uuid>]");
+  if (!["plan", "continuation", "inbox", "outbox", "read"].includes(kind) || !options.file) throw new Error("Usage: scope.mjs plan|continuation|inbox|outbox|read --file <json> [--request-id <uuid>]");
   const input = JSON.parse((await readFile(await inside(options.file), "utf8")).replace(/^﻿/, ""));
   return submit(kind, input, options["request-id"]);
 }

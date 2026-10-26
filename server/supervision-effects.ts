@@ -146,6 +146,8 @@ export class SupervisionGateway {
       const task = status.tasks.find(t => t.ownerScopeId === scopeId && t.planId === planId && t.nodeId === nodeId);
       const binding = status.bindings.find(b => b.scopeId === scopeId);
       if (!task || !binding) refuse("UNKNOWN_OWNER", "Register the exact task and owner binding before launch.");
+      if (task.hostId.trim().toLowerCase() !== "local" || binding.hostId.trim().toLowerCase() !== "local")
+        refuse("UNSUPPORTED", "S04 admits local isolated work only; remote lifecycle mutation is unsupported.");
       const launch: PlanLaunch | undefined = command.op === "implicit" || command.op === "claim" ? command.launch :
         event.launch ?? status.plans.find(p => p.plan.definition.id === planId)?.plan.definition.nodes.flatMap(n => n.kind === "run" && n.id === nodeId ? [n.launch] : [])[0];
       if (!launch) refuse("HELD", "A decision cannot launch a worker.");
@@ -243,6 +245,7 @@ export class SupervisionGateway {
     const scope = status.scopes.find(s => s.id === effect.scopeId), binding = status.bindings.find(b => b.scopeId === effect.scopeId);
     if (status.freshness !== "current" || status.storage.admissionsHeld) refuse("HELD", "Store is held; no new external effect.");
     if (!scope || !binding || binding.epoch !== effect.epoch || ["retired", "suspect"].includes(binding.state)) refuse("STALE", "The effect's owner epoch is no longer current.");
+    if (binding.hostId.trim().toLowerCase() !== "local") refuse("UNSUPPORTED", "S04 has no remote receiver adapter.");
     const supervisor = effect.attemptId === null, stopping = operation === "agent.interrupt" || operation === "agent.archive";
     const activation = supervisor && (operation === "workspace.open" || operation === "agent.create");
     if (activation ? scope.state !== "transferring" || binding.state !== "prepared" : scope.state !== "active" || binding.state !== "active")
@@ -255,6 +258,7 @@ export class SupervisionGateway {
       refuse("HELD", "A plan backend owned by this scope is held, retired or not scoped.");
     const attempt = effect.attemptId ? status.attempts.find(a => a.id === effect.attemptId) : undefined;
     const task = attempt ? status.tasks.find(t => t.id === attempt.taskId) : undefined;
+    if (task && task.hostId.trim().toLowerCase() !== "local") refuse("UNSUPPORTED", "S04 has no remote worker adapter.");
     let launch: PlanLaunch | null = null, plan: WorkflowPlan | null = null;
     if (!supervisor) {
       if (!attempt || !task || task.currentAttempt !== attempt.id) refuse("STALE", "The attempt is no longer current for its task.");
@@ -437,6 +441,7 @@ export class SupervisionGateway {
     const status = await this.store.read(), attempt = status.attempts.find(a => a.id === attemptId) ?? refuse("UNKNOWN_OWNER", "Unknown attempt.");
     if (attempt.state !== "reserved") return attempt.state === "active" || attempt.state === "prompted" ? attempt : refuse("HELD", `Attempt is ${attempt.state}.`);
     const task = status.tasks.find(t => t.id === attempt.taskId)!;
+    if (task.hostId.trim().toLowerCase() !== "local") refuse("UNSUPPORTED", "Remote verification is unsupported.");
     if (task.currentAttempt !== attempt.id) refuse("STALE", "The attempt is no longer current.");
     const effects = effectsFor(status, attempt.id), create = status.effects.find(e => e.id === effects?.create);
     const workspace = workspaceReceipt(status.effects.find(e => e.id === effects?.workspace));
@@ -458,6 +463,10 @@ export class SupervisionGateway {
     const operation = requireGatewayOperation(input.operation);
     if (operation !== "agent.interrupt" && operation !== "agent.archive") refuse("UNSUPPORTED", "Only interrupt and archive are proposed here.");
     const pre = await this.store.read(), replay = pre.commands.some(c => c.id === input.requestId);
+    if (!replay) {
+      const attempt = pre.attempts.find(a => a.id === input.attemptId), task = pre.tasks.find(t => t.id === attempt?.taskId);
+      if (task && task.hostId.trim().toLowerCase() !== "local") refuse("UNSUPPORTED", "Remote interrupt/archive proposals are unsupported.");
+    }
     const worker = pre.attempts.find(a => a.id === input.attemptId)?.worker?.agentId;
     // Inventory is a mutable receiver read: an accepted proposal replays without it.
     const inventoryKey = operation === "agent.archive" && worker && !replay ? await this.checkInventory(await this.capabilities(), worker, null) : null;

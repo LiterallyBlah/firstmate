@@ -70,6 +70,14 @@ export function semanticInputs(status: SupervisionStatus, scopeId: string, planI
     // (fresh wake key), while ordinary upstream effect progress does not churn this goal.
     externalLiveness: plan ? [...new Set(plan.definition.nodes.flatMap(n => n.after.map(e => e.node)).filter(id => !plan.nodes[id]))].sort()
       .map(id => [id, externalAdvancing(status, id)]) : [],
+    // New semantic facts, not transport/disposition versions. Cross-source duplicates and our own
+    // offer/ack/assessment writes must not generate another owner turn. All provenance stays in S02.
+    facts: status.inbox.assignments.filter(a => a.scopeId === scopeId && a.id === a.primaryEventId &&
+      tasks.some(t => status.attempts.some(attempt => attempt.id === a.attemptId && attempt.taskId === t.id)))
+      .filter(a => status.inbox.events.find(e => e.id === a.id)?.critical)
+      .map(a => a.consequenceKey).sort(),
+    externalCommands: status.commands.filter(c => c.result.planId === planId && c.actor.kind !== "agent" &&
+      status.outbox.some(o => o.ownerScopeId === scopeId && o.causationId === c.id)).map(c => c.id).sort(),
   };
 }
 export const continuationInputVersion = (status: SupervisionStatus, scopeId: string, planId: string) => digest(semanticInputs(status, scopeId, planId));
@@ -100,7 +108,8 @@ export function deriveContinuation(status: SupervisionStatus, scopeId: string, p
   for (const node of plan?.definition.nodes ?? []) {
     const state = plan!.nodes[node.id];
     if (state && LIVE_NODE.includes(state.state) && !failedLaunch(state.attempt)) {
-      activeWorkers++; waits.push({ kind: "attempt", id: state.attempt ?? node.id, detail: `${node.title}: ${state.state}` });
+      if (status.attempts.some(a => a.id === state.attempt && a.worker !== null)) activeWorkers++;
+      waits.push({ kind: "attempt", id: state.attempt ?? node.id, detail: `${node.title}: ${state.state}` });
     }
   }
   for (const e of workerEffects.filter(e => LIVE_EFFECT.includes(e.state)))
@@ -164,14 +173,22 @@ export function continuationAgenda(status: SupervisionStatus, now = Date.now()):
 }
 /** Goal and project level truth for S05: owner, next action or wait, live worker/effect counts and evidence age. */
 export function goalStatus(status: SupervisionStatus, now = Date.now()) {
-  const goals = continuationAgenda(status, now).map(c => ({ scopeId: c.scopeId, planId: c.planId, title: c.title, state: c.disposition,
-    owner: c.owner?.state === "active" ? c.owner.agentId : null, responsible: c.responsible, next: c.reason, due: c.due,
-    activeWorkers: c.activeWorkers, activeEffects: c.activeEffects, uncertainEffects: c.uncertainEffects, offers: c.offers, evidenceAt: c.evidenceAt, projectIds: c.projectIds }));
+  const age = (at: string | null) => at ? Math.max(0, now - Date.parse(at)) : null;
+  const goals = continuationAgenda(status, now).map(c => {
+    const failure = status.effects.filter(e => e.scopeId === c.scopeId && e.attemptId === null && e.operation === "agent.send" && e.state === "failed").at(-1);
+    return { scopeId: c.scopeId, planId: c.planId, title: c.title, state: c.disposition,
+    owner: c.owner?.state === "active" ? c.owner.agentId : null, ownerEpoch: c.owner?.epoch ?? null, responsible: c.responsible, next: c.reason, due: c.due,
+    activeWorkers: c.activeWorkers, activeEffects: c.activeEffects, uncertainEffects: c.uncertainEffects, offers: c.offers,
+    evidenceAt: c.evidenceAt, evidenceAgeMs: age(c.evidenceAt), projectIds: c.projectIds,
+    lastSupervisorFailure: failure ? { effectId: failure.id, epoch: failure.epoch, reason: failure.receiptRef } : null };
+  });
   const projects = [...new Set(goals.flatMap(g => g.projectIds))].sort().map(projectId => {
     const own = goals.filter(g => g.projectIds.includes(projectId));
+    const evidenceAt = own.map(g => g.evidenceAt).filter((v): v is string => !!v).sort().at(-1) ?? null;
     return { projectId, goals: own.length, activeWorkers: own.reduce((n, g) => n + g.activeWorkers, 0), activeEffects: own.reduce((n, g) => n + g.activeEffects, 0),
       needsPlanning: own.filter(g => g.state === "needs-planning").length, due: own.filter(g => g.due).length,
-      evidenceAt: own.map(g => g.evidenceAt).filter((v): v is string => !!v).sort().at(-1) ?? null };
+      owners: [...new Set(own.map(g => g.owner).filter((v): v is string => !!v))], next: own.map(g => ({ planId: g.planId, state: g.state, reason: g.next, lastSupervisorFailure: g.lastSupervisorFailure })),
+      evidenceAt, evidenceAgeMs: age(evidenceAt) };
   });
   return { freshness: status.freshness, sequence: status.sequence, goals, projects };
 }
@@ -271,10 +288,11 @@ export async function recordContinuation(store: SupervisionStore, input: Continu
  */
 export async function livenessScan(status: SupervisionStatus, receiver: GatewayReceiver) {
   const out: { attemptId: string; agentId: string; observed: string; ownerReview: boolean }[] = [];
-  for (const attempt of status.attempts.filter(a => a.worker && ["active", "prompted"].includes(a.state))) {
+  for (const attempt of status.attempts.filter(a => a.worker?.hostId.trim().toLowerCase() === "local" && ["active", "prompted"].includes(a.state))) {
     const task = status.tasks.find(t => t.id === attempt.taskId), node = task ? status.plans.find(p => p.plan.definition.id === task.planId)?.plan.nodes[task.nodeId] : undefined;
     if (!node || !LIVE_NODE.includes(node.state) || task?.currentAttempt !== attempt.id) continue;
-    const found = await receiver.findAgent(attempt.worker!.agentId);
+    let found: Awaited<ReturnType<GatewayReceiver["findAgent"]>> = null;
+    try { found = await receiver.findAgent(attempt.worker!.agentId); } catch { /* Unknown subject; retain the attempt and let other scopes reconcile. */ }
     const observed = found?.id === attempt.worker!.agentId ? found : null; // A misbound answer is no observation.
     const state = !observed ? "not visible (unknown, not absent)" : observed.archivedAt ? "archived" : observed.status;
     out.push({ attemptId: attempt.id, agentId: attempt.worker!.agentId, observed: state,

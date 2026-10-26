@@ -242,7 +242,8 @@ describe("S04-prep review regressions (R1–R9)", { timeout: 60000 }, () => {
     expect(codeOf(await result(fx.run(scope, { op: "record", plan: scope.planId, node: "second", attempt: second.attemptId!, state: "running", evidence: "x", agentId: "guess", workspaceId: "guess" })))).toBe("HELD");
     await fx.run(scope, { op: "record", plan: scope.planId, node: "first", attempt: started.attemptId!, state: "running", evidence: "Verified worker.", agentId: actual.agentId, workspaceId: actual.workspaceId });
     const files = await fx.files(), status = goalStatus(await fx.store.read());
-    expect(await fx.files()).toEqual(files); expect(status.goals[0]!.activeWorkers).toBe(2); // The verified worker plus the reserved second start.
+    expect(await fx.files()).toEqual(files); expect(status.goals[0]!.activeWorkers).toBe(1); // Only the verified worker; the second start is still three reserved effects.
+    expect(status.goals[0]!.activeEffects).toBe(3);
   });
 
   it("R8/F08: completion is refused while authorized ready work remains", async () => {

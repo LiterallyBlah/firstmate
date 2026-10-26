@@ -82,6 +82,8 @@ export const TEMPLATES = {
   workflowRun: "parts/workflow-run.md",
   workflowDecision: "parts/workflow-decision.md",
   workflowNote: "messages/workflow-note.md",
+  scopeFacts: "messages/scope-facts.md",
+  scopeContinuation: "messages/scope-continuation.md",
   workflowBearings: "messages/workflow-bearings.md",
   recallHelper: "tools/recall.mjs",
   recallGuide: "data/recall.md",

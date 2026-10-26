@@ -293,7 +293,7 @@ export { reduce as replayWorkflowEvent };
 
 export class WorkflowPlanStore {
   private static cache = new Map<string, { identity: string; plan: WorkflowPlan | null }>();
-  constructor(readonly root: string, readonly home: string) {}
+  constructor(readonly root: string, readonly home: string, private readonly route?: (command: WorkflowCommand) => Promise<void>) {}
   private directory(id: string) { return join(this.root, PlanId.parse(id)); }
   private tips(id: string) { return join(this.root, ".tips", PlanId.parse(id)); }
   private published(id: string) { return join(this.root, ".published", PlanId.parse(id)); }
@@ -533,6 +533,7 @@ export class WorkflowPlanStore {
       return observeNeedsYou(await readFile((await resolveInHome(this.home, "data/backlog.md")).absolute, "utf8"), catalog);
     }
     return serialized(resolve(this.root), async () => {
+      if (this.route) await this.route(command);
       if (command.op === "retire") return this.retire(command, requestId, by);
       const id = command.op === "draft" || command.op === "revise" ? command.definition.id : command.op === "implicit" ? command.launch.id : command.plan;
       if (await this.retirement(id)) throw new Error(`Plan ${id} is retired; its history, budget and task reservations remain retained.`);

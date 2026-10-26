@@ -151,7 +151,13 @@ export class SupervisorSessions {
   }
 
   /** A counted supervisor turn (e.g. an S02 informational offer). Spent at reservation; unknown delivery keeps it. */
-  async reserveTurn(input: { requestId: string; scopeId: string; epoch: number; causation: string; text: string }, actor: SupervisionActor): Promise<string> {
+  reserveTurn(input: { requestId: string; scopeId: string; epoch: number; causation: string; text: string }, actor: SupervisionActor): Promise<string> {
+    return this.reserveTurnWith(input, actor);
+  }
+  /** S02 composition: offer claim and counted turn reservation publish together. The callback runs
+   * only on a new accepted command, under the same writer boundary, never on request replay. */
+  async reserveTurnWith(input: { requestId: string; scopeId: string; epoch: number; causation: string; text: string }, actor: SupervisionActor,
+    extend?: (status: SupervisionStatus) => SupervisionMutation[]): Promise<string> {
     this.enabled();
     const inputHash = digest({ turn: input });
     const { receipt } = await this.accepted(input.requestId) ? await this.replay(input.requestId, inputHash, actor) : await (async () => {
@@ -161,6 +167,8 @@ export class SupervisorSessions {
         const scope = status.scopes.find(s => s.id === input.scopeId), binding = status.bindings.find(b => b.scopeId === input.scopeId);
         if (!scope || scope.state !== "active" || binding?.state !== "active" || binding.epoch !== input.epoch) refuse("STALE", "No active owner at this epoch.");
         refuseHeld(status, scope.id);
+        if (status.effects.some(e => e.scopeId === scope.id && e.attemptId === null && e.operation === "agent.send" && ["reserved", "dispatching", "uncertain", "accepted"].includes(e.state)))
+          refuse("HELD", "Reconcile the existing supervisor turn before reserving another; uncertainty retains its spend.");
         if (supervisorSpend(status, scope.id).turns + 1 > this.options.limits.supervisorTurns) refuse("HELD", "Supervisor turn budget is exhausted; one scoped budget decision is required.");
         const key = effectLogicalKey({ scopeId: scope.id, subject: `epoch:${binding.epoch}`, operation: "agent.send", causation: input.causation, objectiveRevision: 0 });
         if (status.index.effectKeys[key]) refuse("CONFLICT", `This turn's cause is already reserved as ${status.index.effectKeys[key]}.`);
@@ -169,7 +177,7 @@ export class SupervisorSessions {
           attemptId: null, operation: "agent.send", planRevision: null, subjectHash: digest({ turn: input.causation }), policyVector: [],
           evidenceVector: [], approvalId: null, resourceIds: [`turn:${binding.agentId}`], state: "reserved", receiverKey: sendMessageId(id), receiptRef: null, version: 1,
           payloadDigest: blob.id };
-        const mutations: SupervisionMutation[] = [{ kind: "effect", value: effect },
+        const mutations: SupervisionMutation[] = [...(extend?.(status) ?? []), { kind: "effect", value: effect },
           ...(status.versions.some(v => v.kind === "blob" && v.id === blob.id) ? [] : [{ kind: "blob" as const, value: blob }])];
         return { expectedVersions: expectedFor(status, mutations), mutations, result: NO_RESULT };
       });
