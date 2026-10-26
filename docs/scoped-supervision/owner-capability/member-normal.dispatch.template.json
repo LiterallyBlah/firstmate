@@ -1,0 +1,20 @@
+{
+  "format": "firstmate.member-normal-dispatch/1",
+  "scenario": "normal",
+  "executeOneMemberNormal": true,
+  "caseId": "0d258e54-3bbe-4e10-9edf-f2b55736941a",
+  "nonce": "4637b177-3c51-495f-9095-d79181118466",
+  "controllerSha256": "657829defe68a198bb3296617dfaea81cd195ac9eb50b8cc4cb760b0e5d23633",
+  "sourcePins": {
+    "WindowsJobOwner.cs": "1b0117215cc80f81ab199e206a6da64a11ec6166ffc3db8a12546d7e368fa2c0",
+    "WindowsRootGate.cs": "09f44cdec979dc45240651e1847c7dadb94956f2d178ed2eeb9f50a903073593",
+    "WindowsMemberNormal.cs": "0e6fcecd7a0d94978e21319bc0fb3325663d10fabdc892c55fa1537683840c62",
+    "member-normal-only.ps1": "bdf5bdd5304b1cdc0308db2adaa5d48c85d109095c03fe435faf862524e65590",
+    "root.mjs": "9fc52a21eeee7f311cda8a55214cfe08c494532a4b703da9fbf844df7f3ba727",
+    "child.mjs": "1d5201bb4fb63e88f83c9831e46e6bc131a8fff38d11fd37f5e90e846189a6e3",
+    "capture.mjs": "875933e8b1235230305e8f25162ec94b1f5dc0d85bed9fa4b16cf02f919cfa99",
+    "member-phase.mjs": "5dcf0b7add344ac238d65c871e710fc5fd6e6ffa2cfb4ee768461debbc98f982",
+    "member-capture.mjs": "72f4548203cfc58f4121d852fa51d3364d94297dba1eb94c25fef489c53eeaaf"
+  },
+  "nativeSourceSha256": "a61098b3bb597af66232592bf0e2e2caa1db25c0a42f5aee66529e8983ce339b"
+}
