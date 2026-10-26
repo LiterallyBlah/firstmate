@@ -74,6 +74,8 @@ export const TEMPLATES = {
   roleHelper: "tools/role.mjs",
   launchHelper: "tools/launch.mjs",
   workflowHelper: "tools/workflow.mjs",
+  /** S04 scope helper: registered, deliberately not seeded into homes until activation. */
+  scopeHelper: "tools/scope.mjs",
   backlogLint: "data/backlog-lint.js",
   workflowGuide: "data/workflows.md",
   workflowPlan: "parts/workflow-plan.md",

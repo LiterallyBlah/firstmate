@@ -24,6 +24,7 @@ import { eventOwners, inboxProjection, terminal, validateInbox, validateInboxCha
 import { AcceptedScopedCommandSchema, OperationHoldSchema, PolicyApprovalSchema, PolicyEvidenceSchema, PolicyRuleSchema,
   PolicySourceSchema, ScopedDecisionSchema, ScopedOutboxSchema, ScopedCommandResultSchema,
   type ScopedCommandResult } from "../shared/supervision-policy";
+import { ContinuationSchema, type Continuation } from "../shared/supervision-continuation";
 
 const number = z.number().int().min(0).max(Number.MAX_SAFE_INTEGER), positive = number.min(1);
 const BlobSchema = z.object({ id: SupervisionHash, bytes: number }).strict();
@@ -36,6 +37,7 @@ export const SupervisionMutationSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("outbox"), value: ScopedOutboxSchema }).strict(),
   z.object({ kind: z.literal("operation-hold"), value: OperationHoldSchema }).strict(),
   z.object({ kind: z.literal("command"), value: AcceptedScopedCommandSchema }).strict(),
+  z.object({ kind: z.literal("continuation"), value: ContinuationSchema }).strict(),
   z.object({ kind: z.literal("scope"), value: SupervisionScopeSchema }).strict(),
   z.object({ kind: z.literal("binding"), value: SupervisionBindingSchema }).strict(),
   z.object({ kind: z.literal("task"), value: SupervisionTaskSchema }).strict(),
@@ -294,6 +296,11 @@ export class SupervisionStore {
         }
         if (mutation.kind === "blob" && prior) fail("CONFLICT", "Evidence references are immutable.");
         if (["command", "approval"].includes(mutation.kind) && prior) fail("CONFLICT", "Accepted commands and approvals are immutable.");
+        if (mutation.kind === "continuation" && old) {
+          // Logical obligations survive owner transfer; evidenced completion reopens only for a revised objective.
+          if (old.scopeId !== mutation.value.scopeId || old.planId !== mutation.value.planId || Number(old.epoch) > mutation.value.epoch ||
+            (old.completion && old.objectiveHash === mutation.value.objectiveHash && digest(old.completion) !== digest(mutation.value.completion))) fail("HELD", "Continuation identity, epoch order and accepted completion must be retained.");
+        }
         if (mutation.kind === "decision" && old) {
           if (["ownerScopeId", "planId", "nodeId"].some(p => old[p] !== mutation.value[p as keyof typeof mutation.value]) ||
             (old.answer && digest(old) !== digest({ ...mutation.value, version: old.version }))) fail("HELD", "Decision identity and accepted answers cannot be rewritten.");
@@ -395,6 +402,10 @@ export class SupervisionStore {
       if (frame.kind === "workflow") {
         const row = frame.value as WorkflowRow, backend = get("backend", row.plan.definition.id) as z.infer<typeof SupervisionBackendSchema> | undefined;
         if (!backend || backend.ownerScopeId !== row.scopeId) fail("UNKNOWN_OWNER", "Workflow and backend ownership must agree atomically.");
+      }
+      if (frame.kind === "continuation") {
+        const row = value as Continuation, backend = get("backend", row.planId) as z.infer<typeof SupervisionBackendSchema> | undefined;
+        if (!backend || backend.ownerScopeId !== row.scopeId || backend.backend !== "scoped") fail("UNKNOWN_OWNER", "Continuation and scoped plan owner must agree.");
       }
       if (frame.kind === "decision") {
         const row = ScopedDecisionSchema.parse(value), backend = get("backend", row.planId) as z.infer<typeof SupervisionBackendSchema> | undefined;
@@ -604,6 +615,7 @@ export class SupervisionStore {
       scopes: values("scope"), bindings: values("binding"), tasks, attempts: values("attempt"), effects, backends: values("backend"),
       policySources: values("policy-source"), policyRules: values("policy-rule"), policyEvidence: values("policy-evidence"), approvals: values("approval"),
       decisions: values("decision"), outbox: values("outbox"), operationHolds: values("operation-hold"), commands: values("command"),
+      continuations: values("continuation"),
       uncertainEffectIds: effects.filter(e => ["dispatching", "uncertain"].includes(e.state)).map(e => e.id),
       plans: values<WorkflowRow>("workflow").map(({ scopeId, plan }) => ({ scopeId, plan })),
       retirements: values<{ scopeId: string; receipt: z.infer<typeof RetirementSchema> }>("retirement")

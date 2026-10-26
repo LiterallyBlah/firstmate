@@ -81,6 +81,17 @@ export class SupervisionCommands {
     const input = structuredClone(ScopedPlanCommandSchema.parse(raw)), actor = structuredClone(SupervisionActorSchema.parse(actorInput));
     return this.store.transactCommand(input.requestId, digest(input), actor, status => this.prepare(status, input, actor));
   }
+  /** S04 composition seam: the same checked preparation, extended inside the same transaction.
+   * The distinct input hash keeps a plain command and a gateway command from sharing a request ID.
+   */
+  async planCommandWith(raw: ScopedPlanCommand, actorInput: SupervisionActor, kind: string,
+    extend: (status: SupervisionStatus, prepared: { mutations: SupervisionMutation[]; result: ScopedCommandResult }) => Promise<{ expectedVersions: SupervisionExpected[]; mutations: SupervisionMutation[] }>) {
+    const input = structuredClone(ScopedPlanCommandSchema.parse(raw)), actor = structuredClone(SupervisionActorSchema.parse(actorInput));
+    return this.store.transactCommand(input.requestId, digest({ composed: kind, input }), actor, async status => {
+      const prepared = await this.prepare(status, input, actor), extra = await extend(status, prepared);
+      return { expectedVersions: [...prepared.expectedVersions, ...extra.expectedVersions], mutations: [...prepared.mutations, ...extra.mutations], result: prepared.result };
+    });
+  }
   async answer(raw: ScopedAnswer, actorInput: SupervisionActor) {
     const answer = structuredClone(ScopedAnswerSchema.parse(raw)), actor = structuredClone(SupervisionActorSchema.parse(actorInput));
     return this.store.transactCommand(answer.submissionId, digest(answer), actor, async status => {
