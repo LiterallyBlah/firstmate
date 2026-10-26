@@ -9,6 +9,7 @@ import { supervisionProcessIdentity } from "./supervision-process";
 import { expected, hash, ids, scope, seed } from "../test/supervision-fixture";
 import type { SupervisionMutation } from "./supervision-store";
 import { capture, captureLedger, observed } from "../test/ci-diagnostics";
+import { WARMUP_TIMEOUT_MS, warmWindowsIdentityProbe } from "../test/supervision-warmup";
 
 let bundle: string;
 const children = new Set<ChildProcess>();
@@ -18,6 +19,11 @@ beforeAll(async () => {
   const build = await rolldown({ input: resolve("test/supervision-child.ts"), platform: "node" });
   try { await build.write({ file: bundle, format: "cjs" }); } finally { await build.close(); }
 });
+// Windows: the first PowerShell start on a cold runner took 3.3–5.3 s, past the probe's 5 s deadline, in whichever
+// child ran first. Pay it here, under the warm-up's own bound, so every child's probe runs warm; assertions are unchanged.
+beforeAll(async () => {
+  if (process.platform === "win32") capture("crash-probe-warmup", { result: await observed("crash-probe-warmup-run", {}, warmWindowsIdentityProbe()) });
+}, WARMUP_TIMEOUT_MS + 10000);
 afterAll(() => { for (const child of children) child.kill("SIGKILL"); });
 afterAll(() => captureLedger("crash"));
 async function launch(config: object) {
