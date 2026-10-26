@@ -38,6 +38,11 @@ For approval recorded from chat in this slice, use `plan approve --plan <id> --e
 --quote <captain's words>`. This records the first mate as its author; approval grants no merge authority.
 Each one-step run costs at most one worker and one initial worker turn. Reviews/relaunches require a
 recorded revision and additional budget; a revision never erases used runs or their evidence.
+`budget.agents` and `budget.turns` are positive finite safe integers counting cumulative attempts,
+including replacements. They may exceed 100; the separate graph limit remains 100 nodes.
+Removed spending and prior attempts remain accounted once. These counts grant no money, access,
+external effect or resource expansion. Continue the existing task and history; resetting, splitting
+or renaming a continuation to obtain fresh capacity is not supported.
 
 `plan revise --file data/plans/<id>/revision-2.json --expected <current plan hash> --reason <why>`
 submits a whole new definition. Started runs and answered decisions stay pinned. Changed assumptions
@@ -137,9 +142,19 @@ applicability. The original result, invalidation and renewal all remain in the e
 deliberate manual replacement or scout promotion. First inspect and stop/archive a wedged worker;
 promotion requires its verified scout report and the captain's authority. Preserve the workspace.
 The transition retains prior attempts, advances the revision and reserves additional cumulative budget.
-Increases over 1.5 times the approved worst case require approval. Start the new intent, make the
+New replacements must declare enough for all spent attempts, the replacement and every other pending
+run. For example, 100 spent plus five pending needs 106 after one accounted worker is replaced;
+101 and 105 are refused. A refusal appends nothing. Earlier committed underdeclared replacements
+remain readable with their original counts and evidence; they receive no refund or automatic repair.
+For Captain-owned plans, increases over 1.5 times the approved worst case require approval.
+Explicitly delegated routine relaunches follow the ownership rules below. Start the new intent, make the
 same-workspace calls from charter §7/§8 manually, then record the actual identities against its new
 attempt. The launch helper deliberately remains limited to new worktree creation.
+
+Qualify a compatible reader and writer before committing a live count above 100. Older readers
+reject such events. After that first event, rollback must retain a capacity-aware reader; deleting
+or rewriting events, truncating the journal or resetting counts to fit an older reader is unsupported.
+The disabled S03 command path still refuses replacement; this capacity correction does not activate it.
 
 `node data/backlog-lint.js` uses the daemon's exact strict backlog observer through `workflow.mjs lint`.
 It accepts opaque legacy blocker prose; only recognized ID lists acquire dependency semantics.
