@@ -1,0 +1,317 @@
+{
+  "format": "firstmate.s04-r04-verification/1",
+  "correctionBase": "25117c7b1c666de9c23b9c85f8e992df8cb94af2",
+  "integrationBase": "a55f07b5507504abf97fe9ca18e1821a1da4b971",
+  "previousVerification": "docs/scoped-supervision/S04-verification.json",
+  "sourceDigest": "953271a13324a39c16ed2e61fc352e7cb1864265b0cd2cd89a05292d8e284491",
+  "source": [
+    {
+      "path": "docs/scoped-supervision/S04-R04.md",
+      "bytes": 5001,
+      "workingSHA256": "7afbda8ae7cbf23d5598bead87fa0a46ade1a89f9110a676fbd9b89073239734",
+      "gitBlob": "85075d9fd57bbe40ac42090ca5bdcb47d6545c80",
+      "committedSHA256": "7afbda8ae7cbf23d5598bead87fa0a46ade1a89f9110a676fbd9b89073239734"
+    },
+    {
+      "path": "docs/scoped-supervision/S04.md",
+      "bytes": 10376,
+      "workingSHA256": "fd72c21612245b179a5a11720860f4c004664f2487e61a25a77b63ae9bd086ce",
+      "gitBlob": "9a35cb6f48cefd37765c1ad8555d9af017933277",
+      "committedSHA256": "fd72c21612245b179a5a11720860f4c004664f2487e61a25a77b63ae9bd086ce"
+    },
+    {
+      "path": "server/scope-requests.ts",
+      "bytes": 7106,
+      "workingSHA256": "668d34433bcb7ac06e65530734f798af4e37ee073af64c14be6972fb7b2ad158",
+      "gitBlob": "e06d592f839c8b820f6faa02af568697cc83db8f",
+      "committedSHA256": "4b3d947a9dc3dd8647ab15d91fb9728c4257ca441f992ea2046f558a7edef354"
+    },
+    {
+      "path": "server/supervision-continuation.ts",
+      "bytes": 27005,
+      "workingSHA256": "cb388502b3d77e65063deff02839a5ed63e63155a756a16427f9735539c9046e",
+      "gitBlob": "6df5f43e3913d7f16913e6d6db625a84588a4da8",
+      "committedSHA256": "518161bbf164cb62b68c8c5e2dcb0d531fcadfa77c3bcf1b5846c5996ca48c93"
+    },
+    {
+      "path": "server/supervision-events.ts",
+      "bytes": 21502,
+      "workingSHA256": "8042a7a758a1c67caa472ddf49b6a28ed7ec64276ff695ead9d8a0d5de0faf22",
+      "gitBlob": "2507509420671ecf35b94919b2b01d7efcac7ace",
+      "committedSHA256": "acae9310184b96ba08db393c0c38a732e7ff7a8571c80deac1a48606d03a1299"
+    },
+    {
+      "path": "server/supervision-inbox.ts",
+      "bytes": 13345,
+      "workingSHA256": "0ec7ac838e3e2127a8516767d7d562d2cc4c269277b7640e38db7e6572847ea7",
+      "gitBlob": "2bba01ef78b3d8a2cfca893aa57157252a69b95d",
+      "committedSHA256": "7cbbd1f9c9fa67ca06da221df15ccb0ab5fee61e0d985ae6d54880b5b522749b"
+    },
+    {
+      "path": "server/supervision-lifecycle.ts",
+      "bytes": 16387,
+      "workingSHA256": "ab76deab5ba4b8591bd4fa1e148a3832884aadf64b199b96abcdcec11594b8fe",
+      "gitBlob": "e489e1e624dea9087b06eb905a6a9191b1dcb045",
+      "committedSHA256": "ab76deab5ba4b8591bd4fa1e148a3832884aadf64b199b96abcdcec11594b8fe"
+    },
+    {
+      "path": "server/supervision-observation.ts",
+      "bytes": 1441,
+      "workingSHA256": "d64ceac50177c3064256776325d8a4f30caf8731236102840b8d426ed13a01f2",
+      "gitBlob": "190dd0d85ad6417ccb59e5b9c79575024f30ab17",
+      "committedSHA256": "d64ceac50177c3064256776325d8a4f30caf8731236102840b8d426ed13a01f2"
+    },
+    {
+      "path": "server/supervision-r04.test.ts",
+      "bytes": 14178,
+      "workingSHA256": "b09c65b874ac0e88434c7a952cf950ab77e2d496bfc2421510b053bc64197e8a",
+      "gitBlob": "836876e8aab3dfaaee77d67ac980b1e7762ab9d4",
+      "committedSHA256": "b09c65b874ac0e88434c7a952cf950ab77e2d496bfc2421510b053bc64197e8a"
+    },
+    {
+      "path": "test/fixtures/supervision-r04/r04-recovery.test.ts.txt",
+      "bytes": 5443,
+      "workingSHA256": "f2b6868e45721ac6f70e3a8000d26c674ec96d73fff5f3ec5237b2383593a02b",
+      "gitBlob": "b9bee824cd385e1ad4a6da4ea734c90e399038ff",
+      "committedSHA256": "f2b6868e45721ac6f70e3a8000d26c674ec96d73fff5f3ec5237b2383593a02b"
+    },
+    {
+      "path": "test/fixtures/supervision-r04/r04.test.ts.txt",
+      "bytes": 1830,
+      "workingSHA256": "3bea96408bcba84e782084e12a2dafbb307f030f255caf7b15469ceb39230fea",
+      "gitBlob": "065d8b0e949d26d4c8b40b9a1ec8e414822e1be4",
+      "committedSHA256": "3bea96408bcba84e782084e12a2dafbb307f030f255caf7b15469ceb39230fea"
+    },
+    {
+      "path": "test/supervision-r04-fixture.ts",
+      "bytes": 1804,
+      "workingSHA256": "fcfefa176fb8759612fb1bb555d5acf0519bcaa945c28177ff05f019da5cc571",
+      "gitBlob": "b9a9071d42fbba6122703c1ebec8f6519751dc8b",
+      "committedSHA256": "fcfefa176fb8759612fb1bb555d5acf0519bcaa945c28177ff05f019da5cc571"
+    }
+  ],
+  "original110": [
+    {
+      "path": "server/supervision-effects.test.ts",
+      "gitBlob": "6544f9d3711ce3ba40f24f557f4548b0ab067eda"
+    },
+    {
+      "path": "server/supervisor-sessions.test.ts",
+      "gitBlob": "df043fbd4aa20add53f3386d4fdf2b3318c030e1"
+    },
+    {
+      "path": "server/supervision-continuation.test.ts",
+      "gitBlob": "96aabb39186e509b3da8ebcae51450913426e508"
+    },
+    {
+      "path": "server/scope-requests.test.ts",
+      "gitBlob": "91a6f5200a9b167be362b71a967b60e1e94c052f"
+    },
+    {
+      "path": "server/supervision-s04-review.test.ts",
+      "gitBlob": "27b70dfbf65d7f6e4866ee607f7ec05aef493548"
+    },
+    {
+      "path": "server/supervision-s04-closure.test.ts",
+      "gitBlob": "2bb00b88f8326421002720476a352622f5deda97"
+    },
+    {
+      "path": "server/supervision-lifecycle.test.ts",
+      "gitBlob": "59876aa9bf591fee53bb83240c3746480921e1fe"
+    },
+    {
+      "path": "server/mate.test.ts",
+      "gitBlob": "d4425f94f6c9cc99c5d173f11225f153ce655227"
+    },
+    {
+      "path": "server/templates.test.ts",
+      "gitBlob": "b55707cbc259889eadf25440d4e737b3480e1528"
+    }
+  ],
+  "reviewReport": {
+    "path": "C:/Users/micha/.paseo/plugin-data/firstmate/home/data/fm-ss-r04/report.md",
+    "SHA256": "b7414a5174027d4ac79516ca8d89a03dec8397e35f134fc8d99790fbedb52d44"
+  },
+  "originalProbes": [
+    {
+      "originalPath": "C:/Users/micha/.paseo/plugin-data/firstmate/home/data/fm-ss-r04/source/review/r04.test.ts",
+      "retainedPath": "test/fixtures/supervision-r04/r04.test.ts.txt",
+      "bytes": 1830,
+      "SHA256": "3bea96408bcba84e782084e12a2dafbb307f030f255caf7b15469ceb39230fea"
+    },
+    {
+      "originalPath": "C:/Users/micha/.paseo/plugin-data/firstmate/home/data/fm-ss-r04/source/review/r04-recovery.test.ts",
+      "retainedPath": "test/fixtures/supervision-r04/r04-recovery.test.ts.txt",
+      "bytes": 5443,
+      "SHA256": "f2b6868e45721ac6f70e3a8000d26c674ec96d73fff5f3ec5237b2383593a02b"
+    }
+  ],
+  "runtime": {
+    "node": "v24.18.0",
+    "executableSHA256": "9a4eb5f1c29c6a2e93852ead46b999e284a6a5ca8bab4d4e241d587d025a52de",
+    "platform": "win32"
+  },
+  "red": {
+    "productHead": "25117c7b1c666de9c23b9c85f8e992df8cb94af2",
+    "path": ".local/s04-r04/red.log",
+    "SHA256": "619c4282db84e9685c5e3deb2676d12bb600645daffd28fba5e24034851e36fc",
+    "observed": "Three named R04 regressions failed before product edits.",
+    "limitation": "PowerShell Stop preference interrupted stderr capture before JSON publication. Console summary only; no red JSON claimed. The suite was later extended with five controls."
+  },
+  "commands": {
+    "typecheck": {
+      "command": "node node_modules/typescript/bin/tsc --noEmit",
+      "exit": 0,
+      "log": ".local/s04-r04/typecheck.log",
+      "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "green": "node node_modules/vitest/vitest.mjs run server/supervision-r04.test.ts --maxWorkers=2 --reporter=default --reporter=json --outputFile=.local/s04-r04/green.json",
+    "selected": "node node_modules/vitest/vitest.mjs run server/supervision-r04.test.ts server/supervision-effects.test.ts server/supervisor-sessions.test.ts server/supervision-continuation.test.ts server/scope-requests.test.ts server/supervision-s04-review.test.ts server/supervision-s04-closure.test.ts server/supervision-lifecycle.test.ts server/mate.test.ts server/templates.test.ts --maxWorkers=2 --reporter=default --reporter=json --outputFile=.local/s04-r04/selected.json",
+    "full": "node node_modules/vitest/vitest.mjs run --passWithNoTests --maxWorkers=2 --testTimeout=20000 --reporter=dot --reporter=json --outputFile=.local/s04-r04/full.json"
+  },
+  "reports": [
+    {
+      "name": "green",
+      "path": ".local/s04-r04/green.json",
+      "SHA256": "d39aa4c286a6f3b23d5a9f448169bb514334e84f5e932a7ba3f0c567c67a2aad",
+      "files": 1,
+      "total": 3,
+      "passed": 3,
+      "skipped": 0,
+      "failed": 0,
+      "startedAt": "2026-10-26T19:55:58.627Z",
+      "r04": [
+        {
+          "test": "R04 independent counterexamples R04-01: processes a request beyond twenty retained completed requests",
+          "status": "passed",
+          "durationMs": 402.8307
+        },
+        {
+          "test": "R04 independent counterexamples R04-02: manual replacement reoffers the old pending page before new facts progress",
+          "status": "passed",
+          "durationMs": 18536.4989
+        },
+        {
+          "test": "R04 independent counterexamples R04-03: a pending worker lookup cannot block a different ready owner's recovery wake",
+          "status": "passed",
+          "durationMs": 10130.344400000002
+        }
+      ],
+      "scope": "Three original counterexamples after the product fix, before the five added boundary controls."
+    },
+    {
+      "name": "selected",
+      "path": ".local/s04-r04/selected.json",
+      "SHA256": "4159878fead06bf09b56afa50a1a5c225ab2d510fc4c9f211daba704fd1c591d",
+      "files": 10,
+      "total": 118,
+      "passed": 118,
+      "skipped": 0,
+      "failed": 0,
+      "startedAt": "2026-10-26T19:58:52.798Z",
+      "r04": [
+        {
+          "test": "R04 independent counterexamples R04-01: processes a request beyond twenty retained completed requests",
+          "status": "passed",
+          "durationMs": 344.5219
+        },
+        {
+          "test": "R04 independent counterexamples R04-02: manual replacement reoffers the old pending page before new facts progress",
+          "status": "passed",
+          "durationMs": 16100.666400000002
+        },
+        {
+          "test": "R04 independent counterexamples R04-03: a pending worker lookup cannot block a different ready owner's recovery wake",
+          "status": "passed",
+          "durationMs": 9996.372600000002
+        },
+        {
+          "test": "R04 independent counterexamples R04-02: partial handling survives a crash at reoffer publication, without replaying an uncertain worker send",
+          "status": "passed",
+          "durationMs": 23242.360000000004
+        },
+        {
+          "test": "R04 independent counterexamples R04-03: a pending effect read cannot gate another scope",
+          "status": "passed",
+          "durationMs": 8657.687900000004
+        },
+        {
+          "test": "R04 independent counterexamples R04-03: a pending native-ingress read cannot gate another scope",
+          "status": "passed",
+          "durationMs": 6048.265399999997
+        },
+        {
+          "test": "R04 independent counterexamples R04-03: timed-out worker reads stay unknown and reuse the pending lookup on the next pass",
+          "status": "passed",
+          "durationMs": 4627.132000000005
+        },
+        {
+          "test": "R04 independent counterexamples R04-03: a late effect receipt after the read deadline retains its original intent and spend",
+          "status": "passed",
+          "durationMs": 3206.0867
+        }
+      ],
+      "scope": "Final product/test source: unchanged original nine suites (110) and eight R04 regressions."
+    },
+    {
+      "name": "full",
+      "path": ".local/s04-r04/full.json",
+      "SHA256": "b32a03ee72b48e8d6162c64d2347f319b0f65f37144dfc4e736003cfdf13a8ee",
+      "files": 182,
+      "total": 2691,
+      "passed": 2688,
+      "skipped": 3,
+      "failed": 0,
+      "startedAt": "2026-10-26T20:01:30.212Z",
+      "r04": [
+        {
+          "test": "R04 independent counterexamples R04-01: processes a request beyond twenty retained completed requests",
+          "status": "passed",
+          "durationMs": 565.6268999999999
+        },
+        {
+          "test": "R04 independent counterexamples R04-02: manual replacement reoffers the old pending page before new facts progress",
+          "status": "passed",
+          "durationMs": 18280.7507
+        },
+        {
+          "test": "R04 independent counterexamples R04-03: a pending worker lookup cannot block a different ready owner's recovery wake",
+          "status": "passed",
+          "durationMs": 11562.1483
+        },
+        {
+          "test": "R04 independent counterexamples R04-02: partial handling survives a crash at reoffer publication, without replaying an uncertain worker send",
+          "status": "passed",
+          "durationMs": 22457.964100000005
+        },
+        {
+          "test": "R04 independent counterexamples R04-03: a pending effect read cannot gate another scope",
+          "status": "passed",
+          "durationMs": 9807.8514
+        },
+        {
+          "test": "R04 independent counterexamples R04-03: a pending native-ingress read cannot gate another scope",
+          "status": "passed",
+          "durationMs": 6587.252800000002
+        },
+        {
+          "test": "R04 independent counterexamples R04-03: timed-out worker reads stay unknown and reuse the pending lookup on the next pass",
+          "status": "passed",
+          "durationMs": 4125.568700000003
+        },
+        {
+          "test": "R04 independent counterexamples R04-03: a late effect receipt after the read deadline retains its original intent and spend",
+          "status": "passed",
+          "durationMs": 3037.409400000004
+        }
+      ],
+      "scope": "Complete repository suite on final product/test source; only documentation/evidence edited afterward."
+    }
+  ],
+  "limitations": [
+    "Disabled synthetic implementation only; no provider/model calls, live resources, plugin installation/reload/activation, migration or merge.",
+    "Read deadlines preserve unknown outcomes and never imply native cancellation, fencing, termination or permission to resend.",
+    "Original delivered verification remains historical. Exact-head GitHub CI is separate; no manual workflow reruns.",
+    "R04 independent re-review and all existing runtime/policy/activation gates remain external. Historical C2 disposition unchanged."
+  ]
+}

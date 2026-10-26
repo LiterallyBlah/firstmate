@@ -174,6 +174,12 @@ describe("changing the first mate", () => {
     const { paseo } = fakePaseo({ other: { ...other } });
     await expect(adoptMate(paseo, "other")).resolves.toMatchObject({ mateAgentId: "other" });
   });
+
+  it("a scoped supervisor remains a guest and cannot be adopted as the global mate", async () => {
+    const { paseo, sent } = fakePaseo({ supervisor: { ...other, id: "supervisor", labels: { "firstmate.role": "plan-supervisor" } } });
+    await expect(adoptMate(paseo, "supervisor")).rejects.toThrow(/scoped supervisors/);
+    expect((await readFirstmateConfig()).mateAgentId).toBe(""); expect(sent).toEqual([]);
+  });
 });
 
 describe("reserved launch recovery", () => {

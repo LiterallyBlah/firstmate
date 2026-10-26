@@ -1,0 +1,265 @@
+{
+  "format": "firstmate.s04-verification/1",
+  "base": "a55f07b5507504abf97fe9ca18e1821a1da4b971",
+  "reusedPrep": "4ef8addf4bfd2f6c871f131713d22f4fbbca0352",
+  "sourceDigest": "17558eab9ff847ac9dc00c61e5a91404a1a9601c0b8f5ccbe605a2e45c5831d4",
+  "source": [
+    {
+      "path": "docs/scoped-supervision/S04-prep.md",
+      "bytes": 17950,
+      "workingSHA256": "e04d43dd36c20207c8ef5e4337195faf80375e94385e7531b6f33d5f7a219184",
+      "gitBlob": "80ad4cf483bd84428201ee633fac62501077a1f1",
+      "committedSHA256": "127add189810d8b8cc1781c4795d06f9dfcb08d8b924c8bf0c088bccbcecad35"
+    },
+    {
+      "path": "docs/scoped-supervision/S04.md",
+      "bytes": 10175,
+      "workingSHA256": "7f4731a140b6a82ad3b35ddc5fd4342fe7f1010c552b8eb291ce034d1b099187",
+      "gitBlob": "9f3354704faa4c5da15496d3756bd49fd401e26e",
+      "committedSHA256": "7f4731a140b6a82ad3b35ddc5fd4342fe7f1010c552b8eb291ce034d1b099187"
+    },
+    {
+      "path": "server/mate.test.ts",
+      "bytes": 17308,
+      "workingSHA256": "f1f6373ac13c3fc5853e0d9dbef15bfbd80fb684da01b9854da1c9040e3a7afc",
+      "gitBlob": "d4425f94f6c9cc99c5d173f11225f153ce655227",
+      "committedSHA256": "d002dbe8a4a3e273380a57c4628efedbc619f7a170b40eabc8279ab5320504dd"
+    },
+    {
+      "path": "server/mate.ts",
+      "bytes": 23048,
+      "workingSHA256": "cd95e6938d34ed2050d062a06cc87cc36289506db37f3861b91157e3c16b989f",
+      "gitBlob": "35f1b4a91155060dbdf360e70c1d906814771e5f",
+      "committedSHA256": "059925ebd251e15c370b1275a1cdb1fd69f691069d290ff7366d4d3521af8a50"
+    },
+    {
+      "path": "server/scope-requests.test.ts",
+      "bytes": 6232,
+      "workingSHA256": "78d6ca94a38dff7dee9d80572287e66be7feb8beee35b8f78d0331f7ee404198",
+      "gitBlob": "91a6f5200a9b167be362b71a967b60e1e94c052f",
+      "committedSHA256": "6becf88581ef842ffbcdc73174ef00e7762c5bd6d9cb4209b25d34af732fb2fa"
+    },
+    {
+      "path": "server/scope-requests.ts",
+      "bytes": 7062,
+      "workingSHA256": "5c2824e7e3f84d71acd2b89bf7e5c9b35c6924088561d234e4813565741c4960",
+      "gitBlob": "e41fb9f051bec4e3188f5b243068a05181fb478a",
+      "committedSHA256": "483c358cf5e03aa5c076e67aab60ca1d0976fcedd6b8b0c3fbd5d1b951b0ae52"
+    },
+    {
+      "path": "server/supervision-commands.ts",
+      "bytes": 29960,
+      "workingSHA256": "ee1b99f057a585b6413af03a66fc36821be44d26ac698c450971aa1551583e3f",
+      "gitBlob": "9be0d2e05dc416f8a8ea5e773eb293a5a08bf617",
+      "committedSHA256": "164b5c8d657f988bc9d3e6a5acec742c8078211b88da469b3d910c7a1aa8b68f"
+    },
+    {
+      "path": "server/supervision-continuation.test.ts",
+      "bytes": 12544,
+      "workingSHA256": "2f91528839b10b272c84f0564b9f8e37ae4ee59b3f7fb189281c9676004a3873",
+      "gitBlob": "96aabb39186e509b3da8ebcae51450913426e508",
+      "committedSHA256": "2eba3444a00b5e0c3f90d72b5d1d4baa897d89b28dbf9592a0c7dd5b5b19c89c"
+    },
+    {
+      "path": "server/supervision-continuation.ts",
+      "bytes": 26780,
+      "workingSHA256": "b07f37b713923a2b0a986e0bc05a0e937e18d4a07e52387762c26bbce4705898",
+      "gitBlob": "5b7588e37ad3bc6cc17ff6884e084185f7520154",
+      "committedSHA256": "80cd76f2f1743521d10a3918026c85e2be153d8721fe146b6a73f5e7a552e732"
+    },
+    {
+      "path": "server/supervision-effects.test.ts",
+      "bytes": 20056,
+      "workingSHA256": "0c80a7e749883585a799d13b81ce3ddac49ae8a1d90ad8abed79bc00ded53b52",
+      "gitBlob": "6544f9d3711ce3ba40f24f557f4548b0ab067eda",
+      "committedSHA256": "24db4440f6b493d530cf3dda195d7bb3538e6d8adaa8e9f7321a7ade34c6b804"
+    },
+    {
+      "path": "server/supervision-effects.ts",
+      "bytes": 49117,
+      "workingSHA256": "e907004bb5655f4bf895d144d75e091a6fa2e658b9d8fc6e75af32c0b9897816",
+      "gitBlob": "303851d28a090c31e9827e51593c3e93fac83a3f",
+      "committedSHA256": "42e930a8d13af7170c407b90abd2a96c264d4c411d07f0d3305c5f366f531f31"
+    },
+    {
+      "path": "server/supervision-inbox.ts",
+      "bytes": 13107,
+      "workingSHA256": "e0ed634883487d36a500943cbcd1dab354bdef46b5f5cf2fcbd53c5b13d147c5",
+      "gitBlob": "013b6a9f0366a505d133a77e5558645cd8c0d639",
+      "committedSHA256": "0681ed66cfbf67c3ba9e59da78e9b6c8a6b1523c563b9ee7cad975ee83c7a245"
+    },
+    {
+      "path": "server/supervision-lifecycle.test.ts",
+      "bytes": 17219,
+      "workingSHA256": "3bdd23d36458906f718135a2d641c76e2bd50521a419c81a08d8cc323101cd26",
+      "gitBlob": "59876aa9bf591fee53bb83240c3746480921e1fe",
+      "committedSHA256": "3bdd23d36458906f718135a2d641c76e2bd50521a419c81a08d8cc323101cd26"
+    },
+    {
+      "path": "server/supervision-lifecycle.ts",
+      "bytes": 13929,
+      "workingSHA256": "17ee9fb0f836dcfabb547f66a49aad79ea45fefebe18e90571708e0b1c90ed94",
+      "gitBlob": "d5db66ddbe32e7a2fed28713d88e215147fc2660",
+      "committedSHA256": "17ee9fb0f836dcfabb547f66a49aad79ea45fefebe18e90571708e0b1c90ed94"
+    },
+    {
+      "path": "server/supervision-routing.ts",
+      "bytes": 2914,
+      "workingSHA256": "5d82231b70f8b9b5a0cd3c6c72a542e8e9058aec812b2152ebc4f91da88087f8",
+      "gitBlob": "070e1bd1546dc4d3f5d493445cad49878711fa07",
+      "committedSHA256": "5d82231b70f8b9b5a0cd3c6c72a542e8e9058aec812b2152ebc4f91da88087f8"
+    },
+    {
+      "path": "server/supervision-s04-closure.test.ts",
+      "bytes": 22415,
+      "workingSHA256": "60af12bfe1a80b5460b2b61ccc0682027adee4c08389bfc1ab7057b440bdbe1c",
+      "gitBlob": "2bb00b88f8326421002720476a352622f5deda97",
+      "committedSHA256": "955b492dcccfcbf57599c73aa6c8c302473f9b4332782256e8261ad3e04f1342"
+    },
+    {
+      "path": "server/supervision-s04-review.test.ts",
+      "bytes": 27502,
+      "workingSHA256": "1e9cd01069d3907ee2f3331e6e3b2c45f59e8dc007cef230aa1aa3d001baad83",
+      "gitBlob": "27b70dfbf65d7f6e4866ee607f7ec05aef493548",
+      "committedSHA256": "49c726ffd9e5cd63f835d2e094ad6782cfc0928669b533551514c1d0b1dba323"
+    },
+    {
+      "path": "server/supervision-store.ts",
+      "bytes": 56139,
+      "workingSHA256": "839ed00e80d0914a9639ad5899f346a3a1669b8f6ad25f022743dd27597f705d",
+      "gitBlob": "b3f7f410414cd4f3eb7b6d71587acf06b9137772",
+      "committedSHA256": "a0cdb87a07c0091eff625eb1351a60be607121a444b929e65bca9407974dc9d2"
+    },
+    {
+      "path": "server/supervisor-sessions.test.ts",
+      "bytes": 9995,
+      "workingSHA256": "f57cec77d2a9b7e7074d6b68509b25bfb547552741d17e7432ac5379f0e9c0a8",
+      "gitBlob": "df043fbd4aa20add53f3386d4fdf2b3318c030e1",
+      "committedSHA256": "2c7d0bfff14a3ca8c4ca5bd00dc9a8c5d46e2f8d6f9f023267d003d04d1d2c80"
+    },
+    {
+      "path": "server/supervisor-sessions.ts",
+      "bytes": 17327,
+      "workingSHA256": "c246a2190039962a26601ea375990bebe8e4324ca0af50537ff0efca8f9ea688",
+      "gitBlob": "7a75a35b46ae2f29fdd3da185ebb7e5abc1950b5",
+      "committedSHA256": "184b3c6c2c887ec948abf733dd159f1b934e39c5eb8c23be043bda87324d5f45"
+    },
+    {
+      "path": "server/templates.ts",
+      "bytes": 7084,
+      "workingSHA256": "925fe61e0a3e93fca5db60a97e51452a56933375119acc87991a5ce6d090e3ea",
+      "gitBlob": "310c3cc0d5e33ce896d436676d3b46bc1579660d",
+      "committedSHA256": "21a62fe1d8d71b316f3145c83abbc97509c39f3862ea32d955f870161a0ccd77"
+    },
+    {
+      "path": "server/workflow-plans.ts",
+      "bytes": 69839,
+      "workingSHA256": "bb394b65fb26c0e15e5ac5db3f69a947bade00dbdcfa018046218eaadb99ca98",
+      "gitBlob": "702c1cc8fc12fe99249742fec6f442d925ca7237",
+      "committedSHA256": "c20cd6fa0c197af68804a1eae9fdeb36c64b0595870785c943a0e74aef9ad2ae"
+    },
+    {
+      "path": "server/workflow-service.ts",
+      "bytes": 5906,
+      "workingSHA256": "dc16f607aae9a5044d180145b5575d1ebc11cb3fced6ccc3fc089769c86166dc",
+      "gitBlob": "2bba16c0f2fd5ea824642dfca4e32c4e660d5403",
+      "committedSHA256": "0fb5e816509bb8f191f4aa48b0fcb579db4c53a6b8f893ebfc77048039d03d62"
+    },
+    {
+      "path": "shared/supervision-continuation.ts",
+      "bytes": 3019,
+      "workingSHA256": "5f61b02746bef09719fb04e7a4cdf104d081a9c0a8eafc78fcb00d8aab57a4a9",
+      "gitBlob": "7a30a22b7d9faa879ba81b03f91c5aac3768445b",
+      "committedSHA256": "0bb2ad12ca2a4cbd7554160a656a1775430d30b1faecfd370ef698a81ca76984"
+    },
+    {
+      "path": "shared/supervision-effects.ts",
+      "bytes": 5372,
+      "workingSHA256": "e7d69a79916b287c910f64485886e3d6ffd391087f67c237b9b7557a9500397a",
+      "gitBlob": "1f926e2fabfac27fdf47ff2807f9031fdc6fcb61",
+      "committedSHA256": "6104c290864c1418e0579cef696a1522a6a14a34617e9bad94665d7099017f51"
+    },
+    {
+      "path": "shared/supervision.ts",
+      "bytes": 11791,
+      "workingSHA256": "e7b8c0ba7f31d3babee6330b6aeaf6d704be196727b157a87179edfa55cd2eee",
+      "gitBlob": "b2048879ae777f46c38dbd2a5ca99943e73c0b59",
+      "committedSHA256": "7ae636340c358815e1bca12fafccb802123dda48275903fcf81b20c71981426b"
+    },
+    {
+      "path": "templates/messages/scope-continuation.md",
+      "bytes": 978,
+      "workingSHA256": "17f429fa15838100887f5c857cf666dfc1859e0780651458c2f1003b9a211f57",
+      "gitBlob": "4de1d45721ff34bc128967a4c07be011e609f14e",
+      "committedSHA256": "17f429fa15838100887f5c857cf666dfc1859e0780651458c2f1003b9a211f57"
+    },
+    {
+      "path": "templates/messages/scope-facts.md",
+      "bytes": 935,
+      "workingSHA256": "42f2e5160f522a541d4bf1b06a07b26f37b5cd97672ee8713a8da6af19dc3e0f",
+      "gitBlob": "b1c58eb01e75d6058ae14aa2aa64d5ab09fff171",
+      "committedSHA256": "42f2e5160f522a541d4bf1b06a07b26f37b5cd97672ee8713a8da6af19dc3e0f"
+    },
+    {
+      "path": "templates/tools/scope.mjs",
+      "bytes": 4025,
+      "workingSHA256": "d2478e8a6a168b5f390253ee1ff212d1a2893bb71a3fd5baa1b60a793fceb2c4",
+      "gitBlob": "c9bed880bef1ebac3b8eb000d7aa354ce415a792",
+      "committedSHA256": "a77b2d947c43f4d1b0295c127d04100ed73d50f8e3bf43d8debe85cbfd05b04b"
+    },
+    {
+      "path": "test/supervision-s04-fixture.ts",
+      "bytes": 11673,
+      "workingSHA256": "f4e1ef0885e1bae7a397f1b3cbc246ca38c486d46a3fba49e1e3226d2bcd4e9b",
+      "gitBlob": "60bd052ae4b60d6c832291da1dc7c5b6472e3f76",
+      "committedSHA256": "26ab825bd8dc9409c1738761629759907a477753458be880c1f39d18766331b9"
+    },
+    {
+      "path": "test/synthetic-receiver.ts",
+      "bytes": 5390,
+      "workingSHA256": "8e15b4bf7db33e6eff9194383f2d06299468dd8ec0c2875b2b31fa7494d97080",
+      "gitBlob": "463fcf25717ec376bd34f4b450c41d57950764a5",
+      "committedSHA256": "71bd835da3be7519cfec166af801aa09e0cc7cbcd9c779709ac9a73b08963957"
+    }
+  ],
+  "runtime": {
+    "node": "v24.18.0",
+    "executableSHA256": "9a4eb5f1c29c6a2e93852ead46b999e284a6a5ca8bab4d4e241d587d025a52de",
+    "platform": "win32"
+  },
+  "commands": {
+    "typecheck": "node node_modules/typescript/bin/tsc --noEmit (exit 0, final staged source)",
+    "full": "node node_modules/vitest/vitest.mjs run --passWithNoTests --maxWorkers=2 --testTimeout=20000 --reporter=dot --reporter=json --outputFile=.local/s04-evidence/full-tests.json",
+    "frozen": "node node_modules/vitest/vitest.mjs run server/supervision-lifecycle.test.ts server/scope-requests.test.ts server/supervisor-sessions.test.ts server/templates.test.ts --maxWorkers=2 --reporter=dot --reporter=json --outputFile=.local/s04-evidence/frozen-integration.json"
+  },
+  "reports": [
+    {
+      "name": "full-tests",
+      "SHA256": "b2efa33baeec6dec5013fbd927a4e081f10434d15e3a21a920fe5c0346e8fe59",
+      "files": 181,
+      "total": 2683,
+      "passed": 2680,
+      "skipped": 3,
+      "failed": 0,
+      "startedAt": "2026-10-26T19:08:47.370Z",
+      "scope": "Complete Windows repository suite, preceding the final bounded-context/read edits."
+    },
+    {
+      "name": "frozen-integration",
+      "SHA256": "ed142f36754feee12f5b693cd01b1ff3460ed1f999b2ffd48d303ac09d35dede",
+      "files": 4,
+      "total": 24,
+      "passed": 24,
+      "skipped": 0,
+      "failed": 0,
+      "startedAt": "2026-10-26T19:14:11.425Z",
+      "scope": "Frozen-source final integration, helper, session and template checks after the complete-suite run."
+    }
+  ],
+  "limitations": [
+    "All receiver work is synthetic; no provider/model calls, live resources, installation, activation or migration.",
+    "The complete-suite run and final focused run are separate observations; exact-head full Windows/Linux and visual checks are GitHub CI.",
+    "One earlier new integration assertion used an invalid implicit-command fixture; corrected to the real command schema, preserving the failed local receipt.",
+    "Historical C2/normal ownership uncertainty and all operational holds remain unchanged; no new empty-job/compile qualification probe."
+  ]
+}

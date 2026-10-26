@@ -2,6 +2,7 @@
 import { z } from "zod";
 import { PlanId, type WorkflowPlan } from "./workflow-plans";
 import type { InboxProjection } from "./supervision-inbox";
+import type { Continuation } from "./supervision-continuation";
 import type { AcceptedScopedCommand, OperationHold, PolicyApproval, PolicyEvidence, PolicyRule, PolicySource, ScopedDecision, ScopedOutbox } from "./supervision-policy";
 
 export const SupervisionHash = z.string().length(64).regex(/^[0-9a-f]{64}$/);
@@ -25,11 +26,17 @@ export const SupervisionScopeSchema = z.object({
   projectIds: unique(SupervisionUuid, 64), sponsorId: SupervisionUuid.nullable(), version: positive,
   mode: z.enum(["legacy", "scoped"]), state: z.enum(["dormant", "active", "held", "transferring", "retired"]),
 }).strict();
+/** S04 v1 extension (explicit, additive): `workspaceIntent` names a reserved workspace request;
+ * `workspaceId` is only ever the verified Paseo workspace ID. It is null solely while a reserved
+ * binding is unverified, and becomes non-null once, with prepared -> active, in the same epoch.
+ */
 export const SupervisionBindingSchema = z.object({
-  scopeId: SupervisionUuid, epoch: positive, hostId: text(), agentId: text(), workspaceId: text(),
+  scopeId: SupervisionUuid, epoch: positive, hostId: text(), agentId: text(), workspaceId: text().nullable(),
+  workspaceIntent: text().optional(),
   profileDigest: SupervisionHash, state: z.enum(["prepared", "active", "suspect", "retired"]),
   checkpointHash: SupervisionHash, acknowledgedSeq: count, heartbeatDue: SupervisionUtc.nullable(),
-}).strict();
+}).strict().refine(b => b.workspaceId !== null || (b.workspaceIntent !== undefined && b.state !== "active"),
+  "An unverified binding needs a workspace intent and cannot be active.");
 export const SupervisionEffectSchema = z.object({
   id: SupervisionUuid, logicalKey: text(1024), requestId: SupervisionUuid, requestHash: SupervisionHash,
   scopeId: SupervisionUuid, epoch: positive, attemptId: SupervisionUuid.nullable(), operation: text(),
@@ -38,6 +45,12 @@ export const SupervisionEffectSchema = z.object({
   approvalId: SupervisionUuid.nullable(), resourceIds: unique(text(), 256),
   state: z.enum(["reserved", "dispatching", "accepted", "uncertain", "succeeded", "failed", "cancelled"]),
   receiverKey: text(1024).nullable(), receiptRef: text(1024).nullable(), version: positive,
+  /** S04 v1 extension: immutable content-addressed bytes a send delivers. Never authority evidence. */
+  payloadDigest: SupervisionHash.optional(),
+  /** S04 v1 extension: the exact prerequisite outcomes admitted at reservation (S03 dependency
+   * bindings, without the plan hash/revision snapshot), re-resolved at final dispatch admission. */
+  dependencyBindings: z.array(z.object({ planId: PlanId, nodeId: PlanId, outcome: z.enum(["done", "landed", "answered"]),
+    attemptId: SupervisionUuid.nullable() }).strict()).max(100).optional(),
 }).strict();
 export const SupervisionEventSchema = z.object({
   version: z.literal(1), eventId: SupervisionUuid,
@@ -86,7 +99,7 @@ export const SupervisionBackendSchema = z.object({
 }).strict();
 export const SupervisionRowKind = z.enum(["scope", "binding", "task", "attempt", "effect", "backend", "workflow", "retirement", "blob",
   "inbox-event", "inbox-assignment", "inbox-source", "inbox-mailbox", "inbox-offer", "inbox-request",
-  "policy-source", "policy-rule", "policy-evidence", "approval", "decision", "outbox", "operation-hold", "command"]);
+  "policy-source", "policy-rule", "policy-evidence", "approval", "decision", "outbox", "operation-hold", "command", "continuation"]);
 export const SupervisionExpectedSchema = z.object({ kind: SupervisionRowKind, id: text(1024), version: count }).strict();
 export const SupervisionActorSchema = z.object({
   kind: z.enum(["captain-ui", "mate-chat", "agent", "system"]), id: text(), source: text(1024),
@@ -124,6 +137,8 @@ export interface SupervisionStatus {
   policySources: PolicySource[]; policyRules: PolicyRule[]; policyEvidence: PolicyEvidence[]; approvals: PolicyApproval[];
   decisions: ScopedDecision[]; outbox: ScopedOutbox[]; operationHolds: OperationHold[]; commands: AcceptedScopedCommand[];
   plans: { scopeId: string; plan: WorkflowPlan }[];
+  /** S04 unfinished-goal assessments; absent rows are derived as due, never as finished. */
+  continuations: Continuation[];
   retirements: { scopeId: string; plan: string; evidence: string; hash: string }[];
   retainedOwnership: SupervisionOwnership[];
   inbox: InboxProjection;

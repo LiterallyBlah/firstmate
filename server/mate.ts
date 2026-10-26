@@ -21,6 +21,7 @@ import { receiptJournal, recordGeneration, sha256 } from "./receipts";
 import { observedSend, sendWithoutInterrupting } from "./send";
 import { writeUpload } from "./uploads";
 import { serialized } from "./serialize";
+import { SUPERVISOR_ROLE } from "../shared/supervision-effects";
 
 export const MATE_TITLE = "First mate";
 
@@ -185,7 +186,7 @@ export async function adoptMate(paseo: PaseoApi, agentId: string): Promise<First
   return oneAtATime(async () => {
     const candidate = await fetchLiveAgent(paseo, agentId);
     if (candidate === null) throw new Error(`Paseo has no live agent ${agentId}.`);
-    if (["watch-inspector", "topic-adviser"].includes(candidate.labels?.["firstmate.role"] ?? "")) throw new Error("Inspectors and topic advisers cannot take the first-mate role.");
+    if (["watch-inspector", "topic-adviser", SUPERVISOR_ROLE].includes(candidate.labels?.["firstmate.role"] ?? "")) throw new Error("Inspectors, topic advisers and scoped supervisors cannot take the first-mate role.");
     const config = await readFirstmateConfig();
     requireNoMigration(config);
     // Checked here rather than trusted from the launch panel: a launch may have finished while this waited.
@@ -216,7 +217,7 @@ export async function releaseMate(): Promise<FirstmateConfig> {
 export async function listCandidates(paseo: PaseoApi): Promise<{ home: string; agents: AgentSummary[] }> {
   const home = resolveHome(await readFirstmateConfig());
   const agents = (await listAgents(paseo))
-    .filter((agent) => ![CREW_LABELS.crewRole, "watch-inspector", "topic-adviser"].includes(agent.labels[CREW_LABELS.role] ?? ""))
+    .filter((agent) => ![CREW_LABELS.crewRole, "watch-inspector", "topic-adviser", SUPERVISOR_ROLE].includes(agent.labels[CREW_LABELS.role] ?? ""))
     .map(summarizeAgent)
     .sort((a, b) => {
       const inHome = Number(b.cwd === home) - Number(a.cwd === home);

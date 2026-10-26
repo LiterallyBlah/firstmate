@@ -1,7 +1,7 @@
 import { readdir, readFile, stat, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { z } from "zod";
-import { WorkflowCommandSchema } from "../shared/workflow-plans";
+import { WorkflowCommandSchema, type WorkflowCommand } from "../shared/workflow-plans";
 import { readFirstmateConfig, resolveHome, updateFirstmateConfig } from "./config";
 import { pluginDir } from "./data-dir";
 import { resolveInHome } from "./files";
@@ -14,14 +14,18 @@ import { message, TEMPLATES } from "./templates";
 import { randomUUID } from "node:crypto";
 import type { ScopedPlanCommand, SupervisionCommands } from "./supervision-commands";
 import type { SupervisionActor } from "../shared/supervision";
+import { SupervisionStore } from "./supervision-store";
+import { legacyRoute } from "./supervision-routing";
 
 /** Separate, disabled-by-default cooperative command class. Legacy file requests stay legacy. */
 export function executeScopedWorkflow(commands: SupervisionCommands, input: ScopedPlanCommand, actor: SupervisionActor) {
+  if (["start", "claim", "implicit"].includes(input.command.op)) throw new Error("Scoped starts require the S04 effect gateway.");
   return commands.planCommand(input, actor);
 }
 
 export const WorkflowRequestSchema = z.object({ id: z.uuid(), actor: z.string().min(1), command: WorkflowCommandSchema }).strict();
-export function workflowStore(home: string) { return new WorkflowPlanStore(join(pluginDir(), "workflow-plans", digest(process.platform === "win32" ? resolve(home).toLowerCase() : resolve(home))), home); }
+export function workflowStore(home: string) { return new WorkflowPlanStore(join(pluginDir(), "workflow-plans", digest(process.platform === "win32" ? resolve(home).toLowerCase() : resolve(home))), home,
+  command => legacyRoute(new SupervisionStore(pluginDir(), home), command)); }
 export async function authorizeWorkflowActor(home: string, actor: string): Promise<void> {
   const live = await readFirstmateConfig();
   if (!live.mateAgentId || live.mateAgentId !== actor || resolveHome(live) !== home || live.migration || live.mateLaunch) throw new Error("Current first-mate role required.");
@@ -40,7 +44,9 @@ export async function queuePlanNotes(home: string): Promise<void> {
     await store.execute({ op: "notified", plan: plan.definition.id, eventId: action.id }, randomUUID(), "plugin:outbox");
   }
 }
-export async function processWorkflowRequests(home: string, store: WorkflowPlanStore, authorize: (actor: string) => Promise<void>): Promise<void> {
+/** Optional transport guard for direct fixture stores; workflowStore already guards all mutations. */
+export async function processWorkflowRequests(home: string, store: WorkflowPlanStore, authorize: (actor: string) => Promise<void>,
+  route?: (command: WorkflowCommand) => Promise<void>): Promise<void> {
   const { absolute: directory } = await resolveInHome(home, "data/workflow-requests");
   return serialized(directory, async () => {
     let files: string[]; try { files = await readdir(directory); } catch (e) { if ((e as NodeJS.ErrnoException).code === "ENOENT") return; throw e; }
@@ -65,6 +71,7 @@ export async function processWorkflowRequests(home: string, store: WorkflowPlanS
         const request = WorkflowRequestSchema.parse(JSON.parse(await readFile(path, "utf8")));
         if (`${request.id}.json` !== name) throw new Error("Request identity mismatch.");
         if (!["plans", "show", "agenda", "lint"].includes(request.command.op)) await authorize(request.actor);
+        if (route) await route(request.command);
         result = { ok: true, result: await store.execute(request.command, request.id, request.actor) };
       } catch (error) { result = { ok: false, error: error instanceof Error ? error.message : String(error) }; }
       await publish(reply, result);

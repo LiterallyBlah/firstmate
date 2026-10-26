@@ -45,6 +45,11 @@ function binding(status: SupervisionStatus, scopeId: string, epoch: number) {
     throw new SupervisionError("STALE", "Reread this scope's active binding before offering or acknowledging.");
   return [inboxRef(status, "scope", scopeId), inboxRef(status, "binding", scopeId)];
 }
+/** The same retained prior-epoch pages at admission and restart; handled facts never reoffer. */
+export function pendingPriorOffers(s: SupervisionStatus, scopeId: string, epoch: number) {
+  return s.inbox.offers.filter(o => o.scopeId === scopeId && o.epoch < epoch && o.state !== "retired" &&
+    (o.state !== "acknowledged" || s.inbox.assignments.some(a => a.offerId === o.id && !terminal(a))));
+}
 export class SupervisionInbox {
   constructor(readonly store: SupervisionStore, private readonly options: { offers?: boolean; now?: () => Date } = {}) {}
   private now() { return SupervisionUtc.parse((this.options.now?.() ?? new Date()).toISOString()); }
@@ -90,7 +95,7 @@ export class SupervisionInbox {
       return [{ kind: "inbox-offer", value: { ...o, state: "uncertain", sends: o.sends + 1, lastAttemptAt: now, nextAttemptAt: null, version: o.version + 1 } }];
     });
   }
-  accepted(scopeId: string, epoch: number, offerId: string, requestId = randomUUID()) {
+  accepted(scopeId: string, epoch: number, offerId: string, requestId: string = randomUUID()) {
     return this.offerCommand(scopeId, epoch, offerId, requestId, { op: "accepted", scopeId, epoch, offerId }, (_s, o) => {
       if (o.state !== "uncertain") throw new SupervisionError("HELD", "Only a claimed send can be accepted.");
       return [{ kind: "inbox-offer", value: { ...o, state: "accepted", version: o.version + 1 } }];
@@ -104,9 +109,10 @@ export class SupervisionInbox {
         nextAttemptAt: new Date(Date.parse(o.lastAttemptAt!) + 1000 * 2 ** o.sends).toISOString(), version: o.version + 1 } }];
     });
   }
-  acknowledge(scopeId: string, epoch: number, offerId: string, eventIds: string[], requestId = randomUUID()) {
+  acknowledge(scopeId: string, epoch: number, offerId: string, eventIds: string[], requestId: string = randomUUID(), actorId?: string) {
     eventIds = [...eventIds]; // Capture the submitted page before the first asynchronous read.
-    return this.offerCommand(scopeId, epoch, offerId, requestId, { op: "ack", scopeId, epoch, offerId, eventIds }, (s, o) => {
+    return this.offerCommand(scopeId, epoch, offerId, requestId, { op: "ack", scopeId, epoch, offerId, eventIds, ...(actorId ? { actorId } : {}) }, (s, o) => {
+      if (actorId !== undefined && s.bindings.find(b => b.scopeId === scopeId)?.agentId !== actorId) throw new SupervisionError("UNKNOWN_OWNER", "Only this scope's bound owner can acknowledge its page.");
       if (!["accepted", "uncertain"].includes(o.state) || digest(eventIds) !== digest(o.eventIds)) throw new SupervisionError("CONFLICT", "Acknowledge the exact offered page; acceptance alone handles nothing.");
       return [{ kind: "inbox-offer", value: { ...o, state: "acknowledged", version: o.version + 1 } }, ...o.eventIds.map(id => {
         const row = s.inbox.assignments.find(a => a.id === id)!;
@@ -114,9 +120,10 @@ export class SupervisionInbox {
       })];
     });
   }
-  handle(scopeId: string, epoch: number, offerId: string, results: { eventId: string; result: InboxResult }[], requestId = randomUUID()) {
+  handle(scopeId: string, epoch: number, offerId: string, results: { eventId: string; result: InboxResult }[], requestId: string = randomUUID(), actorId?: string) {
     const parsed = results.map(r => ({ eventId: SupervisionUuid.parse(r.eventId), result: InboxResultSchema.parse(r.result) }));
-    return this.offerCommand(scopeId, epoch, offerId, requestId, { op: "handle", scopeId, epoch, offerId, results: parsed }, (s, o) => {
+    return this.offerCommand(scopeId, epoch, offerId, requestId, { op: "handle", scopeId, epoch, offerId, results: parsed, ...(actorId ? { actorId } : {}) }, (s, o) => {
+      if (actorId !== undefined && s.bindings.find(b => b.scopeId === scopeId)?.agentId !== actorId) throw new SupervisionError("UNKNOWN_OWNER", "Only this scope's bound owner can handle its page.");
       if (o.state !== "acknowledged" || !parsed.length || parsed.length > 32 || new Set(parsed.map(r => r.eventId)).size !== parsed.length) throw new SupervisionError("CONFLICT", "Handling needs an acknowledged offer and distinct explicit results.");
       const changed = parsed.map(({ eventId, result }) => {
         const row = s.inbox.assignments.find(a => a.id === eventId);
@@ -131,11 +138,10 @@ export class SupervisionInbox {
     });
   }
   /** After a separately checked binding replacement, retain old offers and reoffer remaining facts. */
-  reoffer(scopeId: string, epoch: number, requestId = randomUUID()) {
+  reoffer(scopeId: string, epoch: number, requestId: string = randomUUID()) {
     return this.command(scopeId, requestId, { op: "reoffer", scopeId, epoch }, s => {
       if (!this.options.offers) throw new SupervisionError("UNSUPPORTED", "Mailbox offers are disabled.");
-      const pins = binding(s, scopeId, epoch), old = s.inbox.offers.filter(o => o.scopeId === scopeId && o.epoch < epoch && o.state !== "retired" &&
-        (o.state !== "acknowledged" || s.inbox.assignments.some(a => a.offerId === o.id && !terminal(a)))).slice(0, 7);
+      const pins = binding(s, scopeId, epoch), old = pendingPriorOffers(s, scopeId, epoch).slice(0, 7);
       const ids = new Set(old.map(o => o.id));
       const assignments = s.inbox.assignments.filter(a => a.scopeId === scopeId && a.offerId && ids.has(a.offerId) && !terminal(a));
       // Assignments keep the previous offer until prepare binds a new one; state is retained.

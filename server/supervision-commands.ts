@@ -61,6 +61,14 @@ async function pinnedBrief(home: string, input: ScopedPlanCommand, run: PlanLaun
     input.briefHash !== briefHash || (input.command.op === "claim" && input.command.briefHash !== briefHash)) fail("STALE", "Brief changed or is not pinned.");
   return briefHash;
 }
+/** S03's dependency authority rule, shared with S04 final dispatch admission: the prerequisite plan must be
+ * on an active scoped backend whose owner scope is available (a captain answer may proceed in its own held scope).
+ */
+export function checkDependencyRoute(status: SupervisionStatus, planId: string, scopeId: string, op: PilotOperation): void {
+  const route = status.backends.find(b => b.planId === planId), owner = status.scopes.find(s => s.id === route?.ownerScopeId);
+  if (route?.backend !== "scoped" || route.state !== "active" || !owner || owner.state === "retired" ||
+    (["held", "transferring"].includes(owner.state) && !(op === "decision.answer" && owner.id === scopeId))) fail("HELD", "Dependency backend or scope is unavailable; cross-backend mutation is unsupported.");
+}
 export class SupervisionCommands {
   constructor(readonly store: SupervisionStore, readonly home: string, private readonly options: { enabled?: boolean; now?: () => string } = {}) {}
   private checkOwner(status: SupervisionStatus, input: Pick<ScopedPlanCommand, "homeId" | "scopeId" | "epoch" | "scopeVersion">, actor: SupervisionActor, op: PilotOperation) {
@@ -80,6 +88,17 @@ export class SupervisionCommands {
   async planCommand(raw: ScopedPlanCommand, actorInput: SupervisionActor) {
     const input = structuredClone(ScopedPlanCommandSchema.parse(raw)), actor = structuredClone(SupervisionActorSchema.parse(actorInput));
     return this.store.transactCommand(input.requestId, digest(input), actor, status => this.prepare(status, input, actor));
+  }
+  /** S04 composition seam: the same checked preparation, extended inside the same transaction.
+   * The distinct input hash keeps a plain command and a gateway command from sharing a request ID.
+   */
+  async planCommandWith(raw: ScopedPlanCommand, actorInput: SupervisionActor, kind: string,
+    extend: (status: SupervisionStatus, prepared: { mutations: SupervisionMutation[]; result: ScopedCommandResult }) => Promise<{ expectedVersions: SupervisionExpected[]; mutations: SupervisionMutation[] }>) {
+    const input = structuredClone(ScopedPlanCommandSchema.parse(raw)), actor = structuredClone(SupervisionActorSchema.parse(actorInput));
+    return this.store.transactCommand(input.requestId, digest({ composed: kind, input }), actor, async status => {
+      const prepared = await this.prepare(status, input, actor), extra = await extend(status, prepared);
+      return { expectedVersions: [...prepared.expectedVersions, ...extra.expectedVersions], mutations: [...prepared.mutations, ...extra.mutations], result: prepared.result };
+    });
   }
   async answer(raw: ScopedAnswer, actorInput: SupervisionActor) {
     const answer = structuredClone(ScopedAnswerSchema.parse(raw)), actor = structuredClone(SupervisionActorSchema.parse(actorInput));
@@ -124,9 +143,7 @@ export class SupervisionCommands {
       if (d.homeId !== status.homeId || !p || p.hash !== d.planHash || p.revision !== d.revision ||
         (p.nodes[d.nodeId]?.attempt ?? null) !== d.attemptId) fail("STALE", "Dependency evidence binding changed.");
       if (!p.definition.nodes.some(n => n.id === d.nodeId)) fail("HELD", "Dependency was removed.");
-      const route = status.backends.find(b => b.planId === d.planId), owner = status.scopes.find(s => s.id === route?.ownerScopeId);
-      if (route?.backend !== "scoped" || route.state !== "active" || !owner || owner.state === "retired" ||
-        (["held", "transferring"].includes(owner.state) && !(op === "decision.answer" && owner.id === scope.id))) fail("HELD", "Dependency backend or scope is unavailable; cross-backend mutation is unsupported.");
+      checkDependencyRoute(status, d.planId, scope.id, op);
       if (!dependencies.includes(p)) dependencies.push(p);
     }
     const plans = [...(previous ? [previous] : []), ...dependencies.filter(p => p.definition.id !== planId)];
