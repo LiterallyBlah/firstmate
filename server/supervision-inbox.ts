@@ -45,6 +45,11 @@ function binding(status: SupervisionStatus, scopeId: string, epoch: number) {
     throw new SupervisionError("STALE", "Reread this scope's active binding before offering or acknowledging.");
   return [inboxRef(status, "scope", scopeId), inboxRef(status, "binding", scopeId)];
 }
+/** The same retained prior-epoch pages at admission and restart; handled facts never reoffer. */
+export function pendingPriorOffers(s: SupervisionStatus, scopeId: string, epoch: number) {
+  return s.inbox.offers.filter(o => o.scopeId === scopeId && o.epoch < epoch && o.state !== "retired" &&
+    (o.state !== "acknowledged" || s.inbox.assignments.some(a => a.offerId === o.id && !terminal(a))));
+}
 export class SupervisionInbox {
   constructor(readonly store: SupervisionStore, private readonly options: { offers?: boolean; now?: () => Date } = {}) {}
   private now() { return SupervisionUtc.parse((this.options.now?.() ?? new Date()).toISOString()); }
@@ -133,11 +138,10 @@ export class SupervisionInbox {
     });
   }
   /** After a separately checked binding replacement, retain old offers and reoffer remaining facts. */
-  reoffer(scopeId: string, epoch: number, requestId = randomUUID()) {
+  reoffer(scopeId: string, epoch: number, requestId: string = randomUUID()) {
     return this.command(scopeId, requestId, { op: "reoffer", scopeId, epoch }, s => {
       if (!this.options.offers) throw new SupervisionError("UNSUPPORTED", "Mailbox offers are disabled.");
-      const pins = binding(s, scopeId, epoch), old = s.inbox.offers.filter(o => o.scopeId === scopeId && o.epoch < epoch && o.state !== "retired" &&
-        (o.state !== "acknowledged" || s.inbox.assignments.some(a => a.offerId === o.id && !terminal(a)))).slice(0, 7);
+      const pins = binding(s, scopeId, epoch), old = pendingPriorOffers(s, scopeId, epoch).slice(0, 7);
       const ids = new Set(old.map(o => o.id));
       const assignments = s.inbox.assignments.filter(a => a.scopeId === scopeId && a.offerId && ids.has(a.offerId) && !terminal(a));
       // Assignments keep the previous offer until prepare binds a new one; state is retained.

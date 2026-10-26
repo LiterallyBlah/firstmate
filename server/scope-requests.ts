@@ -78,9 +78,11 @@ export async function processScopeRequests(home: string, handlers: ScopeHandlers
   const { absolute: directory } = await resolveInHome(home, "data/scope-requests");
   return serialized(directory, async () => {
     let files: string[]; try { files = await readdir(directory); } catch (e) { if ((e as NodeJS.ErrnoException).code === "ENOENT") return; throw e; }
-    for (const name of files.filter(f => /^[\da-f-]{36}\.json$/.test(f)).sort().slice(0, 20)) {
+    let processed = 0;
+    for (const name of files.filter(f => /^[\da-f-]{36}\.json$/.test(f)).sort()) {
       const reply = join(directory, name.replace(/\.json$/, ".reply.json"));
       try { await stat(reply); continue; } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e; }
+      if (processed++ >= 20) break;
       let result: unknown;
       try {
         const path = (await resolveInHome(home, `data/scope-requests/${name}`)).absolute;

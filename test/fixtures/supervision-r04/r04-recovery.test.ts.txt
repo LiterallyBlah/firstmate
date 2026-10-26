@@ -1,0 +1,86 @@
+import { randomUUID } from 'node:crypto';
+import { writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
+import { captain, s04Fixture } from '../test/supervision-s04-fixture';
+import { activationEffects } from '../server/supervisor-sessions';
+import { SupervisionEvents } from '../server/supervision-events';
+import { SupervisionInbox } from '../server/supervision-inbox';
+import { SupervisionLifecycle } from '../server/supervision-lifecycle';
+
+const profile = { provider: 'codex/gpt-6.1-sol', modeId: 'full-access', thinkingOptionId: 'high' };
+async function integrated() {
+  const f = await s04Fixture(), ingress = new SupervisionEvents(f.store), inbox = new SupervisionInbox(f.store, { offers: true });
+  const lifecycle = new SupervisionLifecycle(f.store, ingress, inbox, f.sessions, f.gateway, { enabled: true });
+  async function owner(n: number) {
+    const scope = await f.addScope(n, `goal-${n}`, [`work-${n}`], false);
+    await f.sessions.prepare({ requestId: randomUUID(), scopeId: scope.id, scopeVersion: 1, profile, opening: 'Read the exact scope checkpoint.' }, captain);
+    const binding = await activate(scope.id, 1);
+    await f.draft(scope, [{id: `work-${n}`}], true);
+    return { scope, binding };
+  }
+  async function activate(scopeId: string, epoch: number) {
+    const effects = activationEffects(await f.store.read(), scopeId, epoch);
+    await f.gateway.dispatch(effects.workspace!.id); await f.gateway.dispatch(effects.create!.id);
+    const binding = await f.sessions.verify(scopeId, epoch);
+    await f.gateway.dispatch(effects.send!.id); f.receiver.finish(binding.agentId);
+    return binding;
+  }
+  return { ...f, ingress, inbox, lifecycle, owner, activate };
+}
+
+describe('R04 independent recovery composition', {timeout: 60000}, () => {
+  it('manual replacement must reoffer the old owner pending page before new facts can progress', async () => {
+    const f = await integrated(), {scope, binding} = await f.owner(1);
+    const launched = await f.launch(scope, 'work-1');
+    const worker = (await f.store.read()).attempts.find(a => a.id === launched.attemptId)!.worker!;
+    await f.ingress.permission(worker.agentId, 'permission-old-owner');
+    const original = await f.lifecycle.wake(scope.id, 'event');
+    expect(original.state).toBe('accepted');
+    await f.sessions.hold({requestId: randomUUID(), scopeId: scope.id, expectedEpoch: 1, reason: 'Explicit fixture replacement.'}, captain);
+    f.receiver.agents.get(binding.agentId)!.status = 'closed';
+    await f.sessions.prepareReplacement({requestId: randomUUID(), scopeId: scope.id,
+      scopeVersion: (await f.store.read()).scopes.find(s => s.id === scope.id)!.version,
+      expectedEpoch: 1, profile, opening: 'Resume the existing pending checkpoint.'}, captain);
+    const replacement = await f.activate(scope.id, 2);
+    await f.ingress.permission(worker.agentId, 'permission-new-owner');
+    let refusal: unknown = null;
+    try { await f.lifecycle.wake(scope.id, 'restart'); } catch(e) { refusal = {code: (e as any).code, message: (e as Error).message}; }
+    const before = await f.store.read();
+    // Positive control: the existing S02 operation repairs the missing composition without a new worker.
+    await f.inbox.reoffer(scope.id, 2);
+    const repaired = await f.lifecycle.wake(scope.id, 'event');
+    const after = await f.store.read();
+    await writeFile(join(process.env.R04_EVIDENCE!, 'replacement-page.json'), JSON.stringify({
+      original, refusal, beforeOffers: before.inbox.offers, beforeAssignments: before.inbox.assignments,
+      repaired, afterOffers: after.inbox.offers, replacement: replacement.agentId
+    }, null, 2));
+    expect(repaired.state).toBe('accepted');
+    expect(f.receiver.sends.at(-1)!.agentId).toBe(replacement.agentId);
+    expect(refusal).toBeNull();
+  });
+
+  it('one slow worker observation during recovery must not block a different ready owner wake', async () => {
+    const f = await integrated(), a = await f.owner(1), b = await f.owner(2);
+    const launched = await f.launch(a.scope, 'work-1');
+    const worker = (await f.store.read()).attempts.find(x => x.id === launched.attemptId)!.worker!;
+    let release!: () => void, entered!: () => void;
+    const barrier = new Promise<void>(resolve => { release = resolve; });
+    const atLookup = new Promise<void>(resolve => { entered = resolve; });
+    const originalFind = f.receiver.findAgent.bind(f.receiver);
+    f.receiver.findAgent = async id => { if (id === worker.agentId) { entered(); await barrier; } return originalFind(id); };
+    const before = f.receiver.sends.length, recovering = f.lifecycle.recover('restart');
+    let progressedBeforeRelease = false;
+    try {
+      await atLookup;
+      // Only the controlled A lookup is blocked. B is idle and has a ready plan.
+      await new Promise(resolve => setTimeout(resolve, 500));
+      progressedBeforeRelease = f.receiver.sends.slice(before).some(s => s.agentId === b.binding.agentId);
+    } finally { release(); }
+    await recovering;
+    const progressedAfterRelease = f.receiver.sends.slice(before).some(s => s.agentId === b.binding.agentId);
+    await writeFile(join(process.env.R04_EVIDENCE!, 'recovery-independence.json'), JSON.stringify({progressedBeforeRelease, progressedAfterRelease}, null, 2));
+    expect(progressedAfterRelease).toBe(true);
+    expect(progressedBeforeRelease).toBe(true);
+  });
+});

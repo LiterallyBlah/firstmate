@@ -1,0 +1,28 @@
+import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
+import { s04Fixture } from '../test/supervision-s04-fixture';
+import { processScopeRequests } from '../server/scope-requests';
+import { WorkflowPlanStore } from '../server/workflow-plans';
+
+describe('R04 independent transport progress', () => {
+  it('must process a request beyond twenty retained completed requests', async () => {
+    const f = await s04Fixture(), scope = await f.addScope(1, 'transport-goal', ['work']);
+    const directory = join(f.home, 'data/scope-requests');
+    await mkdir(directory, { recursive: true });
+    const ids = Array.from({ length: 21 }, (_, i) => `10000000-0000-4000-8000-${String(i + 1).padStart(12, '0')}`);
+    for (const id of ids) await writeFile(join(directory, `${id}.json`), JSON.stringify({
+      id, actor: scope.owner.id, kind: 'read', input: { scopeId: scope.id, epoch: 1, page: 'outbox' }
+    }));
+    const handlers = { ...f, legacy: new WorkflowPlanStore(join(f.home, 'legacy'), f.home), globalMateId: async () => f.state.globalMate };
+    await processScopeRequests(f.home, handlers);
+    const first = (await readdir(directory)).filter(n => n.endsWith('.reply.json')).length;
+    expect(first).toBe(20);
+    await processScopeRequests(f.home, handlers);
+    const second = (await readdir(directory)).filter(n => n.endsWith('.reply.json')).length;
+    // Two scans are enough for a bounded twenty-per-scan queue to process all 21 requests.
+    await writeFile(join(process.env.R04_EVIDENCE!, 'transport-progress.json'), JSON.stringify({first, second, pending: ids[20]}, null, 2));
+    expect(second).toBe(21);
+    expect(JSON.parse(await readFile(join(directory, `${ids[20]}.reply.json`), 'utf8')).ok).toBe(true);
+  });
+});

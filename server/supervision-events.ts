@@ -118,9 +118,10 @@ export class SupervisionEvents {
     }));
   }
   /** Explicit boot receipt; no timers, session creation, sends or source reads. Hook absence stays unknown. */
-  async boot() {
+  async boot(scopeId?: string) {
     const s = await this.store.read();
-    const agents = [...new Set(s.attempts.filter(a => a.worker?.hostId.trim().toLowerCase() === "local").map(a => a.worker!.agentId))];
+    const tasks = s.tasks.filter(t => !scopeId || t.ownerScopeId === scopeId);
+    const agents = [...new Set(s.attempts.filter(a => a.worker?.hostId.trim().toLowerCase() === "local" && tasks.some(t => t.id === a.taskId)).map(a => a.worker!.agentId))];
     for (const agentId of agents) await this.recordGap("hook", agentId, this.bootId, ["boot", "hook-not-durable"]);
   }
   async recordGap(kind: InboxSource["kind"], agentId: string, epoch: string | null, gaps: InboxSource["gaps"], expectedVersion?: number) {
@@ -196,11 +197,12 @@ export class SupervisionEvents {
     if (results.some(result => result.status === "rejected")) throw new SupervisionError("HELD", "Catalog recovery could not persist a subject's source gap.");
   }
   /** Explicit recovery after attachment/restart. No subscription, poll or model is implicitly created. */
-  async reconcile(paseo: PaseoApi) {
-    await this.boot();
-    const agents = await listAgents(paseo);
+  async reconcile(paseo: PaseoApi, scopeId?: string) {
+    await this.boot(scopeId);
     const status = await this.store.read();
-    const local = status.attempts.filter(a => a.worker?.hostId.trim().toLowerCase() === "local");
+    const tasks = status.tasks.filter(t => !scopeId || t.ownerScopeId === scopeId);
+    const local = status.attempts.filter(a => a.worker?.hostId.trim().toLowerCase() === "local" && tasks.some(t => t.id === a.taskId));
+    const agents = (await listAgents(paseo)).filter(a => !scopeId || local.some(attempt => attempt.worker!.agentId === a.id));
     for (const attempt of local) if (!agents.some(a => a.id === attempt.worker!.agentId))
       await this.recordGap("catalog", attempt.worker!.agentId, null, ["fetch-failed"]);
     await this.catalog(agents, paseo);

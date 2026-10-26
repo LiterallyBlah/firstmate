@@ -15,6 +15,7 @@ import { scopedDecisionId } from "./supervision-commands";
 import { expectedFor, refuse, stableId } from "./supervision-effects";
 import { digest } from "./submissions";
 import type { SupervisionMutation, SupervisionStore } from "./supervision-store";
+import { observeWithin } from "./supervision-observation";
 
 const LIVE_NODE = ["starting", "running"];
 const LIVE_EFFECT = ["reserved", "dispatching", "uncertain", "accepted"];
@@ -286,17 +287,18 @@ export async function recordContinuation(store: SupervisionStore, input: Continu
 /** Restart / lost-callback scan: observe the exact workers of live attempts. Read-only facts for the
  * owner; it neither retargets a native callback, reprompts to "rearm", nor creates a worker.
  */
-export async function livenessScan(status: SupervisionStatus, receiver: GatewayReceiver) {
-  const out: { attemptId: string; agentId: string; observed: string; ownerReview: boolean }[] = [];
-  for (const attempt of status.attempts.filter(a => a.worker?.hostId.trim().toLowerCase() === "local" && ["active", "prompted"].includes(a.state))) {
+export async function livenessScan(status: SupervisionStatus, receiver: GatewayReceiver, options: { scopeId?: string; timeoutMs?: number } = {}) {
+  const live = status.attempts.filter(a => a.worker?.hostId.trim().toLowerCase() === "local" && ["active", "prompted"].includes(a.state)).filter(attempt => {
     const task = status.tasks.find(t => t.id === attempt.taskId), node = task ? status.plans.find(p => p.plan.definition.id === task.planId)?.plan.nodes[task.nodeId] : undefined;
-    if (!node || !LIVE_NODE.includes(node.state) || task?.currentAttempt !== attempt.id) continue;
+    return !!node && LIVE_NODE.includes(node.state) && task?.currentAttempt === attempt.id && (!options.scopeId || task.ownerScopeId === options.scopeId);
+  });
+  return Promise.all(live.map(async attempt => {
     let found: Awaited<ReturnType<GatewayReceiver["findAgent"]>> = null;
-    try { found = await receiver.findAgent(attempt.worker!.agentId); } catch { /* Unknown subject; retain the attempt and let other scopes reconcile. */ }
+    try { found = await observeWithin(receiver, `agent:${attempt.worker!.agentId}`, () => receiver.findAgent(attempt.worker!.agentId), options.timeoutMs); }
+    catch { /* Unknown subject, including a pending lookup; retain the attempt. No absence/death inference. */ }
     const observed = found?.id === attempt.worker!.agentId ? found : null; // A misbound answer is no observation.
     const state = !observed ? "not visible (unknown, not absent)" : observed.archivedAt ? "archived" : observed.status;
-    out.push({ attemptId: attempt.id, agentId: attempt.worker!.agentId, observed: state,
-      ownerReview: !!observed && (observed.archivedAt !== null || ["idle", "error", "closed"].includes(observed.status) || observed.pendingPermissions > 0) });
-  }
-  return out;
+    return { attemptId: attempt.id, agentId: attempt.worker!.agentId, observed: state,
+      ownerReview: !!observed && (observed.archivedAt !== null || ["idle", "error", "closed"].includes(observed.status) || observed.pendingPermissions > 0) };
+  }));
 }

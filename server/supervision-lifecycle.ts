@@ -9,6 +9,7 @@ import { continuationAgenda, continuationInputVersion, deriveContinuation, liven
 import { effectLogicalKey, refuse, stableId, type SupervisionGateway } from "./supervision-effects";
 import type { SupervisionEvents } from "./supervision-events";
 import type { SupervisionInbox } from "./supervision-inbox";
+import { pendingPriorOffers } from "./supervision-inbox";
 import { terminal } from "./supervision-inbox-state";
 import type { SupervisorSessions } from "./supervisor-sessions";
 import type { SupervisionStore } from "./supervision-store";
@@ -17,6 +18,7 @@ import { digest } from "./submissions";
 import type { PaseoApi } from "./host-types";
 import { message, TEMPLATES } from "./templates";
 import { INBOX_LIMITS } from "../shared/supervision-inbox";
+import { observeWithin, RECOVERY_OBSERVATION_TIMEOUT_MS } from "./supervision-observation";
 
 const ACTOR: SupervisionActor = { kind: "system", id: "supervision-lifecycle", source: "plugin/checked-owner-turn" };
 const PENDING = ["reserved", "dispatching", "uncertain", "accepted"];
@@ -27,7 +29,7 @@ export interface ScopeWake {
 }
 export class SupervisionLifecycle {
   constructor(readonly store: SupervisionStore, readonly ingress: SupervisionEvents, readonly inbox: SupervisionInbox,
-    readonly sessions: SupervisorSessions, readonly gateway: SupervisionGateway, private readonly options: { enabled?: boolean } = {}) {
+    readonly sessions: SupervisorSessions, readonly gateway: SupervisionGateway, private readonly options: { enabled?: boolean; observationTimeoutMs?: number } = {}) {
     if ([ingress.store, inbox.store, sessions.store, gateway.store].some(s => s !== store))
       refuse("CONFLICT", "Lifecycle components must share one authority store.");
   }
@@ -60,6 +62,14 @@ export class SupervisionLifecycle {
           return result("uncertain", "Reconcile the original supervisor turn; no resend or takeover.", pending.id);
         return this.deliver(pending.id, offerForEffect(s, pending)?.id ?? null);
       }
+      // Verification/opening and old-actor quiescence are the existing manual replacement gates.
+      // Carry its remaining informational facts through S02, never replay the old send effect.
+      const oldPages = pendingPriorOffers(s, scopeId, binding.epoch).slice(0, 7);
+      if (oldPages.length) {
+        await this.inbox.reoffer(scopeId, binding.epoch, stableId("mailbox-reoffer", scopeId, String(binding.epoch), digest(oldPages.map(o => o.id))));
+        s = await this.store.read();
+        if (pendingPriorOffers(s, scopeId, binding.epoch).length) return result("held", "Retained prior pages need another bounded reconciliation pass.");
+      }
       // A delivered page is not handled. No second offer or planning turn may pass its missing result.
       let offer = s.inbox.offers.find(o => o.scopeId === scopeId && o.epoch === binding.epoch && o.state !== "retired" &&
         (o.state !== "acknowledged" || s.inbox.assignments.some(a => a.offerId === o.id && !terminal(a))));
@@ -72,7 +82,9 @@ export class SupervisionLifecycle {
         return result(offer.state === "uncertain" ? "uncertain" : "awaiting-owner",
           "The current page needs its owner's explicit acknowledgement and per-event results.", effect?.id ?? null, offer.id);
       }
-      const observed = await this.gateway.receiver.findAgent(binding.agentId);
+      let observed;
+      try { observed = await observeWithin(this.gateway.receiver, `agent:${binding.agentId}`, () => this.gateway.receiver.findAgent(binding.agentId), this.options.observationTimeoutMs); }
+      catch { return result("held", "This owner's observation is unavailable; identity and obligations remain unknown, not absent."); }
       if (observed?.id !== binding.agentId || observed.archivedAt || observed.status !== "idle" || observed.pendingPermissions)
         return result("held", "Wait for this exact owner to be idle; General's turn is irrelevant.");
       if (!offer && s.inbox.assignments.some(a => a.scopeId === scopeId && a.state === "assigned")) {
@@ -128,18 +140,34 @@ export class SupervisionLifecycle {
    * A read/transport failure affects its own subject, never serializes unrelated scope admissions. */
   async recover(trigger: "restart" | "heartbeat", paseo?: PaseoApi) {
     this.enabled();
-    if (paseo) await this.ingress.reconcile(paseo);
     const before = await this.store.read();
-    const effects = await Promise.allSettled(before.effects.filter(e => ["dispatching", "uncertain"].includes(e.state))
-      .slice(0, 32).map(e => this.gateway.reconcile(e.id)));
-    const observations = await livenessScan(await this.store.read(), this.gateway.receiver);
-    for (const row of observations) await this.ingress.admit({ agentId: row.agentId, kind: "catalog", turnId: null, outcome: null,
-      permissionId: null, sourceKind: "catalog", sourceKey: digest([row.attemptId, row.observed]), epoch: null, cursor: null, maxSeq: null,
-      gaps: row.observed.startsWith("not visible") ? ["fetch-failed"] : [], coverage: "unknown",
-      payload: { status: row.observed, requiresAttention: row.ownerReview, attemptId: row.attemptId } });
-    const scopeIds = [...new Set(continuationAgenda(await this.store.read()).map(c => c.scopeId))];
-    const wakes = await Promise.allSettled(scopeIds.map(id => this.wake(id, trigger)));
-    return { effects, observations, wakes };
+    const selected = before.effects.filter(e => ["dispatching", "uncertain"].includes(e.state)).slice(0, 32);
+    const scopeIds = [...new Set([...continuationAgenda(before).map(c => c.scopeId), ...selected.map(e => e.scopeId)])];
+    const scopes = await Promise.all(scopeIds.map(async scopeId => {
+      let effects: PromiseSettledResult<SupervisionEffect>[] = [], observations: Awaited<ReturnType<typeof livenessScan>> = [];
+      let wake: PromiseSettledResult<ScopeWake>;
+      try {
+        // No all-scope barrier: each owner wakes as soon as its own bounded observations finish.
+        if (paseo) {
+          try { await observeWithin(this.ingress, `${this.store.root}:catalog:${scopeId}`, () => this.ingress.reconcile(paseo, scopeId), this.options.observationTimeoutMs); }
+          catch {
+            const tasks = before.tasks.filter(t => t.ownerScopeId === scopeId);
+            for (const a of before.attempts.filter(a => a.worker?.hostId === "local" && tasks.some(t => t.id === a.taskId)))
+              await this.ingress.recordGap("catalog", a.worker!.agentId, null, ["fetch-failed"]);
+          }
+        }
+        effects = await Promise.allSettled(selected.filter(e => e.scopeId === scopeId).map(e =>
+          observeWithin(this.gateway, `${this.store.root}:effect:${e.id}`, () => this.gateway.reconcile(e.id), this.options.observationTimeoutMs)));
+        observations = await livenessScan(await this.store.read(), this.gateway.receiver, { scopeId, timeoutMs: this.options.observationTimeoutMs ?? RECOVERY_OBSERVATION_TIMEOUT_MS });
+        for (const row of observations) await this.ingress.admit({ agentId: row.agentId, kind: "catalog", turnId: null, outcome: null,
+          permissionId: null, sourceKind: "catalog", sourceKey: digest([row.attemptId, row.observed]), epoch: null, cursor: null, maxSeq: null,
+          gaps: row.observed.startsWith("not visible") ? ["fetch-failed"] : [], coverage: "unknown",
+          payload: { status: row.observed, requiresAttention: row.ownerReview, attemptId: row.attemptId } });
+        wake = { status: "fulfilled", value: await this.wake(scopeId, trigger) };
+      } catch (reason) { wake = { status: "rejected", reason }; }
+      return { effects, observations, wake };
+    }));
+    return { effects: scopes.flatMap(s => s.effects), observations: scopes.flatMap(s => s.observations), wakes: scopes.map(s => s.wake) };
   }
 }
 const offerCause = (o: InboxOffer) => `mailbox:${o.id}:${o.sends}`;
