@@ -8,6 +8,8 @@ import { SupervisionStore } from "./supervision-store";
 import { supervisionProcessIdentity } from "./supervision-process";
 import { expected, hash, ids, scope, seed } from "../test/supervision-fixture";
 import type { SupervisionMutation } from "./supervision-store";
+import { capture, captureLedger, observed } from "../test/ci-diagnostics";
+import { WARMUP_TIMEOUT_MS, warmWindowsIdentityProbe } from "../test/supervision-warmup";
 
 let bundle: string;
 const children = new Set<ChildProcess>();
@@ -17,7 +19,13 @@ beforeAll(async () => {
   const build = await rolldown({ input: resolve("test/supervision-child.ts"), platform: "node" });
   try { await build.write({ file: bundle, format: "cjs" }); } finally { await build.close(); }
 });
+// Windows: the first PowerShell start on a cold runner took 3.3–5.3 s, past the probe's 5 s deadline, in whichever
+// child ran first. Pay it here, under the warm-up's own bound, so every child's probe runs warm; assertions are unchanged.
+beforeAll(async () => {
+  if (process.platform === "win32") capture("crash-probe-warmup", { result: await observed("crash-probe-warmup-run", {}, warmWindowsIdentityProbe()) });
+}, WARMUP_TIMEOUT_MS + 10000);
 afterAll(() => { for (const child of children) child.kill("SIGKILL"); });
+afterAll(() => captureLedger("crash"));
 async function launch(config: object) {
   const path = join(process.env.PASEO_HOME!, `${randomUUID()}.json`); await writeFile(path, JSON.stringify(config));
   const child = spawn(process.execPath, [bundle, path], { windowsHide: true, stdio: ["ignore", "pipe", "pipe", "ipc"], env: { ...process.env } });
@@ -40,8 +48,17 @@ describe("actual child-process / filesystem publication", () => {
   for (const point of points) it(`SIGKILL at ${point}: no partial exposure, duplicate reservation or budget reset`, async () => {
     const { store, home, dataRoot } = await fixture(), mutations = seed(store.homeId), requestId = randomUUID();
     if (point === "publication:linked") for (const mutation of mutations) if (mutation.kind === "effect") mutation.value.state = "dispatching";
+    const childStart = performance.now();
     const worker = await launch({ home, dataRoot, mode: "crash", crash: point, mutations, expected: expected(mutations), requestId });
     const result = await worker.done;
+    // CI diagnostics only (inert locally): bounded child result and duration for this crash point.
+    capture("crash-child", { point, code: result.code, signal: result.signal, stdoutBytes: result.stdout.length, stderr: result.stderr.slice(0, 4096), ms: performance.now() - childStart });
+    // A child killed at its crash point writes nothing to stderr. A pre-claim refusal (for example a timed-out
+    // Windows process-identity probe, UNSUPPORTED) writes its error there; fail on that cause, not later on generation.
+    if (result.stderr !== "") { // Gather coordinator context only for the failure; successful crash cases do no extra work.
+      const coordinators = await readdir(join(store.root, "coordinators")).catch((error: unknown) => [String(error)]);
+      expect(result.stderr, `child exit ${result.code}, signal ${result.signal}, coordinators [${coordinators.join(", ")}]`).toBe("");
+    }
     expect(result.stdout).toBe(""); expect(result.code === 0).toBe(false);
     const status = await store.read();
     const exposed = point === "publication:linked", beforeTip = ["tip:written", "tip:synced"].includes(point);
@@ -55,7 +72,7 @@ describe("actual child-process / filesystem publication", () => {
       expect((await store.read()).attempts[0]?.spentAgents).toBe(1);
       expect(status.uncertainEffectIds).toEqual([ids.effect]); // Coordinator death never proves external termination.
     } else if (beforeTip || recoverable) {
-      expect(await store.acquireCoordinator()).toBe(2); // Confirmed OS process death, never TTL.
+      expect(await observed("crash-parent-acquire", { point }, store.acquireCoordinator())).toBe(2); // Confirmed OS process death, never TTL.
       if (recoverable) {
         const receipt = await store.recoverPublication();
         expect(receipt?.requestId).toBe(requestId);

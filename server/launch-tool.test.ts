@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL, URL } from "node:url";
 import { promisify } from "node:util";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CREW_LABELS, FirstmateConfigSchema } from "../shared/fleet";
 import { prepareHome } from "./home";
 import { briefParts } from "./launch-tool";
@@ -14,6 +14,7 @@ import { WorkflowPlanStore } from "./workflow-plans";
 import { processWorkflowRequests } from "./workflow-service";
 import { PlanDefinitionSchema } from "../shared/workflow-plans";
 import { fill, readTemplate, TEMPLATES } from "./templates";
+import { boundedText, boundedTree, capture, captureLedger, diagnosticsEnabled } from "../test/ci-diagnostics";
 
 // These scenarios run real Node/git processes; loaded Windows runners need the same budget as local verification.
 vi.setConfig({ testTimeout: 30000, hookTimeout: 30000 });
@@ -26,6 +27,8 @@ let scratch: string, home: string, statePath: string, logPath: string, configPat
 let queueTimer: ReturnType<typeof setInterval> | undefined, pumping: Promise<void> | undefined;
 let workflowTimer: ReturnType<typeof setInterval> | undefined, workflowPumping: Promise<void> | undefined;
 let state: any;
+let launchSnapshot: (() => void) | null = null;
+afterAll(() => captureLedger("launch"));
 const save = () => writeFile(statePath, JSON.stringify(state));
 const reload = async () => { state = JSON.parse(await readFile(statePath, "utf8")); };
 const request = (extra: any = {}) => ({ id: "task", title: "Fix the thing", agentTitle: "Fix thing", project: "project", host: "local", baseBranch: "main", kind: "ship", mode: "reviewed-PR", brief: { assemble: { intent: "Fix the thing", spec: "Only this thing", rules: null } }, agent: { provider: "codex/model", modeId: "full-access", thinkingOptionId: "high" }, backlog: { existing: "none" }, ...extra });
@@ -65,6 +68,7 @@ beforeEach(async () => {
   await writeFile(join(home, "tools/launch.mjs"), fill(await readTemplate(TEMPLATES.launchHelper), { launchConfigJson: JSON.stringify({ home, paseoHome: scratch, cli: { command: process.execPath, args: [cli, statePath, logPath], env: {} }, labels: CREW_LABELS, parts: await briefParts() }) }));
 });
 afterEach(async () => {
+  launchSnapshot?.(); launchSnapshot = null; // CI diagnostics: observe before the fixture removes its scratch home.
   if (workflowTimer) clearInterval(workflowTimer); workflowTimer = undefined; await workflowPumping; workflowPumping = undefined;
   if (queueTimer) clearInterval(queueTimer); queueTimer = undefined; await pumping; pumping = undefined;
   await rm(scratch, { recursive: true, force: true });
@@ -205,9 +209,17 @@ describe("launch contract and assembly", () => {
 
 describe("attempts and current-role recovery", () => {
   it("reserves one attempt across simultaneous prepares", async () => {
+    // CI diagnostics only (inert locally): each reply is recorded as it settles; state is snapshotted before cleanup.
+    const t0 = performance.now();
+    if (diagnosticsEnabled) launchSnapshot = () => capture("launch-before-cleanup", { ms: performance.now() - t0, config: boundedText(configPath), cliCalls: boundedText(logPath),
+      launches: boundedTree(join(home, "data/task/launches")), workflowRequests: boundedTree(join(home, "data/workflow-requests")), workflowJournal: boundedTree(join(scratch, "workflow-plans")) });
+    const observe = (label: string) => { const startMs = performance.now() - t0;
+      return run(["prepare", "--file", "data/task/request.json"]).then(
+        response => { capture("launch-prepare", { label, startMs, endMs: performance.now() - t0, response }); return response; },
+        (error: unknown) => { capture("launch-prepare", { label, startMs, endMs: performance.now() - t0, thrown: String(error).slice(0, 4096) }); throw error; }); };
     state.delay = 30; await save();
     await writeFile(join(home, "data/task/request.json"), JSON.stringify(request()));
-    const results = await Promise.all([run(["prepare", "--file", "data/task/request.json"]), run(["prepare", "--file", "data/task/request.json"])]);
+    const results = await Promise.all([observe("a"), observe("b")]);
     expect(results.filter(item => item.ok)).toHaveLength(1); expect((await entries()).filter(name => /^\d+\.json$/.test(name))).toEqual(["1.json"]);
   });
   it("blocks issued/unresolved, retains an abandoned plan for deliberate replanning and watches late workers", async () => {
