@@ -24,6 +24,7 @@ import { planDecisionReady } from "../shared/plan-readiness";
 import { planReviewRequest } from "../shared/plan-decisions";
 import { DecisionTask } from "./decision-tasks";
 import { useScopeSnapshot } from "./scope-query";
+import { scopeForPlan } from "../shared/scope-discussion";
 
 export const WORKFLOW_QUERY_KEY = ["firstmate", "workflow-plans"] as const;
 export function workflowRequestId() {
@@ -57,9 +58,8 @@ export function WorkflowSurface({ theme, children, hostId, view, shell, params =
   const fleet = useFleet(5, !!hostId), data = fleet.isPlaceholderData ? undefined : fleet.data;
   const scopeRead = useScopeSnapshot(hostId ?? "local", data?.home ?? "");
   const discussionScope = (id: string) => {
-    if (!scopeRead.data?.uiEnabled || !shell?.openScope) return undefined;
-    const matching = scopeRead.data.scopes.filter(s => s.kind === "plan" && s.planId === id);
-    return matching.length === 1 ? matching[0] : undefined;
+    if (!shell?.openScope) return undefined;
+    return scopeForPlan(scopeRead.data, snapshot?.homeId, id);
   };
   const discussPlan = (id: string) => { const target = discussionScope(id); if (target && scopeRead.data) { setSelected(null); shell?.openScope?.(target.id, scopeRead.data.homeId); } };
   const scope = planSessionKey(hostId, data?.home, data?.mate?.id, snapshot?.homeId);

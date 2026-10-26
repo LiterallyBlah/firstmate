@@ -47,3 +47,10 @@ export const scopeConversationKey = (homeId: string, scopeId: string, conversati
   JSON.stringify(["firstmate.scope-conversation/1", homeId, scopeId, conversationId]);
 export const scopeDraftKey = (hostId: string, homeId: string, scopeId: string, conversationId = "main") =>
   JSON.stringify(["firstmate.scope-draft/1", hostId, homeId, scopeId, conversationId]);
+
+/** A read-only plan link must retain the displayed workflow home, even during cache refresh. */
+export function scopeForPlan<T extends { kind: string; planId: string | null }>(snapshot: { uiEnabled: boolean; homeId: string; scopes: T[] } | undefined, homeId: string | undefined, planId: string): T | undefined {
+  if (!snapshot?.uiEnabled || !homeId || snapshot.homeId !== homeId) return undefined;
+  const matching = snapshot.scopes.filter(s => s.kind === "plan" && s.planId === planId);
+  return matching.length === 1 ? matching[0] : undefined;
+}

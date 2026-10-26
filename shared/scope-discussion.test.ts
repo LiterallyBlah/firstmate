@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveDiscussion, scopeConversationKey, scopeDraftKey } from "./scope-discussion";
+import { resolveDiscussion, scopeConversationKey, scopeDraftKey, scopeForPlan } from "./scope-discussion";
 const target = (scopeId: string) => ({ homeId: "home", scopeId, scopeVersion: 1, epoch: 1, agentId: `${scopeId}-agent` });
 const scopes = [{ id: "general", title: "FirstMate", aliases: ["firstmate"], target: target("general") },
   { id: "project", title: "Reader", aliases: ["reader"], target: target("project") },
@@ -31,5 +31,12 @@ describe("captain discussion addresses", () => {
   });
   it("uses the same body normalization as the checked RPC while preserving interior newlines", () => {
     expect(resolveDiscussion("  #reader @fix  Explain\n  details  \n", scopes, projects)).toMatchObject({ scope: { id: "plan" }, projectIds: ["p1"], text: "Explain\n  details" });
+  });
+  it("retains the displayed plan home on discussion links and refuses ambiguous or cross-home cache joins", () => {
+    const scope = { kind: "plan", planId: "reader", id: "scope" }, snapshot = { homeId: "original", uiEnabled: true, scopes: [scope] };
+    expect(scopeForPlan(snapshot, "original", "reader")).toBe(scope);
+    expect(scopeForPlan({ ...snapshot, homeId: "another" }, "original", "reader")).toBeUndefined();
+    expect(scopeForPlan({ ...snapshot, scopes: [scope, { ...scope, id: "other" }] }, "original", "reader")).toBeUndefined();
+    expect(scopeForPlan(snapshot, undefined, "reader")).toBeUndefined();
   });
 });

@@ -1,7 +1,7 @@
 {
   "format": "firstmate.s05-verification/1",
   "integrationBase": "ea613a576e639de4498d92abac474a28ccba75ca",
-  "sourceDigest": "48799f3a81165c44d97f66155ff13ba019d7d49de3b57f1d8503738727798fe2",
+  "sourceDigest": "77d1f395eb4ee245490ede57cc0766b9b7a72b830daf7729de9ae3f4f22e6f70",
   "source": [
     {
       "path": ".github/workflows/check.yml",
@@ -117,10 +117,10 @@
     },
     {
       "path": "client/workflow-plans.tsx",
-      "bytes": 30504,
-      "workingSHA256": "9f9ea1a1c50bbb1993e25799a58bfb57ddb3afaf8d61079141fba0fbeecac642",
-      "committedSHA256": "b0661841ad2985780b6391db636479688b65734f0217e230fadcd72fd47c2aac",
-      "gitBlob": "3f18eaf8c1ca5caf6e81ab61151c08aa1584b80b"
+      "bytes": 30442,
+      "workingSHA256": "ae193648a0f34a44829974848136062b5e211d6326492a3e7adbe75ed8981a1a",
+      "committedSHA256": "f87dea947fc566495e70e4de18b0840ff13f736caba4893a0342b97250c9c739",
+      "gitBlob": "3bfac724832c5bc542b692f34ec079e63ff25775"
     },
     {
       "path": "client/workspace-panels.tsx",
@@ -285,17 +285,17 @@
     },
     {
       "path": "shared/scope-discussion.test.ts",
-      "bytes": 3278,
-      "workingSHA256": "d81ac6b7adb5dafdf3f917afef1a1ded41b0233dc204f3b3b91c1106d44ea21c",
-      "committedSHA256": "d81ac6b7adb5dafdf3f917afef1a1ded41b0233dc204f3b3b91c1106d44ea21c",
-      "gitBlob": "f0edfc583ac5914632ab231649fa5b8401014c4f"
+      "bytes": 3918,
+      "workingSHA256": "d34e54da3ad77b830a1512376571c8166b14eeb1f6c502f744e1730262e61c18",
+      "committedSHA256": "d34e54da3ad77b830a1512376571c8166b14eeb1f6c502f744e1730262e61c18",
+      "gitBlob": "edce81f3a43bf8b85b5cc7581537581ce1a73d3f"
     },
     {
       "path": "shared/scope-discussion.ts",
-      "bytes": 3339,
-      "workingSHA256": "2cf08fe1578a7b1e8ef553ea2aa556ba912858a8634d2d2720e5fdbf913da0cd",
-      "committedSHA256": "2cf08fe1578a7b1e8ef553ea2aa556ba912858a8634d2d2720e5fdbf913da0cd",
-      "gitBlob": "ff67836b7f2789ec339f296904f495bd1a54edad"
+      "bytes": 3890,
+      "workingSHA256": "dd647407d90d77a104084c2c4032ab36d98305b5fbf183bada33e5b7c430867d",
+      "committedSHA256": "dd647407d90d77a104084c2c4032ab36d98305b5fbf183bada33e5b7c430867d",
+      "gitBlob": "69f8fa821b4ed0bfc2f7ad61c4293b6aa6deb062"
     },
     {
       "path": "shared/scoped-commands.ts",
@@ -361,11 +361,11 @@
     },
     "finalDelta": {
       "path": ".local/s05/delivery-tests.json",
-      "SHA256": "8ebf2410877bda5c97913f0e1e10bf725e7ef678e2ac53f32009d68c84f91b41",
+      "SHA256": "7474500be00e418e5bf2f5b32d6ff057d5a10aa31dd61374a6a9c98c4eb6cd2d",
       "suites": 10,
-      "passed": 65,
+      "passed": 66,
       "skipped": 0,
-      "description": "After the full-suite freeze, normalize body whitespace, validate composer inputs locally and explicitly refuse remote bindings before receiver lookup; final source tests and four-theme/width fixtures cover this delta."
+      "description": "After the full-suite freeze, normalize body whitespace, validate composer inputs locally explicitly refuse remote bindings before receiver lookup and bind plan discussion links to their displayed home; final source tests and four-theme/width fixtures cover this delta."
     },
     "finalGuards": {
       "path": ".local/s05/final-guards-tests.json",
@@ -424,7 +424,7 @@
     },
     "compile": {
       "path": ".local/s05/compile/results.json",
-      "SHA256": "01b23bb585a0eec88542bde128196b4afc4fbf1de417829e1c3e5ef0a55c595a",
+      "SHA256": "f48fce1b33546639af72fad8cd46eed54d10d7fd7b6254bb4775cc7c45eb2a59",
       "base": "ea613a576e639de4498d92abac474a28ccba75ca",
       "runtime": "v24.20.0",
       "compiler": "C:\\Users\\micha\\AppData\\Local\\Programs\\Paseo\\resources\\app.asar\\node_modules\\@getpaseo\\server\\dist\\server\\server\\plugins\\compiler.js",
@@ -433,20 +433,20 @@
       "results": [
         {
           "name": "branch",
-          "clientBytes": 1118877,
+          "clientBytes": 1119040,
           "serverBytes": 737173,
-          "clientSHA256": "75091c9b01a7d4199899da8d01262c4611a5b878fb7ab398edf77df749f1b483",
+          "clientSHA256": "0c4002eb435ce5e52658e07b95f79420d3767375932611e2e5ca6938ea06819a",
           "serverSHA256": "b61f2f62b30d5f9cef2c9972d93ee37d048ebc2303057c9b078ea4c1b56339c6",
-          "durationMs": 12096,
+          "durationMs": 13260,
           "hermes": "passed"
         },
         {
           "name": "baseline",
           "clientBytes": 1073352,
           "serverBytes": 705756,
-          "clientSHA256": "fcefec3f5a3d1c45687d7e21fffd073566526175fbb4fb2ae69e4129f75fb068",
-          "serverSHA256": "5d01aabe8d572a7b164ef08242515b81f7f7d665f9607a78247159bebfadbb6b",
-          "durationMs": 16286,
+          "clientSHA256": "b76d8be5b0b0d1b0aa7dc9e6df3cef6a5a05beecc44d937e452d31baed083661",
+          "serverSHA256": "f01209abc7005f351f6b71aaca91d0210ae96dd51af09938f72e873a2cc4b9a0",
+          "durationMs": 17887,
           "hermes": "passed"
         }
       ],
