@@ -1,7 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it } from "vitest";
+import { captureLedger, phaseRecorder } from "../test/ci-diagnostics";
+const capacityPhases = phaseRecorder();
+afterEach(() => capacityPhases.flush("capacity-phases"));
+afterAll(() => captureLedger("capacity"));
 import { z } from "zod";
 import { PlanDefinitionSchema, WorkflowCommandSchema, planProblems, planSpent, planWorstCase, type PlanNodeState, type WorkflowCommand, type WorkflowPlan } from "../shared/workflow-plans";
 import { workflowFixture } from "../test/workflow-fixture";
@@ -115,35 +119,51 @@ describe("cumulative capacity contract", () => {
 });
 
 it("refuses underdeclared appends without publishing; admits and replays one same-workspace replacement", async () => {
+  capacityPhases.start(); capacityPhases.mark("begin"); // CI diagnostics only (inert locally): in-memory marks, flushed in afterEach.
   const home = join(process.env.PASEO_HOME!, randomUUID()), root = join(home, "ledger");
+  capacityPhases.mark("await mkdir(join(home, \"data/run-0\"), { recursive: true });");
   await mkdir(join(home, "data/run-0"), { recursive: true });
+  capacityPhases.mark("await writeFile(join(home, \"data/run-0/brief.md\"), \"Bounded replacement fixture\");");
   await writeFile(join(home, "data/run-0/brief.md"), "Bounded replacement fixture");
+  capacityPhases.mark("await writeFile(join(home, \"data/backlog.md\"), \"## In flight\\n## Queued\\n## Done\\n\");");
   await writeFile(join(home, "data/backlog.md"), "## In flight\n## Queued\n## Done\n");
   const store = new WorkflowPlanStore(root, home);
   const execute = (c: WorkflowCommand, id = randomUUID()) => store.execute(c, id, "fixture-mate") as Promise<any>;
   const definition = PlanDefinitionSchema.parse({ ...workflowFixture(), id: "capacity", nodes: [run("run-0"), run("pending")], budget: budget(2), ownership: { owner: "firstmate", evidence: "Captain delegates this outcome" } });
+  capacityPhases.mark("await execute({ op: \"draft\", definition });");
   await execute({ op: "draft", definition });
+  capacityPhases.mark("const first = await execute({ op: \"start\", plan: \"capacity\", node: \"run-0\" });");
   const first = await execute({ op: "start", plan: "capacity", node: "run-0" });
+  capacityPhases.mark("await execute({ op: \"record\", plan: \"capacity\", node: \"run-0\", attempt: first.launch.workflow.attemp");
   await execute({ op: "record", plan: "capacity", node: "run-0", attempt: first.launch.workflow.attempt, state: "running", agentId: "worker", workspaceId: "space-0", evidence: "Inspected worker" });
   const p = (await store.get("capacity"))!;
   const bytes = async () => Promise.all(["capacity", ".tips/capacity", ".published/capacity"].map(async part => Promise.all((await readdir(join(root, part))).sort().map(async name => [part, name, await readFile(join(root, part, name), "utf8")]))));
+  capacityPhases.mark("const before = await bytes();");
   const before = await bytes();
+  capacityPhases.mark("await expect(execute(replacement(p, 2))).rejects.toThrow(/3/);");
   await expect(execute(replacement(p, 2))).rejects.toThrow(/3/);
   expect(await bytes()).toEqual(before);
   expect((await store.get("capacity"))!.hash).toBe(p.hash);
+  capacityPhases.mark("await expect(execute({ ...replacement(p, 3), expected: \"0\".repeat(64) })).rejects.toThrow(/current/)");
   await expect(execute({ ...replacement(p, 3), expected: "0".repeat(64) })).rejects.toThrow(/current/);
   const id = randomUUID(), c = replacement(p, 3);
+  capacityPhases.mark("await execute(c, id);");
   await execute(c, id);
   const next = (await store.get("capacity"))!;
   expect(next.status).toBe("active"); expect(next.nodes["run-0"]?.spent).toBe(1);
   expect((await execute(c, id)).plan).toEqual(next);
+  capacityPhases.mark("await expect(execute({ ...c, budget: budget(4) }, id)).rejects.toThrow(\"different content\");");
   await expect(execute({ ...c, budget: budget(4) }, id)).rejects.toThrow("different content");
+  capacityPhases.mark("const second = await execute({ op: \"start\", plan: \"capacity\", node: \"run-0\" });");
   const second = await execute({ op: "start", plan: "capacity", node: "run-0" });
+  capacityPhases.mark("await expect(execute({ op: \"record\", plan: \"capacity\", node: \"run-0\", attempt: second.launch.workflo");
   await expect(execute({ op: "record", plan: "capacity", node: "run-0", attempt: second.launch.workflow.attempt, state: "running", agentId: "worker-2", workspaceId: "other-space", evidence: "Wrong workspace" })).rejects.toThrow("workspace identity");
+  capacityPhases.mark("await execute({ op: \"record\", plan: \"capacity\", node: \"run-0\", attempt: second.launch.workflow.attem");
   await execute({ op: "record", plan: "capacity", node: "run-0", attempt: second.launch.workflow.attempt, state: "running", agentId: "worker-2", workspaceId: "space-0", evidence: "Same workspace" });
   const replayed = (await new WorkflowPlanStore(root, home).get("capacity"))!;
   expect(planSpent(replayed.nodes, replayed.removed)).toBe(2);
   expect(replayed.nodes["run-0"]?.priorAttempts?.[0]).toMatchObject({ agentId: "worker", workspaceId: "space-0", attempt: first.launch.workflow.attempt });
+  capacityPhases.mark("end");
 });
 
 it("still refuses an extra start at the exact cumulative cap", () => {

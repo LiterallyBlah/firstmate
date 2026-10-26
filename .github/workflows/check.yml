@@ -46,6 +46,8 @@ jobs:
         env:
           # Test setup must override an enabled journal on developer machines.
           FIRSTMATE_RECEIPT_JOURNAL: "1"
+          # Bounded observations for named Windows failures (test/ci-diagnostics.ts); inert when unset.
+          FIRSTMATE_CI_DIAGNOSTICS: .local/ci-diagnostics
       - run: npm ci --prefix docs/board-list
       - run: npx --prefix docs/board-list playwright install --with-deps chromium
       - run: node docs/needs-you/render.mjs
@@ -57,4 +59,5 @@ jobs:
             .local/needs-you-drawer/*.png
             .local/needs-you-drawer/*.json
             .local/s01/ci-tests.json
+            .local/ci-diagnostics/*.json
           include-hidden-files: true
