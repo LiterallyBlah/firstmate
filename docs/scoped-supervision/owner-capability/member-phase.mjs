@@ -4,6 +4,13 @@ import { membershipSnapshot } from './capture.mjs';
 const uint = n => Number.isSafeInteger(n) && n >= 0 && n <= 0xffffffff;
 const good = q => q?.ok === true && (q.win32Error === undefined || q.win32Error === 0);
 const handle = h => /^0x[1-9a-f][0-9a-f]*$/i.test(h);
+// These native fields are retained on failed acquisition/close. A later success flag cannot erase them.
+export function retainedResourceErrorsAbsent(n) {
+  const rows = [...Object.values(n?.handleInventory ?? {}),...(n?.memberAcquisitions ?? []),...(n?.lifetimes ?? [])];
+  // Unlike query results, these lifecycle records write the fields only on a failed call,
+  // even if GetLastWin32Error itself returned zero. Successful queries may still record zero.
+  return rows.every(row => row && ['win32Error','closeError'].every(key => !(key in row)));
+}
 export function memberPhaseAssessment(input, n) {
   const errors = new Set(), require = (ok, why) => { if (!ok) errors.add(why); };
   const schema = n?.captureVersion === 4 && n?.diagnosticVersion === 3 && n?.scenario === 'normal' && n?.contract === 'required-workload-and-owned-set/1';
@@ -52,30 +59,88 @@ export function memberPhaseAssessment(input, n) {
       'terminal-process-inventory-missing');
     if (Array.isArray(processes)) {
       observations.push(...processes);
-      require(processes.length === s?.members?.total, 'terminal-accounting-lifetime-gap');
+      const applicable = lives.slice(0,s?.members?.total);
+      require(uint(s?.members?.total) && applicable.length === s.members.total && processes.length === applicable.length &&
+        applicable.every(l=>processes.some(v=>equal(v.bindingRef,l.bindingRef))), 'terminal-accounting-lifetime-gap');
     }
   }
   for (const e of events) if (['handle-observation','gate-handle-observation'].includes(e.kind)) observations.push(e.data);
   for (const entry of Object.values(n?.handleInventory ?? {})) if (entry.observation) observations.push(entry.observation);
   require(observations.every(observe), 'recorded-required-query-or-reference-failure');
+  const memberEvents = events.flatMap((e,index)=>{
+    if (['membership','offending-membership','normal-owned-set-empty'].includes(e.kind)) return [{index,raw:e.data}];
+    if (['owner-acquired','required-workload-bound'].includes(e.kind)) return [{index,raw:e.data?.members}];
+    return [];
+  });
   const inventories = [n?.freshOwner,n?.beforeResume,n?.liveMembers,n?.lastNormalMembers,n?.lastObservation,...samples.map(s=>s.members),n?.terminalEvidence?.members,
-    ...events.filter(e=>e.kind === 'membership').map(e=>e.data),...events.filter(e=>e.kind==='owner-acquired').map(e=>e.data?.members),...events.filter(e=>e.kind==='required-workload-bound').map(e=>e.data?.members)];
+    ...memberEvents.map(e=>e.raw)];
   require(inventories.every(Boolean), 'missing-membership-inventory');
+  const sequenceByPid = new Map(lives.map(l=>[l.initial?.identity?.pid,l.bindingRef?.sequence]));
   let maxTotal = 0;
   for (const raw of inventories) {
     const m = membershipSnapshot(raw);
     require(m.complete && raw?.complete === true && raw?.queryError === 0 && raw?.accountingError === 0 && m.total <= 8, 'membership-partial-query-or-overflow');
-    if (m.complete) { maxTotal=Math.max(maxTotal,m.total); require(m.pids.every(pid=>pids.has(pid)), 'observed-member-not-acquired'); }
+    if (m.complete) { maxTotal=Math.max(maxTotal,m.total); require(m.pids.every(pid=>pids.has(pid) && sequenceByPid.get(pid)<=m.total), 'observed-member-not-acquired'); }
   }
   require(maxTotal === lives.length, 'cumulative-total-unacquired-lifetime');
-  let previous = 0;
-  for (const e of events.filter(e=>e.kind === 'membership')) { require(uint(e.data?.total) && e.data.total >= previous,'accounting-total-decreased'); previous=e.data?.total ?? previous; }
+  // Named snapshots follow native assignment order; event mirrors follow their recorded order.
+  // Validate both histories, not just their maximum or the subset of `membership` events.
+  const monotone = (values,floor=0) => {
+    let previous=floor;
+    for (const raw of values) { require(uint(raw?.total) && raw.total>=previous,'accounting-total-decreased'); if(uint(raw?.total))previous=Math.max(previous,raw.total); }
+    return previous;
+  };
+  monotone([n?.freshOwner,n?.beforeResume,n?.liveMembers,n?.lastNormalMembers,...samples.map(s=>s.members),n?.terminalEvidence?.members,n?.lastObservation]);
+  monotone(memberEvents.map(e=>e.raw));
+  const rank = {'owner-empty':0,'before-resume':1,'normal-live':2,'success-terminal':3,terminal:4};
+  let stage=0,held=0;const eventSeen=new Set();
+  for (const [index,e] of events.entries()) {
+    if (e.kind==='handle-observation' && e.data?.phase==='initial') {
+      held=Math.max(held,e.data.bindingRef?.sequence ?? 0);eventSeen.add(e.data.identity?.pid);
+    }
+    const observed=memberEvents.find(v=>v.index===index);
+    if(observed) {
+      const raw=observed.raw,current=rank[raw?.phase];
+      require(current!==undefined && current>=stage,'membership-phase-order-contradiction');
+      if(current!==undefined)stage=Math.max(stage,current);
+      require(uint(raw?.total) && raw.total>=held,'membership-omits-already-held-lifetime');
+      const members=membershipSnapshot(raw);
+      if(members.complete) {
+        for(const pid of members.pids)eventSeen.add(pid);
+        require(members.total===eventSeen.size,'cumulative-member-not-observed-at-query');
+      }
+    }
+  }
+  // Returned buffer length is not a process-count fact. Compare meaningful membership fields,
+  // including the PID set, while native aliases of the final query must remain exactly equal.
+  const state = raw => {
+    const {returnedBytes,...value}=membershipSnapshot(raw); if(value.pids)value.pids.sort((a,b)=>a-b); return value;
+  };
+  for(const [raw,phase] of [[n?.freshOwner,'owner-empty'],[n?.beforeResume,'before-resume'],[n?.liveMembers,'normal-live'],[n?.lastNormalMembers,'success-terminal']]) {
+    const mirrors=memberEvents.filter(e=>e.raw?.phase===phase);
+    require(raw?.phase===phase && mirrors.length>0 && equal(state(raw),state(mirrors.at(-1).raw)),'retained-membership-mirror-contradiction');
+  }
+  require(equal(n?.lastObservation,n?.terminalEvidence?.members),'last-observation-terminal-contradiction');
+  // The first sample must include every lifetime already established before terminal capture.
+  // Subsequent samples may extend that prefix through genuine later bounded acquisitions.
+  const terminalStart=events.findIndex((e,index)=>e.kind==='gate-handle-observation' || memberEvents.some(v=>v.index===index && v.raw?.phase==='terminal'));
+  const priorHeld=events.slice(0,terminalStart<0?events.length:terminalStart).filter(e=>e.kind==='handle-observation' && e.data?.phase==='initial')
+    .reduce((count,e)=>Math.max(count,e.data.bindingRef?.sequence ?? 0),0);
+  const priorTotals=[n?.freshOwner,n?.beforeResume,n?.liveMembers,n?.lastNormalMembers,...memberEvents.filter(e=>rank[e.raw?.phase]<4).map(e=>e.raw)]
+    .filter(raw=>uint(raw?.total)).map(raw=>raw.total);
+  monotone(samples.map(s=>s.members),Math.max(priorHeld,...priorTotals,0));
+  // Native membership events are deduplicated when the state is unchanged. If terminal query
+  // mirrors exist, their distinct states and retained sample states must agree in order.
+  const distinct = values => values.map(state).filter((value,index,array)=>index===0 || !equal(value,array[index-1]));
+  const terminalEvents=memberEvents.filter(e=>e.raw?.phase==='terminal');
+  if(terminalEvents.length)require(equal(distinct(terminalEvents.map(e=>e.raw)),distinct(samples.map(s=>s.members))),'terminal-membership-event-sample-contradiction');
   const acquisitions = Array.isArray(n?.memberAcquisitions) ? n.memberAcquisitions : [];
   require(acquisitions.length === Math.max(0,lives.length-1) && acquisitions.length <= 7 &&
     acquisitions.every(a=>a.acquisition === 'acquired' && refs.get(a.role)?.initial?.identity?.pid === a.pid && equal(a.bindingRef,refs.get(a.role)?.bindingRef)) &&
     new Set(acquisitions.map(a=>a.role)).size === acquisitions.length, 'failed-or-omitted-member-acquisition');
   const counter = n?.observation;
   require(counter?.failures === 0 && counter.dropped === 0 && Array.isArray(counter.errors) && counter.errors.length === 0, 'observation-failure-or-loss');
+  require(retainedResourceErrorsAbsent(n),'retained-acquisition-or-disposal-error');
   const root = refs.get('root'); require(root?.bindingRef?.sequence === 1 && initialValid(root), 'root-initial-binding-missing');
   const last = n?.terminalEvidence, lastRows = last?.processes;
   const lastValid = Array.isArray(lastRows) && lastRows.length === lives.length && lives.every(l=>lastRows.some(v=>equal(v.bindingRef,l.bindingRef) && observe(v) && v.wait.result===0 &&

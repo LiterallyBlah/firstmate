@@ -1,7 +1,7 @@
 /** Pure v4 normal admission: required workload roles are distinct from the complete bounded owned set. */
 import {createHash} from 'node:crypto';
 import {isDeepStrictEqual as equal} from 'node:util';
-import {memberPhaseAssessment} from './member-phase.mjs';
+import {memberPhaseAssessment,retainedResourceErrorsAbsent} from './member-phase.mjs';
 import {membershipSnapshot,standardWiringComplete,outputComplete} from './capture.mjs';
 const sha=b=>createHash('sha256').update(b).digest('hex');
 const uuid=v=>typeof v==='string' && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
@@ -49,7 +49,7 @@ export function interpretMemberNormal(input,sourceSha256) {
   const resources=['job','thread','stdin'].every(role=>inventory[role]?.acquisition==='acquired'&&inventory[role].disposition==='closed')&&
     Object.entries(inventory).every(([role,v])=>allowed.has(role)||(role==='child'&&v.acquisition==='never-acquired'&&v.disposition==='not-attempted'))&&
     acquired.every(v=>v.disposition==='closed')&&new Set(acquired.map(v=>v.handle)).size===acquired.length&&n?.cleanup?.timerDrained===true&&
-    n?.cleanup?.jobHandleClosed===true&&n?.cleanup?.threadHandleClosed===true&&n?.stdinClosed===true&&standardWiringComplete(n?.standardWiring);
+    n?.cleanup?.jobHandleClosed===true&&n?.cleanup?.threadHandleClosed===true&&n?.stdinClosed===true&&standardWiringComplete(n?.standardWiring)&&retainedResourceErrorsAbsent(n);
   requireCapture(resources,'member-resource-disposal-or-wiring-incomplete');
   const encodedOutput=v=>outputComplete(v)&&v.encoding==='base64'&&
     typeof v.data==='string'&&Buffer.from(v.data,'base64').length===v.retained&&Buffer.from(v.data,'base64').toString('base64')===v.data;
@@ -58,6 +58,7 @@ export function interpretMemberNormal(input,sourceSha256) {
   requireCapture(rootOutputComplete,'member-root-output-incomplete');
   const closure=Boolean(sourceBound&&phase.closed&&resources&&rootOutputComplete);
   const normalReasons=new Set(captureReasons),requireNormal=(ok,why)=>{if(!ok)normalReasons.add(why);};
+  requireNormal(!n?.events?.some(e=>e.kind==='offending-membership'),'retained-offending-membership');
   const rawCommit=(name,raw,parsed)=>{
     try {const native=n?.committedEntries?.[name];return Buffer.isBuffer(raw)&&raw.length>0&&raw.length<=4096&&
       equal(JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(raw)),parsed)&&native?.rawBase64===raw.toString('base64')&&equal(native.value,parsed);}
