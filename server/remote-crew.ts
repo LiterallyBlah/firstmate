@@ -12,6 +12,9 @@
 import type { RemoteHost, RemoteSnapshot, RemoteWorker } from "../shared/remotes";
 import { TEMPLATES, message } from "./templates";
 
+/** Refuses a mutation the supervision registry owns (S08: remote mutation of scoped work stays disabled). */
+export type RemoteMutationGuard = (serverId: string, agentId: string) => Promise<void>;
+
 /** The part of `RemoteService` the actions use. */
 export interface RemoteGateway {
   read(): Promise<RemoteSnapshot>;
@@ -50,23 +53,27 @@ export async function steerRemoteCrew(
   serverId: string,
   agentId: string,
   text: string,
+  guard?: RemoteMutationGuard,
 ): Promise<{ host: RemoteHost; worker: RemoteWorker; text: string }> {
   const words = text.trim();
   if (words === "") throw new Error("Nothing to send.");
   const { host, worker } = await requireWorker(remotes, serverId, agentId);
+  await guard?.(serverId, worker.id);
   // After `--`, as the helper sends a prompt: the request path keeps it out of its option checks and
   // puts its own flags before it, and the CLI reads it as text even when it starts with a dash.
   await send(remotes, host, ["send", worker.id, "--", words]);
   return { host, worker, text: words };
 }
 
-export async function interruptRemoteCrew(remotes: RemoteGateway, serverId: string, agentId: string): Promise<void> {
+export async function interruptRemoteCrew(remotes: RemoteGateway, serverId: string, agentId: string, guard?: RemoteMutationGuard): Promise<void> {
   const { host, worker } = await requireWorker(remotes, serverId, agentId);
+  await guard?.(serverId, worker.id);
   await send(remotes, host, ["stop", worker.id]);
 }
 
-export async function exitRemoteCrew(remotes: RemoteGateway, serverId: string, agentId: string): Promise<void> {
+export async function exitRemoteCrew(remotes: RemoteGateway, serverId: string, agentId: string, guard?: RemoteMutationGuard): Promise<void> {
   const { host, worker } = await requireWorker(remotes, serverId, agentId);
+  await guard?.(serverId, worker.id);
   // A followed session is the captain's own, not crew; the board never ends it.
   if (worker.followed === true) throw new Error(`${worker.name} is a session the first mate follows, not crew; end it on ${host.label}.`);
   await send(remotes, host, ["archive", worker.id]);

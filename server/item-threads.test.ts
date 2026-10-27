@@ -107,3 +107,13 @@ describe("light item discussions", () => {
     expect(await readFile(path, "utf8")).toBe("broken JSON");
   });
 });
+
+describe("S08 scoped board traffic", () => {
+  it("refuses a scoped worker's item before any record or send reaches the first mate", async () => {
+    const home = await fixture(), deliver = vi.fn(delivered), scoped = vi.fn(async () => true);
+    await expect(sendThread(home, card(), input("one"), deliver, scoped)).rejects.toThrow("scoped supervisor");
+    expect(deliver).not.toHaveBeenCalled(); expect(await readdir(home)).toEqual([]);
+    // A legacy item keeps its existing discussion path unchanged.
+    expect((await sendThread(home, card(), input("two"), deliver, async () => false)).messages).toHaveLength(1);
+  });
+});

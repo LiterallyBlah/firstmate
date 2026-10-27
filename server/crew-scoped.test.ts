@@ -38,3 +38,11 @@ it("the relay refreshes ownership and refuses a pending legacy steer after the w
   expect(queueBurstNote).not.toHaveBeenCalled(); expect(f.send).not.toHaveBeenCalled();
   expect(f.steers.take(f.agent.id, ["old steer"])).toBeNull();
 });
+it("with the S08 scoped adapter, a scoped steer goes only to that adapter: no relay entry, burst note or General send", async () => {
+  vi.clearAllMocks(); const f = fixture(), scoped = { steer: vi.fn(async () => ({})) };
+  const paseo = { agents: { ref: () => ({ refresh: async () => ({ agent: f.agent }), send: f.send, archive: f.archive }), list: async () => [f.agent] } } as unknown as PaseoApi;
+  await steerCrew(paseo, f.steers, f.agent.id, "change", scoped);
+  expect(scoped.steer).toHaveBeenCalledWith(paseo, f.agent.id, "change");
+  expect(f.send).not.toHaveBeenCalled(); expect(askMate).not.toHaveBeenCalled(); expect(queueBurstNote).not.toHaveBeenCalled();
+  expect(f.steers.take(f.agent.id, ["change"])).toBeNull();
+});

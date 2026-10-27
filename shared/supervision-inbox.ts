@@ -18,12 +18,19 @@ export const InboxAssignmentSchema = z.object({ id: SupervisionUuid, scopeId: Su
   candidates: z.array(SupervisionUuid).max(64), ordinal: positive.nullable(),
   state: z.enum(["received", "assigned", "offered", "acknowledged", "handled", "superseded", "quarantined", "observed"]),
   offerId: SupervisionUuid.nullable(), epoch: positive.nullable(), result: InboxResultSchema.nullable(), version: positive }).strict();
-export const InboxSourceSchema = z.object({ id: SupervisionHash, kind: z.enum(["hook", "catalog", "timeline"]),
-  hostId: z.literal("local"), agentId: text().nullable(), epoch: text().nullable(),
+/** S08 adds `pr`, `remote`, `board` and `watch` sources. Only `remote` names a non-local host and `pr`
+ * names `github.com`; none of them has a cursor, so their coverage is never `bounded`. */
+export const SOURCE_KINDS = ["hook", "catalog", "timeline", "pr", "remote", "board", "watch"] as const;
+export const LOCAL_SOURCE_KINDS: readonly string[] = ["hook", "catalog", "timeline", "board", "watch"];
+export const InboxSourceSchema = z.object({ id: SupervisionHash, kind: z.enum(SOURCE_KINDS),
+  hostId: text(), agentId: text().nullable(), epoch: text().nullable(),
   cursor: z.object({ epoch: text(), seq: count }).strict().nullable(), maxSeq: count.nullable(),
   coverage: z.enum(["unknown", "gap", "bounded"]),
-  gaps: z.array(z.enum(["boot", "hook-not-durable", "missing-turn", "empty-timeline", "fetch-failed", "page-gap", "epoch-changed", "reordered", "malformed", "queue-pressure"])).max(16),
-  observedAt: SupervisionUtc, version: positive }).strict();
+  gaps: z.array(z.enum(["boot", "hook-not-durable", "missing-turn", "empty-timeline", "fetch-failed", "page-gap", "epoch-changed", "reordered", "malformed", "queue-pressure",
+    "no-cursor", "fingerprint-only", "content-collision", "outage", "clock-skew", "stale"])).max(16),
+  observedAt: SupervisionUtc, version: positive,
+  /** S08: the owning scope of a source with no agent (a bound pull request), for scoped status pages. */
+  scopeId: SupervisionUuid.nullable().optional() }).strict();
 export const InboxMailboxSchema = z.object({ id: SupervisionUuid, nextOrdinal: positive, watermark: count, version: positive }).strict();
 export const InboxOfferSchema = z.object({ id: SupervisionUuid, scopeId: SupervisionUuid, epoch: positive,
   eventIds: ids.min(1), state: z.enum(["prepared", "accepted", "uncertain", "acknowledged", "retired"]),

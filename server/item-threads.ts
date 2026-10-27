@@ -82,12 +82,18 @@ export async function sendRecordedDiscussion(home: string, key: string, title: s
 }
 
 type Deliver = (text: string, messageId: string, beforeSend: (agentId: string) => Promise<void>) => Promise<unknown>;
+/** S08: whether the card's worker is (or, on a held journal, may be) a scoped attempt. */
+export type ScopedCard = (card: FleetCard) => Promise<boolean>;
 /** The sender invokes beforeSend only after lifecycle checks, immediately before delivery. */
 export async function sendThread(
-  home: string, card: FleetCard, input: z.infer<typeof sendItemThread.input>, deliver: Deliver,
+  home: string, card: FleetCard, input: z.infer<typeof sendItemThread.input>, deliver: Deliver, scoped?: ScopedCard,
 ): Promise<ItemThread> {
   const key = itemTagKey(card);
   if (key !== input.key) throw new Error("The item changed. Reopen its discussion.");
+  // Scoped board traffic bypasses General: before any record or send, refuse a scoped worker's item.
+  if (scoped !== undefined && await scoped(card)) {
+    throw new Error("This item's worker belongs to a scoped supervisor. Discuss it with that scope; the first mate's item discussion will not carry it.");
+  }
   return serialized(`${home}:${threadPath(key)}:send`, async () => {
     let { text: previous, thread } = await load(home, key);
     const existing = thread.messages.find((entry) => entry.id === input.id);

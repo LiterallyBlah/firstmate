@@ -17,7 +17,8 @@ export function supervisionInboxStatus(status: SupervisionStatus, input: { scope
   const ids = new Set(status.tasks.filter(t => t.ownerScopeId === scopeId).map(t => t.id));
   const agents = new Set(status.attempts.filter(a => ids.has(a.taskId)).map(a => a.worker?.agentId));
   const offers = inbox.offers.filter(o => (!scopeId || o.scopeId === scopeId) && o.state !== "retired" && o.state !== "acknowledged");
-  const sources = inbox.sources.filter(s => !scopeId || agents.has(s.agentId ?? undefined));
+  // S08: an agentless source (a bound pull request, a remote host) belongs to a scope only by its recorded owner.
+  const sources = inbox.sources.filter(s => !scopeId || (s.agentId !== null ? agents.has(s.agentId) : s.scopeId === scopeId));
   const rows = pageKind === "events" ? all.filter((a, i) => (scopeId ? a.ordinal! : i + 1) > after).map(a => ({ event: inbox.events.find(e => e.id === a.id)!, disposition: a }))
     : (pageKind === "sources" ? sources : offers).slice(after);
   const output: SupervisionInboxStatus = { format: "firstmate.supervision-inbox/1", homeId: status.homeId, scopeId, sequence: status.sequence, hash: status.hash, pageKind,

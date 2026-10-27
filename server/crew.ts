@@ -94,6 +94,9 @@ export class CaptainSteers {
   }
 }
 
+/** The S08 scoped board adapter (`ScopedBoardSteer`); index.server does not supply one yet. */
+export interface ScopedSteer { steer(paseo: PaseoApi, agentId: string, text: string): Promise<unknown> }
+
 /**
  * Recorded before the send, so a turn that ends the instant the message lands
  * still finds it; taken back if the send fails.
@@ -104,7 +107,17 @@ export class CaptainSteers {
  * journal existed (`receipt-paths.test.ts` holds it). A burst note still
  * gathering for this crewmate waits for the answer to this steer too.
  */
-export async function steerCrew(paseo: PaseoApi, steers: CaptainSteers, agentId: string, text: string): Promise<void> {
+export async function steerCrew(paseo: PaseoApi, steers: CaptainSteers, agentId: string, text: string, scoped?: ScopedSteer): Promise<void> {
+  if (scoped !== undefined) {
+    const agent = await fetchLiveAgent(paseo, agentId);
+    if (agent !== null && Object.values(SCOPE_LABELS).some((label) => label in agent.labels)) {
+      // Scoped board traffic is persisted and routed to its own scope's inbox: no CaptainSteers entry,
+      // no burst note and nothing for General. The adapter resolves the owner from the registry and
+      // refuses rather than guess; labels only select which checked path is asked.
+      await scoped.steer(paseo, agentId, text);
+      return;
+    }
+  }
   await requireCrew(paseo, agentId);
   const messageId = `${CAPTAIN_STEER_MESSAGE_ID_PREFIX}${randomUUID()}`;
   steers.record(agentId, text, messageId);

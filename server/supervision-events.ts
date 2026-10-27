@@ -106,7 +106,7 @@ export class SupervisionEvents {
       const event = s.inbox.events.find(e => e.id === eventId), row = s.inbox.assignments.find(a => a.id === eventId);
       if (!event || !row || row.id !== row.primaryEventId || row.reason === "malformed") throw new SupervisionError("HELD", "Only a retained well-formed primary observation can be resolved.");
       if (row.scopeId) return { mutations: [], resultIds: [eventId] };
-      const owners = eventOwners(event, s.tasks, s.attempts), owner = owners.length === 1 ? owners[0]! : null;
+      const owners = eventOwners(event, s.tasks, s.attempts, s.sources.bindings), owner = owners.length === 1 ? owners[0]! : null;
       if (!owner || s.scopes.find(scope => scope.id === owner.scopeId)?.mode !== "scoped") throw new SupervisionError("UNKNOWN_OWNER", "Triage still has no exact unambiguous scoped attempt.");
       const box = s.inbox.mailboxes.find(b => b.id === owner.scopeId), ordinal = box?.nextOrdinal ?? 1;
       const assignment: InboxAssignment = { ...row, scopeId: owner.scopeId, attemptId: owner.attempt.id, ordinal, reason: "attempt-owner", candidates: [owner.scopeId],
