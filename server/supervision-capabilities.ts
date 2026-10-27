@@ -16,21 +16,10 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { SupervisionHash } from "../shared/supervision";
+import { REVIEWED_READER_RUNS, S00_STRONG_ROWS, type S00Column, type S00Row, type S00Support } from "./supervision-capability-evidence";
 import { SupervisionError } from "./supervision-store";
 
-/** The S00 capability-table rows each strong capability rests on, copied from the frozen S00 fixture
- * (`test/fixtures/supervision-s00/examples.json`; a test holds them equal). Columns are the 0.11 floor, the
- * packaged 0.12 proposal and the 0.13 disk source S00 inspected. None was live-qualified. */
-export const S00_STRONG_ROWS = {
-  "authenticated-admission": { floor011: "unsupported", proposal012: "unsupported", disk013: "unsupported" },
-  "send-receipt": { floor011: "unsupported", proposal012: "unsupported", disk013: "unsupported" },
-  "finish-transfer": { floor011: "unsupported", proposal012: "unsupported", disk013: "unsupported" },
-  "heartbeat-owner": { floor011: "unsupported", proposal012: "unsupported", disk013: "unsupported" },
-  "conditional-archive": { floor011: "unsupported", proposal012: "unsupported", disk013: "unsupported" },
-} as const satisfies Record<string, Record<S00Column, S00Support>>;
-export type S00Support = "source-supported" | "unsupported" | "unqualified";
-export type S00Column = "floor011" | "proposal012" | "disk013";
-export type S00Row = keyof typeof S00_STRONG_ROWS;
+export { REVIEWED_READER_RUNS, S00_STRONG_ROWS, type S00Column, type S00Row, type S00Support } from "./supervision-capability-evidence";
 
 /** Each strong capability, the upstream primitive it consumes and the S00 rows that must all be supported. */
 export const STRONG_CAPABILITIES = [
@@ -94,10 +83,9 @@ export interface CapabilityRequest {
   installedVersion: string | null;
   /** Per-capability flags. All off by default. */
   flags: readonly string[];
+  /** Self-attested until bound to digest-verified, reviewed artifacts (R11 N5); cannot enable anything while every
+   * S00 row is unsupported. The S00 table itself is committed evidence, never a parameter. */
   qualifications?: readonly unknown[];
-  /** Test seam only: a hypothetical re-probe's rows. Defaults to the frozen S00 table; nothing at runtime supplies another,
-   * and it must be removed (with qualifications bound to digest-verified artifacts) before anything is wired (R11 N5). */
-  s00?: Readonly<Record<S00Row, Readonly<Record<S00Column, S00Support>>>>;
 }
 export interface CapabilityVerdict {
   id: StrongCapability; upstream: "U1" | "U2" | "U3"; requested: boolean;
@@ -114,7 +102,8 @@ export interface CapabilityReport {
 
 /** Evaluate every strong capability. Pure. An unknown flag or a malformed qualification is reported, never used. */
 export function evaluateStrongCapabilities(request: CapabilityRequest): CapabilityReport {
-  const table: Readonly<Record<S00Row, Readonly<Record<S00Column, S00Support>>>> = request.s00 ?? S00_STRONG_ROWS;
+  /** Widened: the committed rows are all unsupported today, but a reviewed re-probe may change them. */
+  const table: Readonly<Record<S00Row, Readonly<Record<S00Column, S00Support>>>> = S00_STRONG_ROWS;
   const column = request.installedVersion ? s00Column(request.installedVersion) : null;
   const installed = request.installedVersion ? parseVersion(request.installedVersion) : null;
   const qualifications = (request.qualifications ?? SHIPPED_QUALIFICATIONS).flatMap(q => {
@@ -185,20 +174,14 @@ const ReaderArtifactSchema = z.object({
 }).passthrough();
 export type ConditionState = "met" | "partial" | "open";
 export interface ExecutorApproval { approved: boolean; conditions: { id: string; state: ConditionState; satisfied: boolean; detail: string; reasons: string[] }[] }
-/** The live-reader condition from a run's artifact: `met` only with both readers complete on the installed version and a
- * non-empty history that includes an unavailable-provider session; `partial` for a smoke run that has neither. */
-/** Reader runs a review has accepted, by the SHA-256 of their committed artifact (LF-normalised). An artifact counts only
- * when it is byte-for-byte one of these, so a hand-written result cannot satisfy the condition (R11 round 2). Adding a
- * run is a reviewed code change. The S11 smoke run is listed; it is partial (empty history). */
-export const REVIEWED_READER_RUNS: readonly { sha256: string; artifact: string; review: string }[] = [
-  { sha256: "ca196767dab04aa15618849e02cc997886db24e056cb32bff738d4682e870ac3", artifact: "docs/scoped-supervision/s11-readers/result.json",
-    review: "data/fm-ss-r11/report.md (round 1: a smoke test; the condition stays partial)" },
-];
+/** An artifact's digest, LF-normalised, as listed in the committed, frozen `REVIEWED_READER_RUNS`. */
 export const readerDigest = (artifact: string) => createHash("sha256").update(artifact.split(String.fromCharCode(13)).join("")).digest("hex");
-export function readerCondition(installedVersion: string | null, artifact: string | undefined,
-  reviewed: readonly { sha256: string }[] = REVIEWED_READER_RUNS): { state: ConditionState; reasons: string[] } {
+/** The live-reader condition from a run's artifact: `met` only with both readers complete on the installed version and a
+ * non-empty history that includes an unavailable-provider session; `partial` for a smoke run that has neither. Only a
+ * reviewed run's exact bytes count; there is no parameter to supply another list (R11 R3-N1). */
+export function readerCondition(installedVersion: string | null, artifact: string | undefined): { state: ConditionState; reasons: string[] } {
   if (artifact === undefined) return { state: "open", reasons: ["No reader run artifact."] };
-  if (!reviewed.some(r => r.sha256 === readerDigest(artifact)))
+  if (!REVIEWED_READER_RUNS.some(r => r.sha256 === readerDigest(artifact)))
     return { state: "open", reasons: [`Reader artifact ${readerDigest(artifact)} is not a reviewed, committed run (REVIEWED_READER_RUNS).`] };
   let parsed: z.infer<typeof ReaderArtifactSchema>;
   try { parsed = ReaderArtifactSchema.parse(JSON.parse(artifact)); } catch { return { state: "open", reasons: ["The reader artifact is not a reader run result."] }; }
@@ -214,10 +197,8 @@ export function readerCondition(installedVersion: string | null, artifact: strin
  * deletes without following links; reader evidence comes from the run artifact for the installed version; N7 and the
  * cooperative receiver limit need the captain's explicit acknowledgement at the advisory gate. */
 export function executorApproval(input: { installedVersion: string | null; readerArtifact?: string | undefined; acknowledged?: readonly string[];
-  /** Test seam only: defaults to the committed REVIEWED_READER_RUNS. */
-  reviewedReaderRuns?: readonly { sha256: string }[];
   executor?: { deleteFollowsLinks: boolean } }): ExecutorApproval {
-  const readers = readerCondition(input.installedVersion, input.readerArtifact, input.reviewedReaderRuns ?? REVIEWED_READER_RUNS);
+  const readers = readerCondition(input.installedVersion, input.readerArtifact);
   const conditions = EXECUTOR_CONDITIONS.map(c => {
     const { state, reasons }: { state: ConditionState; reasons: string[] } = c.met === "code" ? { state: "met", reasons: [] }
       : c.met === "evidence" ? readers
