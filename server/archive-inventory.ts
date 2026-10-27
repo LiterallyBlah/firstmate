@@ -10,6 +10,7 @@ const PageSchema = z.object({
         id: z.string().min(1),
         labels: z.record(z.string(), z.string()),
         workspaceId: z.string().min(1).nullable().optional(),
+        cwd: z.string().min(1).optional(),
         archivedAt: z.string().min(1).nullable(),
       }),
     }),
@@ -21,48 +22,99 @@ const PageSchema = z.object({
   }),
 });
 
+type HistoryAgent = z.infer<typeof PageSchema>["entries"][number]["agent"];
+/** Every page of a history listing, or a throw. Never a partial listing after a protocol, request or pagination failure. */
+async function historyAgents(filter: Record<string, unknown>): Promise<HistoryAgent[]> {
+  const agents: HistoryAgent[] = [];
+  const cursors = new Set<string>();
+  const ids = new Set<string>();
+  let cursor: string | undefined;
+  for (;;) {
+    const response = await sendSessionRequest(
+      {
+        type: "fetch_agent_history_request",
+        filter,
+        // Updating a worker must not move it between pages during this scan.
+        sort: [{ key: "created_at", direction: "asc" }],
+        page: { limit: PAGE_SIZE, ...(cursor === undefined ? {} : { cursor }) },
+      },
+      "fetch_agent_history_response",
+    );
+    if (response.error != null) throw new Error(String(response.error));
+    const page = PageSchema.parse(response);
+    if (page.pageInfo.prevCursor !== (cursor ?? null)) throw new Error("History did not confirm the requested page.");
+    for (const { agent } of page.entries) {
+      if (ids.has(agent.id)) throw new Error("History repeated a session across pages.");
+      ids.add(agent.id);
+      agents.push(agent);
+    }
+    const next = page.pageInfo.nextCursor;
+    if (!page.pageInfo.hasMore) {
+      if (next !== null) throw new Error("History returned an uncertain final page.");
+      return agents;
+    }
+    if (next === null || cursors.has(next) || page.entries.length === 0)
+      throw new Error("History did not provide a progressing continuation.");
+    cursors.add(next);
+    cursor = next;
+  }
+}
+
 /**
  * The SDK's agents.list omits unloaded sessions on unavailable providers. History includes them.
  * It is read through the existing plugin session channel because the public SDK has no history API.
  * Never substitute a partial/live listing after any protocol, request or pagination failure.
  */
 export async function archiveChildren(parentId: string) {
-  const children: Array<z.infer<typeof PageSchema>["entries"][number]["agent"]> = [];
-  const cursors = new Set<string>();
-  const ids = new Set<string>();
-  let cursor: string | undefined;
   try {
-    for (;;) {
-      const response = await sendSessionRequest(
-        {
-          type: "fetch_agent_history_request",
-          filter: { labels: { "paseo.parent-agent-id": parentId }, includeArchived: false },
-          // Updating a worker must not move it between pages during this scan.
-          sort: [{ key: "created_at", direction: "asc" }],
-          page: { limit: PAGE_SIZE, ...(cursor === undefined ? {} : { cursor }) },
-        },
-        "fetch_agent_history_response",
-      );
-      if (response.error != null) throw new Error(String(response.error));
-      const page = PageSchema.parse(response);
-      if (page.pageInfo.prevCursor !== (cursor ?? null)) throw new Error("History did not confirm the requested page.");
-      for (const { agent } of page.entries) {
-        if (ids.has(agent.id)) throw new Error("History repeated a session across pages.");
-        ids.add(agent.id);
-        if (agent.archivedAt === null && agent.labels["paseo.parent-agent-id"] === parentId) children.push(agent);
-      }
-      const next = page.pageInfo.nextCursor;
-      if (!page.pageInfo.hasMore) {
-        if (next !== null) throw new Error("History returned an uncertain final page.");
-        return children;
-      }
-      if (next === null || cursors.has(next) || page.entries.length === 0)
-        throw new Error("History did not provide a progressing continuation.");
-      cursors.add(next);
-      cursor = next;
-    }
+    const agents = await historyAgents({ labels: { "paseo.parent-agent-id": parentId }, includeArchived: false });
+    return agents.filter((agent) => agent.archivedAt === null && agent.labels["paseo.parent-agent-id"] === parentId);
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
     throw new Error(`Cannot verify the complete archive inventory; no session was archived. ${reason}`);
+  }
+}
+
+/**
+ * S10 cleanup exclusion: every workspace an unarchived persisted session names, unavailable providers included, and the
+ * directory each works in. Unwired. It throws instead of returning a partial set, including when an unarchived session
+ * has no workspace identity or working directory (`workspaceId` is optional in the protocol): such a session's worktree
+ * could not be kept, so nothing may be cleaned.
+ */
+export async function retainedWorkspaces(): Promise<{ workspaces: string[]; paths: string[] }> {
+  try {
+    const agents = (await historyAgents({ includeArchived: false })).filter((agent) => agent.archivedAt === null);
+    const unknown = agents.filter((agent) => !agent.workspaceId || !agent.cwd);
+    if (unknown.length) throw new Error(`${unknown.length} unarchived sessions have no workspace identity or working directory.`);
+    return { workspaces: [...new Set(agents.map((agent) => agent.workspaceId!))].sort(), paths: [...new Set(agents.map((agent) => agent.cwd!))].sort() };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new Error(`Cannot verify the complete retained-workspace inventory; nothing may be cleaned. ${reason}`);
+  }
+}
+
+/** The fields of a native Paseo schedule (protocol `schedule/list`) the S10 timer inventory reads. Extra fields pass. */
+export const NativeScheduleSchema = z.object({
+  id: z.string().min(1), name: z.string().nullable(),
+  cadence: z.discriminatedUnion("type", [z.object({ type: z.literal("every"), everyMs: z.number().int().positive() }),
+    z.object({ type: z.literal("cron"), expression: z.string().min(1), timezone: z.string().min(1).optional() })]),
+  target: z.discriminatedUnion("type", [z.object({ type: z.literal("agent"), agentId: z.string().min(1) }),
+    z.object({ type: z.literal("new-agent"), config: z.object({ cwd: z.string().min(1) }).passthrough() })]),
+  status: z.enum(["active", "paused", "completed"]),
+});
+export type NativeSchedule = z.infer<typeof NativeScheduleSchema>;
+export type NativeTimerInventory = { complete: true; schedules: NativeSchedule[] } | { complete: false; reason: string };
+/**
+ * Native schedules and heartbeats, read once through `schedule/list` on the plugin session channel (no pagination in
+ * that protocol). Unwired and not exercised against a live daemon: S10 qualifies only the parse and the fail-closed
+ * result. A failed or unparseable answer is `complete: false`, never "no timers".
+ */
+export async function nativeSchedules(): Promise<NativeTimerInventory> {
+  try {
+    const response = await sendSessionRequest({ type: "schedule/list" }, "schedule/list/response");
+    if (response.error != null) throw new Error(String(response.error));
+    return { complete: true, schedules: z.array(NativeScheduleSchema).parse(response.schedules) };
+  } catch (error) {
+    return { complete: false, reason: `Native schedule inventory unavailable: ${error instanceof Error ? error.message : String(error)}`.slice(0, 500) };
   }
 }

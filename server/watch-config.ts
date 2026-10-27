@@ -1,5 +1,5 @@
 /** Routing lives in daemon storage, never in executable script instructions. */
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { z } from "zod";
@@ -27,6 +27,11 @@ export class WatchConfigStore {
     if (new Set(saved.watches.map((watch) => watch.name)).size !== saved.watches.length) throw new Error("Duplicate managed watch names.");
     saved.watches.forEach((watch) => parseSchedule(watch.schedule));
     return saved;
+  }
+  /** SHA-256 of the stored bytes, or null when absent: a read-only before/after comparison for timer inventories. */
+  async fingerprint(): Promise<string | null> {
+    try { return createHash("sha256").update(await readFile(this.path)).digest("hex"); }
+    catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return null; throw error; }
   }
   change(edit: (saved: WatchConfig) => void | Promise<void>): Promise<void> {
     return serialized(this.path, async () => {

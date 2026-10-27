@@ -8,6 +8,7 @@ import { digest } from "./submissions";
 import { SupervisionError, type SupervisionStore, type SupervisionMutation } from "./supervision-store";
 import { workflowHomeIdentity } from "./workflow-ownership";
 import { CONTEXT_ONLY_KINDS } from "../shared/supervision-projects";
+import { MAINTENANCE_KINDS } from "../shared/supervision-maintenance";
 
 export const policyRef = (kind: string, value: { id: string; version: number }): VersionRef => ({ kind, id: value.id, version: value.version, digest: digest(value) });
 const refuse = (code: "STALE" | "HELD" | "CONFLICT", message: string): never => { throw new SupervisionError(code, message); };
@@ -52,6 +53,9 @@ export async function checkPolicy(home: string, status: SupervisionStatus, input
   // S09: project memory, sponsors, intents and conflicts are context. Citing one never stands in for a grant or evidence.
   if ([input.policyVector, input.evidenceVector, input.approvalPolicyVector ?? [], input.modelPolicyVector ?? []].some(v => v.some(r => CONTEXT_ONLY_KINDS.includes(r.kind))))
     refuse("HELD", "Project memory and coordination records are context, never authority; cite reviewed policy and evidence.");
+  // S10: a reservation, job, occurrence or incident is accounting. Holding a fence or a maintenance record grants nothing.
+  if ([input.policyVector, input.approvalPolicyVector ?? [], input.modelPolicyVector ?? []].some(v => v.some(r => MAINTENANCE_KINDS.includes(r.kind))))
+    refuse("HELD", "Resource reservations and maintenance records are accounting, never authority; cite reviewed policy.");
   // S09 rollback boundary: a project whose admissions the captain stopped admits no new work. Records of work
   // already admitted (and stops) continue. Absent project records leave the pre-S09 behaviour unchanged.
   const stopped = status.projects?.projects.filter(p => p.state === "stopped" && input.projectIds.includes(p.id)) ?? [];

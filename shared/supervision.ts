@@ -6,6 +6,7 @@ import type { Continuation } from "./supervision-continuation";
 import type { LegacyDeliveryDisposition, MigrationReceipt } from "./supervision-migration";
 import type { BoardSubmission, SourceBinding } from "./supervision-sources";
 import type { ProjectRows } from "./supervision-projects";
+import type { MaintenanceRows } from "./supervision-maintenance";
 import type { AcceptedScopedCommand, OperationHold, PolicyApproval, PolicyEvidence, PolicyRule, PolicySource, ScopedDecision, ScopedOutbox } from "./supervision-policy";
 
 export const SupervisionHash = z.string().length(64).regex(/^[0-9a-f]{64}$/);
@@ -112,7 +113,8 @@ export const SupervisionRowKind = z.enum(["scope", "binding", "task", "attempt",
   "policy-source", "policy-rule", "policy-evidence", "approval", "decision", "outbox", "operation-hold", "command", "continuation",
   "migration", "delivery-disposition",
   "source-binding", "board-submission",
-  "project", "plan-sponsor", "intent", "dependency-resolution", "memory-proposal", "project-memory", "portfolio-conflict"]);
+  "project", "plan-sponsor", "intent", "dependency-resolution", "memory-proposal", "project-memory", "portfolio-conflict",
+  "resource-reservation", "maintenance-job", "occurrence", "occurrence-host", "maintenance-incident"]);
 export const SupervisionExpectedSchema = z.object({ kind: SupervisionRowKind, id: text(1024), version: count }).strict();
 export const SupervisionActorSchema = z.object({
   kind: z.enum(["captain-ui", "mate-chat", "agent", "system"]), id: text(), source: text(1024),
@@ -161,5 +163,7 @@ export interface SupervisionStatus {
   sources: { bindings: SourceBinding[]; submissions: BoardSubmission[] };
   /** S09 project context and cross-project coordination. Absent on fixtures that predate S09. */
   projects?: ProjectRows;
+  /** S10 resource reservations, maintenance jobs, daily occurrences, host passes and incidents. Absent before S10. */
+  maintenance?: MaintenanceRows;
   index: { schema: 1; sequence: number; hash: string | null; taskOwners: Record<string, string>; effectKeys: Record<string, string> };
 }
