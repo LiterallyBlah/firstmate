@@ -1,52 +1,52 @@
 {
   "format": "firstmate.s06-verification/3",
-  "sourceCommit": "c82bec30ce34bc47f8d1b8e7d042468677caaa25",
-  "sourceTree": "aa1ed76f82649f77338a5d3ecff39d2add70f983",
-  "previousDeliveredHead": "bae5a99da2c94afaeef94fd7e4e532f55ef637c7",
+  "sourceCommit": "3ac17480579f127bfbe635861c597bb15085fdc6",
+  "sourceTree": "5f6fc71cbc0dc858028f0cbf0b8289dafb3dc1a9",
+  "previousDeliveredHead": "032924a9ae3afaa00d839e3cc3cb3a24f2467904",
   "previousManifest": {
-    "path": "docs/scoped-supervision/S06-b3-review-verification.json",
-    "sha256": "776523bcedc39fb24ca119133f08840894e301c0c43d77a5b238797c9580a1fa"
+    "path": "docs/scoped-supervision/S06-b3r-verification.json",
+    "sha256": "7055c500ef9e1a2ac6da67efb1bb153c01eabf63aef2c48e2548b9a7d8bd3227"
   },
   "sourceFiles": [
     {
-      "path": "docs/scoped-supervision/S06-b3-review-verification.json",
-      "committedSHA256": "776523bcedc39fb24ca119133f08840894e301c0c43d77a5b238797c9580a1fa",
-      "gitBlob": "c8ac6c79e704135a3a25e4fdce5ec9a63383bdd0"
-    },
-    {
       "path": "docs/scoped-supervision/pilot-runbook.md",
-      "committedSHA256": "88e932d7b5818be414305ea5639725977581e7f7da4d168ad4ea8e91edf479c2",
-      "gitBlob": "2f7f70e3c0c51651974716165c8b7491eaa26a16"
+      "committedSHA256": "5ce2ad5b5c2551d7d79e9c81a646b0918e4053f6318b71e42da5d792486eda2c",
+      "gitBlob": "dda47638ea18633e77dabfe608d118b908087197"
     },
     {
       "path": "index.server.ts",
-      "committedSHA256": "94b21e6a4ba0b5ab5299af61bb6e121a50340203e97e1edd7371c05f0f884a36",
-      "gitBlob": "c9db6730becac7a3b056e4f371d4c712a51c7f79"
+      "committedSHA256": "b8569d49786cd0b9f016321cd109a9b872ac219d46f6fafc9fab3976c955ea26",
+      "gitBlob": "088d56d79a6f91c9e299345a9cd94cf8a83127ef"
+    },
+    {
+      "path": "server/supervision-index.test.ts",
+      "committedSHA256": "525e0be0fb0b4b4f5fefaf6b6147934a766aaf7badaa5df0f8b7881831273e9d",
+      "gitBlob": "02036c1ddfedecdada857dd2b6957d8e9e5fd939"
     },
     {
       "path": "server/supervision-lifecycle.test.ts",
-      "committedSHA256": "5d2c2358413f33f75ee343d2aa6a2a041fb4d688c0d89cf01eba5764f562454d",
-      "gitBlob": "df20e6a73f750799685043ecc8a60892cf62519f"
-    },
-    {
-      "path": "server/supervision-lifecycle.ts",
-      "committedSHA256": "edff7a04978d2a73d96f676c1b83d4d546730e00064d0395dafa03b23afc8e30",
-      "gitBlob": "6d14b1742463d905531f5db7b98b6531e64e5667"
+      "committedSHA256": "3859d023e9b14fed0bd41ce39a0a112312e29b6ea008acb06a70fe3c6e94814c",
+      "gitBlob": "32375e6c67d76abfca43affe65a568d8edb4b883"
     },
     {
       "path": "server/supervision-status-reader.test.ts",
-      "committedSHA256": "7be824fdaf74b042db79e3905bbdcff6c6d73fd0c0577bd5acfad9a371cf5b54",
-      "gitBlob": "aff9619b6b47e91ecffba41b41b91b8a5e09e4b6"
+      "committedSHA256": "1ab6544fb207838eec03317b54e3f4dec576fe3f876e77bd86e286a10427d9d5",
+      "gitBlob": "d7f1fafefd6fed8c8eb31cb6070d7f53ff12c89c"
     },
     {
       "path": "server/supervision-status-reader.ts",
-      "committedSHA256": "eac4883341b4a67a2510c23c15b5ae887ead8cb756ec882b6d4bc6c7ccc067a1",
-      "gitBlob": "39a10a324dbf4b8dcb8222ed0efdd692b104e8d9"
+      "committedSHA256": "bcb9d1586c61f44e1ae2fb1b7d87d17a04ef6593fea189b8e4f6764252fcb304",
+      "gitBlob": "a1f659d5c11422b2dca3f6f710bb7b717f072ecf"
+    },
+    {
+      "path": "server/supervision-store.test.ts",
+      "committedSHA256": "1d626b7e442bda9cec2f6b475ae825c66f7f767f91ef51c30e7e67ec4c235168",
+      "gitBlob": "1c158226e8acea29c4c773dc3b37fe824ce328d8"
     },
     {
       "path": "server/supervision-store.ts",
-      "committedSHA256": "16492c16a4142a79877c35ba67b69b07c2e80e19b2180d5f4452ed137b8aeb58",
-      "gitBlob": "d9ae849c2bdd3550ff83137286a714f99cad1f46"
+      "committedSHA256": "b9aea408e99ec7f6f67d4b3f0963227de2970e84757ba133a27d5cf9d1ee0e02",
+      "gitBlob": "e42fe609e507df74bee82acdc4a5a804ecb262a6"
     }
   ],
   "guarantee": "synthetic-new-plan-cooperative-only",
@@ -62,37 +62,64 @@
       "passed": true
     },
     "fullSuite": {
-      "total": 2768,
-      "passed": 2765,
+      "total": 2776,
+      "passed": 2773,
       "failed": 0,
       "skipped": 3,
       "files": 190,
-      "jsonSHA256": "f03adea731a94ddf437f5bd8f9890e8d688134740932e2a255cbec1e816c5a7c",
-      "logSHA256": "5ec7b6a29b0923d879ef55801b76efea84529cbd32085edae55821b3e1cbf4e6"
+      "jsonSHA256": "b753d28f3f6d16220172b023fb6221a9ce6d77d6bce33f98e16d7cbaf0f97e12",
+      "logSHA256": "1d360398728a07fdf5476df0b67d9910353b18a91f78f8a047f92e53bd3e00ae"
     },
     "statusReader": {
       "assertions": [
         {
+          "title": "production status reader stays warm across real launches (blob writes) at about 176 transactions",
+          "status": "passed",
+          "durationMs": 5346.64
+        },
+        {
           "title": "production status reader reuses one validated store per home at 176 transactions",
           "status": "passed",
-          "durationMs": 3431.8612
+          "durationMs": 3530.475699999999
+        },
+        {
+          "title": "a status reader stays warm across new evidence blobs but never accepts a removed or forged one",
+          "status": "passed",
+          "durationMs": 154.9326000000001
+        },
+        {
+          "title": "an overlapped display read settles on its committed head only past its budget; default reads retry",
+          "status": "passed",
+          "durationMs": 137.52040000000125
+        },
+        {
+          "title": "concurrent status reads share one validation",
+          "status": "passed",
+          "durationMs": 39.25720000000001
         }
       ],
       "bounds": {
-        "sourceHead": "c82bec30ce34bc47f8d1b8e7d042468677caaa25",
+        "sourceHead": "3ac17480579f127bfbe635861c597bb15085fdc6",
         "history": 176,
         "warmReadMs": [
-          5.1547999999997955,
-          5.202800000000025,
-          5.039900000000216,
-          5.18119999999999,
-          5.110599999999977
+          4.526300000001356,
+          4.366700000000492,
+          4.264600000000428,
+          4.3091999999996915,
+          5.0877999999993335
         ],
         "fullScans": 0,
         "historicalReducerCalls": 0,
         "newTransitionCalls": 1,
-        "commitMs": 17.770500000000084,
-        "committedBeforePollRelease": true
+        "commitMs": 17.13040000000001,
+        "committedBeforePollRelease": true,
+        "launchesBetweenPolls": {
+          "history": 176,
+          "firstPollAfterLaunchMs": 60.37950000000001,
+          "pollsDuringLaunch": 3,
+          "maxPollDuringLaunchMs": 471.78439999999955,
+          "fullScans": 0
+        }
       }
     },
     "operatorRecovery": {
@@ -100,49 +127,136 @@
         {
           "title": "restart and effect recovery audit old history before any receiver operation",
           "status": "passed",
-          "durationMs": 452.59790000000004
+          "durationMs": 467.04920000000004
         },
         {
           "title": "explicit operator index recovery repairs only a validated stale checkpoint, with no receiver call",
           "status": "passed",
-          "durationMs": 135.5086
+          "durationMs": 143.6458
+        },
+        {
+          "title": "operator index recovery refuses a checkpoint ahead of a journal missing its published final transaction",
+          "status": "passed",
+          "durationMs": 168.9851
+        },
+        {
+          "title": "a concurrent read waits for publication and checkpointing instead of exposing a transient held projection",
+          "status": "passed",
+          "durationMs": 37.73860000000059
+        },
+        {
+          "title": "a detached callback cannot reuse an expired writer lock while a later checkpoint is staged",
+          "status": "passed",
+          "durationMs": 59.03060000000005
+        },
+        {
+          "title": "every read detects a tampered checkpoint event anchor",
+          "status": "passed",
+          "durationMs": 68.33690000000024
+        },
+        {
+          "title": "every read detects a tampered checkpoint tip anchor",
+          "status": "passed",
+          "durationMs": 69.29680000000008
+        },
+        {
+          "title": "every read detects a tampered checkpoint publication anchor",
+          "status": "passed",
+          "durationMs": 70.21869999999944
+        },
+        {
+          "title": "a missing checkpoint validates history but refuses its projection until explicit recovery",
+          "status": "passed",
+          "durationMs": 77.64359999999942
+        },
+        {
+          "title": "a stale checkpoint validates history but refuses its projection until explicit recovery",
+          "status": "passed",
+          "durationMs": 89.77050000000054
+        },
+        {
+          "title": "a digest checkpoint validates history but refuses its projection until explicit recovery",
+          "status": "passed",
+          "durationMs": 98.59679999999935
+        },
+        {
+          "title": "a missing checkpoint over an empty journal (interrupted initialization) is rebuilt",
+          "status": "passed",
+          "durationMs": 25.125899999999092
+        },
+        {
+          "title": "recoverIndex refuses a checkpoint ahead of a journal that lost its final published transaction",
+          "status": "passed",
+          "durationMs": 152.78740000000107
+        },
+        {
+          "title": "recoverPublication refuses a checkpoint ahead of a journal that lost its final published transaction",
+          "status": "passed",
+          "durationMs": 164.8246999999992
+        },
+        {
+          "title": "interruption at checkpoint:written preserves the request and recovers only the index",
+          "status": "passed",
+          "durationMs": 62.72099999999955
+        },
+        {
+          "title": "interruption at checkpoint:synced preserves the request and recovers only the index",
+          "status": "passed",
+          "durationMs": 71.33059999999932
+        },
+        {
+          "title": "interruption at checkpoint:replaced preserves the request and recovers only the index",
+          "status": "passed",
+          "durationMs": 60.842500000000655
         }
       ]
     }
   },
   "review": {
-    "B3-R": "one production read-only store per home; warm polling does not acquire writer lock; overlapping commits retry reads",
-    "N10": "explicit enabled-lifecycle operator recoverIndex with checked head, checkpoint-only hold, full audit and no receiver effects",
+    "B3-R2": "warm reads accept checked content-addressed blob additions, compare coordinators by durable name, retry a warm read a write overlapped, hash retained ownership once; concurrent reads coalesce per publication epoch; display routes may serve their own checkpoint-validated head after 750 ms of overlapping commits",
+    "N10-R": "recoverIndex/recoverPublication repair only a consistent-ancestor checkpoint; ahead, divergent, missing or unreadable over a nonempty journal is a refused integrity incident",
     "unchanged": [
+      "N1",
+      "N2",
+      "N3",
+      "N4",
+      "N5",
+      "N6",
+      "N7",
       "N8",
       "N9"
     ]
   },
   "evidence": [
     {
-      "path": "docs/scoped-supervision/s06-b3r-evidence/scoped-metrics.json",
-      "sha256": "b0bcf63ebcf9fda58bdcfc98b5f32f4db786fcd679d4045c4cd6a5e5674d40e1",
+      "path": "docs/scoped-supervision/s06-b3r2-evidence/scoped-metrics.json",
+      "sha256": "0a26f1669e1677499eae045b7fd573240ddc7aab6e21bc243647332d58d03ce7",
       "bytes": 4168
     },
     {
-      "path": "docs/scoped-supervision/s06-b3r-evidence/legacy-metrics.json",
-      "sha256": "984ee1cebe37bcb1f9dec4713fb84f2f5ec016fcd2b9dff17aabd9afd4ed1653",
+      "path": "docs/scoped-supervision/s06-b3r2-evidence/legacy-metrics.json",
+      "sha256": "dd33c7a3142a34a86ba6afabdaa10c8489893838afcb06a2dc066b01f5029bd0",
       "bytes": 4093
     },
     {
-      "path": "docs/scoped-supervision/s06-b3r-evidence/qualification-receipts.json",
-      "sha256": "12e63b5fe75b963ae0f1f071a626a7064fb9877e58fff57a1dcb07dd004c82fc",
+      "path": "docs/scoped-supervision/s06-b3r2-evidence/qualification-receipts.json",
+      "sha256": "41889e77e888a418eb4423ac00fb552ab502edeb691f83d3c13bd7ea4e59efe7",
       "bytes": 92328
     },
     {
-      "path": "docs/scoped-supervision/s06-b3r-evidence/index-bound-evidence.json",
-      "sha256": "941ae67e645c2c7e0067d2ffb3562e7f7a7ef047f54dbe65c5b3fc47fc7d951b",
+      "path": "docs/scoped-supervision/s06-b3r2-evidence/index-bound-evidence.json",
+      "sha256": "c7359246e6a190719475922d5733ab1ef3e51f212b73a73f7bc89101c5bc11d3",
       "bytes": 891
     },
     {
-      "path": "docs/scoped-supervision/s06-b3r-evidence/status-reader-bound-evidence.json",
-      "sha256": "33c8c5329c40c412f535f5ab0094801d717ac76e0c2ec81006797ec985cc64a8",
-      "bytes": 366
+      "path": "docs/scoped-supervision/s06-b3r2-evidence/status-reader-bound-evidence.json",
+      "sha256": "bc1ab6eb8d809b5e694889726de3ea3405fa4f4d25a737831f8e49f8662fa63b",
+      "bytes": 565
+    },
+    {
+      "path": "docs/scoped-supervision/s06-b3r2-evidence/reviewer-probes.json",
+      "sha256": "f14128c155b537658cf5a3a270fa82e309ec4f9ce6ebce2ac20976d1a4a6872c",
+      "bytes": 2403
     }
   ],
   "exclusions": [

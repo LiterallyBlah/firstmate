@@ -1,0 +1,23 @@
+{
+  "sourceHead": "3ac17480579f127bfbe635861c597bb15085fdc6",
+  "history": 176,
+  "warmReadMs": [
+    4.526300000001356,
+    4.366700000000492,
+    4.264600000000428,
+    4.3091999999996915,
+    5.0877999999993335
+  ],
+  "fullScans": 0,
+  "historicalReducerCalls": 0,
+  "newTransitionCalls": 1,
+  "commitMs": 17.13040000000001,
+  "committedBeforePollRelease": true,
+  "launchesBetweenPolls": {
+    "history": 176,
+    "firstPollAfterLaunchMs": 60.37950000000001,
+    "pollsDuringLaunch": 3,
+    "maxPollDuringLaunchMs": 471.78439999999955,
+    "fullScans": 0
+  }
+}

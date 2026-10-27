@@ -1,0 +1,45 @@
+{
+  "sourceHead": "3ac17480579f127bfbe635861c597bb15085fdc6",
+  "runtime": {
+    "node": "v24.18.0",
+    "platform": "win32"
+  },
+  "limits": {
+    "transactions": 256,
+    "admissions": 192,
+    "tail": 32,
+    "projectionBytes": 8388608
+  },
+  "bounds": [
+    {
+      "history": 11,
+      "readMs": [
+        7.92489999999998,
+        6.6073999999998705,
+        6.447499999999991,
+        6.673300000000154,
+        6.180000000000064
+      ],
+      "fullScans": 0,
+      "historicalReducerCalls": 0
+    },
+    {
+      "history": 176,
+      "readMs": [
+        5.135400000000118,
+        5.301900000000387,
+        5.240600000000086,
+        5.024199999999837,
+        5.097200000000157
+      ],
+      "fullScans": 0,
+      "historicalReducerCalls": 0
+    },
+    {
+      "history": 176,
+      "launchMs": 267.03780000000006,
+      "fullScans": 0,
+      "newTransitionCalls": 8
+    }
+  ]
+}
