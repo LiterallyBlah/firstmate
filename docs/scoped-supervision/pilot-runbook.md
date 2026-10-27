@@ -111,7 +111,11 @@ ordinary polling of the same home stays warm, including across launches and othe
 Concurrent reads in one publication epoch share one validation. The display routes (inbox,
 Needs-you, scope) may, after 750 ms of reads overlapped by back-to-back commits, serve their own
 result if it validated against a published checkpoint: an earlier committed head, never a
-staging-window hold. Crew-seen, receipt and request lookups always wait for the newest head. The 5-second Needs-you poll does not construct a new
+staging-window hold. Crew-seen, receipt and request lookups always wait for the newest head.
+**Builder's judgement call, for review:** without this settle budget, a display poll that overlaps a
+launch waits for the writer's whole run (about 2.3 s at 176 plan-heavy transactions on the reference
+machine), which misses the 2-second read stop rule. The trade is a display that can lag the newest
+commit by the overlapping writes, never one that shows an unpublished or held projection. The 5-second Needs-you poll does not construct a new
 store or wake a model. Before admitting a live trial, complete and record that home's cold startup
 audit, then measure its warm status route under the intended client polling load.
 
@@ -152,7 +156,9 @@ example, a deleted published transaction) or on a divergent prefix is reported a
 incident and refused: it may be the last witness of lost history and needs deliberate
 reconciliation, never a rebuild. Checkpoints are replaced atomically and never deleted, so a missing
 or unreadable one is likewise refused over a nonempty journal; only an empty journal (initialization
-interrupted before its first index) is rebuilt.
+interrupted before its first index) is rebuilt. **Builder's judgement call, for review:** refusing a
+missing checkpoint means a lost index has no automatic repair. The alternative, rebuilding it, would
+accept a journal truncated together with its checkpoint, which is the case this rule exists to catch.
 The qualified local operator attachment must stop admissions, inspect the held status's home ID,
 sequence, hash and problems, then invoke `SupervisionLifecycle.recoverIndex({ homeId, sequence, hash })`
 with those exact observed values. That method performs a full audit, accepts only a checkpoint-only
