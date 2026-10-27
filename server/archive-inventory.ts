@@ -10,6 +10,7 @@ const PageSchema = z.object({
         id: z.string().min(1),
         labels: z.record(z.string(), z.string()),
         workspaceId: z.string().min(1).nullable().optional(),
+        cwd: z.string().min(1).optional(),
         archivedAt: z.string().min(1).nullable(),
       }),
     }),
@@ -75,13 +76,17 @@ export async function archiveChildren(parentId: string) {
 }
 
 /**
- * S10 cleanup exclusion: every workspace a persisted, unarchived session still names, unavailable providers included.
- * Unwired. A maintenance pass that cannot read this completely dispatches nothing (`planCleanup` never sees a partial set).
+ * S10 cleanup exclusion: every workspace an unarchived persisted session names, unavailable providers included, and the
+ * directory each works in. Unwired. It throws instead of returning a partial set, including when an unarchived session
+ * has no workspace identity or working directory (`workspaceId` is optional in the protocol): such a session's worktree
+ * could not be kept, so nothing may be cleaned.
  */
-export async function retainedWorkspaces(): Promise<string[]> {
+export async function retainedWorkspaces(): Promise<{ workspaces: string[]; paths: string[] }> {
   try {
-    const agents = await historyAgents({ includeArchived: false });
-    return [...new Set(agents.filter((agent) => agent.archivedAt === null && agent.workspaceId).map((agent) => agent.workspaceId!))].sort();
+    const agents = (await historyAgents({ includeArchived: false })).filter((agent) => agent.archivedAt === null);
+    const unknown = agents.filter((agent) => !agent.workspaceId || !agent.cwd);
+    if (unknown.length) throw new Error(`${unknown.length} unarchived sessions have no workspace identity or working directory.`);
+    return { workspaces: [...new Set(agents.map((agent) => agent.workspaceId!))].sort(), paths: [...new Set(agents.map((agent) => agent.cwd!))].sort() };
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
     throw new Error(`Cannot verify the complete retained-workspace inventory; nothing may be cleaned. ${reason}`);

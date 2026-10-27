@@ -119,18 +119,23 @@ describe("A17.preserve: the timer disposition inventory", () => {
 });
 
 describe("archive-inventory readers fail closed", () => {
-  const page = (entries: { id: string; workspaceId: string | null; archivedAt: string | null }[], prev: string | null, next: string | null) => ({
-    requestId: "x", error: null, entries: entries.map(agent => ({ agent: { ...agent, labels: {} } })), pageInfo: { prevCursor: prev, nextCursor: next, hasMore: next !== null } });
+  const page = (entries: { id: string; workspaceId?: string | null; archivedAt: string | null; cwd?: string }[], prev: string | null, next: string | null) => ({
+    requestId: "x", error: null, entries: entries.map(agent => ({ agent: { cwd: `/work/${agent.id}`, ...agent, labels: {} } })), pageInfo: { prevCursor: prev, nextCursor: next, hasMore: next !== null } });
   it("retainedWorkspaces reads every page, or nothing", async () => {
     const send = vi.spyOn(daemonSession, "sendSessionRequest").mockImplementation(async message => {
       const cursor = (message.page as { cursor?: string }).cursor;
       return cursor === undefined ? page([{ id: "a", workspaceId: "ws-a", archivedAt: null }, { id: "b", workspaceId: "ws-b", archivedAt: null }], null, "c1")
-        : page([{ id: "c", workspaceId: "ws-a", archivedAt: null }, { id: "d", workspaceId: null, archivedAt: null }], "c1", null);
+        : page([{ id: "c", workspaceId: "ws-a", archivedAt: null }, { id: "d", workspaceId: "ws-d", archivedAt: "2026-10-01T00:00:00Z" }], "c1", null);
     });
-    expect(await retainedWorkspaces()).toEqual(["ws-a", "ws-b"]);
+    expect(await retainedWorkspaces()).toEqual({ workspaces: ["ws-a", "ws-b"], paths: ["/work/a", "/work/b", "/work/c"] });
     expect(send.mock.calls[0]![0]).toMatchObject({ type: "fetch_agent_history_request", filter: { includeArchived: false } });
     send.mockImplementation(async message => (message.page as { cursor?: string }).cursor === undefined ? page([{ id: "a", workspaceId: "ws-a", archivedAt: null }], null, "c1")
       : (() => { throw new Error("socket closed"); })());
+    await expect(retainedWorkspaces()).rejects.toThrow(/nothing may be cleaned/);
+    // R10 B1 (P10): an unarchived session with no workspace identity fails closed instead of being dropped.
+    send.mockImplementation(async () => page([{ id: "a", workspaceId: "ws-a", archivedAt: null }, { id: "e", archivedAt: null }], null, null));
+    await expect(retainedWorkspaces()).rejects.toThrow(/1 unarchived sessions have no workspace identity/);
+    send.mockImplementation(async () => page([{ id: "e", workspaceId: null, archivedAt: null }], null, null));
     await expect(retainedWorkspaces()).rejects.toThrow(/nothing may be cleaned/);
   });
   it("nativeSchedules parses the protocol answer and reports any failure as incomplete", async () => {

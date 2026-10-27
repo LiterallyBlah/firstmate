@@ -11,13 +11,15 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { SupervisionActorSchema, SupervisionHash, SupervisionUtc, SupervisionUuid, type SupervisionActor, type SupervisionExpected, type SupervisionStatus } from "../shared/supervision";
 import {
-  CleanupSelector, HostId, IanaZone, isTerminalHost, maintenanceSummary, ResourceClass, unsettled, type MaintenanceIncident, type MaintenanceJob,
+  absolutePath, cacheLabelValid, CleanupSelectors, HostId, IanaZone, isTerminalHost, normalPath, pathSegmentsValid, maintenanceSummary, ResourceClass, unsettled, type MaintenanceIncident, type MaintenanceJob,
   type MaintenanceRows, type MaintenanceSummary, type Occurrence, type OccurrenceHost, type ResourceReservation,
 } from "../shared/supervision-maintenance";
 import { digest } from "./submissions";
 import type { SupervisionMutation, SupervisionStore } from "./supervision-store";
 import { hostReservationId, incidentId, maintenanceRowId, OCCURRENCE_SPACING_MS, occurrenceHostId, occurrenceId } from "./supervision-maintenance-state";
-import { emptyResult, grantable, maintenanceAdmission, maintenanceRows, nextFences, refuse } from "./supervision-resources";
+import { emptyResult, grantable, maintenanceAdmission, maintenanceRows, nextFences, refuse, stepRoom } from "./supervision-resources";
+export { stepRoom, type Step } from "./supervision-resources";
+import type { Step } from "./supervision-resources";
 import { boundTo } from "./supervision-projects";
 import { message, TEMPLATES } from "./templates";
 import type { NativeTimerInventory } from "./archive-inventory";
@@ -78,20 +80,34 @@ export function planTick(job: MaintenanceJob, occurrences: readonly Occurrence[]
 // Cleanup planning. Selection never reaches past the job's selectors; retained worktrees/volumes and unknown owners stay.
 
 export interface MaintenanceCandidate { id: string; path: string; cache?: string; workspaceId?: string | null; volumeId?: string | null; owner: "known" | "unknown" }
-export interface RetainedSet { workspaces: readonly string[]; volumes: readonly string[] }
+/** Complete retained sets: workspace and volume identities, and the paths retained worktrees live at. */
+export interface RetainedSet { workspaces: readonly string[]; volumes: readonly string[]; paths: readonly string[] }
 export function itemKey(jobId: string, hostId: string, candidate: Pick<MaintenanceCandidate, "id" | "path">) { return digest(["firstmate.maintenance-item/1", jobId, hostId, candidate.id, candidate.path]); }
-const normalPath = (p: string) => p.replaceAll("\\", "/").replace(/\/+$/, "");
+const within = (child: string, parent: string) => child === parent || child.startsWith(`${parent}/`);
+const overlaps = (a: string, b: string) => within(a, b) || within(b, a);
+/** Select cleanup items. A candidate is selected only when its absolute path lies strictly below a path-prefix selector
+ * (never the selector root), its cache label matches a cache-prefix selector by whole segments when any is given, it
+ * neither equals, contains nor lies under any retained path, and its owner is known. Retained paths are the executor's
+ * worktree paths, path-shaped `retained` entries, and the paths of candidates tagged with a retained identity.
+ * Path comparison is by segment and case-sensitive. A candidate listed twice is one item. */
 export function planCleanup(job: Pick<MaintenanceJob, "id" | "selectors" | "retained">, hostId: string, candidates: readonly MaintenanceCandidate[], retained: RetainedSet) {
-  const keep = new Set([...retained.workspaces, ...retained.volumes, ...job.retained]);
-  const selected: { key: string; candidate: MaintenanceCandidate }[] = [];
+  const ids = new Set([...retained.workspaces, ...retained.volumes, ...job.retained]);
+  const roots = job.selectors.flatMap(s => s.kind === "path-prefix" ? [normalPath(s.value)] : []);
+  const labels = job.selectors.flatMap(s => s.kind === "cache-prefix" ? [s.value.replace(/\/+$/, "")] : []);
+  const tagged = (c: MaintenanceCandidate) => [c.workspaceId, c.volumeId, c.id, c.path].some(v => v && ids.has(v));
+  const keep = [...retained.paths, ...job.retained, ...candidates.filter(tagged).map(c => c.path)].map(normalPath).filter(absolutePath);
+  const selected: { key: string; candidate: MaintenanceCandidate }[] = [], seen = new Set<string>();
   let excluded = 0, triage = 0;
   for (const c of candidates) {
+    const key = itemKey(job.id, hostId, c);
+    if (seen.has(key)) continue;
+    seen.add(key);
     const path = normalPath(c.path);
-    const inside = !path.split("/").includes("..") && job.selectors.some(s => s.kind === "path-prefix"
-      ? path === normalPath(s.value) || path.startsWith(`${normalPath(s.value)}/`) : c.cache !== undefined && c.cache.startsWith(s.value));
-    if (!inside || [c.workspaceId, c.volumeId, c.path, c.id].some(v => v && keep.has(v))) { excluded++; continue; }
+    const inside = absolutePath(path) && pathSegmentsValid(c.path) && roots.some(r => path !== r && within(path, r));
+    const labelled = !labels.length || (c.cache !== undefined && cacheLabelValid(c.cache) && labels.some(l => within(c.cache!, l)));
+    if (!inside || !labelled || tagged(c) || keep.some(k => overlaps(path, k))) { excluded++; continue; }
     if (c.owner !== "known") { triage++; continue; }
-    selected.push({ key: itemKey(job.id, hostId, c), candidate: c });
+    selected.push({ key, candidate: c });
   }
   return { selected, excluded, triage };
 }
@@ -197,7 +213,7 @@ export const JobInputSchema = z.object({ jobId: SupervisionUuid, expectedVersion
   name: z.string().min(1).max(120), domain: z.enum(["host-storage", "workspace-retention"]),
   schedule: z.object({ kind: z.literal("daily"), at: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/), zone: IanaZone }).strict(),
   hosts: z.array(HostId).min(1).max(32), resource: z.object({ class: ResourceClass, keys: z.array(z.string().min(1).max(300)).min(1).max(8) }).strict(),
-  selectors: z.array(CleanupSelector).min(1).max(16), retained: z.array(z.string().min(1).max(300)).max(64), mode: z.enum(["observe", "advisory"]),
+  selectors: CleanupSelectors, retained: z.array(z.string().min(1).max(300)).max(64), mode: z.enum(["observe", "advisory"]),
   legacyTimer: z.object({ kind: z.enum(["native-schedule", "script-watch", "managed-watch", "none"]), id: z.string().min(1).max(300).nullable(),
     disposition: z.enum(["retained", "retired", "unknown"]), evidence: z.array(z.object({ ref: z.string().min(1).max(1024), digest: SupervisionHash }).strict()).max(32) }).strict(),
   budget: Budget.nullable(), maxPasses: z.number().int().min(1).max(6) }).strict();
@@ -207,14 +223,16 @@ const SYSTEM: SupervisionActor = { kind: "system", id: "s10-maintenance", source
 const reviewedActor = (actor: SupervisionActor) => actor.kind === "captain-ui" || actor.kind === "mate-chat";
 const commandId = (...parts: unknown[]) => maintenanceRowId("command", ...parts);
 
-export type HostRun = { hostId: string; state: OccurrenceHost["state"] | "blocked" | "unchanged"; reason: string | null };
+export type HostRun = { hostId: string; state: OccurrenceHost["state"] | "blocked" | "unchanged" | "refused"; reason: string | null };
+export type TickResult = { jobId: string; plan: TickPlan["kind"] | "refused"; occurrenceId: string | null; wrote: boolean; reason?: string };
+
 
 export class SupervisionJobs {
   private readonly active = new Set<string>();
   constructor(readonly store: SupervisionStore, private readonly options: { enabled?: boolean; now?: () => string; executor?: MaintenanceExecutor; leaseMs?: number } = {}) {}
   private now() { return this.options.now?.() ?? utc(Date.now()); }
   private enabled() { if (!this.options.enabled) refuse("UNSUPPORTED", "S10 maintenance jobs are disabled."); }
-  private async command(requestId: string, input: unknown, actorInput: SupervisionActor, prepare: (draft: Draft, actor: SupervisionActor) => void | Promise<void>) {
+  private async command(requestId: string, input: unknown, actorInput: SupervisionActor, step: Step, prepare: (draft: Draft, actor: SupervisionActor) => void | Promise<void>) {
     this.enabled();
     const actor = structuredClone(SupervisionActorSchema.parse(actorInput));
     let wrote = false;
@@ -222,6 +240,7 @@ export class SupervisionJobs {
       await this.store.transactCommand(requestId, digest(input), actor, async status => {
         const draft = new Draft(status);
         wrote = true;
+        if (stepRoom(status, step) === "skip") { wrote = false; throw new Unchanged(); }
         await prepare(draft, actor);
         if (!draft.size) { wrote = false; throw new Unchanged(); }
         return { expectedVersions: draft.expected(), mutations: draft.mutations(), result: emptyResult() };
@@ -237,7 +256,7 @@ export class SupervisionJobs {
    * definition version; already open occurrences keep the version they opened with. */
   async defineJob(requestId: string, actor: SupervisionActor, raw: z.input<typeof JobInputSchema>) {
     const input = JobInputSchema.parse(raw);
-    return this.command(requestId, { op: "job", input }, actor, (draft, a) => {
+    return this.command(requestId, { op: "job", input }, actor, "admission", (draft, a) => {
       if (!reviewedActor(a)) refuse("UNSUPPORTED", "A maintenance job definition is the captain's, recorded through the UI or chat.");
       maintenanceAdmission(draft.status);
       const old = draft.get<MaintenanceJob>("maintenance-job", input.jobId);
@@ -256,7 +275,7 @@ export class SupervisionJobs {
   /** Activate or stop a job. Stopping is always allowed and exempt: no new occurrences; open passes keep their
    * reservations, items and receipts. Restarting an old timer is never part of this; it needs its own reconciliation. */
   async setState(requestId: string, actor: SupervisionActor, raw: { jobId: string; expectedVersion: number; state: "active" | "stopped" }) {
-    return this.command(requestId, { op: "job-state", raw }, actor, (draft, a) => {
+    return this.command(requestId, { op: "job-state", raw }, actor, raw.state === "active" ? "admission" : "settlement", (draft, a) => {
       const job = draft.get<MaintenanceJob>("maintenance-job", raw.jobId);
       if (!job) refuse("UNKNOWN_OWNER", "Unknown job.");
       this.owner(draft.status, a, job.scopeId);
@@ -265,19 +284,32 @@ export class SupervisionJobs {
       if (raw.state === "active") maintenanceAdmission(draft.status);
       if (job.state === raw.state) refuse("CONFLICT", `The job is already ${raw.state}.`);
       draft.put<MaintenanceJob>("maintenance-job", { ...strip(job), state: raw.state, activeSince: job.activeSince ?? (raw.state === "active" ? this.now() : null) });
+      // Rollback: passes with nothing unsettled are covered by the stop and release what they hold. A pass this
+      // process is running, or one with dispatched or uncertain items, keeps its reservation and receipts.
+      if (raw.state === "stopped") for (const o of maintenanceRows(draft.status).occurrences.filter(x => x.jobId === job.id && x.state === "open")) {
+        for (const hostId of o.hosts) {
+          const h = draft.get<OccurrenceHost>("occurrence-host", occurrenceHostId(o.id, hostId))!;
+          if (isTerminalHost(h) || unsettled(h) || this.active.has(h.id)) continue;
+          setHost(draft, h, { state: "superseded", reason: "The job was stopped." }, this.now());
+          settleReservation(draft, h.id, a, this.now());
+        }
+        closeIfDone(draft, o.id, this.now());
+      }
     });
   }
 
   /** One scheduler tick. A due date opens exactly one occurrence with every covered host pending; ticking again, or
    * from a second process, replays the same command and writes nothing. Nothing due writes nothing. */
-  async tick(now = this.now()): Promise<{ jobId: string; plan: TickPlan["kind"]; occurrenceId: string | null; wrote: boolean }[]> {
+  async tick(now = this.now()): Promise<TickResult[]> {
     this.enabled(); SupervisionUtc.parse(now);
-    const status = await this.store.read(), out: { jobId: string; plan: TickPlan["kind"]; occurrenceId: string | null; wrote: boolean }[] = [];
+    const status = await this.store.read(), out: TickResult[] = [];
     for (const job of maintenanceRows(status).jobs) {
       const plan = planTick(job, maintenanceRows(status).occurrences, Date.parse(now));
       if (plan.kind !== "open") { out.push({ jobId: job.id, plan: plan.kind, occurrenceId: plan.kind === "duplicate" ? plan.occurrenceId : null, wrote: false }); continue; }
       // The command ID is the occurrence identity: a duplicate or concurrent tick replays it, never a second open.
-      const wrote = await this.command(commandId("open", plan.occurrence.id), { op: "open", id: plan.occurrence.id }, SYSTEM, draft => {
+      // One job's refusal (the admission ceiling, a changed schedule) never stops another job's tick.
+      let wrote: boolean;
+      try { wrote = await this.command(commandId("open", plan.occurrence.id), { op: "open", id: plan.occurrence.id }, SYSTEM, "admission", draft => {
         maintenanceAdmission(draft.status);
         const current = draft.get<MaintenanceJob>("maintenance-job", job.id)!, again = planTick(current, maintenanceRows(draft.status).occurrences, Date.parse(now));
         if (again.kind !== "open" || again.occurrence.id !== plan.occurrence.id) refuse("STALE", "The schedule changed while ticking; tick again.");
@@ -285,7 +317,8 @@ export class SupervisionJobs {
         for (const prior of maintenanceRows(draft.status).occurrences.filter(o => o.jobId === job.id && o.state === "open")) {
           for (const hostId of prior.hosts) {
             const host = draft.get<OccurrenceHost>("occurrence-host", occurrenceHostId(prior.id, hostId))!;
-            if (["pending", "deferred", "offline"].includes(host.state) && !unsettled(host)) {
+            // A pass left running by a crash with nothing unsettled is covered too, unless this process is running it.
+            if ((["pending", "deferred", "offline"].includes(host.state) || (host.state === "running" && !this.active.has(host.id))) && !unsettled(host)) {
               setHost(draft, host, { state: "superseded", reason: `Covered by the ${again.occurrence.localDate} occurrence.` }, now);
               settleReservation(draft, host.id, SYSTEM, now);
             }
@@ -295,7 +328,10 @@ export class SupervisionJobs {
         draft.put<Occurrence>("occurrence", { ...again.occurrence, openedAt: now });
         for (const hostId of again.occurrence.hosts) draft.put<OccurrenceHost>("occurrence-host", { id: occurrenceHostId(again.occurrence.id, hostId), occurrenceId: again.occurrence.id,
           jobId: job.id, hostId, state: "pending", passes: 0, reservationId: null, items: [], excluded: 0, triage: 0, reason: null, incidentId: null, resultDigest: null, updatedAt: now });
-      });
+      }); } catch (error) {
+        out.push({ jobId: job.id, plan: "refused", occurrenceId: plan.occurrence.id, wrote: false, reason: String(error instanceof Error ? error.message : error).slice(0, 500) });
+        continue;
+      }
       out.push({ jobId: job.id, plan: "open", occurrenceId: plan.occurrence.id, wrote });
     }
     return out;
@@ -304,14 +340,15 @@ export class SupervisionJobs {
   /** Observe mode: record what the existing timer reported for one host. Unchanged failures and outages write no incident. */
   async observe(requestId: string, actor: SupervisionActor, raw: z.input<typeof ObserveSchema>) {
     const input = ObserveSchema.parse(raw), at = this.now();
-    return this.command(requestId, { op: "observe", input }, actor, (draft, a) => {
+    return this.command(requestId, { op: "observe", input }, actor, "closure", (draft, a) => {
       const host = draft.get<OccurrenceHost>("occurrence-host", occurrenceHostId(input.occurrenceId, input.hostId));
       if (!host) refuse("UNKNOWN_OWNER", "That host is not covered by this occurrence.");
       const job = draft.get<MaintenanceJob>("maintenance-job", host.jobId)!;
       this.owner(draft.status, a, job.scopeId);
       if (job.mode !== "observe") refuse("CONFLICT", "An advisory job records its own passes.");
       if (isTerminalHost(host)) refuse("CONFLICT", "This host pass is finished.");
-      if (host.state === input.outcome && host.resultDigest === input.resultDigest) return;
+      // A repeated report of the same state writes nothing, whatever its digest: at most two writes per host per day.
+      if (host.state === input.outcome) return;
       let incident: string | null = null;
       if (input.outcome === "completed") resolve(draft, job.id, input.hostId, ["failure", "offline"]);
       else incident = raise(draft, job.id, input.hostId, input.outcome === "offline" ? "offline" : "failure", input.detail, input.occurrenceId);
@@ -344,7 +381,7 @@ export class SupervisionJobs {
     if (older) return { hostId, state: "blocked", reason: "An earlier pass on this host is unfinished; it resumes first." };
     const at = () => this.now();
     // A pass found running with dispatched items was interrupted (this process holds no run for it): never reapply them.
-    if (host.state === "running") await this.command(randomUUID(), { op: "interrupted", rowId, version: host.version }, SYSTEM, draft => {
+    if (host.state === "running") await this.command(randomUUID(), { op: "interrupted", rowId, version: host.version }, SYSTEM, "settlement", draft => {
       const h = draft.get<OccurrenceHost>("occurrence-host", rowId)!;
       const items = h.items.map(i => i.state === "dispatched" ? { ...i, state: "uncertain" as const } : i);
       const incident = items.some(i => i.state === "uncertain") ? raise(draft, job.id, hostId, "uncertain", `${unsettled({ items })} items were dispatched without a recorded result.`, occurrence) : h.incidentId;
@@ -357,7 +394,7 @@ export class SupervisionJobs {
     let probe: "online" | "offline";
     try { probe = await executor.probe(hostId); } catch { probe = "offline"; }
     if (probe === "offline") {
-      await this.command(randomUUID(), { op: "offline", rowId }, SYSTEM, draft => {
+      await this.command(randomUUID(), { op: "offline", rowId }, SYSTEM, "relabel", draft => {
         const h = draft.get<OccurrenceHost>("occurrence-host", rowId)!;
         const incident = raise(draft, job.id, hostId, "offline", "The host did not answer; its pass waits and coverage stays.", occurrence);
         setHost(draft, h, { state: "offline", reason: "Host unreachable.", incidentId: incident }, at());
@@ -366,7 +403,7 @@ export class SupervisionJobs {
     }
     // Start the pass: one counted pass, holding the job's resources for this host, or deferred while they are busy.
     let started = false;
-    await this.command(randomUUID(), { op: "start", rowId }, SYSTEM, draft => {
+    await this.command(randomUUID(), { op: "start", rowId }, SYSTEM, "closure", draft => {
       const h = draft.get<OccurrenceHost>("occurrence-host", rowId)!;
       if (h.passes >= job.maxPasses) {
         const incident = raise(draft, job.id, hostId, "failure", `The pass budget of ${job.maxPasses} passes is spent.`, occurrence);
@@ -388,7 +425,10 @@ export class SupervisionJobs {
         reservation = draft.put<ResourceReservation>("resource-reservation", { ...strip(reservation), state: "granted", fences: nextFences(rows, reservation.keys) });
       }
       if (reservation.state === "queued") {
-        setHost(draft, h, { state: "deferred", reservationId: reservation.id, reason: "Waiting for resources held by conflicting work." }, at()); return;
+        // Waiting is a relabel: past the admission ceiling it writes nothing.
+        if (stepRoom(draft.status, "relabel") === "write")
+          setHost(draft, h, { state: "deferred", reservationId: reservation.id, reason: "Waiting for resources held by conflicting work." }, at());
+        return;
       }
       started = true;
       setHost(draft, h, { state: "running", passes: h.passes + 1, reservationId: reservation.id, reason: null }, at());
@@ -400,7 +440,7 @@ export class SupervisionJobs {
     let plan: ReturnType<typeof planCleanup>;
     try { plan = planCleanup(job, hostId, await executor.inventory(hostId), await executor.retained(hostId)); }
     catch (error) {
-      await this.command(randomUUID(), { op: "incomplete", rowId }, SYSTEM, draft => {
+      await this.command(randomUUID(), { op: "incomplete", rowId }, SYSTEM, "closure", draft => {
         const h = draft.get<OccurrenceHost>("occurrence-host", rowId)!;
         setHost(draft, h, { state: "deferred", reason: `Inventory incomplete; nothing dispatched. ${String(error).slice(0, 300)}` }, at());
         settleReservation(draft, rowId, SYSTEM, at());
@@ -408,14 +448,19 @@ export class SupervisionJobs {
       return { hostId, state: "deferred", reason: "Inventory incomplete." };
     }
     const seen = new Set(host!.items.map(i => i.key)), pending = plan.selected.filter(s => !seen.has(s.key)).slice(0, 64);
-    if (pending.length) await this.command(randomUUID(), { op: "dispatch", rowId, keys: pending.map(p => p.key) }, SYSTEM, draft => {
+    let held = true;
+    if (pending.length) await this.command(randomUUID(), { op: "dispatch", rowId, keys: pending.map(p => p.key) }, SYSTEM, "closure", draft => {
       const h = draft.get<OccurrenceHost>("occurrence-host", rowId)!;
+      // Reread under the journal lock: dispatch only while this pass still runs under the same held reservation.
+      const r = h.reservationId ? draft.get<ResourceReservation>("resource-reservation", h.reservationId) : undefined;
+      if (h.state !== "running" || !r || !["granted", "suspect"].includes(r.state) || digest(r.fences) !== digest(fences)) { held = false; return; }
       setHost(draft, h, { items: [...h.items, ...pending.map(p => ({ key: p.key, state: "dispatched" as const }))], excluded: plan.excluded, triage: plan.triage }, at());
     });
+    if (!held) return { hostId, state: "blocked", reason: "The pass no longer holds its reservation; nothing was dispatched." };
     let results: { key: string; outcome: "done" | "failed" }[] | null = [];
     try { if (pending.length) results = await executor.apply(hostId, pending, fences); } catch { results = null; }
     // Finish: settle every item, then complete, fail or wait on the uncertain ones (which keep the reservation).
-    await this.command(randomUUID(), { op: "finish", rowId }, SYSTEM, draft => {
+    await this.command(randomUUID(), { op: "finish", rowId }, SYSTEM, "settlement", draft => {
       const h = draft.get<OccurrenceHost>("occurrence-host", rowId)!;
       const outcome = new Map((results ?? []).map(r => [r.key, r.outcome]));
       const items = h.items.map(i => i.state === "dispatched" ? { ...i, state: outcome.get(i.key) ?? "uncertain" as const } : i);
@@ -446,7 +491,7 @@ export class SupervisionJobs {
   /** Settle uncertain items from recorded receiver evidence (captain/mate only). Nothing is reapplied automatically. */
   async reconcileItems(requestId: string, actor: SupervisionActor, raw: { occurrenceId: string; hostId: string; expectedVersion: number;
     items: { key: string; outcome: "done" | "failed" }[]; evidence: { ref: string; digest: string }[] }) {
-    return this.command(requestId, { op: "reconcile", raw }, actor, (draft, a) => {
+    return this.command(requestId, { op: "reconcile", raw }, actor, "settlement", (draft, a) => {
       if (!reviewedActor(a)) refuse("UNSUPPORTED", "Settling an uncertain effect needs recorded captain or mate evidence.");
       if (!raw.evidence.length) refuse("HELD", "Settling an uncertain item needs evidence.");
       const h = draft.get<OccurrenceHost>("occurrence-host", occurrenceHostId(raw.occurrenceId, raw.hostId));
@@ -458,7 +503,7 @@ export class SupervisionJobs {
   }
   /** The maintenance scope's owner has read this incident generation. */
   async acknowledge(requestId: string, actor: SupervisionActor, raw: { incidentId: string; generation: number }) {
-    return this.command(requestId, { op: "ack", raw }, actor, (draft, a) => {
+    return this.command(requestId, { op: "ack", raw }, actor, "settlement", (draft, a) => {
       const i = draft.get<MaintenanceIncident>("maintenance-incident", raw.incidentId);
       if (!i) refuse("UNKNOWN_OWNER", "Unknown incident.");
       this.owner(draft.status, a, draft.get<MaintenanceJob>("maintenance-job", i.jobId)!.scopeId);
@@ -474,7 +519,9 @@ export class SupervisionJobs {
     for (const o of rows.occurrences.filter(x => x.state === "open").sort((a, b) => a.dueAt.localeCompare(b.dueAt))) {
       const job = rows.jobs.find(j => j.id === o.jobId)!;
       if (job.mode !== "advisory" || job.state !== "active") continue;
-      for (const hostId of o.hosts) runs.push(await this.runHost(o.id, hostId));
+      // One refused host (a store refusal, the admission ceiling) never stops the others.
+      for (const hostId of o.hosts) runs.push(await this.runHost(o.id, hostId).catch((error: unknown) =>
+        ({ hostId, state: "refused" as const, reason: String(error instanceof Error ? error.message : error).slice(0, 500) })));
     }
     return { ticks, runs };
   }

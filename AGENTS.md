@@ -169,7 +169,8 @@ all-or-none advisory reservations over sorted keys (FIFO within priority, monoto
 release only on matching terminal evidence), occurrences keyed by job/IANA zone/local date with one missed-day
 observation, per-host passes with a write-ahead item ledger (interrupted items become uncertain and are never
 reapplied), one incident per job/host/kind, and a read-only timer disposition inventory. No executor ships; healthy
-results and unchanged failures wake nobody, and General reads `maintenanceSummary`. S10 admissions stop at 160.
+results and unchanged failures wake nobody, and General reads `maintenanceSummary`. Cleanup is bounded by path
+segment and retained-path containment. S10 admissions stop at 160, closures at 192; settlement always continues.
 
 | File                          | What it owns                                                                              |
 | ----------------------------- | ----------------------------------------------------------------------------------------- |

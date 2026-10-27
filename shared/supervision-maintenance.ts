@@ -51,7 +51,20 @@ export const ResourceReservationSchema = z.object({
     r.fences.every((f, i) => f.key === r.keys[i]), "A granted reservation holds exactly one fence per key.");
 export type ResourceReservation = z.infer<typeof ResourceReservationSchema>;
 
-export const CleanupSelector = z.object({ kind: z.enum(["cache-prefix", "path-prefix"]), value: text(512) }).strict();
+/** Path helpers shared by the selector schema and `planCleanup`. Paths are compared by whole segment, `\` read as `/`. */
+export const normalPath = (p: string) => p.replaceAll("\\", "/").replace(/\/+$/, "") || "/";
+export const absolutePath = (p: string) => /^(\/|[A-Za-z]:\/)/.test(p);
+const badSegment = (s: string) => s === "" || s === "." || s === "..";
+export const pathSegmentsValid = (p: string) => normalPath(p).split("/").slice(1).every(s => !badSegment(s));
+export const cacheLabelValid = (c: string) => c.split("/").every(s => !badSegment(s));
+/** A path-prefix selector is an absolute directory below a root. A cache-prefix selector only narrows path selectors by
+ * whole cache-label segments; it never admits a path on its own. */
+export const CleanupSelector = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("path-prefix"), value: text(512).refine(v => absolutePath(normalPath(v)) && pathSegmentsValid(v) && normalPath(v).split("/").filter(Boolean).length >= (/^[A-Za-z]:/.test(v) ? 2 : 1),
+    "An absolute directory below the root, without empty, . or .. segments") }).strict(),
+  z.object({ kind: z.literal("cache-prefix"), value: text(512).refine(v => cacheLabelValid(v.replace(/\/+$/, "")), "Whole cache-label segments, without . or ..") }).strict(),
+]);
+export const CleanupSelectors = z.array(CleanupSelector).min(1).max(16).refine(v => v.some(x => x.kind === "path-prefix"), "At least one path-prefix selector bounds every cleanup.");
 /** A deterministic maintenance job. Its occurrences are keyed by (job, IANA zone, local date) under D5 option 1. */
 export const MaintenanceJobSchema = z.object({
   id: SupervisionUuid, version, scopeId: SupervisionUuid, name: text(120), domain: z.enum(["host-storage", "workspace-retention"]),
@@ -63,7 +76,8 @@ export const MaintenanceJobSchema = z.object({
   resource: z.object({ class: ResourceClass, keys: unique(z.string().min(1).max(300), 1, 8) }).strict()
     .refine(r => r.keys.every(k => ResourceKey.safeParse(k.replaceAll("{host}", "h")).success), "Resource templates expand to resource keys."),
   /** Cleanup never reaches past these selectors; retained volumes/worktrees are excluded even inside them. */
-  selectors: z.array(CleanupSelector).min(1).max(16), retained: unique(text(300), 0, 64),
+  selectors: CleanupSelectors,
+  retained: unique(text(300), 0, 64),
   catchUp: z.literal("one-missed-day"),
   /** observe: records the existing timer's reported runs. advisory: the job drives passes through an executor. */
   mode: z.enum(["observe", "advisory"]), state: z.enum(["dormant", "active", "stopped"]),

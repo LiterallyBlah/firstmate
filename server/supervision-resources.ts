@@ -8,7 +8,7 @@ import {
   compatible, emptyMaintenanceRows, MAINTENANCE_ADMISSION_CEILING, ResourceClass, ResourceKey, type MaintenanceRows, type ResourceReservation,
 } from "../shared/supervision-maintenance";
 import { digest } from "./submissions";
-import { SupervisionError, type SupervisionMutation, type SupervisionStore } from "./supervision-store";
+import { SupervisionError, SUPERVISION_INDEX_LIMITS, type SupervisionMutation, type SupervisionStore } from "./supervision-store";
 import { effectReservationId } from "./supervision-maintenance-state";
 import { boundTo, expected } from "./supervision-projects";
 
@@ -22,6 +22,22 @@ export function maintenanceAdmission(status: SupervisionStatus): void {
   if (status.freshness !== "current") refuse("HELD", "The supervision journal is not current; maintenance admissions wait for reconciliation.");
   if (status.sequence >= MAINTENANCE_ADMISSION_CEILING)
     refuse("HELD", `Maintenance admissions stop at journal sequence ${MAINTENANCE_ADMISSION_CEILING}; the rest is reserved for effects and reconciliation.`);
+}
+/** How far into the shared 256-transaction journal an S10 write may go.
+ * - admission (new occurrence, reservation or grant, job definition or activation): below 160.
+ * - relabel (a waiting pass changing between pending, offline and deferred): below 160; past it, nothing is written.
+ * - closure (starting a pass that already holds a granted reservation, dispatching under it, an observed outcome,
+ *   lease expiry or renewal): below 192, never into the reconciliation tail.
+ * - settlement (recording results of dispatched items, uncertain conversion, release, reconciliation, acknowledgement,
+ *   stop): always, within the store's own ceiling and S07's release reservation.
+ */
+export type Step = "admission" | "relabel" | "closure" | "settlement";
+export function stepRoom(status: SupervisionStatus, step: Step): "write" | "skip" {
+  if (step === "admission") { maintenanceAdmission(status); return "write"; }
+  if (step === "relabel") return status.sequence >= MAINTENANCE_ADMISSION_CEILING ? "skip" : "write";
+  if (step === "closure" && status.sequence >= SUPERVISION_INDEX_LIMITS.admissions)
+    refuse("HELD", `Maintenance closures stop at journal sequence ${SUPERVISION_INDEX_LIMITS.admissions}; only settlement, release and reconciliation continue.`);
+  return "write";
 }
 const active = (r: ResourceReservation) => r.state === "granted" || r.state === "suspect";
 const ahead = (q: ResourceReservation, c: Pick<ResourceReservation, "id" | "priority" | "queuedAt">) =>
@@ -79,11 +95,12 @@ export class SupervisionResources {
   constructor(readonly store: SupervisionStore, private readonly options: { enabled?: boolean; now?: () => string } = {}) {}
   private now() { return this.options.now?.() ?? new Date().toISOString().replace(/\.\d{3}Z$/, "Z"); }
   private enabled() { if (!this.options.enabled) refuse("UNSUPPORTED", "S10 resource arbitration is disabled."); }
-  private command(requestId: string, input: unknown, actorInput: SupervisionActor,
+  private command(requestId: string, input: unknown, actorInput: SupervisionActor, step: Step,
     prepare: (status: SupervisionStatus, actor: SupervisionActor) => SupervisionMutation[]) {
     this.enabled();
     const actor = structuredClone(SupervisionActorSchema.parse(actorInput));
     return this.store.transactCommand(requestId, digest(input), actor, async status => {
+      if (stepRoom(status, step) === "skip") refuse("HELD", "Past the admission ceiling this change is not recorded.");
       const mutations = prepare(status, actor);
       return { expectedVersions: expected(status, mutations), mutations, result: emptyResult() };
     });
@@ -95,7 +112,7 @@ export class SupervisionResources {
   /** Reserve every resource an admitted effect names, all at once. A queued request keeps its place; it is never partly granted. */
   async reserveForEffect(requestId: string, actor: SupervisionActor, raw: z.input<typeof EffectReserveSchema>) {
     const input = EffectReserveSchema.parse(raw), id = effectReservationId(input.effectId);
-    await this.command(requestId, { op: "reserve", input }, actor, (status, a) => {
+    await this.command(requestId, { op: "reserve", input }, actor, "admission", (status, a) => {
       maintenanceAdmission(status);
       const effect = status.effects.find(e => e.id === input.effectId);
       if (!effect) refuse("UNKNOWN_OWNER", "Reserve for a recorded effect.");
@@ -110,7 +127,7 @@ export class SupervisionResources {
   }
   /** Grant a queued reservation once it is first in line and every key is free. */
   async promote(requestId: string, actor: SupervisionActor, raw: { reservationId: string; leaseMs: number | null }) {
-    await this.command(requestId, { op: "promote", raw }, actor, (status, a) => {
+    await this.command(requestId, { op: "promote", raw }, actor, "admission", (status, a) => {
       maintenanceAdmission(status);
       const row = maintenanceRows(status).reservations.find(r => r.id === raw.reservationId);
       if (!row) refuse("UNKNOWN_OWNER", "Unknown reservation.");
@@ -122,17 +139,22 @@ export class SupervisionResources {
     return (await this.read()).reservations.find(r => r.id === raw.reservationId)!;
   }
   /** Lease expiry marks a holder suspect. It still holds every key: expiry is never takeover. Exempt from the admission bound. */
-  async expire(requestId: string, actor: SupervisionActor, at = this.now()) {
+  /** The instant is this process's clock, never the caller's. Only the captain/mate, or a scope's bound owner for its own
+   * reservations, marks leases suspect. */
+  async expire(requestId: string, actor: SupervisionActor) {
+    const at = this.now();
     SupervisionUtc.parse(at);
-    return this.command(requestId, { op: "expire", at }, actor, status => {
+    return this.command(requestId, { op: "expire", at }, actor, "closure", (status, a) => {
+      const mine = (r: ResourceReservation) => reviewedActor(a) || boundTo(status, a, [r.scopeId]);
       const due = maintenanceRows(status).reservations.filter(r => r.state === "granted" && r.lease && r.lease.expiresAt <= at);
+      if (due.length && !due.some(mine)) refuse("UNKNOWN_OWNER", "Only the holder scope's bound owner or the captain marks its lease suspect.");
       if (!due.length) refuse("CONFLICT", "No lease has expired.");
-      return due.map(r => ({ kind: "resource-reservation" as const, value: { ...r, version: r.version + 1, state: "suspect" as const } }));
+      return due.filter(mine).map(r => ({ kind: "resource-reservation" as const, value: { ...r, version: r.version + 1, state: "suspect" as const } }));
     });
   }
   /** A suspect holder seen alive again keeps its fences. */
   async renew(requestId: string, actor: SupervisionActor, raw: { reservationId: string; leaseMs: number }) {
-    return this.command(requestId, { op: "renew", raw }, actor, (status, a) => {
+    return this.command(requestId, { op: "renew", raw }, actor, "closure", (status, a) => {
       const row = maintenanceRows(status).reservations.find(r => r.id === raw.reservationId);
       if (!row || !active(row)) refuse("CONFLICT", "Only a held reservation is renewed.");
       this.authorize(status, a, row.scopeId);
@@ -142,7 +164,7 @@ export class SupervisionResources {
   /** Release on terminal evidence. An uncertain effect is released only by recorded proof it was never admitted. Exempt. */
   async release(requestId: string, actor: SupervisionActor, raw: z.input<typeof ReleaseSchema>) {
     const input = ReleaseSchema.parse(raw);
-    return this.command(requestId, { op: "release", input }, actor, (status, a) => {
+    return this.command(requestId, { op: "release", input }, actor, "settlement", (status, a) => {
       const row = maintenanceRows(status).reservations.find(r => r.id === input.reservationId);
       if (!row) refuse("UNKNOWN_OWNER", "Unknown reservation.");
       if (row.version !== input.expectedVersion) refuse("STALE", "The reservation changed; reread it.");

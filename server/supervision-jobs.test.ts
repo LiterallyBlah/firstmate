@@ -3,11 +3,11 @@ import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SupervisionActor, SupervisionEffect, SupervisionStatus } from "../shared/supervision";
-import { maintenanceSummary, type MaintenanceJob, type OccurrenceHost } from "../shared/supervision-maintenance";
+import { CleanupSelectors, maintenanceSummary, type MaintenanceJob, type OccurrenceHost } from "../shared/supervision-maintenance";
 import { expected, hash } from "../test/supervision-fixture";
 import { SupervisionError, SupervisionStore, type SupervisionMutation } from "./supervision-store";
 import {
-  addDays, dueInstant, localDate, maintenanceIncidentNote, planCleanup, planTick, SupervisionJobs, type JobInputSchema, type MaintenanceCandidate, type MaintenanceExecutor,
+  addDays, dueInstant, JobInputSchema, localDate, maintenanceIncidentNote, planCleanup, planTick, SupervisionJobs, type MaintenanceCandidate, type MaintenanceExecutor,
 } from "./supervision-jobs";
 import { occurrenceHostId, occurrenceId } from "./supervision-maintenance-state";
 import { SupervisionResources } from "./supervision-resources";
@@ -27,14 +27,14 @@ const NY = "America/New_York";
 
 class Fleet implements MaintenanceExecutor {
   offline = new Set<string>(); incomplete = new Set<string>(); failing = new Set<string>();
-  candidates = new Map<string, MaintenanceCandidate[]>(); retainedWorkspaces = ["ws-live"];
+  candidates = new Map<string, MaintenanceCandidate[]>(); retainedWorkspaces = ["ws-live"]; retainedPaths: string[] = [];
   applied: string[] = []; fences: number[] = []; outage: string | null = null; hang = false; calls = 0;
   async probe(host: string) { return this.offline.has(host) ? "offline" as const : "online" as const; }
   async inventory(host: string) {
     if (this.incomplete.has(host)) throw new Error("listing truncated");
     return this.candidates.get(host) ?? [{ id: "a", path: "/cache/a", owner: "known" as const }];
   }
-  async retained() { return { workspaces: this.retainedWorkspaces, volumes: [] }; }
+  async retained() { return { workspaces: this.retainedWorkspaces, volumes: [], paths: this.retainedPaths }; }
   async apply(host: string, items: { key: string; candidate: MaintenanceCandidate }[], fences: { key: string; fence: number }[]) {
     this.calls++;
     if (this.hang) return new Promise<never>(() => {});
@@ -338,6 +338,51 @@ describe("A04 in maintenance: shared caches, selectors and retained worktrees", 
     expect(fleet.fences).toContain(2); // the prune took the next fence after the build's
   });
 
+  it("R10 B2 (P4): a running prune's reservation cannot be withdrawn, so a build is never granted beside it", async () => {
+    await activate();
+    let open!: () => void;
+    const gate = new Promise<void>(r => { open = r; });
+    const inventory = fleet.inventory.bind(fleet);
+    fleet.inventory = async h => { if (h === "mini") await gate; return inventory(h); };
+    await jobs.tick("2026-10-27T07:15:30Z");
+    const run = jobs.runHost(occurrenceId(J, NY, "2026-10-27"), "mini");
+    await vi.waitFor(async () => expect((await host("2026-10-27", "mini")).state).toBe("running"));
+    const pass = await host("2026-10-27", "mini");
+    const resources = new SupervisionResources(store, { enabled: true, now: () => clock });
+    const r = (await resources.read()).reservations.find(x => x.id === pass.reservationId)!;
+    for (const actor of [supervisor, captain])
+      expect(await code(resources.release(randomUUID(), actor, { reservationId: r.id, expectedVersion: r.version, kind: "withdrawn", evidence: [] }))).toBe("HELD");
+    const build: SupervisionEffect = { id: id(0x301), logicalKey: "build/x", requestId: id(0x302), requestHash: hash, scopeId: P, epoch: 1, attemptId: null, operation: "build",
+      planRevision: null, subjectHash: hash, policyVector: [], evidenceVector: [], approvalId: null, resourceIds: ["host:mini:cache"], state: "dispatching", receiverKey: null, receiptRef: null, version: 1 };
+    await put([{ kind: "effect", value: build }]);
+    const b = await resources.reserveForEffect(randomUUID(), builder, { effectId: build.id, class: "build", keys: ["host:mini:cache"], priority: 5, leaseMs: null });
+    expect(b.state).toBe("queued");
+    open();
+    expect((await run).state).toBe("completed");
+    expect(fleet.applied).toContain("mini:/cache/a");
+    // Only once the prune has finished and released does the build take the cache.
+    expect((await resources.promote(randomUUID(), builder, { reservationId: b.id, leaseMs: null })).state).toBe("granted");
+  });
+
+  it("R10 B2: a pass whose reservation was released by another process dispatches nothing", async () => {
+    await activate();
+    let open!: () => void;
+    const gate = new Promise<void>(r => { open = r; });
+    const slow = new Fleet(), inventory = slow.inventory.bind(slow);
+    slow.inventory = async h => { if (h === "mini") await gate; return inventory(h); };
+    await jobs.tick("2026-10-27T07:15:30Z");
+    const run = new SupervisionJobs(store, { enabled: true, now: () => clock, executor: slow }).runHost(occurrenceId(J, NY, "2026-10-27"), "mini");
+    await vi.waitFor(async () => expect((await host("2026-10-27", "mini")).state).toBe("running"));
+    // A second process, not running this pass, opens the next day and covers the pass it sees stranded.
+    await jobs.tick("2026-10-28T07:15:30Z");
+    const day1 = await host("2026-10-27", "mini");
+    expect(day1.state).toBe("superseded");
+    open();
+    expect(await run).toMatchObject({ state: "blocked", reason: expect.stringMatching(/no longer holds its reservation/) });
+    expect(slow.applied).toEqual([]);
+    expect((await host("2026-10-27", "mini")).items).toEqual([]);
+  });
+
   it("cleanup stays inside its selectors and never touches retained worktrees, volumes or unknown owners", async () => {
     await activate();
     const candidates: MaintenanceCandidate[] = [
@@ -354,9 +399,42 @@ describe("A04 in maintenance: shared caches, selectors and retained worktrees", 
     const mini = await host("2026-10-27", "mini");
     expect(mini).toMatchObject({ state: "completed", excluded: 5, triage: 1 });
     expect((await store.read()).maintenance!.incidents.filter(i => i.kind === "triage").map(i => [i.hostId, i.state])).toHaveLength(3);
-    const plan = planCleanup({ id: J, selectors: [{ kind: "cache-prefix", value: "npm/" }], retained: [] }, "mini",
-      [{ id: "x", path: "/home/u/.npm/_cacache", cache: "npm/_cacache", owner: "known" }, { id: "y", path: "/srv/x", cache: "pip/x", owner: "known" }], { workspaces: [], volumes: [] });
+    const plan = planCleanup({ id: J, selectors: [{ kind: "path-prefix", value: "/home/u/.npm" }, { kind: "cache-prefix", value: "npm/" }], retained: [] }, "mini",
+      [{ id: "x", path: "/home/u/.npm/_cacache", cache: "npm/_cacache", owner: "known" }, { id: "y", path: "/home/u/.npm/pip", cache: "pip/x", owner: "known" }],
+      { workspaces: [], volumes: [], paths: [] });
     expect(plan.selected.map(s => s.candidate.id)).toEqual(["x"]);
+  });
+
+  it("R10 B1: retained paths exclude by containment, the selector root is never selected, and cache labels are bounded", () => {
+    const none = { workspaces: [], volumes: [], paths: [] };
+    const plan = planCleanup({ id: J, selectors: [{ kind: "path-prefix", value: "/cache" }], retained: ["/cache/keep"] }, "mini", [
+      { id: "root", path: "/cache", owner: "known" },
+      { id: "child", path: "/cache/keep/sub", owner: "known" },
+      { id: "exact", path: "/cache/keep", owner: "known" },
+      { id: "wt-dir", path: "/cache/worktrees", owner: "known" },
+      { id: "wt", path: "/cache/worktrees/ws-live", workspaceId: "ws-live", owner: "known" },
+      { id: "session-parent", path: "/cache/sessions", owner: "known" },
+      { id: "ok", path: "/cache/tmp/old", owner: "known" },
+      { id: "ok", path: "/cache/tmp/old", owner: "known" }, // listed twice: one item
+      { id: "relative", path: "cache/tmp/x", owner: "known" },
+      { id: "dot", path: "/cache/./tmp", owner: "known" }],
+      { workspaces: ["ws-live"], volumes: [], paths: ["/cache/sessions/s1"] });
+    expect(plan.selected.map(s => s.candidate.id)).toEqual(["ok"]);
+    expect(plan.excluded).toBe(8); // the duplicate listing is one candidate, not counted twice
+    const cache = planCleanup({ id: J, selectors: [{ kind: "path-prefix", value: "/home/u/.cache" }, { kind: "cache-prefix", value: "npm" }], retained: [] }, "mini", [
+      { id: "sibling", path: "/home/u/.cache/npmrc-secrets", cache: "npmrc", owner: "known" },
+      { id: "elsewhere", path: "/srv/database", cache: "npm/_cacache", owner: "known" },
+      { id: "dots", path: "/home/u/.cache/x", cache: "npm/../../etc", owner: "known" },
+      { id: "unlabelled", path: "/home/u/.cache/y", owner: "known" },
+      { id: "good", path: "/home/u/.cache/npm/_cacache", cache: "npm/_cacache", owner: "known" }], none);
+    expect(cache.selected.map(s => s.candidate.id)).toEqual(["good"]);
+    // With nothing retained, the selector root itself is still never an item.
+    expect(planCleanup({ id: J, selectors: [{ kind: "path-prefix", value: "/cache/" }], retained: [] }, "mini",
+      [{ id: "root", path: "/cache", owner: "known" }, { id: "below", path: "/cache/x", owner: "known" }], none).selected.map(x => x.candidate.id)).toEqual(["below"]);
+    // The schema bounds the selectors themselves: no root, no dot segments, and never a cache label alone.
+    for (const selectors of [[{ kind: "path-prefix", value: "/" }], [{ kind: "path-prefix", value: "/cache/../etc" }], [{ kind: "path-prefix", value: "relative/dir" }],
+      [{ kind: "cache-prefix", value: "npm" }], [{ kind: "path-prefix", value: "/cache" }, { kind: "cache-prefix", value: "npm/.." }]] as const)
+      expect([JobInputSchema.safeParse(jobInput({ selectors: selectors as never })).success, CleanupSelectors.safeParse(selectors).success]).toEqual([false, false]);
   });
 });
 
@@ -381,7 +459,7 @@ describe("rollout, rollback and the journal's own guards", () => {
     expect(maintenanceSummary(await store.read()).jobs[0]!.hosts).toMatchObject({ completed: 1, offline: 1, pending: 1 });
   });
 
-  it("stop is rollback: no new occurrences, and unfinished passes keep their reservations and receipts", async () => {
+  it("stop is rollback: no new occurrences; unfinished passes keep their reservations and receipts; settled ones release", async () => {
     await activate();
     fleet.outage = "mini";
     await jobs.drive("2026-10-27T07:15:30Z");
@@ -394,17 +472,103 @@ describe("rollout, rollback and the journal's own guards", () => {
     expect(await code(jobs.setState(randomUUID(), supervisor, { jobId: J, expectedVersion: (await job()).version, state: "active" }))).toBe("UNSUPPORTED");
   });
 
-  it("new occurrences stop at the S10 ceiling while existing passes still finish", async () => {
+  it("R10 N2: a pass settled by reconciliation releases its exclusive reservation when the job is stopped", async () => {
     await activate();
-    await jobs.tick("2026-10-27T07:15:30Z");
+    fleet.outage = "mini";
+    await jobs.drive("2026-10-27T07:15:30Z");
+    let mini = await host("2026-10-27", "mini");
+    await jobs.reconcileItems(randomUUID(), captain, { occurrenceId: occurrenceId(J, NY, "2026-10-27"), hostId: "mini", expectedVersion: mini.version,
+      items: mini.items.map(i => ({ key: i.key, outcome: "done" as const })), evidence: [{ ref: "receiver:mini:log", digest: hash }] });
+    await jobs.setState(randomUUID(), captain, { jobId: J, expectedVersion: (await job()).version, state: "stopped" });
+    mini = await host("2026-10-27", "mini");
+    expect(mini.state).toBe("superseded");
+    expect((await store.read()).maintenance!.reservations.find(r => r.id === mini.reservationId)!).toMatchObject({ state: "released", terminal: { kind: "succeeded" } });
+    expect((await store.read()).maintenance!.occurrences[0]!.state).toBe("closed");
+    const build: SupervisionEffect = { id: id(0x221), logicalKey: "build/n2", requestId: id(0x222), requestHash: hash, scopeId: P, epoch: 1, attemptId: null, operation: "build",
+      planRevision: null, subjectHash: hash, policyVector: [], evidenceVector: [], approvalId: null, resourceIds: ["host:mini:cache"], state: "dispatching", receiverKey: null, receiptRef: null, version: 1 };
+    await put([{ kind: "effect", value: build }]);
+    const resources = new SupervisionResources(store, { enabled: true, now: () => clock });
+    expect((await resources.reserveForEffect(randomUUID(), builder, { effectId: build.id, class: "build", keys: ["host:mini:cache"], priority: 1, leaseMs: null })).state).toBe("granted");
+  });
+
+  it("R10 N1: at the S10 ceiling the scheduler keeps going: refused opens and hosts are reported, and passes allowed to finish still run", async () => {
+    await activate();
+    fleet.outage = "mini";
+    await jobs.drive("2026-10-27T07:15:30Z");
+    const mini = await host("2026-10-27", "mini");
+    await jobs.reconcileItems(randomUUID(), captain, { occurrenceId: occurrenceId(J, NY, "2026-10-27"), hostId: "mini", expectedVersion: mini.version,
+      items: mini.items.map(i => ({ key: i.key, outcome: "done" as const })), evidence: [{ ref: "receiver:mini:log", digest: hash }] });
+    fleet.outage = null; fleet.candidates.set("mini", [{ id: "a", path: "/cache/a", owner: "known" }, { id: "n", path: "/cache/new", owner: "known" }]);
+    const second = id(0x10e);
+    await jobs.defineJob(randomUUID(), captain, jobInput({ jobId: second, name: "second", hosts: ["studio"] }));
+    await jobs.setState(randomUUID(), captain, { jobId: second, expectedVersion: 1, state: "active" });
     const original = store.transactCommand.bind(store);
     const spy = vi.spyOn(store, "transactCommand").mockImplementation((requestId, inputHash, actor, prepare) =>
       original(requestId, inputHash, actor, status => prepare({ ...status, sequence: 160 })));
-    // Finishing today's passes with their reservations already taken would need new reservations: held.
-    await jobs.runHost(occurrenceId(J, NY, "2026-10-27"), "mini").catch(() => {});
-    expect(await code(jobs.tick("2026-10-28T07:15:30Z"))).toBe("HELD");
+    const { ticks, runs } = await jobs.drive("2026-10-28T07:15:30Z");
     spy.mockRestore();
+    expect(ticks.map(t => t.plan)).toEqual(["refused", "refused"]); // no new day for either job
+    // The day-1 mini pass holds its granted reservation, so it resumes and finishes the item it never dispatched.
+    expect(runs.find(r => r.hostId === "mini")).toMatchObject({ state: "completed" });
+    expect(fleet.applied.filter(a => a.startsWith("mini"))).toEqual(["mini:/cache/new"]);
     expect((await store.read()).maintenance!.occurrences).toHaveLength(1);
+  });
+
+  it("R10 N3: past 160 waiting relabels and admissions write nothing; past 192 only settlement continues", async () => {
+    await activate();
+    fleet.outage = "mini";
+    await jobs.drive("2026-10-27T07:15:30Z");
+    fleet.outage = null;
+    await jobs.tick("2026-10-28T07:15:30Z"); // day 2 opens below the ceiling: every host pending
+    const original = store.transactCommand.bind(store);
+    let at = 160;
+    const spy = vi.spyOn(store, "transactCommand").mockImplementation((requestId, inputHash, actor, prepare) =>
+      original(requestId, inputHash, actor, status => prepare({ ...status, sequence: at })));
+    fleet.offline.add("light");
+    let before = (await store.read()).sequence;
+    const { runs } = await jobs.drive("2026-10-28T08:00:00Z");
+    // light: pending -> offline is a relabel, not written. studio: a new reservation is an admission, refused.
+    // mini: day 1 holds uncertain items, so both mini passes wait.
+    expect(runs.map(r => [r.hostId, r.state])).toEqual([["light", "completed"], ["mini", "blocked"], ["studio", "completed"], ["light", "offline"], ["mini", "blocked"], ["studio", "refused"]]);
+    expect((await store.read()).sequence).toBe(before);
+    expect((await host("2026-10-28", "light")).state).toBe("pending");
+    at = 192;
+    const mini = await host("2026-10-27", "mini");
+    // Settlement still writes in the reconciliation tail...
+    await jobs.reconcileItems(randomUUID(), captain, { occurrenceId: occurrenceId(J, NY, "2026-10-27"), hostId: "mini", expectedVersion: mini.version,
+      items: mini.items.map(i => ({ key: i.key, outcome: "done" as const })), evidence: [{ ref: "receiver:mini:log", digest: hash }] });
+    expect((await store.read()).sequence).toBe(before + 1);
+    // ...but restarting a pass (a closure) does not, even with its reservation held.
+    before = (await store.read()).sequence;
+    expect((await jobs.drive("2026-10-28T09:00:00Z")).runs.find(r => r.hostId === "mini")!.state).toBe("refused");
+    expect((await store.read()).sequence).toBe(before);
+    spy.mockRestore();
+  });
+
+  it("R10 N3: observe mode writes once per state per host, however often the digest changes", async () => {
+    await activate("2026-10-26T12:00:00Z", { mode: "observe" });
+    await jobs.tick("2026-10-27T07:15:30Z");
+    const occ = occurrenceId(J, NY, "2026-10-27"), before = (await store.read()).sequence;
+    for (let n = 0; n < 6; n++) await jobs.observe(randomUUID(), supervisor, { occurrenceId: occ, hostId: "light", outcome: "offline", detail: `no route ${n}`, resultDigest: String(n).repeat(64) });
+    expect((await store.read()).sequence).toBe(before + 1);
+    await jobs.observe(randomUUID(), supervisor, { occurrenceId: occ, hostId: "light", outcome: "completed", detail: "back", resultDigest: hash });
+    expect((await store.read()).sequence).toBe(before + 2);
+  });
+
+  it("R10 N5: a pass stranded running by a crash with nothing dispatched is superseded by the next day, not run late", async () => {
+    await activate();
+    await jobs.tick("2026-10-27T07:15:30Z");
+    const gate = new Promise<never>(() => {});
+    const stuck = new Fleet(); stuck.inventory = async () => gate;
+    void new SupervisionJobs(store, { enabled: true, now: () => clock, executor: stuck }).runHost(occurrenceId(J, NY, "2026-10-27"), "mini").catch(() => {});
+    await vi.waitFor(async () => expect((await host("2026-10-27", "mini")).state).toBe("running"));
+    jobs = make(); // the process died; a fresh one drives the next day
+    await jobs.drive("2026-10-28T07:15:30Z");
+    const day1 = await host("2026-10-27", "mini");
+    expect(day1.state).toBe("superseded");
+    expect((await store.read()).maintenance!.reservations.find(r => r.id === day1.reservationId)!.state).toBe("released");
+    expect((await host("2026-10-28", "mini")).state).toBe("completed");
+    expect(fleet.applied.filter(a => a.startsWith("mini"))).toEqual(["mini:/cache/a"]); // one run for mini, the new day's
   });
 
   it("A13.store: a tick interrupted mid-publication recovers to the same single occurrence", async () => {
@@ -413,11 +577,27 @@ describe("rollout, rollback and the journal's own guards", () => {
     // The store's own crash-injection boundary (as in supervision-crash.test.ts), armed for this one publication.
     const boundaryStore = store as unknown as { options: { boundary?: (name: string) => Promise<void> } };
     boundaryStore.options.boundary = async name => { if (armed && name === "publication:written") { armed = false; throw new Error("power lost"); } };
-    expect(await code(jobs.tick("2026-10-27T07:15:30Z"))).toBe("HELD");
+    expect((await jobs.tick("2026-10-27T07:15:30Z"))[0]).toMatchObject({ plan: "refused", wrote: false, reason: expect.stringMatching(/Publication interrupted/) });
     expect((await store.read()).freshness).toBe("held");
     await store.recoverPublication();
     expect(await jobs.tick("2026-10-27T07:16:00Z")).toEqual([{ jobId: J, plan: "duplicate", occurrenceId: occurrenceId(J, NY, "2026-10-27"), wrote: false }]);
     expect((await store.read()).maintenance!.occurrences).toHaveLength(1);
+  });
+
+  it("R10 N6: the journal refuses a finished pass with unsettled items, dispatched items outside a running pass, a spent pass budget and a second open incident", async () => {
+    await activate("2026-10-26T12:00:00Z", { maxPasses: 1 });
+    await jobs.tick("2026-10-27T07:15:30Z");
+    const mini = await host("2026-10-27", "mini");
+    const running: OccurrenceHost = { ...mini, state: "running", passes: 1, version: mini.version + 1, items: [{ key: hash, state: "dispatched" }] };
+    await put([{ kind: "occurrence-host", value: running }]);
+    const next = { ...running, version: running.version + 1 };
+    await expect(put([{ kind: "occurrence-host", value: { ...next, state: "failed", items: [{ key: hash, state: "uncertain" }] } }])).rejects.toMatchObject({ code: "HELD" });
+    await expect(put([{ kind: "occurrence-host", value: { ...next, state: "deferred" } }])).rejects.toMatchObject({ code: "HELD" });
+    await expect(put([{ kind: "occurrence-host", value: { ...next, state: "deferred", items: [{ key: hash, state: "uncertain" }], passes: 2 } }])).rejects.toMatchObject({ code: "HELD" });
+    const incident = { id: id(0x401), version: 1, jobId: J, hostId: "mini", kind: "failure" as const, signature: hash, generation: 1, firstOccurrenceId: null,
+      lastOccurrenceId: null, detail: "fixture", state: "open" as const, notify: { state: "handled" as const, generation: 1 } };
+    await put([{ kind: "maintenance-incident", value: incident }]);
+    await expect(put([{ kind: "maintenance-incident", value: { ...incident, id: id(0x402) } }])).rejects.toMatchObject({ code: "CONFLICT" });
   });
 
   it("the journal refuses a second running pass, a redispatched item and a forged occurrence identity", async () => {

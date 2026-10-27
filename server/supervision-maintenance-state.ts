@@ -55,13 +55,15 @@ export function validateMaintenanceChange(kind: string, value: unknown, prior: u
       const terminal = row.terminal!;
       if (row.holder.kind === "effect") {
         const effect = get<SupervisionEffect>("effect", row.holder.id);
-        const ok = !!effect && ({ succeeded: ["succeeded"], failed: ["failed", "cancelled"], withdrawn: ["reserved", "cancelled"],
+        // Withdrawn needs the effect cancelled: a reserved effect is still dispatchable by the S04 gateway.
+        const ok = !!effect && ({ succeeded: ["succeeded"], failed: ["failed", "cancelled"], withdrawn: ["cancelled"],
           "not-admitted": ["uncertain"] } as Record<string, string[]>)[terminal.kind]!.includes(effect.state) &&
           (terminal.kind !== "not-admitted" || (terminal.evidence.length > 0 && reviewed(terminal.actor)));
         if (!ok) fail("HELD", "An unknown or unfinished effect keeps its reservation; release needs its terminal state or recorded proof it was never admitted.");
       } else {
         const host = get<OccurrenceHost>("occurrence-host", row.holder.id);
-        const ok = !!host && unsettled(host) === 0 && (terminal.kind === "withdrawn" ? host.items.every(i => i.state === "skipped")
+        // Withdrawn needs a pass that is not running and never dispatched anything under this reservation.
+        const ok = !!host && unsettled(host) === 0 && (terminal.kind === "withdrawn" ? host.state !== "running" && host.items.every(i => i.state === "skipped")
           : terminal.kind !== "not-admitted" && isTerminalHost(host));
         if (!ok) fail("HELD", "A host pass keeps its reservation until it is finished and every dispatched item is settled.");
       }
@@ -91,15 +93,15 @@ export function validateMaintenanceChange(kind: string, value: unknown, prior: u
     if (row.id !== occurrenceHostId(row.occurrenceId, row.hostId)) fail("CONFLICT", "A host pass is identified by its occurrence and host.");
     if (!old && row.state !== "pending") fail("CONFLICT", "A host pass starts pending.");
     if (row.items.some(i => i.state === "dispatched") && row.state !== "running") fail("HELD", "Dispatched items without a result become uncertain; they are never left dispatched.");
-    if (["completed", "superseded"].includes(row.state) && unsettled(row)) fail("HELD", "A host pass with unsettled items stays open.");
+    if (isTerminalHost(row) && unsettled(row)) fail("HELD", "A host pass with unsettled items stays open; it never finishes around them.");
     if (old) {
       if (old.occurrenceId !== row.occurrenceId || old.jobId !== row.jobId || old.hostId !== row.hostId || row.passes < old.passes ||
         (old.reservationId && !row.reservationId)) fail("CONFLICT", "A host pass keeps its identity, pass count and reservation.");
       // Observe mode records a legacy timer's reported outcome directly, so an unstarted pass may finish too.
+      // A pass stranded running by a crash, with nothing unsettled, is superseded by the next day's occurrence.
       const open = ["running", "deferred", "offline", "completed", "failed", "superseded"];
-      const allowed: Record<string, string[]> = { pending: open, running: ["running", "completed", "failed", "deferred", "offline"], deferred: open, offline: open,
-        completed: [], failed: [], superseded: [] };
-      if (!allowed[old.state]!.includes(row.state)) fail("HELD", "A finished host pass is final, and a running one finishes before it is superseded.");
+      const allowed: Record<string, string[]> = { pending: open, running: open, deferred: open, offline: open, completed: [], failed: [], superseded: [] };
+      if (!allowed[old.state]!.includes(row.state)) fail("HELD", "A finished host pass is final.");
       if (row.state === "running" && old.state !== "running" && row.passes !== old.passes + 1) fail("CONFLICT", "Each resumed pass is counted once.");
       const moves: Record<string, string[]> = { dispatched: ["dispatched", "done", "failed", "uncertain"], uncertain: ["uncertain", "done", "failed"],
         done: ["done"], failed: ["failed"], skipped: ["skipped"] };

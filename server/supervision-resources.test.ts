@@ -167,3 +167,26 @@ it("holding a reservation is never authority: policy vectors citing S10 records 
   for (const vector of ["policyVector", "approvalPolicyVector", "modelPolicyVector"] as const)
     await expect(checkPolicy("unused-home", status, { policyVector: [], evidenceVector: [], [vector]: [cite] } as unknown as PolicyAdmission, clock)).rejects.toMatchObject({ code: "HELD" });
 });
+
+it("R10 B2 (P5): an effect the S04 gateway can still dispatch cannot be withdrawn; once cancelled it can", async () => {
+  const build = effect(61, P, ["host:mini:cache"], "reserved"), prune = effect(62, Q, ["host:mini:cache"], "reserved");
+  await put([{ kind: "effect", value: build }, { kind: "effect", value: prune }]);
+  const b = await resources.reserveForEffect(randomUUID(), owner(P), { effectId: build.id, class: "build", keys: ["host:mini:cache"], priority: 5, leaseMs: null });
+  expect(await code(resources.release(randomUUID(), owner(P), { reservationId: b.id, expectedVersion: b.version, kind: "withdrawn", evidence: [] }))).toBe("HELD");
+  expect((await resources.reserveForEffect(randomUUID(), owner(Q), { effectId: prune.id, class: "cleanup", keys: ["host:mini:cache"], priority: 5, leaseMs: null })).state).toBe("queued");
+  await setEffect(build, "cancelled");
+  expect(await code(resources.release(randomUUID(), owner(P), { reservationId: b.id, expectedVersion: b.version, kind: "withdrawn", evidence: [] }))).toBe("committed");
+});
+
+it("R10 N4: lease expiry uses this process's clock and needs the holder's bound owner or the captain", async () => {
+  const e = effect(71, P, ["deploy:mini:api"]);
+  await put([{ kind: "effect", value: e }]);
+  await resources.reserveForEffect(randomUUID(), owner(P), { effectId: e.id, class: "deploy", keys: ["deploy:mini:api"], priority: 5, leaseMs: 3_600_000 });
+  // A caller cannot name a future instant: the API has no time argument, and nothing has expired yet.
+  expect(await code((resources.expire as (r: string, a: SupervisionActor, at?: string) => Promise<unknown>)(randomUUID(), owner(P), "2099-01-01T00:00:00Z"))).toBe("CONFLICT");
+  clock = "2026-10-27T14:00:00Z";
+  expect(await code(resources.expire(randomUUID(), stranger))).toBe("UNKNOWN_OWNER");
+  expect(await code(resources.expire(randomUUID(), owner(Q)))).toBe("UNKNOWN_OWNER");
+  expect(await code(resources.expire(randomUUID(), owner(P)))).toBe("committed");
+  expect((await resources.read()).reservations[0]!.state).toBe("suspect");
+});
