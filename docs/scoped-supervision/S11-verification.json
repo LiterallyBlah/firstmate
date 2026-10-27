@@ -7,7 +7,10 @@
   },
   "review": {
     "r11": "data/fm-ss-r11/report.md",
-    "reviewedHead": "751ed96459016978666033916bf1e3aadd7a7205",
+    "reviewedHeads": [
+      "751ed96459016978666033916bf1e3aadd7a7205",
+      "b977031044d559328a7679f9db8d143652032f42"
+    ],
     "corrections": "docs/scoped-supervision/S11.md#r11-corrections-datafm-ss-r11reportmd-reviewed-head-751ed964"
   },
   "d6": "option 2, conservative rollout amendment (data/fm-ss-d6): U1-U3 not delivered or assumed; strong capabilities refused",
@@ -17,10 +20,10 @@
     "E2": "code",
     "E3": "code",
     "noFollowDelete": "executor condition (R11 N3); no executor ships",
-    "liveReaders": "PARTIAL (R11 N2): docs/scoped-supervision/s11-readers/result.json, Paseo 0.13.0, both readers complete, empty history; Windows only",
+    "liveReaders": "PARTIAL (R11 N2), bound by digest to REVIEWED_READER_RUNS: docs/scoped-supervision/s11-readers/result.json, Paseo 0.13.0, both readers complete, empty history; Windows only",
     "N7": "kept at the advisory-activation gate"
   },
-  "s07ToS04": "implemented: SupervisorSessions.attach (explicit captain/first-mate action, S07-committed scope, no existing binding)",
+  "s07ToS04": "implemented: SupervisorSessions.attach (explicit captain-only action, S07-committed scope, no existing binding); a binding counts for readiness only once its epoch's opening succeeded (R11 B2)",
   "journalBands": "S11 writes no journal rows; readiness reports S08 128, S10 160, S04/S09 192 from the owning constants",
   "runtime": {
     "node": "v23.7.0",
@@ -34,8 +37,8 @@
   },
   "s11Suites": {
     "command": "npx vitest run server/supervision-capabilities.test.ts server/supervision-cooperative.test.ts server/supervision-jobs.test.ts server/supervision-migrate.test.ts server/supervisor-sessions.test.ts server/supervision-resources.test.ts server/supervision-timers.test.ts shared/supervision.test.ts",
-    "total": 307,
-    "passed": 307,
+    "total": 310,
+    "passed": 310,
     "failed": 0,
     "s11Tests": [
       {
@@ -120,17 +123,22 @@
       },
       {
         "file": "server/supervision-capabilities.test.ts",
-        "title": "R10 round-3 and R11 executor-approval conditions the S11 smoke run is PARTIAL: an empty history cannot close the live-reader condition (R11 N2)",
+        "title": "R10 round-3 and R11 executor-approval conditions the committed S11 smoke run is a reviewed run, and PARTIAL: an empty history cannot close the condition (R11 N2)",
         "status": "passed"
       },
       {
         "file": "server/supervision-capabilities.test.ts",
-        "title": "R10 round-3 and R11 executor-approval conditions accepts no self-attested record: only a run artifact for the installed version with both readers complete",
+        "title": "R10 round-3 and R11 executor-approval conditions R11 round 2: a hand-written artifact is open, however complete it claims to be; only a reviewed run's exact bytes count",
         "status": "passed"
       },
       {
         "file": "server/supervision-capabilities.test.ts",
-        "title": "R10 round-3 and R11 executor-approval conditions approves only with a non-empty reader run, a no-follow executor and N7/receiver acknowledged (R11 N3)",
+        "title": "R10 round-3 and R11 executor-approval conditions a reviewed run counts only for the installed version, with both readers complete",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-capabilities.test.ts",
+        "title": "R10 round-3 and R11 executor-approval conditions approves only with a reviewed non-empty reader run, a no-follow executor and N7/receiver acknowledged (R11 N3)",
         "status": "passed"
       },
       {
@@ -176,6 +184,11 @@
       {
         "file": "server/supervision-cooperative.test.ts",
         "title": "cooperativeReadiness: explicit dependencies of a drained cooperative scope R11 B1: no supervisor is no owner. A scope without exactly one active, verified binding is not ready",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-cooperative.test.ts",
+        "title": "cooperativeReadiness: explicit dependencies of a drained cooperative scope R11 B2: the binding counts only once its epoch's opening has succeeded; reserved, dispatching or failed does not",
         "status": "passed"
       },
       {
@@ -262,17 +275,22 @@
         "file": "server/supervisor-sessions.test.ts",
         "title": "S04 supervisor lifecycle (synthetic receiver) S11 attach: only a scope S07 has cut over; never a dormant, bound or un-migrated scope, and never by an agent",
         "status": "passed"
+      },
+      {
+        "file": "server/supervisor-sessions.test.ts",
+        "title": "S04 supervisor lifecycle (synthetic receiver) S11 / R11 B2: a prepared-path supervisor counts for readiness only once its opening succeeded; a failed opening never does",
+        "status": "passed"
       }
     ]
   },
   "fullSuite": {
     "command": "npx vitest run",
     "files": 199,
-    "passed": 2955,
+    "passed": 2956,
     "skipped": 3,
-    "failed": 1,
+    "failed": 3,
     "failures": [
-      "server/launch-tool.test.ts (known Windows file-lock flake: reruns of that file alone failed 2 and 3 different tests)"
+      "server/launch-tool.test.ts, 3 tests (known Windows file-lock flake; different tests fail on each run)"
     ],
     "note": "S11 does not touch launch-tool or its helper. CI is the authoritative run."
   },
@@ -326,11 +344,17 @@
         "Two guards missed on the first run (qualification version max, readiness unresolved node) received tests and are now caught."
       ]
     },
-    "r11": {
-      "script": ".local/s11-mut/mutate3.cjs (development only)",
-      "distinctGuards": 23,
-      "caught": 23,
+    "r11Round2": {
+      "script": ".local/s11-mut/mutate4.cjs (development only; R11 and round-2 guards)",
+      "distinctGuards": 29,
+      "caught": 28,
       "lines": [
+        "caught B2 opening must have succeeded",
+        "caught B2 failed opening named",
+        "caught B2 unconfirmed opening named",
+        "caught round 2 attach captain only",
+        "caught round 2 reader digest binding",
+        "caught round 2 digest ignores line endings",
         "caught B1 no binding is no owner",
         "caught B1 two bindings",
         "caught B1 binding must be active",
@@ -345,7 +369,7 @@
         "caught N4 open incident",
         "caught N1/J03 realPath overlap",
         "caught N1/J04 tagged realPath retained",
-        "caught attach actor",
+        "MISSING attach actor",
         "caught attach needs cut-over",
         "caught attach never a second binding",
         "caught N8 reason tied to state",
@@ -354,7 +378,8 @@
         "caught N2 artifact version",
         "caught N3 no-follow executor",
         "caught N7 exact version"
-      ]
+      ],
+      "note": "'MISSING attach actor' is the R11-round-1 guard text, replaced by the captain-only guard ('round 2 attach captain only')."
     }
   },
   "liveReaders": {
@@ -367,44 +392,44 @@
   "hashes": "sha256 over LF-normalised bytes (equal to git blob content); gitBlob is authoritative",
   "files": {
     "server/supervision-capabilities.ts": {
-      "sha256": "5b5edf27521f953b4269368a5367b75e1a0c614235e634e7d6fe2976626a8e79",
-      "gitBlob": "de4c12e9d379002724994b85503c83b11f34153e"
+      "sha256": "a7fddcbcddbc00479bc9b668ce143f92b1d9514607c1bbc21b2b767a2ddbc5e6",
+      "gitBlob": "cdc8f3d7ff7fb1fb811079fe6cdd8e070a72f65b"
     },
     "server/supervision-receivers.ts": {
       "sha256": "b3b54e9e1eb3acfdfe2d5ee50feb422fdbc85986f53ab095b3b97fc5b2a1bebe",
       "gitBlob": "8b8232e73dfd8b7d38aa63b2aca8c02ac5e01b32"
     },
     "server/supervision-cooperative.ts": {
-      "sha256": "8b7c1840c0e09238b5f646585d9f70e64c9ac2bafb25eee1300afe01668d093b",
-      "gitBlob": "dd2bf8b4c0adf5cf6854493cc363f9db21b1ffa0"
+      "sha256": "2da6847985443ea7d0887d7c4b84a3eeeabdab1a2e43e96b3e9727db5cb4253d",
+      "gitBlob": "069ca9c63c267c0950010b0f37e70b78cfb263e3"
     },
     "server/supervision-jobs.ts": {
       "sha256": "7bb32ef72246bad2b34b1b0ebabbc68174e34a0c5d8de7d27db1c75d32e18aed",
       "gitBlob": "2b77d817f4a4bfb6bfa15c655eabb1c73a3a8d2f"
     },
     "server/supervisor-sessions.ts": {
-      "sha256": "11aae0dcdc844e3531a525fb846257e55a956802c451dbcb77dfea190a8a1dd3",
-      "gitBlob": "2bba6d1c1656fe1c9f555c295442b3737e42c0b2"
+      "sha256": "06882b83130c2f2883391490d72b45d9e53a7553ae598d21ea197e8d14181bb8",
+      "gitBlob": "276b2f1da67927dc9119c54eeed0131d674b6291"
     },
     "server/supervision-capabilities.test.ts": {
-      "sha256": "e65c8dce81f1bd407a1b7fa2d334a109c39b2c95394903a1fb05bdccfc2afc6d",
-      "gitBlob": "1d070fd893c29746bca2a373680bb4684af96f6b"
+      "sha256": "31f58d7d5b5068c16a98602e2638575fa5377cb4120ff7599d55b5c94c648314",
+      "gitBlob": "3ea720eb78e0724765beb9b453ce43b0fd83abcb"
     },
     "server/supervision-cooperative.test.ts": {
-      "sha256": "bdf1a165690263ba8d7349d717aae0acccb518e1e97a05bccf4f212b4c35d631",
-      "gitBlob": "9e4b1559b75afeacc4922e8b7713d71222f1ebe9"
+      "sha256": "472acd82ee226086800f69b21e34fe577ae6e46691f17749b67e29cd9ac2a996",
+      "gitBlob": "80d31ffea0f96bac9a4c415c2f5cbfd59750e8d2"
     },
     "server/supervision-jobs.test.ts": {
       "sha256": "fd3ead3868bd8a2c9e715d68e43ec44d13a651107a04c3e618ed5a42bff62078",
       "gitBlob": "a06d3be5af4d3e0406d187ead203822b3dca2d61"
     },
     "server/supervision-migrate.test.ts": {
-      "sha256": "4c64ee76989b95e881288c7d13673156dd5fadfae12b270e7e5efa9d42fe5acc",
-      "gitBlob": "57e3dcaa9a60c385bdd084cbae57e85738102b3b"
+      "sha256": "67bb01158dae4f5742d01d85629c90e37275ca878e2b845d3df99fb9a861fad1",
+      "gitBlob": "06260a368e2bba7949790a865a9729e51065ca03"
     },
     "server/supervisor-sessions.test.ts": {
-      "sha256": "a52ec2c2ee0f0eda3e6d7e147b32327ea9eb1a9ca963ccbf1baf4576d03407af",
-      "gitBlob": "65cb0fa2f0a0bfc434fea88e659d5b274eae8bb5"
+      "sha256": "676af2a5c678c8df39a4110799f6e29529b5ac584cc28f93a01151ce4f286deb",
+      "gitBlob": "9448dd03e2bd1ecf035ba13602d036e73ff67ff3"
     },
     "server/archive-inventory.ts": {
       "sha256": "fcf0bfe77ec8f8c65c5045f2807e5dece57922bda3a0442f9906fcd1d5d89497",

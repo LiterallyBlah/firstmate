@@ -62,12 +62,13 @@ export class SupervisorSessions {
   prepare(input: { requestId: string; scopeId: string; scopeVersion: number; profile: AgentProfile; opening: string; purpose?: "discussion" | "work" }, actor: SupervisionActor) {
     return this.reserve(input, actor, "activate", null);
   }
-  /** S11: the first supervisor of a scope S07 has cut over (committed migration, scope active, no binding). Explicit
-   * captain or first-mate action only; nothing attaches on its own, and it never replaces an existing binding. The
-   * same reserved, unprompted identity and verify/activate path as `prepare` follow. */
+  /** S11: the first supervisor of a scope S07 has cut over (committed migration, scope active, no binding). It creates a
+   * full-access session, so it is an explicit captain action only, like `hold` and `prepareReplacement`; the first mate
+   * cannot attach from chat. Nothing attaches on its own, and it never replaces an existing binding. The same reserved,
+   * unprompted identity and verify/activate path as `prepare` follow. */
   async attach(input: { requestId: string; scopeId: string; scopeVersion: number; profile: AgentProfile; opening: string; purpose?: "discussion" | "work" }, actor: SupervisionActor) {
     this.enabled();
-    if (actor.kind !== "captain-ui" && actor.kind !== "mate-chat") refuse("UNSUPPORTED", "Attaching a supervisor to a cut-over scope is an explicit captain or first-mate action.");
+    if (actor.kind !== "captain-ui") refuse("UNSUPPORTED", "Attaching a supervisor to a cut-over scope is an explicit captain action.");
     return this.reserve(input, actor, "attach", null);
   }
   /** Manual replacement only after the exact old supervisor is shown stopped; a lease or timeout proves nothing. */

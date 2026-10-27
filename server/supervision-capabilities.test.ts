@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
-  COOPERATIVE_LIMITS, evaluateStrongCapabilities, EXECUTOR_CONDITIONS, executorApproval, requireStrong, S00_STRONG_ROWS, s00Column,
+  COOPERATIVE_LIMITS, evaluateStrongCapabilities, EXECUTOR_CONDITIONS, executorApproval, readerDigest, REVIEWED_READER_RUNS, requireStrong, S00_STRONG_ROWS, s00Column,
   SHIPPED_QUALIFICATIONS, STRONG_CAPABILITIES, STRONG_LIMIT, strongFlags, StrongQualificationSchema, type S00Row,
 } from "./supervision-capabilities";
 import { bindStrongReceivers, readAdmission, refuseStaleAdmission } from "./supervision-receivers";
@@ -148,6 +148,10 @@ describe("R10 round-3 and R11 executor-approval conditions", () => {
     result: { retainedWorkspaces: { result: "complete", value: { workspaces: [], paths: [] } }, nativeSchedules: { complete: true, schedules: [{ id: "s" }] }, ...result } });
   const seeded = { history: { pages: 2, entries: 3, unavailableProviderSessions: 1 } };
   const ack = ["N7", "receiver"], executor = { deleteFollowsLinks: false };
+  /** Test seam: treat this artifact as a reviewed, committed run, as adding it to REVIEWED_READER_RUNS would. */
+  const reviewedAs = (artifact: string) => ({ reviewedReaderRuns: [{ sha256: readerDigest(artifact) }] });
+  const readers = (artifact: string | undefined, extra: object = {}, installedVersion = "0.13.0") =>
+    executorApproval({ installedVersion, readerArtifact: artifact, acknowledged: ack, executor, ...extra }).conditions.find(c => c.id === "live-readers")!;
   it("lists realpath, E1–E3, no-follow deletion, the live readers, N7 and the receiver limit", () => {
     expect(EXECUTOR_CONDITIONS.map(c => c.id)).toEqual(["realpath", "E1", "E2", "E3", "no-follow-delete", "live-readers", "N7", "receiver"]);
   });
@@ -156,26 +160,35 @@ describe("R10 round-3 and R11 executor-approval conditions", () => {
     expect(a.approved).toBe(false);
     expect(a.conditions.filter(c => !c.satisfied).map(c => c.id)).toEqual(["no-follow-delete", "live-readers", "N7", "receiver"]);
   });
-  it("the S11 smoke run is PARTIAL: an empty history cannot close the live-reader condition (R11 N2)", () => {
+  it("the committed S11 smoke run is a reviewed run, and PARTIAL: an empty history cannot close the condition (R11 N2)", () => {
     const artifact = readFileSync(join(process.cwd(), "docs/scoped-supervision/s11-readers/result.json"), "utf8");
+    expect(REVIEWED_READER_RUNS.map(r => r.sha256)).toContain(readerDigest(artifact));
+    expect(readerDigest(artifact)).toBe(readerDigest(artifact.replaceAll("\n", "\r\n"))); // Line endings do not change the digest.
     const a = executorApproval({ installedVersion: "0.13.0", readerArtifact: artifact, acknowledged: ack, executor });
     expect(a.approved).toBe(false);
     expect(a.conditions.find(c => c.id === "live-readers")).toMatchObject({ state: "partial", satisfied: false, reasons: [expect.stringMatching(/history listing was empty/)] });
-    expect(executorApproval({ installedVersion: "0.13.0", readerArtifact: run(), acknowledged: ack, executor }).conditions.find(c => c.id === "live-readers")!.state).toBe("partial");
-    expect(executorApproval({ installedVersion: "0.13.0", readerArtifact: run({}, { history: { pages: 1, entries: 2, unavailableProviderSessions: 0 } }), acknowledged: ack, executor })
-      .conditions.find(c => c.id === "live-readers")).toMatchObject({ state: "partial", reasons: [expect.stringMatching(/unavailable provider/)] });
+    const noUnavailable = run({}, { history: { pages: 1, entries: 2, unavailableProviderSessions: 0 } });
+    expect(readers(noUnavailable, reviewedAs(noUnavailable))).toMatchObject({ state: "partial", reasons: [expect.stringMatching(/unavailable provider/)] });
   });
-  it("accepts no self-attested record: only a run artifact for the installed version with both readers complete", () => {
-    const state = (artifact: string | undefined, installedVersion = "0.13.0") => executorApproval({ installedVersion, readerArtifact: artifact, acknowledged: ack, executor }).conditions.find(c => c.id === "live-readers")!.state;
-    expect(state(JSON.stringify({ daemonVersion: "0.13.0", digest: "0".repeat(64), readers: { retainedWorkspaces: "complete", nativeSchedules: "complete" } }))).toBe("open");
-    expect(state(run({}, seeded), "0.13.1")).toBe("open");
-    expect(state(run({}, { ...seeded, retainedWorkspaces: { result: "refused" } }))).toBe("open");
-    expect(state("not json")).toBe("open");
-    expect(state(run({}, seeded))).toBe("met");
+  it("R11 round 2: a hand-written artifact is open, however complete it claims to be; only a reviewed run's exact bytes count", () => {
+    const forged = run({}, seeded);
+    expect(readers(forged)).toMatchObject({ state: "open", reasons: [expect.stringMatching(/not a reviewed, committed run/)] });
+    expect(readers(forged + " ", reviewedAs(forged)).state).toBe("open"); // One byte different.
+    const committed = readFileSync(join(process.cwd(), "docs/scoped-supervision/s11-readers/result.json"), "utf8");
+    expect(readers(committed.replace('"complete": true', '"complete": true, "x": 1')).state).toBe("open"); // An edited copy of the reviewed run.
   });
-  it("approves only with a non-empty reader run, a no-follow executor and N7/receiver acknowledged (R11 N3)", () => {
-    expect(executorApproval({ installedVersion: "0.13.0", readerArtifact: run({}, seeded), acknowledged: ack, executor: { deleteFollowsLinks: true } }).approved).toBe(false);
-    expect(executorApproval({ installedVersion: "0.13.0", readerArtifact: run({}, seeded), acknowledged: ["receiver"], executor }).approved).toBe(false);
-    expect(executorApproval({ installedVersion: "0.13.0", readerArtifact: run({}, seeded), acknowledged: ack, executor }).approved).toBe(true);
+  it("a reviewed run counts only for the installed version, with both readers complete", () => {
+    expect(readers(run({}, seeded), reviewedAs(run({}, seeded)), "0.13.1").state).toBe("open");
+    const refused = run({}, { ...seeded, retainedWorkspaces: { result: "refused" } });
+    expect(readers(refused, reviewedAs(refused)).state).toBe("open");
+    expect(readers("not json", reviewedAs("not json")).state).toBe("open");
+    expect(readers(run({}, seeded), reviewedAs(run({}, seeded))).state).toBe("met");
+  });
+  it("approves only with a reviewed non-empty reader run, a no-follow executor and N7/receiver acknowledged (R11 N3)", () => {
+    const good = run({}, seeded), trust = reviewedAs(good);
+    expect(executorApproval({ installedVersion: "0.13.0", readerArtifact: good, acknowledged: ack, executor: { deleteFollowsLinks: true }, ...trust }).approved).toBe(false);
+    expect(executorApproval({ installedVersion: "0.13.0", readerArtifact: good, acknowledged: ["receiver"], executor, ...trust }).approved).toBe(false);
+    expect(executorApproval({ installedVersion: "0.13.0", readerArtifact: good, acknowledged: ack, executor }).approved).toBe(false); // Not reviewed.
+    expect(executorApproval({ installedVersion: "0.13.0", readerArtifact: good, acknowledged: ack, executor, ...trust }).approved).toBe(true);
   });
 });

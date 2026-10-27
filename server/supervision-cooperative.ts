@@ -11,6 +11,7 @@ import { MAINTENANCE_ADMISSION_CEILING, unsettled } from "../shared/supervision-
 import { SOURCE_LIMITS } from "../shared/supervision-sources";
 import { COOPERATIVE_LIMITS } from "./supervision-capabilities";
 import { SUPERVISION_INDEX_LIMITS } from "./supervision-store";
+import { activationEffects } from "./supervisor-sessions";
 
 export type CooperativeDependencyId = "journal" | "scope" | "binding" | "cutover" | "deliveries" | "effects" | "workers"
   | "reservations" | "dependencies" | "board-sends" | "holds";
@@ -50,11 +51,20 @@ export function cooperativeReadiness(status: SupervisionStatus, scopeId: string)
     ...(["held", "transferring", "retired"].includes(scope.state) ? [`The scope is ${scope.state}.`] : []),
   ]);
   // R11 B1: a scope is supervised only by exactly one active binding with a verified workspace. No binding is no owner.
+  // R11 B2: and only once that epoch's opening has been sent; an owner never told it supervises cannot be offered work.
+  const opening = (epoch: number): string[] => {
+    const send = activationEffects(status, scopeId, epoch).send;
+    return send?.state === "succeeded" ? []
+      : send?.state === "failed" ? [`Supervisor epoch ${epoch}'s opening failed; it was never told it supervises this scope.`]
+      : send?.state === "uncertain" || send?.state === "accepted" ? [`Supervisor epoch ${epoch}'s opening has an unconfirmed outcome.`]
+      : [`Supervisor epoch ${epoch} has not been sent its opening${send ? ` (${send.state})` : ""}.`];
+  };
   const own = status.bindings.filter(b => b.scopeId === scopeId);
   const binding = dep("binding", "S04", own.length === 0 ? ["No current owner: the scope has no supervisor binding (attach one explicitly; nothing is taken over)."]
     : own.length > 1 ? [`${own.length} bindings name this scope; exactly one current owner is required.`]
     : own[0]!.state !== "active" ? [`Supervisor epoch ${own[0]!.epoch} is ${own[0]!.state}: its owner is not shown current, and a replacement is manual only.`]
-    : own[0]!.workspaceId === null ? [`Supervisor epoch ${own[0]!.epoch} has no verified workspace.`] : []);
+    : own[0]!.workspaceId === null ? [`Supervisor epoch ${own[0]!.epoch} has no verified workspace.`]
+    : opening(own[0]!.epoch));
 
   // S07: a plan this scope owns is cut over only by a committed migration; prepared/barrier hold both writers.
   const cutoverReasons: string[] = [];

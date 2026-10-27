@@ -10,6 +10,7 @@ import { pluginDir } from "./data-dir";
 import { COOPERATIVE_LIMITS } from "./supervision-capabilities";
 import { cooperativeReadiness, cooperativeRollout, JOURNAL_BANDS } from "./supervision-cooperative";
 import { SupervisionStore } from "./supervision-store";
+import { effectLogicalKey } from "./supervision-effects";
 
 const SCOPE = randomUUID(), OTHER = randomUUID(), TASK = randomUUID(), ATTEMPT = randomUUID();
 let base: SupervisionStatus, store: SupervisionStore;
@@ -25,7 +26,11 @@ const scope = (id: string, extra: object = {}) => ({ id, homeId: base.homeId, ki
 const bound = (scopeId: string, extra: object = {}) => ({ scopeId, epoch: 1, hostId: "local", agentId: `sup-${scopeId.slice(0, 4)}`, workspaceId: "ws-sup",
   profileDigest: "b".repeat(64), state: "active", checkpointHash: "c".repeat(64), acknowledgedSeq: 0, heartbeatDue: null, ...extra });
 /** A drained scope with one finished scoped attempt, and an unrelated scope. Extra rows are synthetic projection rows. */
-function status(patch: (s: SupervisionStatus) => void = () => {}): SupervisionStatus {
+/** The activation opening (S04's epoch send) of a scope, as `activationEffects` finds it. */
+const opening = (scopeId: string, epoch: number, state = "succeeded") => ({ id: randomUUID(), scopeId, epoch, attemptId: null, operation: "agent.send", state,
+  logicalKey: effectLogicalKey({ scopeId, subject: `epoch:${epoch}`, operation: "agent.send", causation: "scope.activate", objectiveRevision: 0 }) });
+/** Each test's status gets succeeded openings for both scopes' first two epochs unless `openings` says otherwise. */
+function status(patch: (s: SupervisionStatus) => void = () => {}, openings: object[] = [1, 2].flatMap(e => [opening(SCOPE, e), opening(OTHER, e)])): SupervisionStatus {
   const s = structuredClone(base) as SupervisionStatus;
   s.scopes = [scope(SCOPE), scope(OTHER)] as never;
   s.bindings = [bound(SCOPE), bound(OTHER)] as never;
@@ -33,6 +38,7 @@ function status(patch: (s: SupervisionStatus) => void = () => {}): SupervisionSt
   s.attempts = [{ id: ATTEMPT, taskId: TASK, ordinal: 1, briefHash: "a".repeat(64), launchEffectId: randomUUID(), worker: { hostId: "local", agentId: "w1", workspaceId: "ws1" },
     originalNotificationOwner: null, notificationStatus: "known", spentAgents: 1, spentTurns: 1, state: "prompted", evidenceIds: [], version: 2 }];
   patch(s);
+  s.effects = [...openings, ...s.effects] as never;
   return s;
 }
 const unmet = (s: SupervisionStatus, id = SCOPE) => cooperativeReadiness(s, id).dependencies.filter(d => !d.satisfied).map(d => d.id);
@@ -95,6 +101,18 @@ describe("cooperativeReadiness: explicit dependencies of a drained cooperative s
     // A dormant, never-bound scope does not count either.
     expect(unmet(status(x => { x.scopes[0]!.state = "dormant"; x.bindings = [] as never; }))).toEqual(["binding"]);
     expect(cooperativeRollout(status(x => { x.bindings = [bound(OTHER)] as never; }))).toMatchObject({ ready: [OTHER], held: [{ scopeId: SCOPE, unmet: ["binding"] }] });
+  });
+  it("R11 B2: the binding counts only once its epoch's opening has succeeded; reserved, dispatching or failed does not", () => {
+    const others = [1, 2].map(e => opening(OTHER, e));
+    for (const [state, words] of [["reserved", /has not been sent its opening \(reserved\)/], ["dispatching", /has not been sent its opening/],
+      ["failed", /opening failed/], ["uncertain", /unconfirmed outcome/], ["accepted", /unconfirmed outcome/]] as const) {
+      const r = cooperativeReadiness(status(() => {}, [opening(SCOPE, 1, state), ...others]), SCOPE);
+      expect(r.ready).toBe(false);
+      expect(r.dependencies.find(d => d.id === "binding")).toMatchObject({ satisfied: false, reasons: [expect.stringMatching(words)] });
+    }
+    expect(cooperativeReadiness(status(() => {}, others), SCOPE).dependencies.find(d => d.id === "binding")!.reasons).toEqual([expect.stringMatching(/has not been sent its opening\.$/)]);
+    // Another epoch's succeeded opening does not count for the current one.
+    expect(unmet(status(() => {}, [opening(SCOPE, 2), ...others]))).toEqual(["binding"]);
   });
   it("R11 N1/N9: a non-active backend without a migration row, and starting, planned-with-worker or unaccounted imported attempts hold", () => {
     for (const [backend, state] of [["scoped", "prepared"], ["scoped", "held"], ["legacy", "active"]])

@@ -180,11 +180,11 @@ adapter shapes, refusing any receiver for a capability not enabled. `server/supe
 read: a scope is ready for cooperative rollout only when every named S01/S03/S04/S07/S08/S09/S10 dependency holds,
 including exactly one active, verified supervisor binding (no binding is no owner), and no uncertainty, unaccounted
 callback owner, unfinished cutover, suspect reservation, unsettled host pass, open incident or reached journal band.
-`SupervisorSessions.attach` is the only way an S07-committed scope gets its first supervisor: explicit, captain or
-first mate only, never over an existing binding.
+`SupervisorSessions.attach` is the only way an S07-committed scope gets its first supervisor: explicit, captain only,
+never over an existing binding. A binding counts only once its epoch's opening has succeeded.
 It writes nothing and never claims fleet-wide relief. R10's E1–E3 and realpath (`resolveCleanupAliases`) are fixed in
 `planCleanup`; `executorApproval` also needs a no-follow-deleting executor, a non-empty reader run artifact for the
-installed version (the S11 smoke run is only partial) and N7/receiver acknowledgements.
+installed version, listed by digest in `REVIEWED_READER_RUNS` (the S11 smoke run is only partial) and N7/receiver acknowledgements.
 
 | File                          | What it owns                                                                              |
 | ----------------------------- | ----------------------------------------------------------------------------------------- |

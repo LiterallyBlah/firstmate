@@ -220,7 +220,9 @@ it("L1: a notified-but-unhandled action with General busy transfers once; the ol
   expect(await migrator.recordAcknowledgements(input.migrationId)).toBe(1);
   const report = await migrator.report("scheduler");
   expect(report.complete).toBe(true);
-  expect(await unmet()).toEqual([]); // S11: reconciled, so cooperative (never strong) rollout may include it.
+  // S11 / R11 B2: reconciled, but this helper writes its binding directly, without an activation opening, so the
+  // owner is not current. The real attach path (L5) is what makes a cut-over scope ready.
+  expect(await unmet()).toEqual(["binding"]);
   expect(report.dispositions.find(x => x.id === d!.id)!.receipts).toMatchObject({ transfer: `outbox:${outbox[0]!.id}`, ack: expect.stringMatching(/^command:.*@epoch:1$/) });
   expect((await store.read()).outbox.filter(o => o.causationId === action)).toHaveLength(1);
 });
@@ -409,25 +411,47 @@ it("L5: mixed/opaque watch output stays with its legacy owner and holds only thi
   expect((await migrator.report("scheduler")).migration!.state).toBe("committed");
   // S11 / R11 B1: the drained watch hold is accounted to its legacy owner, but nobody supervises the cut-over plan yet.
   expect(await unmet()).toEqual(["binding"]);
-  // The manual attach path: explicit, captain or first-mate only, the same reserved/verified identity as activation.
-  const receiver = new SyntheticReceiver(), commands = new SupervisionCommands(store, home, { enabled: true });
-  const gateway = new SupervisionGateway(store, commands, home, receiver, { enabled: true });
-  const sessions = new SupervisorSessions(store, gateway, receiver, { enabled: true, limits: { supervisorSessions: 2, supervisorTurns: 4 }, globalMateId: async () => GENERAL });
-  const profile = { provider: "claude/opus-5.5", modeId: "default", thinkingOptionId: "high" };
+  // The manual attach path: an explicit captain action only (it creates a full-access session, like hold and
+  // replacement), with the same reserved/verified identity as activation.
+  const receiver = new SyntheticReceiver(), profile = { provider: "claude/opus-5.5", modeId: "default", thinkingOptionId: "high" };
+  const open = (s: SupervisionStore) => {
+    const commands = new SupervisionCommands(s, home, { enabled: true }), gateway = new SupervisionGateway(s, commands, home, receiver, { enabled: true });
+    return { gateway, sessions: new SupervisorSessions(s, gateway, receiver, { enabled: true, limits: { supervisorSessions: 2, supervisorTurns: 4 }, globalMateId: async () => GENERAL }) };
+  };
+  let { gateway, sessions } = open(store);
   const version = async () => (await store.read()).scopes.find(x => x.id === input.scopeId)!.version;
-  const attach = async (actor: SupervisionActor) => sessions.attach({ requestId: randomUUID(), scopeId: input.scopeId, scopeVersion: await version(), profile, opening: "You supervise the cut-over scheduler plan." }, actor);
+  const request = async (requestId = randomUUID()) => ({ requestId, scopeId: input.scopeId, scopeVersion: await version(), profile, opening: "You supervise the cut-over scheduler plan." });
+  const attach = async (actor: SupervisionActor) => sessions.attach(await request(), actor);
   await expect(attach(owner)).rejects.toMatchObject({ code: "UNSUPPORTED" }); // No agent, General included, attaches itself.
+  await expect(attach({ kind: "mate-chat", id: GENERAL, source: "fixture/chat" })).rejects.toMatchObject({ code: "UNSUPPORTED", message: expect.stringMatching(/explicit captain action/) });
   await expect(sessions.prepare({ requestId: randomUUID(), scopeId: input.scopeId, scopeVersion: await version(), profile, opening: "x" }, captainUi)).rejects.toMatchObject({ code: "HELD" });
-  await attach({ kind: "mate-chat", id: GENERAL, source: "fixture/chat" });
+  expect((await store.read()).bindings.filter(b => b.scopeId === input.scopeId)).toEqual([]);
+  const first = await request(), attached = await sessions.attach(first, captainUi);
   const s1 = await store.read(), binding = s1.bindings.find(b => b.scopeId === input.scopeId)!;
   expect(binding).toMatchObject({ epoch: 1, state: "prepared", workspaceId: null });
+  // Replay: the same request returns the original receipt and writes nothing.
+  expect((await sessions.attach(first, captainUi)).receipt).toEqual(attached.receipt);
+  expect((await store.read()).sequence).toBe(s1.sequence);
   await expect(attach(captainUi)).rejects.toMatchObject({ code: "HELD" }); // Never a second binding.
   expect(await unmet()).toEqual(expect.arrayContaining(["scope", "binding"])); // Transferring, prepared: still no current owner.
+  // Restart: a new process's store and sessions replay the same receipt, write nothing, and still refuse a new attach.
+  await store.releaseCoordinator();
+  store = new SupervisionStore(pluginDir(), home, { writable: true, processIdentity: async () => ({ state: "alive", start: "fixture-process-2" }) });
+  await store.initialize(); await store.acquireCoordinator();
+  ({ gateway, sessions } = open(store));
+  const restarted = await store.read();
+  expect((await sessions.attach(first, captainUi)).receipt).toEqual(attached.receipt);
+  await expect(attach(captainUi)).rejects.toMatchObject({ code: "HELD" });
+  expect((await store.read()).sequence).toBe(restarted.sequence);
   const effects = activationEffects(s1, input.scopeId, 1);
   await gateway.dispatch(effects.workspace!.id); await gateway.dispatch(effects.create!.id);
-  await sessions.verify(input.scopeId, 1); await gateway.dispatch(effects.send!.id);
+  await sessions.verify(input.scopeId, 1);
+  // R11 B2: verified and active, but its opening is only reserved; an owner never told it supervises is not current.
+  const beforeOpening = cooperativeReadiness(await store.read(), input.scopeId);
+  expect(beforeOpening.dependencies.filter(d => !d.satisfied)).toEqual([expect.objectContaining({ id: "binding", reasons: [expect.stringMatching(/has not been sent its opening \(reserved\)/)] })]);
+  await gateway.dispatch(effects.send!.id);
   expect(receiver.sends[0]).toMatchObject({ agentId: binding.agentId, text: "You supervise the cut-over scheduler plan." });
-  expect(await unmet()).toEqual([]); // One active, verified owner: cooperative (never strong) rollout may include it.
+  expect(await unmet()).toEqual([]); // One active, verified, opened owner: cooperative (never strong) rollout may include it.
   // Attach never replaces a current owner: refused by attach itself, before the store's own epoch checks.
   await expect(attach(captainUi)).rejects.toMatchObject({ code: "HELD", message: expect.stringMatching(/S07 has cut over/) });
 });
