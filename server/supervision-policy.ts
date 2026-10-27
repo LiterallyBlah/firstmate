@@ -7,6 +7,7 @@ import { resolveInHome } from "./files";
 import { digest } from "./submissions";
 import { SupervisionError, type SupervisionStore, type SupervisionMutation } from "./supervision-store";
 import { workflowHomeIdentity } from "./workflow-ownership";
+import { CONTEXT_ONLY_KINDS } from "../shared/supervision-projects";
 
 export const policyRef = (kind: string, value: { id: string; version: number }): VersionRef => ({ kind, id: value.id, version: value.version, digest: digest(value) });
 const refuse = (code: "STALE" | "HELD" | "CONFLICT", message: string): never => { throw new SupervisionError(code, message); };
@@ -48,6 +49,13 @@ export interface PolicyAdmission extends PolicyTarget {
   operationTarget: PolicyOperationTarget;
 }
 export async function checkPolicy(home: string, status: SupervisionStatus, input: PolicyAdmission, now: string, issuingApproval = false): Promise<void> {
+  // S09: project memory, sponsors, intents and conflicts are context. Citing one never stands in for a grant or evidence.
+  if ([input.policyVector, input.evidenceVector, input.approvalPolicyVector ?? [], input.modelPolicyVector ?? []].some(v => v.some(r => CONTEXT_ONLY_KINDS.includes(r.kind))))
+    refuse("HELD", "Project memory and coordination records are context, never authority; cite reviewed policy and evidence.");
+  // S09 rollback boundary: a project whose admissions the captain stopped admits no new work. Records of work
+  // already admitted (and stops) continue. Absent project records leave the pre-S09 behaviour unchanged.
+  const stopped = status.projects?.projects.filter(p => p.state === "stopped" && input.projectIds.includes(p.id)) ?? [];
+  if (input.operation === "plan.start" && stopped.length) refuse("HELD", `Admissions are stopped for ${stopped.map(p => p.name).join(", ")}.`);
   if (status.operationHolds.some(h => h.scopeId === input.scopeId && h.planId === input.planId && h.state === "held" && h.operations.includes(input.operation)))
     refuse("HELD", "This operation has a committed admission hold.");
   const rules = applicableRules(status, input), expected = currentPolicyVector(status, input);
@@ -144,4 +152,21 @@ export async function acceptPolicyInventory(store: SupervisionStore, home: strin
       return { kind: m.kind, id, version: status.versions.find(v => v.kind === m.kind && v.id === id)?.version ?? 0 }; }),
       result: { planId: null, planHash: null, decisionId: null, outboxId: null } };
   });
+}
+
+/** S09: the per-project grant picture for one cross-project operation. Constraints intersect; nothing is borrowed
+ * from a neighbouring project. Each entry is a real conflict that holds only this operation (`checkPolicy` refuses it
+ * independently); the caller records it once for General, while plans of the unaffected projects continue.
+ */
+export function projectGrantConflicts(status: SupervisionStatus, target: PolicyTarget): { projectId: string; problem: "no-grant" | "denied" | "models-disjoint" }[] {
+  const rules = applicableRules(status, target), conflicts: { projectId: string; problem: "no-grant" | "denied" | "models-disjoint" }[] = [];
+  for (const projectId of target.projectIds) {
+    const own = rules.filter(r => r.selector.projectIds.includes(projectId));
+    if (own.some(r => r.effect === "deny")) conflicts.push({ projectId, problem: "denied" });
+    else if (!own.some(r => r.effect === "allow")) conflicts.push({ projectId, problem: "no-grant" });
+  }
+  const lists = rules.filter(r => r.effect === "allow" && r.constraints.models.length).map(r => r.constraints.models);
+  if (lists.length > 1 && !lists[0]!.some(m => lists.every(l => l.includes(m))))
+    for (const projectId of target.projectIds) if (!conflicts.some(c => c.projectId === projectId)) conflicts.push({ projectId, problem: "models-disjoint" });
+  return conflicts;
 }

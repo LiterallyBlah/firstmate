@@ -8,3 +8,7 @@ export function readBearingsMessage(text: string, messageId?: string): { visible
   const match = /^(Bearings, please[^\r\n]*)\r?\n\r?\n<firstmate-bearings>\r?\n([\s\S]+)\r?\n<\/firstmate-bearings>$/.exec(text);
   return match && !/<\/?firstmate-bearings[\s>]/.test(match[2]!) ? { visible: match[1]!, overview: match[2]! } : null;
 }
+/** Joins independent read-only overview sections (plans, S09 portfolio). Empty sections are left out. */
+export function bearingsOverview(...sections: string[]): string {
+  return sections.map(s => s.trim()).filter(Boolean).join("\n\n");
+}
