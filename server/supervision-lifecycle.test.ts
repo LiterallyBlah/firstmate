@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { s04Fixture, planDefinition, captain, type ScopeHandle } from "../test/supervision-s04-fixture";
@@ -34,6 +35,16 @@ async function integrated() {
   return { ...fx, ingress, inbox, lifecycle, owner, finish };
 }
 type Fixture = Awaited<ReturnType<typeof integrated>>;
+it("restart and effect recovery audit old history before any receiver operation", async () => {
+  const f = await integrated(), { scope } = await f.owner(1, ["audit-recovery"]);
+  await writeFile(join(f.store.root, "transactions/000000000001.event.json"), "{old-corruption");
+  expect((await f.store.read()).freshness).toBe("current");
+  const calls = f.receiver.calls.length;
+  await expect(f.lifecycle.recover("restart")).rejects.toMatchObject({ code: "HELD" });
+  expect((await f.lifecycle.wake(scope.id, "restart")).state).toBe("held");
+  await expect(f.gateway.reconcile(randomUUID())).rejects.toMatchObject({ code: "HELD" });
+  expect(f.receiver.calls).toHaveLength(calls);
+});
 async function acknowledge(f: Fixture, scope: ScopeHandle, offerId: string, actor?: string) {
   const s = await f.store.read(), page = s.inbox.offers.find(o => o.id === offerId)!;
   const legacy = new WorkflowPlanStore(join(f.home, "legacy"), f.home);

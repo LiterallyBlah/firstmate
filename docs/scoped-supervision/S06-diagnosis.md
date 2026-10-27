@@ -1,5 +1,10 @@
 # S06 bounded A08 diagnosis
 
+This is the initial `f94c338c` diagnosis. R06/R06O subsequently required the checkpoint index
+described in [pilot-runbook.md](pilot-runbook.md#checkpoint-bounds-audits-and-recovery). Warm
+reads now trust a validated prefix, with full audits on startup/recovery and explicit audit.
+Statements below about checking all historical bytes on every read describe the initial delivery.
+
 The A08 timeout was a product scan-cost defect, not a virtual-clock wait, owner/General deadlock
 or slow fsync. `SupervisionStore.scan` deduplicated retained ownership with a nested `some` that
 recomputed both capsule digests for every candidate comparison. Every gateway/mailbox read scans

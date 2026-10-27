@@ -72,13 +72,14 @@ describe("actual child-process / filesystem publication", () => {
     }
     expectTargetCrash(result, point);
     expect(result.stdout).toBe(""); expect(result.code === 0).toBe(false);
-    const status = await store.read();
+    let status = await store.read();
     const exposed = point === "publication:linked", beforeTip = ["tip:written", "tip:synced"].includes(point);
     const recoverable = ["event:linked", "publication:written", "publication:synced"].includes(point);
     expect(status.sequence).toBe(exposed ? 1 : 0);
-    expect(status.freshness).toBe(exposed || beforeTip ? "current" : "held"); expect(status.executable).toBe(false);
+    expect(status.freshness).toBe(beforeTip ? "current" : "held"); expect(status.executable).toBe(false);
     if (!beforeTip) expect(status.retainedOwnership.some(o => o.attempts.some(a => a.id === ids.attempt && a.spentAgents === 1))).toBe(true);
     if (exposed) {
+      await store.recoverIndex(); status = await store.read(); expect(status.freshness).toBe("current");
       const receipt = await store.transact(expected(mutations), requestId, mutations);
       expect(receipt).toMatchObject({ requestId, sequence: 1, generation: 1, hash: status.hash });
       expect((await store.read()).attempts[0]?.spentAgents).toBe(1);
@@ -129,6 +130,10 @@ describe("actual child-process / filesystem publication", () => {
       { kind: "backend", value: { planId: "legacy", ownerScopeId: ids.scope, backend: "legacy", state: "prepared", sourceHash: hash, version: 2 } }];
     const worker = await launch({ home, dataRoot, mode: "crash", crash: point, mutations: barrier, expected: expected(barrier, 1), requestId: randomUUID() });
     expectTargetCrash(await worker.done, point);
+    if (point === "publication:linked") {
+      expect(await store.backend("legacy")).toMatchObject({ backend: null, held: true });
+      await store.recoverIndex(); // Derived recovery cannot activate either backend.
+    }
     const routing = await store.backend("legacy"); expect(routing).toMatchObject({ backend: "legacy", held: true });
     expect((await store.read()).sequence).toBe(point === "publication:linked" ? 2 : 1);
     // This is the journal barrier only. S07 owns source/delivery inventory and actual backend switching.

@@ -27,7 +27,7 @@ const MetricSample = z.object({
  * Census coverage describes the checked route, not arbitrary same-user native/shell bypasses.
  */
 export const PilotMetricsSchema = z.object({
-  format: z.literal("firstmate.supervision-pilot-metrics/1"),
+  format: z.literal("firstmate.supervision-pilot-metrics/2"),
   runId: SupervisionUuid, sourceHead: z.string().regex(/^[0-9a-f]{40}$/), fixtureHash: SupervisionHash,
   mode: z.enum(["synthetic", "live"]), route: z.enum(["legacy", "scoped"]), clock: z.enum(["virtual", "monotonic"]),
   runtime: z.object({ node: z.string().regex(/^v?\d+\.\d+\.\d+$/), platform: z.enum(["win32", "linux", "darwin"]) }).strict(),
@@ -36,7 +36,11 @@ export const PilotMetricsSchema = z.object({
   captain: z.array(z.object({ id: SupervisionUuid, submitted: instant, admitted: optionalInstant, firstReply: optionalInstant }).strict()
     .refine(s => (s.admitted === null ? s.firstReply === null : s.admitted >= s.submitted && (s.firstReply === null || s.firstReply >= s.admitted)), "Captain stages must be ordered.")).max(1000),
   census: z.object({ coverage: z.enum(["checked-route", "partial"]), generalRoutinePayloads: count,
-    projectRoutinePayloads: count, accidentalCallbacks: count }).strict(),
+    projectRoutinePayloads: count,
+    // Additional ingress observations deduplicated locally; never delivery to General.
+    duplicateObservations: count,
+    // Native callbacks delivered to General for this trial, including duplicates.
+    accidentalCallbacks: count }).strict(),
   spend: z.object({ workerSessions: count, workerTurns: count, supervisorSessions: count, supervisorTurns: count, generalTurns: count,
     uncertainEffects: count, providerTokens: count.nullable(), billedMicros: count.nullable() }).strict(),
 }).strict().superRefine((s, ctx) => {
@@ -73,7 +77,8 @@ export function summarizePilotMetrics(raw: unknown) {
     captainAdmission: metricDistribution(run.captain.map(s => s.admitted === null ? null : s.admitted - s.submitted)),
     captainFirstReply: metricDistribution(run.captain.map(s => s.firstReply === null ? null : s.firstReply - s.submitted)),
     census: { ...run.census, zeroRoutineOnCheckedRoute: run.census.coverage === "checked-route" &&
-      run.census.generalRoutinePayloads === 0 && run.census.projectRoutinePayloads === 0 },
+      run.census.generalRoutinePayloads === 0 && run.census.projectRoutinePayloads === 0 &&
+      run.census.accidentalCallbacks === 0 && run.spend.generalTurns === 0 },
     spend: run.spend,
   };
 }

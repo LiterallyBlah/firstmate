@@ -238,6 +238,9 @@ describe("S02 ingress publication interruption", () => {
     await expect(f.events.admit(observation({ sourceKind: "timeline", epoch: "t1", cursor: { epoch: "t1", seq: 1 }, maxSeq: 1 }), requestId)).rejects.toMatchObject({ code: "HELD" });
     let s = await new SupervisionStore(f.dataRoot, f.home).read();
     if (point === "publication:linked") {
+      // Journal publication precedes the derived index; a lost reply before checkpointing
+      // requires explicit index recovery, without replaying ingress or any receiver effect.
+      expect(s.freshness).toBe("held"); await f.store.recoverIndex(); s = await f.store.read();
       expect(s.freshness).toBe("current"); expect(s.inbox.events).toHaveLength(1); expect(s.inbox.assignments).toHaveLength(1); expect(s.inbox.sources[0]?.cursor?.seq).toBe(1);
       const replay = await f.events.admit(observation({ sourceKind: "timeline", epoch: "t1", cursor: { epoch: "t1", seq: 1 }, maxSeq: 1 }), requestId);
       expect(replay.replayed).toBe(true);

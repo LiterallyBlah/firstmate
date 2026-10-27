@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { handleScopeRequest, legacyRoute, processScopeRequests, scopeRoute } from "./scope-requests";
 import { SupervisionStore } from "./supervision-store";
 import { processWorkflowRequests } from "./workflow-service";
@@ -19,6 +19,17 @@ async function request(home: string, actor: string, command: unknown) {
 }
 
 describe("S04 legacy/scoped dispatch partition", { timeout: 60000 }, () => {
+  it("the explicit read audit command checks historical bytes without a receiver effect", async () => {
+    const fx = await s04Fixture(), scope = await fx.addScope(1, "audit-scope", ["audit-build"]);
+    const handlers = { commands: fx.commands, gateway: fx.gateway, store: fx.store, legacy: await legacyStore(fx.home), globalMateId: async () => "general-first-mate" };
+    const audit = vi.spyOn(fx.store, "audit");
+    await writeFile(join(fx.store.root, "transactions/000000000001.event.json"), "{old-corruption");
+    const calls = fx.receiver.calls.length;
+    const result = await handleScopeRequest({ id: randomUUID(), actor: scope.owner.id, kind: "read",
+      input: { scopeId: scope.id, epoch: 1, page: "audit" } }, handlers);
+    expect(result).toMatchObject({ freshness: "held" }); expect(audit).toHaveBeenCalledOnce();
+    expect(fx.receiver.calls).toHaveLength(calls);
+  });
   it("legacy writes refuse scoped targets only when the guard is supplied; reads and unrelated plans pass", async () => {
     const fx = await s04Fixture(), scope = await fx.addScope(1, "scoped-goal", ["sg-trial"]);
     const legacy = await legacyStore(fx.home), allow = async () => {};

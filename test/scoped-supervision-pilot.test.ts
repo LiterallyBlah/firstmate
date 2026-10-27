@@ -29,7 +29,7 @@ import { WatchRunner } from "../server/watches";
 const HEAD = "a".repeat(40), OLD_HEAD = "b".repeat(40);
 const profile = { provider: "codex/gpt-6.1-sol", modeId: "full-access", thinkingOptionId: "high" };
 const startAt = Date.parse("2026-10-26T12:00:00.000Z"), BUSY_MS = 600_000;
-const fixtureHash = digest({ version: 1, plans: 2, builders: 2, reviewers: 2, busyMs: BUSY_MS });
+const fixtureHash = digest({ version: 2, plans: 2, builders: 2, reviewers: 2, busyMs: BUSY_MS });
 afterEach(() => vi.useRealTimers());
 const receipts: unknown[] = [];
 afterAll(() => exportEvidence("qualification-receipts", { format: "firstmate.s06-receipts/1",
@@ -40,11 +40,11 @@ function clock() {
   return { at: (ms: number) => vi.setSystemTime(startAt + ms), now: () => Date.now() - startAt };
 }
 function metrics(route: PilotMetrics["route"]): PilotMetrics {
-  return { format: "firstmate.supervision-pilot-metrics/1", runId: randomUUID(),
+  return { format: "firstmate.supervision-pilot-metrics/2", runId: randomUUID(),
     // Populated with exact tested source by the evidence export command. HEAD here is a synthetic subject.
     sourceHead: process.env.FIRSTMATE_PILOT_SOURCE_HEAD ?? HEAD, fixtureHash, mode: "synthetic", route, clock: "virtual",
     runtime: { node: process.version, platform: process.platform as "win32" | "linux" | "darwin" }, windowMs: BUSY_MS, generalBusyMs: BUSY_MS,
-    samples: [], captain: [], census: { coverage: "checked-route", generalRoutinePayloads: 0, projectRoutinePayloads: 0, accidentalCallbacks: 0 },
+    samples: [], captain: [], census: { coverage: "checked-route", generalRoutinePayloads: 0, projectRoutinePayloads: 0, duplicateObservations: 0, accidentalCallbacks: 0 },
     spend: { workerSessions: 0, workerTurns: 0, supervisorSessions: 0, supervisorTurns: 0, generalTurns: 0, uncertainEffects: 0, providerTokens: null, billedMicros: null } };
 }
 async function pilot(limits?: { supervisorSessions: number; supervisorTurns: number }) {
@@ -148,9 +148,9 @@ describe("S06 new-plan cooperative M1 qualification", { timeout: 60000 }, () => 
       const restarted = new SupervisionLifecycle(f.store, new SupervisionEvents(f.store), new SupervisionInbox(f.store, { offers: true }), f.sessions, f.gateway, { enabled: true });
       for (const d of [...done].reverse()) {
         expect((await f.ingress.admit(d.input)).resultIds).toEqual([d.eventId]);
-        // Accidental second native observation retains provenance without another semantic consequence.
-        await f.ingress.admit({ ...d.input, sourceKind: "timeline", sourceKey: `native-callback-${stage}`, gaps: [], coverage: "bounded" });
-        m.census.accidentalCallbacks++;
+        // Duplicate ingress is not a native payload delivered to General.
+        await f.ingress.admit({ ...d.input, sourceKind: "timeline", sourceKey: `duplicate-observation-${stage}`, gaps: [], coverage: "bounded" });
+        m.census.duplicateObservations++;
       }
       time.at(at + 10);
       const wakes = await Promise.all([restarted.wake(a.scope.id, "restart"), restarted.wake(b.scope.id, "event")]);
@@ -289,6 +289,7 @@ describe("S06 new-plan cooperative M1 qualification", { timeout: 60000 }, () => 
       expect((await f.lifecycle.wake(scope.id, "restart")).state).toBe("held");
       await f.store.recoverPublication();
     }
+    if (point === "publication:linked") { expect(interrupted.freshness).toBe("held"); await f.store.recoverIndex(); }
     const replay = await f.ingress.admit(input, requestId); expect(replay.replayed).toBe(true);
     const s = await f.store.read(); expect(s.inbox.events).toHaveLength(1); expect(s.inbox.sources[0]!.maxSeq).toBe(17);
     expect(s.inbox.sources[0]!.cursor?.seq).toBe(17); expect(f.receiver.calls).toHaveLength(calls);
@@ -407,24 +408,30 @@ describe("S06 new-plan cooperative M1 qualification", { timeout: 60000 }, () => 
     await captureReceipt("supervisor-cap", capped);
   });
 
-  it("A17.preserve: pilot enable/disable/restart preserves real watch timers, four disabled definitions and offline coverage", async () => {
+  it("A17.preserve: pilot enable/disable/restart preserves the actual four disabled watch identities, schedules and timer", async () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval"] });
     const timer = vi.spyOn(globalThis, "setTimeout"), cleared = vi.spyOn(globalThis, "clearTimeout"), interval = vi.spyOn(globalThis, "setInterval"), f = await pilot();
-    const disabled = ["pr-watch", "remote-watch", "storage-sweep", "workspace-retention"];
+    // Frozen retained contract from the approved plan and the original watch headers.
+    const retained = Object.freeze([
+      { name: "board-review", schedule: "*/15 * * * *" },
+      { name: "workspace-review", schedule: "5 */12 * * *" },
+      { name: "metis-pentest", schedule: "*/10 * * * *" },
+      { name: "launch-metrics.mjs", schedule: "*/15 * * * *" },
+    ].map(row => Object.freeze(row)));
+    const disabled = retained.map(w => w.name);
     await mkdir(join(f.home, "watches"), { recursive: true });
-    for (const name of disabled) {
+    for (const { name, schedule } of retained) {
       const path = join(f.home, "watches", name);
-      await writeFile(path, "#!/usr/bin/env node\n// schedule: 15 2 * * *\n// retained fixture\n"); await chmod(path, 0o755);
+      await writeFile(path, `#!/usr/bin/env node\n// schedule: ${schedule}\n// retained fixture\n`); await chmod(path, 0o755);
     }
     await updateFirstmateConfig({ home: f.home, disabledWatches: disabled });
-    const coverage = { hosts: [{ id: "local", online: true }, { id: "Light", online: false }], existingHeartbeat: { id: "unknown-existing", owner: null } };
-    const coveragePath = join(f.home, "data", "coverage-fixture.json"); await writeFile(coveragePath, JSON.stringify(coverage));
-    const run = vi.fn(async () => ({ code: 0, stdout: "", stderr: "", truncated: false, timedOut: false, spawnError: null })), deliver = vi.fn(async () => "wait" as const);
+    const run = vi.fn(async (_path: string) => ({ code: 0, stdout: "", stderr: "", truncated: false, timedOut: false, spawnError: null })), deliver = vi.fn(async () => "wait" as const);
     const watches = new WatchRunner({ home: async () => f.home, disabled: async () => (await readFirstmateConfig()).disabledWatches,
-      stateFile: join(f.home, "watch-state.json"), scriptStateRoot: join(f.home, "script-state"), run, deliver });
+      stateFile: join(f.home, "watch-state.json"), scriptStateRoot: join(f.home, "script-state"), run, deliver,
+      canRun: async name => disabled.includes(name) });
     const stop = watches.start();
     try {
-      const handle = timer.mock.results.at(-1)!.value, timers = vi.getTimerCount(), config = digest(await readFirstmateConfig()), coverageHash = digest(await readFile(coveragePath, "utf8"));
+      const handle = timer.mock.results.at(-1)!.value, timers = vi.getTimerCount(), config = digest(await readFirstmateConfig());
       const definitions = await Promise.all(disabled.map(n => readFile(join(f.home, "watches", n), "utf8")));
       const { scope } = await f.owner(1, chain("preserve")); await f.finished(scope, "preserve-build");
       await f.lifecycle.wake(scope.id, "event"); await f.lifecycle.recover("restart");
@@ -433,12 +440,22 @@ describe("S06 new-plan cooperative M1 qualification", { timeout: 60000 }, () => 
       expect(timer.mock.results.filter(r => r.value === handle)).toHaveLength(1); expect(vi.getTimerCount()).toBe(timers);
       expect(cleared.mock.calls.some(([value]) => value === handle)).toBe(false);
       expect(interval).not.toHaveBeenCalled(); expect(digest(await readFirstmateConfig())).toBe(config);
-      expect(digest(await readFile(coveragePath, "utf8"))).toBe(coverageHash);
+      expect((await readFirstmateConfig()).disabledWatches).toEqual(disabled);
       expect(await Promise.all(disabled.map(n => readFile(join(f.home, "watches", n), "utf8")))).toEqual(definitions);
-      await watches.tick(new Date(2026, 9, 26, 2, 15)); expect(run).not.toHaveBeenCalled(); expect(deliver).not.toHaveBeenCalled();
-      expect(f.receiver.calls.filter(c => c.op === "createAgent")).toHaveLength(2); // Only the requested owner and worker; no heartbeat/cleaner replacement.
-      receipts.push({ caseId: "timer-preservation", configHash: config, coverageHash, definitionHashes: definitions.map(d => digest(d)),
-        existingTimerRetained: true, disabledRuns: run.mock.calls.length, legacySends: deliver.mock.calls.length, timers });
+      // Exercise each real retained schedule, not a substituted common minute. Tick after every
+      // enabled/reconstructed/disabled lifecycle has run, so reenabling any identity is observable.
+      for (const at of [new Date(2026, 9, 26, 0, 0), new Date(2026, 9, 26, 0, 5)]) await watches.tick(at);
+      expect(run).not.toHaveBeenCalled(); expect(deliver).not.toHaveBeenCalled();
+      // Sensitivity control: the same supported runner consumes these definitions when enabled.
+      await updateFirstmateConfig({ disabledWatches: [] });
+      for (const at of [new Date(2026, 9, 27, 0, 0), new Date(2026, 9, 27, 0, 5)]) await watches.tick(at);
+      expect(new Set(run.mock.calls.map(([path]) => String(path).split(/[\\/]/).at(-1)))).toEqual(new Set(disabled));
+      await updateFirstmateConfig({ disabledWatches: disabled });
+      expect(digest(await readFirstmateConfig())).toBe(config);
+      receipts.push({ caseId: "timer-preservation", configHash: config, disabledIdentities: disabled, schedules: retained.map(w => w.schedule),
+        definitionHashes: definitions.map(d => digest(d)), existingTimerRetained: true, disabledRuns: 0,
+        enabledControlRuns: run.mock.calls.length, timers,
+        unqualified: ["native-storage-03:15-local-and-host-coverage-including-offline-Light", "unknown-native-heartbeat-owner-no-replacement"] });
     } finally { stop(); timer.mockRestore(); cleared.mockRestore(); interval.mockRestore(); }
   });
 
@@ -451,6 +468,13 @@ describe("S06 new-plan cooperative M1 qualification", { timeout: 60000 }, () => 
       { ...m, samples: [{ ...sample, committed: 9 }] }, { ...m, samples: [{ ...sample, handled: 30 }] },
       { ...m, spend: { ...m.spend, providerTokens: 0 } }, { ...m, mode: "live" }]) expect(PilotMetricsSchema.safeParse(bad).success).toBe(false);
     expect(summarizePilotMetrics({ ...m, census: { ...m.census, coverage: "partial" } }).census.zeroRoutineOnCheckedRoute).toBe(false);
+    for (const changed of [
+      { ...m, census: { ...m.census, accidentalCallbacks: 1 } },
+      { ...m, spend: { ...m.spend, generalTurns: 1 } },
+      { ...m, census: { ...m.census, generalRoutinePayloads: 1 } },
+      { ...m, census: { ...m.census, projectRoutinePayloads: 1 } },
+    ]) expect(summarizePilotMetrics({ ...changed, mode: "live", clock: "monotonic" }).census.zeroRoutineOnCheckedRoute).toBe(false);
+    expect(summarizePilotMetrics({ ...m, census: { ...m.census, duplicateObservations: 4 } }).census.zeroRoutineOnCheckedRoute).toBe(true);
     expect(summarizePilotMetrics(metrics("scoped")).offer).toMatchObject({ denominator: 0, measured: 0, p95Ms: null });
   });
 });

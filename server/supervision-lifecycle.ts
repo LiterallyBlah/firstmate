@@ -41,7 +41,7 @@ export class SupervisionLifecycle {
   async wake(scopeId: string, _trigger: ReconcileTrigger): Promise<ScopeWake> {
     this.enabled();
     return serialized(`${this.store.root}:lifecycle:${scopeId}`, async () => {
-      let s = await this.store.read();
+      let s = _trigger === "restart" ? await this.store.audit() : await this.store.read();
       const result = (state: ScopeWake["state"], reason: string, effectId: string | null = null, offerId: string | null = null): ScopeWake =>
         ({ scopeId, state, reason, effectId, offerId });
       const scope = s.scopes.find(v => v.id === scopeId), binding = s.bindings.find(v => v.scopeId === scopeId);
@@ -161,7 +161,8 @@ export class SupervisionLifecycle {
    * A read/transport failure affects its own subject, never serializes unrelated scope admissions. */
   async recover(trigger: "restart" | "heartbeat", paseo?: PaseoApi) {
     this.enabled();
-    const before = await this.store.read();
+    const before = await this.store.audit();
+    if (before.freshness !== "current") refuse("HELD", "Recovery audit failed; retain authority and reconcile the journal/index before any receiver call.");
     const selected = before.effects.filter(e => ["dispatching", "uncertain"].includes(e.state)).slice(0, 32);
     const projects = before.scopes.filter(s => s.kind === "project" && s.state === "active" &&
       (before.inbox.assignments.some(a => a.scopeId === s.id && !terminal(a)) || before.outbox.some(o => o.ownerScopeId === s.id && o.state === "pending"))).map(s => s.id);

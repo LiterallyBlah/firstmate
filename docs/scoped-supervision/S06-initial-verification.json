@@ -1,0 +1,212 @@
+{
+  "format": "firstmate.s06-verification/1",
+  "sourceCommit": "d8cdf2aad77ae193e7e0b045d4b2f78772d0814b",
+  "baseHead": "c14df7039a48bdeca893db0616e96e3eafa1e2e6",
+  "sourceDigest": "6bd000977758f43ddee83d4fd99ce0acf7c2cc203502cf2f53056b69f0c90f59",
+  "files": [
+    {
+      "path": ".github/workflows/check.yml",
+      "workingSHA256": "5963ff5d817cf91dde27d4eed126eea0e711fdd77d3ac2999a2ac1b7c4fb1429",
+      "committedSHA256": "09cf70127c633206af5b6dab3aeb06867f78de61c7de78567eb39b35e3a48f2d",
+      "gitBlob": "4f6f1dce4b2628eea643e34edfe0d2c0b3f3f9b7"
+    },
+    {
+      "path": "server/supervision-store.ts",
+      "workingSHA256": "df166c26a923d7f222b1d1e92f4901df4d5b8a698fde4c91317578a8c1e4deae",
+      "committedSHA256": "705a984019341afc2c3b3709d3f0004094957052d80061432b91aff19333a761",
+      "gitBlob": "4f5679edd7745d9c8e2d042ef364dbd012f6ecbf"
+    },
+    {
+      "path": "server/supervision-store.test.ts",
+      "workingSHA256": "7787d07be20cd69d162262e30f9e63f7c67cd06dd2d7fc999c0b135052cc3dc8",
+      "committedSHA256": "95f7ae5f3f6800d06d52e835b9e42cd29bf44b203db9619a6b0fb725ad4d863c",
+      "gitBlob": "dfc5603a06fbf1c9a8bc39dfea7eefc7d3f7765e"
+    },
+    {
+      "path": "server/supervision-metrics.ts",
+      "workingSHA256": "b31d09acf4398956ed9761245db8b49dc4c6ac5e5974ddb0e91d43322ae5cbd7",
+      "committedSHA256": "b31d09acf4398956ed9761245db8b49dc4c6ac5e5974ddb0e91d43322ae5cbd7",
+      "gitBlob": "a457c4a8a6053ae22f8ce574462dc4f7156512b1"
+    },
+    {
+      "path": "test/supervision-s04-fixture.ts",
+      "workingSHA256": "b5f1ce48504108f6ec94393969eba3864f8ec64fbcd32364ab1bd7459ca0388f",
+      "committedSHA256": "b810b3a83a8e447f37e84ebd3b09f8d93ed8a2f5e533ff13bfb6376a31f3c060",
+      "gitBlob": "ef8be53dd710e9abd0bceba33d829d437975a5f1"
+    },
+    {
+      "path": "test/scoped-supervision-pilot.test.ts",
+      "workingSHA256": "7cbd9dac2cff0d0db5d5c240447188fdd4a7a650a238f8e26bbcfc411290e53e",
+      "committedSHA256": "7cbd9dac2cff0d0db5d5c240447188fdd4a7a650a238f8e26bbcfc411290e53e",
+      "gitBlob": "227b68dcb39b5a446cfa5410530d88ed7fbd0011"
+    },
+    {
+      "path": "docs/scoped-supervision/pilot-runbook.md",
+      "workingSHA256": "f8574e13a019dbe0c75369c9e1a24867c842f3faadaa0b5b3ac0f0f0c3a6f139",
+      "committedSHA256": "f8574e13a019dbe0c75369c9e1a24867c842f3faadaa0b5b3ac0f0f0c3a6f139",
+      "gitBlob": "3bbbb156ccfcd719c21db1f160b094781d4721e7"
+    },
+    {
+      "path": "docs/scoped-supervision/S06-diagnosis.md",
+      "workingSHA256": "09f77adaac930cef85a12a72c95beef8616404be37d91dacc297d9fb5638eabf",
+      "committedSHA256": "09f77adaac930cef85a12a72c95beef8616404be37d91dacc297d9fb5638eabf",
+      "gitBlob": "c6cc803b309ef8fbf5aba740c15773ddbdf3c457"
+    }
+  ],
+  "sourceNote": "Local tests ran before source commit. Working SHA256 identifies the verified source. Dataset sourceHead is the checkout base, not the dirty source identity. This manifest pins the source commit with the same files. Final delivered-head CI is separate.",
+  "guarantee": "synthetic-new-plan-cooperative-only",
+  "liveActivated": false,
+  "timeoutIncreasedAfterDiagnosis": false,
+  "runtime": {
+    "node": "v24.18.0",
+    "platform": "win32"
+  },
+  "checks": {
+    "typecheck": {
+      "exitCode": 0,
+      "logSHA256": "89b255e66fd85bceba4705310f153a6f7faf4a48f701fa17e27cfde16a982d0a"
+    },
+    "fullSuite": {
+      "command": "npm test -- --maxWorkers=2 --testTimeout=20000 --reporter=default --reporter=json --outputFile=.local/s06/all-tests.json",
+      "tests": 2742,
+      "passed": 2739,
+      "failed": 0,
+      "pending": 3,
+      "files": 187,
+      "jsonSHA256": "4da97dd6cf2acb82b8701a3bb067acef75928d23c95b02c3474348fa14c52c22",
+      "logSHA256": "98d34facee7df44488c4182332d72eb148b4b7eb0a5be0ee4362b3b989a72a2b"
+    },
+    "pilot": {
+      "status": "passed",
+      "assertions": [
+        {
+          "title": "A08/A09/A19: both builder/reviewer chains advance in one project during a ten-minute General turn",
+          "status": "passed",
+          "durationMs": 88718.9564
+        },
+        {
+          "title": "A19 baseline: actual legacy note delivery waits for General; missing typed ack/cost remain unknown",
+          "status": "passed",
+          "durationMs": 38.00590000000375
+        },
+        {
+          "title": "A02/A01: simultaneous builder/review facts retain both owners; old-head review refuses one deduplicated next step",
+          "status": "passed",
+          "durationMs": 105448.0521
+        },
+        {
+          "title": "A05/rollback: narrow instruction hold stops queued admissions, preserves admitted work and lets another plan drain",
+          "status": "passed",
+          "durationMs": 16830.059600000008
+        },
+        {
+          "title": "A06: interrupted ingress at event:linked retains cursor/event together before any offer",
+          "status": "passed",
+          "durationMs": 5793.463700000022
+        },
+        {
+          "title": "A06: interrupted ingress at publication:synced retains cursor/event together before any offer",
+          "status": "passed",
+          "durationMs": 5463.357400000008
+        },
+        {
+          "title": "A06: interrupted ingress at publication:linked retains cursor/event together before any offer",
+          "status": "passed",
+          "durationMs": 5229.064100000018
+        },
+        {
+          "title": "A06: owner page recovery after reservation never loses or duplicates handling",
+          "status": "passed",
+          "durationMs": 6271.533100000001
+        },
+        {
+          "title": "A06: owner page recovery after send-reply never loses or duplicates handling",
+          "status": "passed",
+          "durationMs": 5681.448300000018
+        },
+        {
+          "title": "A06: owner page recovery after ack never loses or duplicates handling",
+          "status": "passed",
+          "durationMs": 5951.709500000026
+        },
+        {
+          "title": "A06/A20: lost worker workspace reply retains original IDs, cumulative spend and uncertainty",
+          "status": "passed",
+          "durationMs": 2129.7612999999837
+        },
+        {
+          "title": "A06/A20: lost worker create reply retains original IDs, cumulative spend and uncertainty",
+          "status": "passed",
+          "durationMs": 2528.7137999999977
+        },
+        {
+          "title": "A06/A20: lost worker send reply retains original IDs, cumulative spend and uncertainty",
+          "status": "passed",
+          "durationMs": 3208.5685999999987
+        },
+        {
+          "title": "A07.scoped/A01: two-device answer during manual transfer reaches only the new epoch and replays its original receipt",
+          "status": "passed",
+          "durationMs": 6039.569500000012
+        },
+        {
+          "title": "A20: worker and supervisor exhaustion refuse additional spend; lost sends reserve worst-case turns",
+          "status": "passed",
+          "durationMs": 6786.6861999999965
+        },
+        {
+          "title": "A17.preserve: pilot enable/disable/restart preserves real watch timers, four disabled definitions and offline coverage",
+          "status": "passed",
+          "durationMs": 5381.807700000005
+        },
+        {
+          "title": "A19: metadata rejects prompt fields, duplicate denominators, false timing and synthetic provider-cost claims",
+          "status": "passed",
+          "durationMs": 3.4619999999995343
+        }
+      ]
+    },
+    "budgetRefinement": {
+      "passed": 1,
+      "failed": 0,
+      "jsonSHA256": "08211df5a1ae58f63d381456b9b6f60c0e7038184b39f0f878376fca6be2254c"
+    },
+    "regression": {
+      "transactions": 12,
+      "oldHashes": 312,
+      "fixedHashes": 48,
+      "redLogSHA256": "6be460f6df660f56198799e01980c89e987a373579a5cc2da7a00cac9ae84245"
+    },
+    "tempRace": {
+      "oldTempCasesFailed": 2,
+      "durableMissingControlPassed": true,
+      "redLogSHA256": "904f9d0465886b89f5ffc32941105572b5ae0af9df84db9f37eb03a6738afe21",
+      "storeTestsJSONSHA256": "2e3e777324cde4dc5baa62df7a00d8ba5cb17d9ad059d76f0ae11c59db6f4589"
+    }
+  },
+  "evidence": [
+    {
+      "path": "docs/scoped-supervision/s06-evidence/scoped-metrics.json",
+      "sha256": "799928156e360586b899dc23495a06efeddd104e1d98507983fb6034b1d0b671",
+      "bytes": 4100
+    },
+    {
+      "path": "docs/scoped-supervision/s06-evidence/legacy-metrics.json",
+      "sha256": "1cc0b6f336e808c172c16deb1d9f7d3e5270c2bbb4bdc23e90c12627f1692540",
+      "bytes": 4025
+    },
+    {
+      "path": "docs/scoped-supervision/s06-evidence/qualification-receipts.json",
+      "sha256": "01eb7a2288d0d2edf4e54e08c0b095fda98d7eb7fc9ecc8e2148e05d05a147d9",
+      "bytes": 91973
+    }
+  ],
+  "exclusions": [
+    "live providers/paid usage",
+    "legacy delivery migration",
+    "occurrence scheduling",
+    "remote effects",
+    "strong authentication/fencing",
+    "install/routing approval"
+  ]
+}

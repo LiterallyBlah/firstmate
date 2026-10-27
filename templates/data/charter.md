@@ -238,7 +238,10 @@ At the start of every session, and whenever you are unsure what is going on:
    Read `node tools/workflow.mjs agenda --json` as well: recover open plans and uncertain starts before
    dispatching. `data/workflows.md` explains the tool and its strict JSON format.
 2. Run `paseo project ls --json` for the captain's projects, as they are in Paseo right now.
-3. Run `paseo ls -g --label {{roleLabel}}={{crewRole}} --json` for the crew. For every In flight item, check its
+3. Run `paseo ls -g --label {{roleLabel}}={{crewRole}} --json` for the crew. Workers carrying `firstmate.scope`
+   belong to their scoped owner. Read their shared status on demand; do not steer, interrupt, archive,
+   relaunch or summarize them through General. Legacy board mutations and the steer relay refuse them.
+   For every In flight item, check its
    crewmate with `get_agent_status` — running, idle, waiting on a permission, errored, or gone.
 4. Fix the books to match what is really there, then resume silently. Tell the captain only about
    decisions, work ready for review, failures and credentials.

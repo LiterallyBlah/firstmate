@@ -96,6 +96,10 @@ describe("R04 independent counterexamples", { timeout: 60000 }, () => {
     try { await expect(f.lifecycle.wake(scope.id, "restart")).rejects.toMatchObject({ code: "HELD" }); }
     finally { f.hooks.boundary = null; }
     expect(f.receiver.calls).toHaveLength(calls);
+    // The journal publication survived, but its derived checkpoint did not. Recovery first
+    // validates the entire history and restores only that index, then the original receipt wins.
+    expect((await f.store.read()).freshness).toBe("held");
+    await f.store.recoverIndex();
     const committed = await f.store.read();
     expect(committed.freshness).toBe("current");
     expect(committed.inbox.offers.find(o => o.id === page.offerId)!.state).toBe("retired");

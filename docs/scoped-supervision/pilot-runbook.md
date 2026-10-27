@@ -53,7 +53,8 @@ Published evidence is immutable historical evidence for that head, not a claim a
 | A06: owner delivery | Crash after atomic page/turn reservation, lose an admitted send reply, and reconstruct after acknowledgement before handling. Recovery dispatches only the original reserved effect; an uncertain send is never repeated. Ack alone leaves watermark zero. Only the bound owner's explicit per-event disposition advances it. |
 | A06, A20: workspace/create/send | Synthetic receiver admits then loses/hides each reply. Original attempt/effect/receiver IDs and resource reservations survive. Negative lookup does not authorize another creation. Worker/session turns remain spent; exact-receipt reconciliation is separate. |
 | A07.scoped | Answer during a held manual transfer, discard the first device's response, then submit from a second device. One revision/subject-bound answer and logical outbox survive. Replacement refuses until the exact old synthetic identity is stopped; prepared/verified epoch two receives it. Old epoch handling refuses; the new owner's committed handling result closes the same outbox. Changed subject refuses. |
-| A17.preserve | Start the actual legacy WatchRunner timer in a temporary home. Snapshot timer identity, actual config, four disabled script definitions/schedules and fixture host coverage including offline Light. Enable/disable/reconstruct scoped components; verify identical bytes and timer identity, no interval, no disabled script execution, and no heartbeat/cleaner replacement for unknown existing ownership. No new scheduler or host-pass adapter is claimed. |
+| A17.preserve, qualified watch subset | Start the actual legacy WatchRunner timer in a temporary home. Preserve the required disabled identities `board-review`, `workspace-review`, `metis-pentest`, `launch-metrics.mjs` and their retained schedules (`*/15 * * * *`, `5 */12 * * *`, `*/10 * * * *`, `*/15 * * * *`). Across scoped enable/disable/reconstruction, assert exact config/definition bytes and timer identity. Tick each retained schedule: zero disabled executions. An enabled control runs the same four definitions. R06's actual-identity reenabling mutation now fails. |
+| A17.preserve, unqualified native subset | The native storage timer's 03:15 local schedule, its full retained host set including offline Light, and the unknown-owner existing native heartbeat cannot be exercised through a supplied native inventory/maintenance adapter. They are explicit live-admission holds. No inert coverage JSON or count of unrelated owner/worker creations is evidence of native coverage or no replacement. A17 as a whole is partial, not passed. |
 | A19 | Strict metadata validation rejects prompt fields, duplicate event denominators, out-of-order timestamps, synthetic billed usage and live virtual clocks. Reports retain missing/censored observations. |
 | A20 | A spent one-run worker allowance refuses an additional task definition. A known exhausted supervisor cap refuses another turn. A lost owner-send response retains its reserved turn and prevents another prompt. Prepared inert payload blobs may remain; no command/effect or spend commits. S06 does not invent an automatic budget-decision/portfolio-cap adapter. |
 
@@ -62,18 +63,81 @@ sync/link/publication boundaries and races actual writers. S06's in-process inje
 and adapter reconstruction are not substitutes for those process/filesystem tests. Neither proves
 disk-loss durability or authenticated filesystem IPC.
 
-The S06 product correction replaces quadratic retained-ownership digest comparisons inside each
-journal scan with a scan-local digest set. A cold-read regression preserves every capsule, counts
-linear digest work and detects later publication corruption. All read-time integrity checks remain;
-there is no persistent cache, storage migration or change to fsync/publication boundaries.
+The original S06 correction replaced quadratic retained-ownership digest comparisons inside each
+full journal scan with a scan-local digest set. The revision adds a validated in-memory projection,
+request index and a small durable checkpoint. It deliberately changes historical corruption detection
+timing under the separately accepted checkpoint-prefix contract below. Journal publication remains
+tip/event/publication with the existing fsync/exclusive-link boundaries; checkpointing follows it.
 Size accounting also tolerates an inert `.tmp` disappearing between enumeration and stat;
 deterministic controls still hold on a disappearing durable event. See the diagnosis for scope.
 
 The checked synthetic route has a complete receiver-send census: zero routine payloads to General
-and zero to project sessions. Duplicate callback observations do not authorize another next step.
-This does not suppress an upstream native notification already delivered to General. A live callback
-to General must be counted, reconciled and investigated; it invalidates that trial's zero-traffic
-claim even if the UI hides it. Existing legacy fleet traffic is outside this new-plan claim.
+and zero to project sessions. Metrics format 2 uses `duplicateObservations` only for additional
+ingress observations deduplicated locally (four in the synthetic trace). `accidentalCallbacks`
+always means native callbacks actually delivered to General for the trial, including duplicate
+payloads; it is zero in the synthetic trace. `generalTurns` counts trial-attributable General model
+turns, excluding the pre-existing busy turn. A native callback may join that busy turn without creating
+a new turn: the callback alone still invalidates zero traffic. `zeroRoutineOnCheckedRoute` requires
+complete checked-route coverage and zero General/project routine payloads, native General callbacks
+and trial General turns. Partial coverage never passes. Legacy board Steer, Interrupt, End, Relaunch
+and the pending-steer relay now refuse scoped labels before any effect or forwarding to General.
+This does not suppress an upstream native notification. Count, reconcile and investigate any such
+delivery even if its ingress observation is deduplicated. Existing legacy fleet traffic is excluded.
+The preserved format-1 artifacts belong to the initial head: their `accidentalCallbacks: 4`
+was mislabeled duplicate ingress. They are superseded for census qualification by format 2 and
+must never be interpreted as four suppressed or delivered native General callbacks.
+
+## Checkpoint bounds, audits and recovery
+
+Ordinary reads verify canonical checkpoint metadata, home identity, the complete checkpoint anchor
+(event, expected tip, publication, hashes and any blobs referenced by that event), and the current
+coordinator record. The checkpoint binds sequence, transaction hash, projection hash, anchor identity
+and a cumulative digest extending over every validated event/tip/publication hash in its prefix.
+An in-memory snapshot serves that validated projection and accepted-request index. A second reader
+can validate at most 32 new transactions against its cached prefix; it does not replay the old prefix.
+Root/resource changes or a larger tail require full historical validation. Cold startup always
+validates all history before trusting a snapshot, even when the durable checkpoint looks current.
+
+This cooperative pilot stops **new effects at 192 transactions**, reserving 64 records for known work
+and reconciliation, with an absolute **256-transaction** ceiling and **8 MiB of projection plus retained
+ownership** (the earlier 100 MiB physical journal alarm also remains). At 256, all new journal writes
+hold; plan the admitted workload and stop well before exhausting reconciliation headroom. No bound
+truncates, evicts or resets history or spend. Warm reads perform constant journal metadata/
+anchor work plus response serialization bounded by that state ceiling. New launches perform only
+their new transitions, with no historical reducer replay. Tests cover 11 versus 176 transactions,
+a launch after 176, new-effect refusal at 192 with admitted outcome recording still allowed,
+32-item tail overflow, and the 256-transaction hard boundary. Reads wait for an in-process publication/
+checkpoint boundary, so concurrent owners do not observe that writer's transient staging window. Full audits,
+cold startup and recovery remain O(history), bounded by the admitted pilot history; this is not a
+claim of constant cost for arbitrary future fleets. Do not raise these pilot bounds to clear a hold.
+
+**Changed detection timing:** an in-place edit to an old, non-anchor entry or old evidence can remain
+undetected by a warm read until the next full audit. Old entry deletion or directory changes may force
+an audit sooner. Anchor tampering is checked on every read. Full validation runs automatically on
+each store instance's startup and all recovery operations. The explicit read-only audit command is
+`scope.mjs read --file <input.json>`, with `{ "scopeId": "<bound UUID>", "epoch": 1, "page": "audit" }`.
+It reuses the existing disabled/unseeded scope transport and returns freshness/sequence/hash/problems,
+without receiver effects. It adds no production attachment. Internal operators/tests can also invoke
+`SupervisionStore.audit()` directly. Audit before/after each admitted trial and after an integrity
+incident; a new instance independently performs that same full startup validation.
+
+A missing/stale checkpoint or any anchor/digest mismatch triggers full validation and a hold. An
+invalid checkpoint exposes no accepted plan projection, even if the journal validates. Explicit
+`recoverIndex()` rebuilds only derived metadata after a full valid scan; `recoverPublication()` also
+audits the whole journal and refreshes the index after completing an exact pending publication.
+Neither repairs missing/corrupt authority, discards history or retries an external effect. A crash
+after journal publication but before checkpoint replacement holds until index recovery, then the
+original request receipt replays. Checkpoint writes use synced staging plus atomic replacement; a
+missing result is not proof an effect failed. These are process-crash/cooperative guarantees, not
+authenticated immutable storage or disk-loss protection.
+
+Before a live trial, qualify at most two local chains under these history/state limits. Record every
+warm read and checked launch duration. The proposed admission stop limits are **2 seconds for any
+warm read** and **10 seconds for any launch**; stop new admissions on a miss and retain the trace.
+Filesystem/provider stalls can exceed them: these are measured stop rules, not hard real-time
+completion guarantees. The source-bound synthetic timing samples live in `index-bound-evidence.json`;
+they do not qualify a live adapter or establish provider latency. A longer workload needs a separate
+reviewed history/budget policy, not silent checkpoint or quota growth.
 
 ## Baseline protocol and performance limits
 
@@ -133,6 +197,9 @@ file is insufficient. Do not enable one component to bypass a missing integratio
    Implementation authorization, D1–D3 answers and plan approval are insufficient. Keep legacy subscriptions,
    unknown heartbeats and existing timer coverage with their original accounted owners. No live callback
    retargeting, archive, migration, release or shared effect is admitted.
+   A17's native storage schedule/full coverage and unknown-heartbeat no-replacement subset remains
+   unqualified: require its supported inventory/configuration evidence before claiming preservation
+   or admitting any maintenance change. Never create a replacement while ownership is unknown.
 6. Before any paid call, verify every cap, source, dependency/review/head, ownership/epoch and target at the
    gateway. Prepare unprompted selected-ID sessions; verify binding/independence before opening. Reserve all
    work/effects before external calls. If any required capability is unsupported, leave the trial held and
