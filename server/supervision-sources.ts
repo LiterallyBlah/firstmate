@@ -81,7 +81,9 @@ export class SupervisionSources {
       // Equal remote content under a different settled update may hide a new turn; it stays flagged until the content changes.
       const collision = o.kind === "remote" && repeat && (own?.observationHash !== observationHash || !!prior?.gaps.includes("content-collision"));
       const all = [...gaps, ...(collision ? ["content-collision" as const] : [])], coverage = all.length ? "gap" as const : o.coverage;
-      const known = own?.observationHash === observationHash ? own : null;
+      // F1b: a repeat is quiet only while it is still the stream's latest state from ANY source. Once another
+      // source has recorded a different state, the same content again is a new transition.
+      const known = own?.observationHash === observationHash && repeat ? own : null;
       return { prior, gaps: all, coverage, known, quiet: !!known && sameGaps(prior, all, coverage, scopeId) && !extra,
         consequenceKey: repeat ? current : digest(["s08", family, stream, content, transitions + 1]), sourceKey: digest([o.sourceName, observationHash, events.length]) };
     };
@@ -507,63 +509,73 @@ export class ScopedBoardSteer {
     return settled;
   }
 
-  /** The finished turn's entries. A non-empty hook timeline is the turn itself. An empty one is read back
-   * through the public typed refetch, page by page (S02's qualification: same agent, same epoch, no gap, no
-   * error), until every open message is found or the pages are older than the oldest open message. Anything
-   * short of that is a recorded page gap, never a silent miss. */
-  private async turnItems(agentId: string, timeline: readonly TurnItem[], open: readonly BoardSubmission[], paseo?: PaseoApi): Promise<{ items: TurnItem[]; gap: InboxSource["gaps"][number] | null }> {
-    if (timeline.length) return { items: [...timeline], gap: null };
-    if (!paseo) return { items: [], gap: "empty-timeline" };
+  /** The finished turn's entries, each with the turn it belongs to. A non-empty hook timeline is the turn itself.
+   * An empty one is read back through the public typed refetch, page by page (S02's qualification: same agent,
+   * same epoch, no gap, no error), until every open message is found or the pages are older than the oldest open
+   * message. Anything short of that is a recorded page gap, never a silent miss. */
+  private async turnItems(event: Pick<PluginLifecycleEvents["agent.turn_ended"], "agent" | "turnId" | "timeline">, open: readonly BoardSubmission[], paseo?: PaseoApi):
+    Promise<{ entries: TurnEntry[]; epoch: string | null; gap: InboxSource["gaps"][number] | null }> {
+    const agentId = event.agent.id;
+    if (event.timeline.length) return { entries: (event.timeline as readonly TurnItem[]).map(item => ({ item, turnId: event.turnId ?? null })), epoch: null, gap: null };
+    if (!paseo) return { entries: [], epoch: null, gap: "empty-timeline" };
     const oldest = Math.min(...open.map(r => Date.parse(r.createdAt))) - 60_000;
     const wanted = new Set(open.map(r => r.messageId));
-    let entries: TimelinePage["entries"] = [], epoch: string | null = null, cursor: TimelinePage["startCursor"] = null;
+    let entries: TurnEntry[] = [], epoch: string | null = null, cursor: TimelinePage["startCursor"] = null;
+    const done = (gap: InboxSource["gaps"][number] | null) => ({ entries, epoch, gap });
     for (let page = 0; page < SOURCE_LIMITS.timelinePages; page++) {
       let read: TimelinePage;
       try { read = await paseo.agents.ref(agentId).timeline.refetch({ direction: cursor ? "before" : "tail", limit: 32, projection: "canonical", ...(cursor ? { cursor } : {}) }); }
-      catch { return { items: entries.map(e => e.item as TurnItem), gap: "fetch-failed" }; }
-      if (read.agentId !== agentId || read.error) return { items: [], gap: read.error ? "fetch-failed" : "malformed" };
-      if (epoch !== null && read.epoch !== epoch) return { items: [], gap: "epoch-changed" };
-      if (read.gap || read.staleCursor || read.reset) return { items: entries.map(e => e.item as TurnItem), gap: "page-gap" };
-      epoch = read.epoch; entries = [...read.entries, ...entries];
+      catch { return done("fetch-failed"); }
+      if (read.agentId !== agentId || read.error) return { entries: [], epoch: null, gap: read.error ? "fetch-failed" : "malformed" };
+      if (epoch !== null && read.epoch !== epoch) return { entries: [], epoch: null, gap: "epoch-changed" };
+      if (read.gap || read.staleCursor || read.reset) return done("page-gap");
+      epoch = read.epoch; entries = [...read.entries.map(e => ({ item: e.item as TurnItem, turnId: e.turnId ?? null })), ...entries];
       for (const e of read.entries) { const item = e.item as TurnItem; if (item.type === "user_message" && item.clientMessageId) wanted.delete(item.clientMessageId); }
       const first = read.entries[0];
-      if (!wanted.size || !read.hasOlder || !read.startCursor || (first && Date.parse(first.timestamp) < oldest)) return { items: entries.map(e => e.item as TurnItem), gap: null };
+      if (!wanted.size || !read.hasOlder || !read.startCursor || (first && Date.parse(first.timestamp) < oldest)) return done(null);
       cursor = read.startCursor;
     }
-    return { items: entries.map(e => e.item as TurnItem), gap: "page-gap" };
+    return done("page-gap");
   }
 
-  /** Correlate a finished turn to the submissions it read. A typed clientMessageId is verified; a text
-   * match is inferred and grants nothing more than an inferred observation (a later typed read upgrades it). */
+  /** Correlate a finished turn to the submissions it read. A typed clientMessageId is verified; a text match
+   * is inferred and grants nothing more than an inferred observation. A typed read after an inferred match is
+   * a new transition for the owner that names the inferred event it supersedes. The answer is always the
+   * closing reply of the exact turn that read the message, in that page epoch, never a later turn's. */
   async turnEnded(event: Pick<PluginLifecycleEvents["agent.turn_ended"], "agent" | "turnId" | "outcome" | "timeline">, paseo?: PaseoApi) {
     if (event.outcome.kind === "canceled") return [];
     const status = await this.store.read();
     const open = status.sources.submissions.filter(x => x.agentId === event.agent.id && (!x.correlation || x.correlation.certainty === "inferred"));
     if (!open.length) return [];
-    const { items, gap } = await this.turnItems(event.agent.id, event.timeline as readonly TurnItem[], open, paseo);
-    const users = items.filter(i => i.type === "user_message"), answer = closing(items);
+    const { entries, epoch, gap } = await this.turnItems(event, open, paseo);
     const admitted: string[] = [];
     for (const row of open) {
       const words = await readFile(join(this.store.root, "blobs", row.textDigest), "utf8");
-      const typed = users.some(u => u.clientMessageId === row.messageId);
-      // A reservation, or an existing inferred correlation, is only ever settled by a typed read.
-      const certainty = typed ? "verified" as const : !row.correlation && row.state !== "reserved" && users.some(u => (u.text ?? "").includes(words)) ? "inferred" as const : null;
-      if (!certainty) {
+      const typed = entries.find(e => e.item.type === "user_message" && e.item.clientMessageId === row.messageId);
+      // Text alone is only ever matched inside the turn that ended: older pages are context, not this turn.
+      const inferred = !typed && !row.correlation && row.state !== "reserved" && event.turnId
+        ? entries.find(e => e.turnId === event.turnId && e.item.type === "user_message" && (e.item.text ?? "").includes(words)) : undefined;
+      const match = typed ?? inferred, certainty = typed ? "verified" as const : inferred ? "inferred" as const : null;
+      if (!match || !certainty) {
         if (gap) await this.sources.gap("board", "local", row.agentId, "board", ["no-cursor", gap], row.scopeId, true);
         continue;
       }
+      // The answering turn is the matched message's own turn. Without one, nothing after it can be attributed.
+      const turnId = match.turnId, answer = turnId === null ? null : closing(entries.filter(e => e.turnId === turnId).map(e => e.item));
+      const supersedes = certainty === "verified" && row.correlation?.certainty === "inferred" ? row.correlation.eventId : null;
       const result = await this.sources.admit({ kind: "board", hostId: "local", agentId: row.agentId, scopeId: row.scopeId, sourceName: row.messageId,
-        gaps: ["no-cursor", ...(certainty === "inferred" ? ["fingerprint-only" as const] : [])], coverage: "unknown", stream: ["board", row.messageId], budgetExempt: true,
-        subject: { agentId: row.agentId, attemptId: row.attemptId, ...(event.turnId ? { turnId: event.turnId } : {}) },
-        identity: [row.messageId, event.turnId ?? null, certainty], consequence: [row.messageId], critical: true, certainty: certainty === "verified" ? "reported" : "inferred",
-        payload: { format: "firstmate.board-exchange/1", messageId: row.messageId, submissionId: row.id, turnId: event.turnId ?? null, correlation: certainty,
+        gaps: ["no-cursor", ...(certainty === "inferred" ? ["fingerprint-only" as const] : []), ...(turnId === null ? ["missing-turn" as const] : [])], coverage: "unknown",
+        stream: ["board", row.messageId], budgetExempt: true,
+        subject: { agentId: row.agentId, attemptId: row.attemptId, ...(turnId ? { turnId } : {}) },
+        identity: [row.messageId, turnId, epoch, certainty], consequence: [row.messageId, certainty], critical: true, certainty: certainty === "verified" ? "reported" : "inferred",
+        payload: { format: "firstmate.board-exchange/1", messageId: row.messageId, submissionId: row.id, turnId, epoch, correlation: certainty, supersedes,
           // The worker's answer is untrusted evidence for the scope owner: quoted, capped, never a status-line completion.
           answer: answer === null ? null : { trust: "untrusted-worker-text", digest: digest(answer), quoted: JSON.stringify(answer.slice(0, SOURCE_LIMITS.answerChars)), clipped: answer.length > SOURCE_LIMITS.answerChars } } },
         undefined, (s, eventId) => {
           const current = s.sources.submissions.find(x => x.id === row.id);
           if (!eventId || !current || current.correlation?.certainty === "verified" || (current.correlation && certainty === "inferred")) return [];
           return [{ kind: "board-submission", value: { ...current, state: certainty === "verified" ? "accepted" : current.state,
-            correlation: { turnId: event.turnId ?? null, eventId, certainty }, version: current.version + 1 } }];
+            correlation: { turnId, eventId, certainty }, version: current.version + 1 } }];
         });
       if (result.eventId) admitted.push(result.eventId);
     }
@@ -572,6 +584,7 @@ export class ScopedBoardSteer {
 }
 
 type TurnItem = { type: string; text?: string; clientMessageId?: string };
+type TurnEntry = { item: TurnItem; turnId: string | null };
 
 function closing(items: readonly { type: string; text?: string }[]): string | null {
   const tail: string[] = [];

@@ -276,7 +276,7 @@ describe("S08 persistent scoped board submissions", () => {
   it("text-only correlation is inferred and cannot settle an uncertain send; an empty hook timeline is refetched", async () => {
     const f = await fixture(), board = new ScopedBoardSteer(f.store, f.sources, vi.fn(async () => { throw new Error("lost"); }) as never, { now: () => now });
     await board.steer({} as PaseoApi, "worker-a", "check the logs").catch(() => {});
-    await board.turnEnded({ agent: { id: "worker-a" } as never, turnId: "t1", outcome: { kind: "completed" } as never, timeline: [] },
+    await board.turnEnded({ agent: { id: "worker-a" } as never, turnId: "t", outcome: { kind: "completed" } as never, timeline: [] },
       api([{ type: "user_message", text: "please check the logs" }, { type: "assistant_message", text: "ok" }]));
     const s = await f.store.read();
     expect(s.sources.submissions[0]).toMatchObject({ state: "uncertain", correlation: { certainty: "inferred" } });
@@ -382,5 +382,71 @@ describe("R08 corrections", () => {
   it("F9: reviewer exclusion and the author check ignore login case", () => {
     const obs = pr(H1, 0, { author: { login: "Builder" }, reviews: [review("r1", "builder", H1), review("r2", "Worker-Bot", H1)] });
     expect(prReadiness(REPO, 42, [obs], { excludeReviewers: ["worker-bot"] })).toMatchObject({ state: "blocked", approvals: [] });
+  });
+});
+
+describe("R08 round 2 corrections", () => {
+  const status = (state: string) => ({ __typename: "StatusContext", context: "codecov/patch", state, targetUrl: "https://codecov.example/me/web/42" });
+  /** Typed pages whose entries keep their own turn IDs. */
+  function turns(list: { turnId: string; item: unknown }[]) {
+    const entries = list.map((e, i) => ({ seqStart: i + 1, seqEnd: i + 1, turnId: e.turnId, timestamp: now.toISOString(), item: e.item }));
+    const refetch = vi.fn(async (input: { direction: string; cursor?: { seq: number }; limit: number }) => {
+      const end = input.direction === "before" ? input.cursor!.seq - 1 : entries.length, slice = entries.slice(Math.max(0, end - input.limit), end);
+      return timelinePage({ agentId: "worker-a", entries: slice as never, direction: input.direction as never, hasOlder: (slice[0]?.seqStart ?? 1) > 1,
+        startCursor: slice[0] ? { epoch: "timeline-1", seq: slice[0].seqStart } : null, endCursor: slice.at(-1) ? { epoch: "timeline-1", seq: slice.at(-1)!.seqEnd } : null });
+    });
+    return { agents: { ref: () => ({ timeline: { refetch } }) } } as unknown as PaseoApi;
+  }
+  async function payloadOf(f: Awaited<ReturnType<typeof fixture>>, eventId: string) {
+    const event = (await f.store.read()).inbox.events.find(e => e.id === eventId)!;
+    return JSON.parse(await readFile(join(f.store.root, "blobs", event.envelope.payloadRef.slice(5)), "utf8"));
+  }
+
+  it("F1b: reader red, spool green, reader red again is a new transition and reads red, not a false ready", async () => {
+    const f = await fixture(), approved = [review("r1", "alice", H1)];
+    await f.sources.bindPullRequest({ scopeId: ids.scope, attemptId: ids.attempt, repository: REPO, pr: 42 });
+    await f.sources.observePullRequest(pr(H1, 0, { statusCheckRollup: [status("FAILURE")], reviews: approved }), { kind: "pr", key: "poll" });
+    await f.sources.observePullRequest(pr(H1, 1, { statusCheckRollup: [status("SUCCESS")], reviews: approved }), { kind: "watch", key: "spool" });
+    const third = await f.sources.observePullRequest(pr(H1, 2, { statusCheckRollup: [status("FAILURE")], reviews: approved }), { kind: "pr", key: "poll" });
+    expect(third).toMatchObject({ written: true, duplicate: false });
+    const s = await f.store.read();
+    expect(s.inbox.events).toHaveLength(3); expect(s.inbox.assignments.map(a => a.state)).toEqual(["assigned", "assigned", "assigned"]);
+    expect(await f.sources.readiness(REPO, 42, { expectedHead: H1 })).toMatchObject({ state: "red", invalidated: [{ head: H1, reason: "checks-red" }] });
+    // Still the latest state everywhere: the same red from the reader is quiet.
+    expect((await f.sources.observePullRequest(pr(H1, 3, { statusCheckRollup: [status("FAILURE")], reviews: approved }), { kind: "pr", key: "poll" })).written).toBe(false);
+  });
+
+  it("F6b: at or past the observation ceiling, status says source coverage is no longer recorded", async () => {
+    const f = await fixture(), s = await f.store.read();
+    expect(supervisionInboxStatus({ ...s, sequence: 127 }, {}, now)).toMatchObject({ problems: [], counts: { lowerBound: false } });
+    for (const sequence of [128, 200]) {
+      const view = supervisionInboxStatus({ ...s, sequence }, { scopeId: ids.scope }, now);
+      expect(view.problems).toEqual([expect.stringContaining("Source observation budget exhausted")]);
+      expect(view.counts.lowerBound).toBe(true);
+    }
+  });
+
+  it("F12: a typed read after an inferred match is the owner's own transition and names the inferred event it supersedes", async () => {
+    const f = await fixture(), board = new ScopedBoardSteer(f.store, f.sources, vi.fn(async () => {}) as never, { now: () => now });
+    const row = await board.steer({} as PaseoApi, "worker-a", "ship it");
+    const base = { agent: { id: "worker-a" } as never, outcome: { kind: "completed" } as never };
+    const [inferred] = await board.turnEnded({ ...base, turnId: "t1", timeline: [{ type: "user_message", text: "about 'ship it' later" }, { type: "assistant_message", text: "unrelated" }] as never });
+    const [verified] = await board.turnEnded({ ...base, turnId: "t2", timeline: [{ type: "user_message", text: "ship it", clientMessageId: row.messageId }, { type: "assistant_message", text: "the real answer" }] as never });
+    const s = await f.store.read();
+    expect(s.inbox.assignments.filter(a => a.scopeId === ids.scope).map(a => [a.id, a.state])).toEqual([[inferred, "assigned"], [verified, "assigned"]]);
+    expect(await payloadOf(f, verified!)).toMatchObject({ correlation: "verified", supersedes: inferred, turnId: "t2", answer: { quoted: JSON.stringify("the real answer") } });
+    expect(s.sources.submissions[0]).toMatchObject({ state: "accepted", correlation: { certainty: "verified", turnId: "t2", eventId: verified } });
+  });
+
+  it("F13: a read found in an earlier turn is bound to that turn and its own reply, not the turn that just ended", async () => {
+    const f = await fixture(), board = new ScopedBoardSteer(f.store, f.sources, vi.fn(async () => {}) as never, { now: () => now });
+    const row = await board.steer({} as PaseoApi, "worker-a", "check it");
+    const api = turns([{ turnId: "t1", item: { type: "user_message", text: "check it", clientMessageId: row.messageId } }, { turnId: "t1", item: { type: "assistant_message", text: "first reply" } },
+      { turnId: "t2", item: { type: "user_message", text: "check it too" } }, { turnId: "t2", item: { type: "assistant_message", text: "second reply" } }]);
+    const [eventId] = await board.turnEnded({ agent: { id: "worker-a" } as never, turnId: "t2", outcome: { kind: "completed" } as never, timeline: [] }, api);
+    const s = await f.store.read(), event = s.inbox.events.find(e => e.id === eventId)!;
+    expect(event.envelope.subject.turnId).toBe("t1");
+    expect(await payloadOf(f, eventId!)).toMatchObject({ turnId: "t1", epoch: "timeline-1", answer: { quoted: JSON.stringify("first reply") } });
+    expect(s.sources.submissions[0]).toMatchObject({ correlation: { turnId: "t1", certainty: "verified" } });
   });
 });

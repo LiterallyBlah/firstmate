@@ -2,6 +2,7 @@ import type { SupervisionStatus } from "../shared/supervision";
 import type { SupervisionInboxStatus } from "../shared/supervision-rpc";
 import { INBOX_LIMITS } from "../shared/supervision-inbox";
 import { terminal } from "./supervision-inbox-state";
+import { SOURCE_LIMITS } from "../shared/supervision-sources";
 
 /** Pure stored projection. Source coverage is separate from journal freshness. No timeline/model reads. */
 export function supervisionInboxStatus(status: SupervisionStatus, input: { scopeId?: string | undefined; pageKind?: "events" | "sources" | "offers"; after?: number; limit?: number } = {}, now = new Date()): SupervisionInboxStatus {
@@ -20,16 +21,21 @@ export function supervisionInboxStatus(status: SupervisionStatus, input: { scope
   // S08: an agentless source (a bound pull request, a remote host) belongs to a scope only by its recorded owner.
   const sources = inbox.sources.filter(s => !scopeId || (s.agentId !== null ? agents.has(s.agentId) : s.scopeId === scopeId));
   // S08: a captain board message with an unknown outcome stays visible outside chat until a typed read settles it.
+  // F6b: past the observation ceiling S08 sources record nothing more, so their stored coverage may look
+  // fresher than it is. Say so whenever the journal is there, and treat counts as a lower bound.
+  const exhausted = status.sequence >= SOURCE_LIMITS.observationCeiling;
   const unknownSends = status.sources.submissions.filter(x => (!scopeId || x.scopeId === scopeId) && (x.state === "uncertain" || x.state === "reserved"));
   const rows = pageKind === "events" ? all.filter((a, i) => (scopeId ? a.ordinal! : i + 1) > after).map(a => ({ event: inbox.events.find(e => e.id === a.id)!, disposition: a }))
     : (pageKind === "sources" ? sources : offers).slice(after);
   const output: SupervisionInboxStatus = { format: "firstmate.supervision-inbox/1", homeId: status.homeId, scopeId, sequence: status.sequence, hash: status.hash, pageKind,
     freshness: status.freshness, observedAt: now.toISOString(), offersEnabled: false, deliverySupported: false,
-    problems: [...status.problems, ...quarantined.map(a => `Unresolved malformed observation ${a.id}; retained in quarantine under consequence ${a.primaryEventId}.`),
+    problems: [...status.problems,
+      ...(exhausted ? [`Source observation budget exhausted (journal sequence ${status.sequence} of ${SOURCE_LIMITS.observationCeiling}): pull request, remote and board coverage is no longer recorded and may be stale, including outages.`] : []),
+      ...quarantined.map(a => `Unresolved malformed observation ${a.id}; retained in quarantine under consequence ${a.primaryEventId}.`),
       ...unknownSends.map(x => `Board message ${x.messageId} to ${x.agentId}: delivery ${x.state === "reserved" ? "not yet recorded" : "outcome unknown"}; it will not be resent. Check the worker's conversation.`)].slice(0, 8).map(p => p.slice(0, 1024)),
     counts: { pending: pending.length, triage: triage.length, quarantined: quarantined.length,
       acknowledgedUnhandled: pending.filter(a => a.state === "acknowledged").length, uncertainOffers: offers.filter(o => o.state === "uncertain").length,
-      sourcesWithGaps: sources.filter(s => s.coverage === "gap" || s.coverage === "unknown").length, lowerBound: status.freshness === "held",
+      sourcesWithGaps: sources.filter(s => s.coverage === "gap" || s.coverage === "unknown").length, lowerBound: status.freshness === "held" || exhausted,
       unknownBoardSends: unknownSends.length },
     oldestPendingAt, oldestPendingAgeMs: oldestPendingAt ? Math.max(0, now.getTime() - Date.parse(oldestPendingAt)) : null,
     admissionsHeld: status.storage.admissionsHeld || status.freshness !== "current" || inbox.assignments.filter(a => a.id === a.primaryEventId && !terminal(a)).length >= INBOX_LIMITS.pending || inbox.sources.some(s => s.gaps.includes("queue-pressure")),
