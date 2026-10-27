@@ -1,0 +1,205 @@
+{
+  "format": "firstmate.s07-verification/1",
+  "slice": "S07",
+  "base": {
+    "commit": "503e0c35986feb594ae225ba75e8c4118e9479ad",
+    "note": "origin/main, the PR #153 (S06) merge"
+  },
+  "sourceCommit": "d944650113093ca118200b70dbcf93c9734d9505",
+  "sourceTree": "d5f420eab0f35cc3916059c4a70420949a7c8c3c",
+  "runtime": {
+    "node": "v23.7.0",
+    "platform": "win32"
+  },
+  "typecheck": {
+    "command": "npx tsc --noEmit",
+    "exit": 0,
+    "output": ""
+  },
+  "s07Suite": {
+    "command": "npx vitest run server/supervision-migrate.test.ts",
+    "total": 23,
+    "passed": 23,
+    "failed": 0,
+    "tests": [
+      {
+        "title": "is inert until armed: no claim, sidecar or refusal file is written by ordinary delivery",
+        "status": "passed",
+        "durationMs": 148
+      },
+      {
+        "title": "A12: imports byte-exact history, original request receipts, attempts, budget and holds; legacy bytes never change",
+        "status": "passed",
+        "durationMs": 291
+      },
+      {
+        "title": "refuses corrupt, quarantined and retired history without freezing anything",
+        "status": "passed",
+        "durationMs": 88
+      },
+      {
+        "title": "L1: a notified-but-unhandled action with General busy transfers once; the old entry goes only after its mapping",
+        "status": "passed",
+        "durationMs": 426
+      },
+      {
+        "title": "L2: enqueue-before-notified crash joins one pending event, and the enqueuer checks the gate before insertion",
+        "status": "passed",
+        "durationMs": 264
+      },
+      {
+        "title": "L3: an accepted send that crashed before removal is accepted, never handled or unsent, and is never resent",
+        "status": "passed",
+        "durationMs": 293
+      },
+      {
+        "title": "L3: a claim left without a result by a stopped process is uncertain, not unsent",
+        "status": "passed",
+        "durationMs": 169
+      },
+      {
+        "title": "L4: an accepted decision answer is imported with its identities and held; a frozen task refuses new answers",
+        "status": "passed",
+        "durationMs": 292
+      },
+      {
+        "title": "L4: an uncertain answer whose accepted append was lost carries the claim's accepted receipt and stays held",
+        "status": "passed",
+        "durationMs": 169
+      },
+      {
+        "title": "L5: a send in flight blocks the freeze; once accounted, the cutover records it accepted",
+        "status": "passed",
+        "durationMs": 262
+      },
+      {
+        "title": "L5: when the cutover wins, legacy flush and enqueue refuse the target while an unrelated scope keeps flowing",
+        "status": "passed",
+        "durationMs": 307
+      },
+      {
+        "title": "L5: a burst for the target's worker is refused, an extension cannot change it, and a payload change holds removal",
+        "status": "passed",
+        "durationMs": 366
+      },
+      {
+        "title": "L5: mixed/opaque watch output stays with its legacy owner and holds only this transfer until explicitly drained",
+        "status": "passed",
+        "durationMs": 309
+      },
+      {
+        "title": "A13.store: a crash at frozen holds both writers and resumes the same migration",
+        "status": "passed",
+        "durationMs": 337
+      },
+      {
+        "title": "A13.store: a crash at prepared holds both writers and resumes the same migration",
+        "status": "passed",
+        "durationMs": 336
+      },
+      {
+        "title": "A13.store: a crash at prepared-sidecar holds both writers and resumes the same migration",
+        "status": "passed",
+        "durationMs": 314
+      },
+      {
+        "title": "A13.store: a crash at barrier holds both writers and resumes the same migration",
+        "status": "passed",
+        "durationMs": 320
+      },
+      {
+        "title": "A13.store: a crash at committed-sidecar holds both writers and resumes the same migration",
+        "status": "passed",
+        "durationMs": 324
+      },
+      {
+        "title": "A13.store: a source change during the freeze refuses the barrier and the commit",
+        "status": "passed",
+        "durationMs": 133
+      },
+      {
+        "title": "A13.store: after commit the legacy writer stays refused, even without its sidecar, and nothing rolls back",
+        "status": "passed",
+        "durationMs": 205
+      },
+      {
+        "title": "A13.store: neither backend writes while prepared; the scoped plan cannot be advanced before commit",
+        "status": "passed",
+        "durationMs": 129
+      },
+      {
+        "title": "queueMateNote and watch-runtime traffic keep their legacy route through the gate during a freeze",
+        "status": "passed",
+        "durationMs": 168
+      },
+      {
+        "title": "exports a separate scoped projection bound to its preimage; backlog bytes and direct edits stay out of authority",
+        "status": "passed",
+        "durationMs": 197
+      }
+    ]
+  },
+  "affectedSuites": {
+    "command": "npx vitest run (supervision store/crash/index/commands/lifecycle, scoped pilot, workflow board/plans, decision-answer, watches, watch-service-routing, launch-tool)",
+    "total": 407,
+    "passed": 402,
+    "failed": 4,
+    "failures": [
+      {
+        "file": "server/launch-tool.test.ts",
+        "title": "records under a successor, warns, rejects a guest, and status takes no lock"
+      },
+      {
+        "file": "server/launch-tool.test.ts",
+        "title": "preserves BOM, other lines and line endings (\"\\n\"), saves the exact recovery line"
+      },
+      {
+        "file": "server/launch-tool.test.ts",
+        "title": "reports missing inspect fields as unknown and does not replace an already-recorded identity"
+      },
+      {
+        "file": "server/supervision-index.test.ts",
+        "title": "warm reads at 176 transactions replay no historical reducers or full scans"
+      }
+    ]
+  },
+  "preexistingFlakes": {
+    "note": "Reproduced on an untouched origin/main worktree on the same Windows host: launch-tool.test.ts fails 0-4 different tests per run, and supervision-index.test.ts 'warm reads at 176 transactions' intermittently hits its 5000 ms timeout, including when run alone. Both also pass on the branch in isolated reruns. CI (Linux) is the arbiter.",
+    "baselineFullSuite": {
+      "passed": 2771,
+      "failed": [
+        "server/launch-tool.test.ts > record checks > accounts for a worker when workspace alone fails",
+        "server/supervision-index.test.ts > warm reads at 176 transactions replay no historical reducers or full scans"
+      ]
+    },
+    "branchFullSuite": {
+      "passed": 2794,
+      "failed": [
+        "server/supervision-index.test.ts > warm reads at 176 transactions replay no historical reducers or full scans"
+      ]
+    }
+  },
+  "liveHomePreflight": {
+    "at": "2026-10-27",
+    "check": "read-only listing of C:/Users/micha/.paseo/plugin-data/firstmate/",
+    "result": "no supervision/ directory: no pre-checkpoint store exists"
+  },
+  "sha256": {
+    "shared/supervision-migration.ts": "a731e1f1d0bbd22b77f983a1eb310a35775d25994fb95e383d075a69d1ec5b23",
+    "server/supervision-gate.ts": "420636e27412b8083dcd6e57e3f11cd0561768cad7add7b7816980b29b3e2cce",
+    "server/supervision-migrate.ts": "c7aca008a5783aa9485a548f55319eea4b626de8e2113aef5f7a182092f1d334",
+    "server/supervision-migrate.test.ts": "00fc4acb6515b10452e53a0b228e1f74843b504b220d21f41c5180b016de1791",
+    "server/supervision-store.ts": "9467e140571735f7b12135ba8b3c4875e89ab2b02a49148625c987d6b1908882",
+    "server/workflow-plans.ts": "2c74593fcf85b5dacbc730aae915f7379f2ef735a7af8474304ac7a58afeb669",
+    "server/workflow-service.ts": "fa06bafb2b5b5529b735e3bf6d86e6f597c28c8fa36fd723fe297df42af1ebb9",
+    "server/mate.ts": "7d6745d72c752030ab377339062c645961c56b47e28e826cb31c9e3eb5a73044",
+    "server/decision-answer.ts": "b8b15853387c22f9b2e5ca681ca4f28c421c561f7b8164258121e78628b42b7e",
+    "server/watches.ts": "3f2818c4b6cdec08663b0177fa3fc73f18e3018d27f6d4459003c2af30c7177a",
+    "server/watch-service.ts": "185e2693fd8547d07ec0f1fec6c1059eb0e6ae7d45664f22f12a8073f60dc521",
+    "server/supervision-routing.ts": "ddf1b227ad462907f3a35da76ee22ddf8ae2bf37319603968263a714a6e81e32",
+    "server/workflow-board.ts": "a9bffe637723df8165d14a01dcfc53a5e1a339a2aa89d4633a68725af240a649",
+    "server/files.ts": "72bdafa36ed7a64bcf790bb13cd3522a3828d6ce9eae0106d4d4f25753e6da86",
+    "docs/scoped-supervision/S07.md": "2e5b8a542ff84e77da7b8384479fef895ebbe23f68c3b0483d65c85678d93463",
+    "docs/scoped-supervision/pilot-runbook.md": "4e012358a8b4122a4bf894b225c422ef84dae043328ef1cf9a7fa28bfde2c361"
+  }
+}
