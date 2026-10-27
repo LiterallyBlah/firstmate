@@ -5,8 +5,13 @@
     "commit": "3f74bb642ee378af9ed4868f2e89466304d81ab8",
     "note": "origin/main, the PR #157 (S09) merge"
   },
-  "sourceCommit": "3e2476cecaacdae7bed71f06737d46684c884dd3",
-  "sourceTree": "71c7b79a424a2c2b3a357c1b13ea59c6570c62f4",
+  "review": {
+    "r10": "data/fm-ss-r10/report.md",
+    "reviewedHead": "32b8e2aca0fcc0e8a32fefde515f26499c64696d",
+    "corrections": "docs/scoped-supervision/S10.md#r10-corrections"
+  },
+  "sourceCommit": "0aad9f2180979f1f7aafaa3a81f315e9e56c88e5",
+  "sourceTree": "8f8e80f177e8928fc03cdcdcb584b76532a53d2a",
   "d5": "option 1, durable daily occurrences (data/fm-ss-d5)",
   "runtime": {
     "node": "v23.7.0",
@@ -20,8 +25,8 @@
   },
   "s10Suite": {
     "command": "npx vitest run server/supervision-resources.test.ts server/supervision-jobs.test.ts server/supervision-timers.test.ts",
-    "total": 33,
-    "passed": 33,
+    "total": 43,
+    "passed": 43,
     "failed": 0,
     "tests": [
       {
@@ -96,7 +101,22 @@
       },
       {
         "file": "server/supervision-jobs.test.ts",
+        "title": "A04 in maintenance: shared caches, selectors and retained worktrees R10 B2 (P4): a running prune's reservation cannot be withdrawn, so a build is never granted beside it",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-jobs.test.ts",
+        "title": "A04 in maintenance: shared caches, selectors and retained worktrees R10 B2: a pass whose reservation was released by another process dispatches nothing",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-jobs.test.ts",
         "title": "A04 in maintenance: shared caches, selectors and retained worktrees cleanup stays inside its selectors and never touches retained worktrees, volumes or unknown owners",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-jobs.test.ts",
+        "title": "A04 in maintenance: shared caches, selectors and retained worktrees R10 B1: retained paths exclude by containment, the selector root is never selected, and cache labels are bounded",
         "status": "passed"
       },
       {
@@ -106,17 +126,42 @@
       },
       {
         "file": "server/supervision-jobs.test.ts",
-        "title": "rollout, rollback and the journal's own guards stop is rollback: no new occurrences, and unfinished passes keep their reservations and receipts",
+        "title": "rollout, rollback and the journal's own guards stop is rollback: no new occurrences; unfinished passes keep their reservations and receipts; settled ones release",
         "status": "passed"
       },
       {
         "file": "server/supervision-jobs.test.ts",
-        "title": "rollout, rollback and the journal's own guards new occurrences stop at the S10 ceiling while existing passes still finish",
+        "title": "rollout, rollback and the journal's own guards R10 N2: a pass settled by reconciliation releases its exclusive reservation when the job is stopped",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-jobs.test.ts",
+        "title": "rollout, rollback and the journal's own guards R10 N1: at the S10 ceiling the scheduler keeps going: refused opens and hosts are reported, and passes allowed to finish still run",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-jobs.test.ts",
+        "title": "rollout, rollback and the journal's own guards R10 N3: past 160 waiting relabels and admissions write nothing; past 192 only settlement continues",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-jobs.test.ts",
+        "title": "rollout, rollback and the journal's own guards R10 N3: observe mode writes once per state per host, however often the digest changes",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-jobs.test.ts",
+        "title": "rollout, rollback and the journal's own guards R10 N5: a pass stranded running by a crash with nothing dispatched is superseded by the next day, not run late",
         "status": "passed"
       },
       {
         "file": "server/supervision-jobs.test.ts",
         "title": "rollout, rollback and the journal's own guards A13.store: a tick interrupted mid-publication recovers to the same single occurrence",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-jobs.test.ts",
+        "title": "rollout, rollback and the journal's own guards R10 N6: the journal refuses a finished pass with unsettled items, dispatched items outside a running pass, a spent pass budget and a second open incident",
         "status": "passed"
       },
       {
@@ -165,6 +210,16 @@
         "status": "passed"
       },
       {
+        "file": "server/supervision-resources.test.ts",
+        "title": "R10 B2 (P5): an effect the S04 gateway can still dispatch cannot be withdrawn; once cancelled it can",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-resources.test.ts",
+        "title": "R10 N4: lease expiry uses this process's clock and needs the holder's bound owner or the captain",
+        "status": "passed"
+      },
+      {
         "file": "server/supervision-timers.test.ts",
         "title": "A17.preserve: the timer disposition inventory lists every timer with its schedule, zone, owner and disposition, holding the unknown heartbeat",
         "status": "passed"
@@ -193,18 +248,23 @@
   },
   "fullSuite": {
     "command": "npx vitest run",
-    "total": 2903,
-    "passed": 2899,
-    "failed": 1,
+    "total": 2913,
+    "passed": 2908,
+    "failed": 2,
     "skipped": 3,
     "failures": [
       {
         "file": "server/launch-tool.test.ts",
-        "title": "blocks issued/unresolved, retains an abandoned plan for deliberate replanning and watches late workers",
-        "cause": "EPERM: operation not permitted, rename of a temp launch record (Windows file lock)"
+        "title": "reconciles an explicit CLI error (explicit-found) before choosing a state",
+        "cause": "AssertionError: expected undefined to be 'recorded' // Object.is equality\n    at C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s10/server/launch-tool.test.ts:3"
+      },
+      {
+        "file": "server/pr-watch.test.ts",
+        "title": "mentions a pull request gh keeps failing on once, and fails the run when gh can read none",
+        "cause": "Error: Test timed out in 5000ms.\nIf this is a long-running test, pass a timeout value as the last argument or configure it globally with \"testTimeout\".\n    at t"
       }
     ],
-    "note": "The one failure is a Windows EPERM rename of a temp launch record in launch-tool.test.ts (code S10 does not touch); it passed on clean rerun and varies between runs. CI is the gate."
+    "note": "Failures are in launch-tool.test.ts and pr-watch.test.ts, files S10 does not touch (Windows file-lock EPERM / load timeout); both files passed 99/99 on immediate rerun. CI is the gate."
   },
   "mutationChecks": [
     {
@@ -258,14 +318,98 @@
     {
       "guard": "policy guard",
       "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "R16 no dispatched item outside a running pass",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "R23 pass-budget row check",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "R24 one open incident",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "R25 withdrawn host needs a non-running, undispatched pass",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "B2 withdrawn effect needs cancelled",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "N6 terminal pass cannot hold unsettled items",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "B1 retained-path containment",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "B1 selector root never selected",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "B1 cache label by whole segment",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "B1 cache label never admits a path outside path selectors",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "B1 dedupe by item key",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "B1 retainedWorkspaces fails closed",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "B2 dispatch rereads its reservation",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "N1 drive host isolation",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "N1 tick job isolation",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "N2 stop releases settled passes",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "N3 relabel skipped past 160",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "N3 closures stop at 192",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "N3 observe writes once per state",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "N4 expire authorization",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "N5 stranded running pass superseded",
+      "result": "a test failed with the guard removed"
     }
   ],
   "sha256": {
-    "shared/supervision-maintenance.ts": "626c09953354d4f9e961b9352620b770530230f2fa24491b07cdedbad30e3662",
-    "server/supervision-maintenance-state.ts": "132a3e215fe14e4c32d7067c25d9e434bb1698dbd08599c3b233380f4198bd9a",
-    "server/supervision-resources.ts": "ee903e89abb486572f0e6ea3b9aa5c656f14f176b25065b0a007fa76be74b3e9",
-    "server/supervision-jobs.ts": "a19cc64d3adbda0a30d5e8e268996c3b647040631992cb35ce3a05ebfa15b24f",
-    "server/archive-inventory.ts": "eca182dd86198263532430c87d4a8b5310fe27111a9772e077deb93886026baf",
+    "shared/supervision-maintenance.ts": "0928102fc51d5af5080d89fc111b4b78633a8cc9469d12affd11377334d89ac1",
+    "server/supervision-maintenance-state.ts": "39437192d77f281343836df45f0466e115366b4f7a788f74f02b66569f025d3d",
+    "server/supervision-resources.ts": "42d8082f70a630bdc4cab5a94d0ff11b476e12b426366285eb960bdabca434c4",
+    "server/supervision-jobs.ts": "68a72d05459d18ffb627e9a08db91e18d6b227d732349dc16d906929c0d3a8c1",
+    "server/archive-inventory.ts": "fcf0bfe77ec8f8c65c5045f2807e5dece57922bda3a0442f9906fcd1d5d89497",
     "server/watch-config.ts": "00faf023b12d70ce921784bd03be8edd96fa1fdc5ec40017cb597d5ac509c519",
     "server/watch-service.ts": "bb41a2d9671df4db165ba09b7b768db0351d4b59096585b15d4c114fc991d172",
     "server/supervision-store.ts": "af98bac40e7e05e475d478cef495a2f32b951f074cc930ee7b234bd294a7fbf0",
@@ -273,9 +417,9 @@
     "shared/supervision.ts": "3f8205d45c447922ce148d24e4ac9923e86c03cfcbbbd23d6d81d5f4b3f9adee",
     "server/templates.ts": "5d5dd3e9168a76e60322b1579ff621f676bab44f004a5d32d904fa5dc5b04b7a",
     "templates/messages/maintenance-incident.md": "a6056c1b32f4687684d12551815be58b99af5a6ec2fd47dd79314ccb457dea08",
-    "server/supervision-resources.test.ts": "1fee11cc851c95803fac01cb0c9a6696c4ab41a76973bc65e02966a8d807d94e",
-    "server/supervision-jobs.test.ts": "36f878e0ca3507758f8bb3004702bafb8be6b1c7d6399b73eb575667aed520de",
-    "server/supervision-timers.test.ts": "d53871c7d2d89c6d49d23a06c449e5a9e8acc132a508ab07ad27a640e2b4b391",
-    "docs/scoped-supervision/S10.md": "ac75cf5934e038e0b50ca5682ead2ad2ddf9a9532cb9a45c17030d3286bfb490"
+    "server/supervision-resources.test.ts": "1ac749d7a30973fe29934109332c6fe179fafa84f75ae75fbc692b91d5083018",
+    "server/supervision-jobs.test.ts": "4c7dd32d009d87b6b79fe2a1ba3da2416ebe9cb3fc9c1222bb4c2309ae571cee",
+    "server/supervision-timers.test.ts": "bf5a4382323106b15773bd6710ec2f804fefe2afb381e51e69edad7a4506264b",
+    "docs/scoped-supervision/S10.md": "56f4a48608c32c62f5c47c5dd83de8b978c3fffeb0b9bb4df8ab3bd7dd3685a8"
   }
 }
