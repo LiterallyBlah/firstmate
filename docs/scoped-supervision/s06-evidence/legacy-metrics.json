@@ -1,0 +1,167 @@
+{
+  "run": {
+    "format": "firstmate.supervision-pilot-metrics/1",
+    "runId": "40219702-9a29-4b6e-8829-5613687771fb",
+    "sourceHead": "c14df7039a48bdeca893db0616e96e3eafa1e2e6",
+    "fixtureHash": "ea7b7b606b19dac2ac5e4c924be6e6975bdfa0999aefca536db1c4d857b74a71",
+    "mode": "synthetic",
+    "route": "legacy",
+    "clock": "virtual",
+    "runtime": {
+      "node": "v24.18.0",
+      "platform": "win32"
+    },
+    "windowMs": 600000,
+    "generalBusyMs": 600000,
+    "samples": [
+      {
+        "eventId": "aee37453-48e8-4613-8888-ed5d11ab3204",
+        "scopeId": "00000000-0000-4000-8000-000000000101",
+        "observed": 1000,
+        "committed": 1000,
+        "offered": 600000,
+        "acknowledged": null,
+        "handled": null,
+        "sourcePolls": 0
+      },
+      {
+        "eventId": "fd53fdd4-3e36-4f15-9d21-93ac3eb29c13",
+        "scopeId": "00000000-0000-4000-8000-000000000102",
+        "observed": 1000,
+        "committed": 1000,
+        "offered": 600000,
+        "acknowledged": null,
+        "handled": null,
+        "sourcePolls": 0
+      },
+      {
+        "eventId": "23055a78-7578-4a51-8e5b-f229f14db4c8",
+        "scopeId": "00000000-0000-4000-8000-000000000101",
+        "observed": 301000,
+        "committed": 301000,
+        "offered": 600000,
+        "acknowledged": null,
+        "handled": null,
+        "sourcePolls": 0
+      },
+      {
+        "eventId": "cc9953d9-be24-4b48-8cdb-43cd0f24b3d0",
+        "scopeId": "00000000-0000-4000-8000-000000000102",
+        "observed": 301000,
+        "committed": 301000,
+        "offered": 600000,
+        "acknowledged": null,
+        "handled": null,
+        "sourcePolls": 0
+      }
+    ],
+    "captain": [],
+    "census": {
+      "coverage": "checked-route",
+      "generalRoutinePayloads": 4,
+      "projectRoutinePayloads": 0,
+      "accidentalCallbacks": 0
+    },
+    "spend": {
+      "workerSessions": 0,
+      "workerTurns": 0,
+      "supervisorSessions": 0,
+      "supervisorTurns": 0,
+      "generalTurns": 4,
+      "uncertainEffects": 0,
+      "providerTokens": null,
+      "billedMicros": null
+    }
+  },
+  "report": {
+    "runId": "40219702-9a29-4b6e-8829-5613687771fb",
+    "mode": "synthetic",
+    "route": "legacy",
+    "clock": "virtual",
+    "windowMs": 600000,
+    "generalBusyMs": 600000,
+    "events": 4,
+    "scopes": 2,
+    "sourcePolls": 0,
+    "commit": {
+      "denominator": 4,
+      "measured": 4,
+      "missing": 0,
+      "minMs": 0,
+      "p50Ms": 0,
+      "p95Ms": 0,
+      "maxMs": 0
+    },
+    "offer": {
+      "denominator": 4,
+      "measured": 4,
+      "missing": 0,
+      "minMs": 299000,
+      "p50Ms": 299000,
+      "p95Ms": 599000,
+      "maxMs": 599000
+    },
+    "ack": {
+      "denominator": 4,
+      "measured": 0,
+      "missing": 4,
+      "minMs": null,
+      "p50Ms": null,
+      "p95Ms": null,
+      "maxMs": null
+    },
+    "handled": {
+      "denominator": 4,
+      "measured": 0,
+      "missing": 4,
+      "minMs": null,
+      "p50Ms": null,
+      "p95Ms": null,
+      "maxMs": null
+    },
+    "queueAge": {
+      "denominator": 4,
+      "measured": 4,
+      "missing": 0,
+      "minMs": 299000,
+      "p50Ms": 299000,
+      "p95Ms": 599000,
+      "maxMs": 599000
+    },
+    "captainAdmission": {
+      "denominator": 0,
+      "measured": 0,
+      "missing": 0,
+      "minMs": null,
+      "p50Ms": null,
+      "p95Ms": null,
+      "maxMs": null
+    },
+    "captainFirstReply": {
+      "denominator": 0,
+      "measured": 0,
+      "missing": 0,
+      "minMs": null,
+      "p50Ms": null,
+      "p95Ms": null,
+      "maxMs": null
+    },
+    "census": {
+      "coverage": "checked-route",
+      "generalRoutinePayloads": 4,
+      "projectRoutinePayloads": 0,
+      "accidentalCallbacks": 0,
+      "zeroRoutineOnCheckedRoute": false
+    },
+    "spend": {
+      "workerSessions": 0,
+      "workerTurns": 0,
+      "supervisorSessions": 0,
+      "supervisorTurns": 0,
+      "generalTurns": 4,
+      "uncertainEffects": 0,
+      "providerTokens": null,
+      "billedMicros": null
+    }
+  }
+}
