@@ -26,6 +26,10 @@ import { writeTextFile } from "./files";
 import { acceptPolicyInventory, currentPolicyVector, policyRef } from "./supervision-policy";
 import { SUPERVISION_INDEX_LIMITS, SupervisionStore } from "./supervision-store";
 import { hasScopedWorker } from "./supervision-status";
+import { SupervisionGateway } from "./supervision-effects";
+import { activationEffects, SupervisorSessions } from "./supervisor-sessions";
+import { SyntheticReceiver } from "../test/synthetic-receiver";
+import { cooperativeReadiness } from "./supervision-cooperative";
 import { isScopedSourceWorker } from "./supervision-sources";
 import { workflowSnapshot } from "./workflow-board";
 import { watchItem, WatchRunner, type QueuedNote } from "./watches";
@@ -99,6 +103,8 @@ function makeMigrator(boundary?: (name: string) => Promise<void>) {
   return new SupervisionMigrator({ home, store, legacy, enabled: true, adapters: legacyAdapters(runner, () => service.read()),
     boundary: async name => { chronology.push(`boundary:${name}`); await boundary?.(name); } });
 }
+/** S11: which of the scope's explicit dependencies still hold it out of cooperative rollout. */
+const unmet = async () => cooperativeReadiness(await store.read(), input.scopeId).dependencies.filter(d => !d.satisfied).map(d => d.id);
 async function notes() { return (await readFirstmateConfig()).mateNotes; }
 async function legacyBytes(plan = "scheduler") {
   const out: Record<string, string> = {};
@@ -209,10 +215,14 @@ it("L1: a notified-but-unhandled action with General busy transfers once; the ol
   const outbox = (await store.read()).outbox.filter(o => o.causationId === action);
   expect(outbox).toHaveLength(1);
   expect((await migrator.report("scheduler")).complete).toBe(false); // Commit alone is not a handled transfer.
+  expect(await unmet()).toEqual(["binding", "deliveries"]); // S11: no owner yet, and the transfer awaits its result.
   await ownerAcknowledges(outbox[0]!.id, [`scheduler:captain:${action}`, `scheduler:changes:${action}`]);
   expect(await migrator.recordAcknowledgements(input.migrationId)).toBe(1);
   const report = await migrator.report("scheduler");
   expect(report.complete).toBe(true);
+  // S11 / R11 B2: reconciled, but this helper writes its binding directly, without an activation opening, so the
+  // owner is not current. The real attach path (L5) is what makes a cut-over scope ready.
+  expect(await unmet()).toEqual(["binding"]);
   expect(report.dispositions.find(x => x.id === d!.id)!.receipts).toMatchObject({ transfer: `outbox:${outbox[0]!.id}`, ack: expect.stringMatching(/^command:.*@epoch:1$/) });
   expect((await store.read()).outbox.filter(o => o.causationId === action)).toHaveLength(1);
 });
@@ -399,6 +409,51 @@ it("L5: mixed/opaque watch output stays with its legacy owner and holds only thi
   expect((await store.read()).dispositions!.find(d => d.id === held[0]!.id)).toMatchObject({ route: "drain-legacy", removal: { state: "drained" }, recipient: GENERAL });
   await migrator.barrier(input.migrationId); await migrator.commit(input.migrationId);
   expect((await migrator.report("scheduler")).migration!.state).toBe("committed");
+  // S11 / R11 B1: the drained watch hold is accounted to its legacy owner, but nobody supervises the cut-over plan yet.
+  expect(await unmet()).toEqual(["binding"]);
+  // The manual attach path: an explicit captain action only (it creates a full-access session, like hold and
+  // replacement), with the same reserved/verified identity as activation.
+  const receiver = new SyntheticReceiver(), profile = { provider: "claude/opus-5.5", modeId: "default", thinkingOptionId: "high" };
+  const open = (s: SupervisionStore) => {
+    const commands = new SupervisionCommands(s, home, { enabled: true }), gateway = new SupervisionGateway(s, commands, home, receiver, { enabled: true });
+    return { gateway, sessions: new SupervisorSessions(s, gateway, receiver, { enabled: true, limits: { supervisorSessions: 2, supervisorTurns: 4 }, globalMateId: async () => GENERAL }) };
+  };
+  let { gateway, sessions } = open(store);
+  const version = async () => (await store.read()).scopes.find(x => x.id === input.scopeId)!.version;
+  const request = async (requestId = randomUUID()) => ({ requestId, scopeId: input.scopeId, scopeVersion: await version(), profile, opening: "You supervise the cut-over scheduler plan." });
+  const attach = async (actor: SupervisionActor) => sessions.attach(await request(), actor);
+  await expect(attach(owner)).rejects.toMatchObject({ code: "UNSUPPORTED" }); // No agent, General included, attaches itself.
+  await expect(attach({ kind: "mate-chat", id: GENERAL, source: "fixture/chat" })).rejects.toMatchObject({ code: "UNSUPPORTED", message: expect.stringMatching(/explicit captain action/) });
+  await expect(sessions.prepare({ requestId: randomUUID(), scopeId: input.scopeId, scopeVersion: await version(), profile, opening: "x" }, captainUi)).rejects.toMatchObject({ code: "HELD" });
+  expect((await store.read()).bindings.filter(b => b.scopeId === input.scopeId)).toEqual([]);
+  const first = await request(), attached = await sessions.attach(first, captainUi);
+  const s1 = await store.read(), binding = s1.bindings.find(b => b.scopeId === input.scopeId)!;
+  expect(binding).toMatchObject({ epoch: 1, state: "prepared", workspaceId: null });
+  // Replay: the same request returns the original receipt and writes nothing.
+  expect((await sessions.attach(first, captainUi)).receipt).toEqual(attached.receipt);
+  expect((await store.read()).sequence).toBe(s1.sequence);
+  await expect(attach(captainUi)).rejects.toMatchObject({ code: "HELD" }); // Never a second binding.
+  expect(await unmet()).toEqual(expect.arrayContaining(["scope", "binding"])); // Transferring, prepared: still no current owner.
+  // Restart: a new process's store and sessions replay the same receipt, write nothing, and still refuse a new attach.
+  await store.releaseCoordinator();
+  store = new SupervisionStore(pluginDir(), home, { writable: true, processIdentity: async () => ({ state: "alive", start: "fixture-process-2" }) });
+  await store.initialize(); await store.acquireCoordinator();
+  ({ gateway, sessions } = open(store));
+  const restarted = await store.read();
+  expect((await sessions.attach(first, captainUi)).receipt).toEqual(attached.receipt);
+  await expect(attach(captainUi)).rejects.toMatchObject({ code: "HELD" });
+  expect((await store.read()).sequence).toBe(restarted.sequence);
+  const effects = activationEffects(s1, input.scopeId, 1);
+  await gateway.dispatch(effects.workspace!.id); await gateway.dispatch(effects.create!.id);
+  await sessions.verify(input.scopeId, 1);
+  // R11 B2: verified and active, but its opening is only reserved; an owner never told it supervises is not current.
+  const beforeOpening = cooperativeReadiness(await store.read(), input.scopeId);
+  expect(beforeOpening.dependencies.filter(d => !d.satisfied)).toEqual([expect.objectContaining({ id: "binding", reasons: [expect.stringMatching(/has not been sent its opening \(reserved\)/)] })]);
+  await gateway.dispatch(effects.send!.id);
+  expect(receiver.sends[0]).toMatchObject({ agentId: binding.agentId, text: "You supervise the cut-over scheduler plan." });
+  expect(await unmet()).toEqual([]); // One active, verified, opened owner: cooperative (never strong) rollout may include it.
+  // Attach never replaces a current owner: refused by attach itself, before the store's own epoch checks.
+  await expect(attach(captainUi)).rejects.toMatchObject({ code: "HELD", message: expect.stringMatching(/S07 has cut over/) });
 });
 
 it.each(["frozen", "prepared", "prepared-sidecar", "barrier", "committed-sidecar"])("A13.store: a crash at %s holds both writers and resumes the same migration", async point => {
@@ -541,6 +596,11 @@ it("B5/M1: a running legacy worker holds completion until accounted; afterwards 
   expect(await cutoverGate(home).verdict({ source: "burst", id: "crew:worker-trial", payloadHash: "x", agentKey: "worker-trial" }, "send")).toMatchObject({ admit: false, stage: "committed" });
   const final = await migrator.report("scheduler"); // The approve action still awaits its scoped owner; no worker callback remains open.
   expect(final.legacyDeliveryPossible).toEqual([expect.stringMatching(/^transfer .* awaits its owner's result$/)]); expect(final.complete).toBe(false);
+  // S11: the imported worker still runs and reports to General; without U2 it is drained or held, never transferred.
+  const readiness = cooperativeReadiness(status, input.scopeId);
+  expect(readiness.dependencies.find(d => d.id === "workers")).toMatchObject({ satisfied: false,
+    reasons: expect.arrayContaining([expect.stringContaining("callback owner is unknown"), expect.stringContaining(`callback still goes to ${GENERAL}`)]) });
+  expect(readiness.ready).toBe(false);
 });
 
 it("release: an aborted cutover restores removed entries exactly, sends nothing itself, and hands the plan back", async () => {
@@ -559,6 +619,7 @@ it("release: an aborted cutover restores removed entries exactly, sends nothing 
   expect(status.migrations![0]).toMatchObject({ state: "aborted", aborted: { actor: `agent:${OWNER}`, restored: [expect.any(String)] } });
   expect(status.backends[0]!.state).toBe("retired"); expect(status.scopes.find(s => s.id === input.scopeId)!.state).toBe("retired");
   expect((await migrator.report("scheduler")).stage).toBe("aborted");
+  expect(await unmet()).toEqual(expect.arrayContaining(["scope", "cutover"])); // S11: a released plan is legacy again, held.
   await legacy.execute({ op: "ack", plan: "scheduler", ids: [`scheduler:captain:${action}`], kind: "handled" }, randomUUID(), GENERAL);
   busy = false; await flushMateNotes(api);
   expect(sent.map(s => s.messageId)).toEqual([original.id]); // The restored informational note, under its own identity.

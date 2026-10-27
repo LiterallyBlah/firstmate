@@ -8,6 +8,7 @@
  * only the rest. Healthy results and unchanged failures or outages wake nobody; General reads status on demand.
  */
 import { randomUUID } from "node:crypto";
+import { realpath as fsRealpath } from "node:fs/promises";
 import { z } from "zod";
 import { SupervisionActorSchema, SupervisionHash, SupervisionUtc, SupervisionUuid, type SupervisionActor, type SupervisionExpected, type SupervisionStatus } from "../shared/supervision";
 import {
@@ -79,26 +80,44 @@ export function planTick(job: MaintenanceJob, occurrences: readonly Occurrence[]
 // ---------------------------------------------------------------------------------------------------------------
 // Cleanup planning. Selection never reaches past the job's selectors; retained worktrees/volumes and unknown owners stay.
 
-export interface MaintenanceCandidate { id: string; path: string; cache?: string; workspaceId?: string | null; volumeId?: string | null; owner: "known" | "unknown" }
+export interface MaintenanceCandidate { id: string; path: string; cache?: string; workspaceId?: string | null; volumeId?: string | null; owner: "known" | "unknown";
+  /** The candidate's resolved path (`resolveCleanupAliases`). When present it must satisfy the same bounds as `path`. */
+  realPath?: string }
 /** Complete retained sets: workspace and volume identities, and the paths retained worktrees live at. */
 export interface RetainedSet { workspaces: readonly string[]; volumes: readonly string[]; paths: readonly string[] }
 export function itemKey(jobId: string, hostId: string, candidate: Pick<MaintenanceCandidate, "id" | "path">) { return digest(["firstmate.maintenance-item/1", jobId, hostId, candidate.id, candidate.path]); }
-const within = (child: string, parent: string) => child === parent || child.startsWith(`${parent}/`);
+/** A parent ending in `/` is a filesystem root (`/`, `c:/`): it contains every path on that root (R10 E1). */
+const within = (child: string, parent: string) => child === parent || child.startsWith(parent.endsWith("/") ? parent : `${parent}/`);
 const overlaps = (a: string, b: string) => within(a, b) || within(b, a);
 /** Retained paths come verbatim from other tools (Paseo's session `cwd`, captain-typed entries), so they are
  * canonicalized: `\` read as `/`, duplicate separators and `.` segments dropped, and compared case-insensitively.
  * Over-excluding is safe. A retained path that is relative or has a `..` segment cannot be canonicalized without the
  * filesystem, and the whole pass is refused (`RetainedPathError`) instead of planning around it. Symlink and junction
- * aliases are invisible to string comparison: resolving them (realpath) is an S11 executor-approval requirement. */
+ * aliases are invisible to string comparison: an executor resolves them first with `resolveCleanupAliases` (S11). */
 export class RetainedPathError extends Error {}
-function retainedKey(raw: string): string {
-  const path = raw.replaceAll("\\", "/"), drive = /^[A-Za-z]:\//.test(path) ? path.slice(0, 2) : null;
+const looksLikePath = (v: string) => /^([A-Za-z]:)?[\\/]/.test(v);
+export function retainedKey(raw: string): string {
+  let path = raw.replaceAll("\\", "/");
+  // R10 E2: the Win32 long-path form of a drive path is that drive path; any other `\?\` or `\.\` form
+  // (UNC, device, volume GUID) cannot be compared by string and refuses the pass.
+  if (/^\/\/[?.]\//.test(path)) {
+    if (!/^\/\/[?.]\/[A-Za-z]:\//.test(path)) throw new RetainedPathError(`Retained path ${JSON.stringify(raw)} is a device or UNC long path; nothing is planned on this host.`);
+    path = path.slice(4);
+  }
+  const drive = /^[A-Za-z]:\//.test(path) ? path.slice(0, 2) : null;
   if (!drive && !path.startsWith("/")) throw new RetainedPathError(`Retained path ${JSON.stringify(raw)} is not absolute; nothing is planned on this host.`);
   const segments = path.slice(drive ? 3 : 1).split("/").filter(s => s !== "" && s !== ".");
   if (segments.includes("..")) throw new RetainedPathError(`Retained path ${JSON.stringify(raw)} has a .. segment; nothing is planned on this host.`);
+  if (segments.some(s => s === "?" || /^[A-Za-z]:$/.test(s))) throw new RetainedPathError(`Retained path ${JSON.stringify(raw)} has a device or drive segment mid-path; nothing is planned on this host.`);
   return `${drive ?? ""}/${segments.join("/")}`.toLowerCase();
 }
-const looksLikePath = (v: string) => /^([A-Za-z]:)?[\\/]/.test(v);
+/** R10 E3: a `retained` entry is either an identity (no separator, no `~`, no drive prefix) or an absolute path that
+ * canonicalizes. `~/keep`, `C:cache\keep` and `cache/keep` are neither and are refused when the job is defined. */
+export function retainedEntryValid(entry: string): boolean {
+  if (!/[\\/]/.test(entry) && !entry.startsWith("~") && !/^[A-Za-z]:/.test(entry)) return true;
+  if (!looksLikePath(entry)) return false;
+  try { retainedKey(entry); return true; } catch { return false; }
+}
 /** Select cleanup items. A candidate is selected only when its absolute, segment-valid path lies strictly below a
  * path-prefix selector (never the selector root; compared exactly, which can only narrow selection), its cache label
  * matches a cache-prefix selector by whole segments when any is given, it neither equals, contains nor lies under any
@@ -111,21 +130,44 @@ export function planCleanup(job: Pick<MaintenanceJob, "id" | "selectors" | "reta
   const roots = job.selectors.flatMap(s => s.kind === "path-prefix" ? [normalPath(s.value)] : []);
   const labels = job.selectors.flatMap(s => s.kind === "cache-prefix" ? [s.value.replace(/\/+$/, "")] : []);
   const tagged = (c: MaintenanceCandidate) => [c.workspaceId, c.volumeId, c.id, c.path].some(v => v && ids.has(v));
-  const keep = [...retained.paths, ...job.retained.filter(looksLikePath), ...candidates.filter(tagged).map(c => c.path)].map(retainedKey);
+  const keep = [...retained.paths, ...job.retained.filter(looksLikePath), ...candidates.filter(tagged).flatMap(c => [c.path, ...(c.realPath !== undefined ? [c.realPath] : [])])].map(retainedKey);
   const selected: { key: string; candidate: MaintenanceCandidate }[] = [], seen = new Set<string>();
   let excluded = 0, triage = 0;
   for (const c of candidates) {
     const key = itemKey(job.id, hostId, c);
     if (seen.has(key)) continue;
     seen.add(key);
-    const path = normalPath(c.path);
-    const inside = absolutePath(path) && pathSegmentsValid(c.path) && roots.some(r => path !== r && within(path, r));
+    // An alias is judged by both names: its literal path and, when resolved, the path it reaches.
+    const names = [c.path, ...(c.realPath !== undefined ? [c.realPath] : [])].map(raw => ({ raw, path: normalPath(raw) }));
+    const inside = names.every(n => absolutePath(n.path) && pathSegmentsValid(n.raw) && roots.some(r => n.path !== r && within(n.path, r)));
     const labelled = !labels.length || (c.cache !== undefined && cacheLabelValid(c.cache) && labels.some(l => within(c.cache!, l)));
-    if (!inside || !labelled || tagged(c) || keep.some(k => overlaps(path.toLowerCase(), k))) { excluded++; continue; }
+    if (!inside || !labelled || tagged(c) || keep.some(k => names.some(n => overlaps(n.path.toLowerCase(), k)))) { excluded++; continue; }
     if (c.owner !== "known") { triage++; continue; }
     selected.push({ key, candidate: c });
   }
   return { selected, excluded, triage };
+}
+
+/** S11 executor-approval requirement (R10 B1-R): symlink and junction aliases resolved before planning. Each retained
+ * path is kept under its literal name and its resolved one; a retained path that does not exist keeps its literal name,
+ * and one that cannot be resolved for any other reason refuses the pass (`RetainedPathError`). Each candidate carries
+ * its resolved path, which `planCleanup` holds to the same selector and retained bounds; a candidate that cannot be
+ * resolved is dropped and counted, never planned. */
+export async function resolveCleanupAliases(candidates: readonly MaintenanceCandidate[], retained: RetainedSet,
+  realpath: (path: string) => Promise<string> = p => fsRealpath(p)) {
+  const paths = [...retained.paths];
+  for (const p of retained.paths) {
+    try { paths.push(await realpath(p)); } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") continue;
+      throw new RetainedPathError(`Retained path ${JSON.stringify(p)} cannot be resolved (${(error as Error).message}); nothing is planned on this host.`);
+    }
+  }
+  const resolved: MaintenanceCandidate[] = [];
+  let unresolved = 0;
+  for (const c of candidates) {
+    try { resolved.push({ ...c, realPath: await realpath(c.path) }); } catch { unresolved++; }
+  }
+  return { candidates: resolved, retained: { ...retained, paths: [...new Set(paths)] }, unresolved };
 }
 
 /** What runs a pass on a host. None ships: actual shared effects need a qualified receiver (S11). */
@@ -133,8 +175,8 @@ export interface MaintenanceExecutor {
   probe(hostId: string): Promise<"online" | "offline">;
   /** Throws when the listing is incomplete; a partial listing is never used. */
   inventory(hostId: string): Promise<MaintenanceCandidate[]>;
-  /** Complete retained sets (e.g. `retainedWorkspaces()` from archive-inventory). Throws when incomplete. An executor
-   * qualified for shared effects (S11) must also resolve symlink and junction aliases (realpath) of every path. */
+  /** Complete retained sets (e.g. `retainedWorkspaces()` from archive-inventory). Throws when incomplete. An approved
+   * executor passes its inventory and retained set through `resolveCleanupAliases` first (`executorApproval`, S11). */
   retained(hostId: string): Promise<RetainedSet>;
   apply(hostId: string, items: { key: string; candidate: MaintenanceCandidate }[], fences: { key: string; fence: number }[]): Promise<{ key: string; outcome: "done" | "failed" }[]>;
 }
@@ -230,7 +272,8 @@ export const JobInputSchema = z.object({ jobId: SupervisionUuid, expectedVersion
   name: z.string().min(1).max(120), domain: z.enum(["host-storage", "workspace-retention"]),
   schedule: z.object({ kind: z.literal("daily"), at: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/), zone: IanaZone }).strict(),
   hosts: z.array(HostId).min(1).max(32), resource: z.object({ class: ResourceClass, keys: z.array(z.string().min(1).max(300)).min(1).max(8) }).strict(),
-  selectors: CleanupSelectors, retained: z.array(z.string().min(1).max(300)).max(64), mode: z.enum(["observe", "advisory"]),
+  selectors: CleanupSelectors, retained: z.array(z.string().min(1).max(300).refine(retainedEntryValid,
+    "A retained entry is an identity, or an absolute canonical path (not ~, relative or drive-relative)")).max(64), mode: z.enum(["observe", "advisory"]),
   legacyTimer: z.object({ kind: z.enum(["native-schedule", "script-watch", "managed-watch", "none"]), id: z.string().min(1).max(300).nullable(),
     disposition: z.enum(["retained", "retired", "unknown"]), evidence: z.array(z.object({ ref: z.string().min(1).max(1024), digest: SupervisionHash }).strict()).max(32) }).strict(),
   budget: Budget.nullable(), maxPasses: z.number().int().min(1).max(6) }).strict();

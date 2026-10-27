@@ -39,6 +39,14 @@ function refuseHeld(status: SupervisionStatus, scopeId: string) {
     refuse("HELD", "Admissions are held for this scope; no supervisor session or turn is reserved.");
 }
 const NO_RESULT = { planId: null, planHash: null, decisionId: null, outboxId: null };
+/** S07 has cut this scope over: some plan's latest migration is committed, none is prepared or at its barrier, and
+ * every backend the scope owns is scoped and active. */
+function cutOver(status: SupervisionStatus, scopeId: string) {
+  const migrations = (status.migrations ?? []).filter(m => m.scopeId === scopeId);
+  const latest = [...new Set(migrations.map(m => m.planId))].map(plan => migrations.filter(m => m.planId === plan).at(-1)!);
+  return latest.some(m => m.state === "committed") && latest.every(m => m.state === "committed" || m.state === "aborted") &&
+    status.backends.filter(b => b.ownerScopeId === scopeId).every(b => b.backend === "scoped" && b.state === "active");
+}
 
 export class SupervisorSessions {
   constructor(readonly store: SupervisionStore, readonly gateway: SupervisionGateway, readonly receiver: GatewayReceiver,
@@ -54,6 +62,15 @@ export class SupervisorSessions {
   prepare(input: { requestId: string; scopeId: string; scopeVersion: number; profile: AgentProfile; opening: string; purpose?: "discussion" | "work" }, actor: SupervisionActor) {
     return this.reserve(input, actor, "activate", null);
   }
+  /** S11: the first supervisor of a scope S07 has cut over (committed migration, scope active, no binding). It creates a
+   * full-access session, so it is an explicit captain action only, like `hold` and `prepareReplacement`; the first mate
+   * cannot attach from chat. Nothing attaches on its own, and it never replaces an existing binding. The same reserved,
+   * unprompted identity and verify/activate path as `prepare` follow. */
+  async attach(input: { requestId: string; scopeId: string; scopeVersion: number; profile: AgentProfile; opening: string; purpose?: "discussion" | "work" }, actor: SupervisionActor) {
+    this.enabled();
+    if (actor.kind !== "captain-ui") refuse("UNSUPPORTED", "Attaching a supervisor to a cut-over scope is an explicit captain action.");
+    return this.reserve(input, actor, "attach", null);
+  }
   /** Manual replacement only after the exact old supervisor is shown stopped; a lease or timeout proves nothing. */
   async prepareReplacement(input: { requestId: string; scopeId: string; scopeVersion: number; expectedEpoch: number; profile: AgentProfile; opening: string }, actor: SupervisionActor) {
     this.enabled();
@@ -68,10 +85,10 @@ export class SupervisorSessions {
     return this.reserve(input, actor, "replace", binding);
   }
   private async reserve(input: { requestId: string; scopeId: string; scopeVersion: number; expectedEpoch?: number; profile: AgentProfile; opening: string; purpose?: "discussion" | "work" },
-    actor: SupervisionActor, mode: "activate" | "replace", checked: SupervisionBinding | null) {
+    actor: SupervisionActor, mode: "activate" | "attach" | "replace", checked: SupervisionBinding | null) {
     this.enabled();
     const inputHash = digest({ supervisor: mode, input });
-    if (mode === "activate" && await this.accepted(input.requestId)) return this.replay(input.requestId, inputHash, actor);
+    if (mode !== "replace" && await this.accepted(input.requestId)) return this.replay(input.requestId, inputHash, actor);
     if (actor.kind === "agent") refuse("UNSUPPORTED", "Agents cannot activate scopes; General and supervisors are not bypass principals.");
     const profile = AgentProfileSchema.parse(input.profile), capabilities = await this.gateway.capabilities();
     if (!capabilities.selectedAgentIds) refuse("UNSUPPORTED", "Receiver lacks caller-selected agent IDs; no legacy or fresh-ID fallback.");
@@ -82,8 +99,11 @@ export class SupervisorSessions {
       const scope = status.scopes.find(s => s.id === input.scopeId), old = status.bindings.find(b => b.scopeId === input.scopeId);
       if (!scope || !["plan", "project"].includes(scope.kind) || scope.mode !== "scoped") refuse("UNKNOWN_OWNER", "Exact scoped plan or project discussion owner required.");
       if (scope.version !== input.scopeVersion) refuse("STALE", "Scope version changed.");
-      if (mode === "activate" ? scope.state !== "dormant" || old : scope.state !== "transferring" || !old || old.epoch !== input.expectedEpoch || !["suspect", "retired"].includes(old.state))
-        refuse("HELD", mode === "activate" ? "Only a dormant scope without a binding is activated here." : "Replacement needs the held previous epoch.");
+      if (mode === "activate" ? scope.state !== "dormant" || old : mode === "attach" ? scope.state !== "active" || old || !cutOver(status, scope.id)
+        : scope.state !== "transferring" || !old || old.epoch !== input.expectedEpoch || !["suspect", "retired"].includes(old.state))
+        refuse("HELD", mode === "activate" ? "Only a dormant scope without a binding is activated here."
+          : mode === "attach" ? "Only a scope S07 has cut over (committed, active, no binding and no migration in progress) is attached here."
+          : "Replacement needs the held previous epoch.");
       // The observed-stopped identity must still be the binding being replaced.
       if (mode === "replace" && digest(old) !== digest(checked)) refuse("STALE", "The held binding changed after its quiescence was observed.");
       refuseHeld(status, scope.id);

@@ -4,6 +4,8 @@ import type { SupervisionActor } from "../shared/supervision";
 import { activationEffects, supervisorSpend } from "./supervisor-sessions";
 import { deriveContinuation, recordContinuation } from "./supervision-continuation";
 import { captain, s04Fixture, type S04Fixture, type ScopeHandle } from "../test/supervision-s04-fixture";
+import { expected } from "../test/supervision-fixture";
+import { cooperativeReadiness } from "./supervision-cooperative";
 
 const profile = { provider: "claude/opus-5.5", modeId: "default", thinkingOptionId: "high" };
 async function dormant(fx: S04Fixture, n = 1) { return fx.addScope(n, `plan-${n}`, [`n${n}-trial`], false); }
@@ -52,6 +54,39 @@ describe("S04 supervisor lifecycle (synthetic receiver)", { timeout: 60000 }, ()
     expect((await fx.gateway.reconcile(effects.create!.id)).state).toBe("succeeded");
     await fx.sessions.verify(scope.id, 1);
     expect(fx.receiver.agents.size).toBe(1);
+  });
+
+  it("S11 attach: only a scope S07 has cut over; never a dormant, bound or un-migrated scope, and never by an agent", async () => {
+    const fx = await s04Fixture(), scope = await dormant(fx), bound = await fx.addScope(2, "plan-2", ["n2-trial"]);
+    const attach = async (id: string, actor: SupervisionActor = captain) => fx.sessions.attach({ requestId: randomUUID(), scopeId: id,
+      scopeVersion: (await fx.store.read()).scopes.find(s => s.id === id)!.version, profile, opening: "x" }, actor);
+    await expect(attach(scope.id)).rejects.toMatchObject({ code: "HELD" });
+    await expect(attach(bound.id)).rejects.toMatchObject({ code: "HELD" });
+    await expect(attach(scope.id, { kind: "agent", id: "general-first-mate", source: "x" })).rejects.toMatchObject({ code: "UNSUPPORTED" });
+    await expect(attach(scope.id, { kind: "system", id: "timer", source: "x" })).rejects.toMatchObject({ code: "UNSUPPORTED" });
+    // Captain only: the first mate cannot attach a full-access supervisor from chat (round-2 decision).
+    await expect(attach(scope.id, { kind: "mate-chat", id: "general-first-mate", source: "x" })).rejects.toMatchObject({ code: "UNSUPPORTED", message: expect.stringMatching(/explicit captain action/) });
+    expect((await fx.store.read()).bindings.filter(b => b.scopeId === scope.id)).toEqual([]);
+    // Active with no binding but never migrated by S07: still not attachable.
+    const row = (await fx.store.read()).scopes.find(s => s.id === scope.id)!, active = { ...row, state: "active" as const, version: row.version + 1 };
+    await fx.store.transact(expected([{ kind: "scope", value: active }], row.version), randomUUID(), [{ kind: "scope", value: active }]);
+    await expect(attach(scope.id)).rejects.toMatchObject({ code: "HELD", message: expect.stringMatching(/S07 has cut over/) });
+  });
+
+  it("S11 / R11 B2: a prepared-path supervisor counts for readiness only once its opening succeeded; a failed opening never does", async () => {
+    const fx = await s04Fixture(), scope = await dormant(fx), binding = (await fx.store.read()).bindings;
+    expect(binding).toEqual([]);
+    const reason = async () => cooperativeReadiness(await fx.store.read(), scope.id).dependencies.find(d => d.id === "binding")!;
+    const { effects } = await reserve(fx, scope);
+    await fx.gateway.dispatch(effects.workspace!.id); await fx.gateway.dispatch(effects.create!.id); await fx.sessions.verify(scope.id, 1);
+    expect(await reason()).toMatchObject({ satisfied: false, reasons: [expect.stringMatching(/has not been sent its opening \(reserved\)/)] });
+    fx.receiver.faults.send = ["capacity"];
+    expect((await fx.gateway.dispatch(effects.send!.id)).state).toBe("failed");
+    expect(await reason()).toMatchObject({ satisfied: false, reasons: [expect.stringMatching(/opening failed/)] });
+    // And a succeeded opening, on a second scope, is what satisfies it.
+    const other = await fx.addScope(3, "plan-3", ["n3-trial"], false);
+    await activate(fx, other);
+    expect(cooperativeReadiness(await fx.store.read(), other.id).dependencies.find(d => d.id === "binding")).toMatchObject({ satisfied: true });
   });
 
   it("never lets a scope supervisor be the global first mate", async () => {

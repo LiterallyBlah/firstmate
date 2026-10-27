@@ -1,0 +1,65 @@
+{
+  "at": "2026-10-27T20:57:02.227Z",
+  "node": "v23.7.0",
+  "platform": "win32",
+  "osRelease": "10.0.26200",
+  "sources": {
+    "server/archive-inventory.ts": "8d05e545cc9c8800d9379cda7dc237a5084ecfa50f36c83919b92065c9527adb",
+    "server/daemon-session.ts": "217f408596a0a8f6315cbd7bcb6783429ded621b4bc6c24fba8f3dde455bc6d3"
+  },
+  "steps": [
+    {
+      "name": "version",
+      "ok": true
+    },
+    {
+      "name": "daemon start",
+      "ok": true
+    },
+    {
+      "name": "schedule create (paused, far future)",
+      "ok": true
+    },
+    {
+      "name": "plugin install",
+      "ok": true
+    }
+  ],
+  "paseo": "0.13.0",
+  "schedule": "cd26b5a6",
+  "plugin": "[\n  {\n    \"id\": \"s11-readers\",\n    \"path\": \"C:\\\\Users\\\\micha\\\\.paseo\\\\worktrees\\\\23z5sbxl\\\\fm-ss-s11\\\\.local\\\\s11-readers\\\\1793134622194\\\\plugin\",\n    \"enabled\": true,\n    \"status\": \"running\",\n    \"installation\": {\n      \"identity\": {\n        \"kind\": \"directory\",\n        \"path\": \"C:\\\\Users\\\\micha\\\\.paseo\\\\worktrees\\\\23z5sbxl\\\\fm-ss-s11\\\\.local\\\\s11-readers\\\\1793134622194\\\\plugin\"\n      }\n    }\n  }\n]",
+  "result": {
+    "at": "2026-10-27T20:57:08.682Z",
+    "retainedWorkspaces": {
+      "result": "complete",
+      "value": {
+        "workspaces": [],
+        "paths": []
+      }
+    },
+    "nativeSchedules": {
+      "complete": true,
+      "schedules": [
+        {
+          "id": "cd26b5a6",
+          "name": "s11-reader-probe",
+          "cadence": {
+            "type": "cron",
+            "expression": "0 0 1 1 *",
+            "timezone": "UTC"
+          },
+          "target": {
+            "type": "new-agent",
+            "config": {
+              "cwd": "C:\\Users\\micha\\.paseo\\worktrees\\23z5sbxl\\fm-ss-s11\\.local\\s11-readers\\1793134622194",
+              "provider": "claude"
+            }
+          },
+          "status": "paused"
+        }
+      ]
+    }
+  },
+  "logs": "TIME                      STREAM    MESSAGE                                                                         \n2026-10-27T20:57:06.799Z  stdout    [paseo] Loading plugin                                                          \n2026-10-27T20:57:07.177Z  stdout    [paseo] Plugin ready",
+  "verdict": "both readers complete"
+}
