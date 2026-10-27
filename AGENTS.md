@@ -160,7 +160,8 @@ S09 (`docs/scoped-supervision/S09.md`) adds disabled project context and cross-p
 with captain-set allocations, one sponsor per plan scope with all-or-none per-project budget claims (FIFO within
 priority, never borrowed), one owner per captain intake, qualified resolutions attached to unchanged bare cross-plan
 edges, CAS project memory and portfolio conflict records. Memory and these records are context only. `checkPolicy`
-refuses citing them, and a stopped project holds only new `plan.start`. Cross-project choices are owned by General,
+refuses citing them. A project stop writes S03-shaped operation holds on its plan scopes and cancels their reserved
+effects, so the gateway and supervisor sessions refuse its pending starts. Cross-project choices are owned by General,
 one-project choices by the project. `portfolioSummary` is a pure read. Nothing is wired, and Bearings is unchanged.
 S09 writes stop at sequence 192; releases, stops and resolutions stay available for rollback.
 

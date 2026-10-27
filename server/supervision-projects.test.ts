@@ -81,6 +81,7 @@ it("is disabled by default and writes nothing", async () => {
   const before = (await store.read()).sequence;
   const off = new SupervisionProjects(store), offMemory = new SupervisionMemory(store);
   expect(await code(off.claimSponsor(randomUUID(), captain, { planScopeId: X, expectedVersion: 0, sponsorScopeId: null, claims: [{ projectId: A, agents: 1, turns: 1, priority: 5 }, { projectId: B, agents: 1, turns: 1, priority: 5 }] }))).toBe("UNSUPPORTED");
+  await expect(off.portfolio()).rejects.toMatchObject({ code: "UNSUPPORTED" });
   expect(await code(offMemory.propose(projectA, { projectId: A, key: "conventions", expectedVersion: 0, text: "Use pnpm.", evidence: [] }))).toBe("UNSUPPORTED");
   expect((await store.read()).sequence).toBe(before);
 });
@@ -207,6 +208,11 @@ it("attaches qualified resolutions to bare cross-plan edges and holds removed, a
   const ambiguous = structuredClone(s);
   ambiguous.plans.push({ scopeId: Z, plan: { ...structuredClone(up), definition: { ...structuredClone(s.plans.find(p => p.plan.definition.id === "upstream")!.plan.definition), id: "copy" } } });
   expect(qualifiedDependencies(ambiguous, X, "integrate")[0]).toMatchObject({ state: "held", reason: "ambiguous" });
+  // A prerequisite that lives only on the legacy writer reads as cross-backend, not missing (R09 N4).
+  const legacyOnly = structuredClone(s), legacyPlan = legacyOnly.plans.find(p => p.plan.definition.id === "upstream")!.plan;
+  legacyOnly.plans = legacyOnly.plans.filter(p => p.plan.definition.id !== "upstream");
+  expect(qualifiedDependencies(legacyOnly, X, "integrate")[0]).toMatchObject({ state: "held", reason: "missing" });
+  expect(qualifiedDependencies(legacyOnly, X, "integrate", [legacyPlan])[0]).toMatchObject({ state: "held", reason: "cross-backend" });
   const held = structuredClone(s); held.backends.find(b => b.planId === "upstream")!.state = "held";
   expect(qualifiedDependencies(held, X, "integrate")[0]).toMatchObject({ state: "held", reason: "cross-backend" });
   // Done satisfies done; a held prerequisite does not.

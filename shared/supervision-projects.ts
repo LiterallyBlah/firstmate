@@ -61,7 +61,7 @@ export const ProjectMemorySchema = z.object({
 export const PortfolioConflictSchema = z.object({
   id: SupervisionUuid, version, ownerScopeId: SupervisionUuid, kind: z.enum(["sponsor", "scope", "priority", "budget", "grant"]),
   projectIds: uniqueIds(1), subjects: z.array(z.object({ kind: z.enum(["plan-scope", "intent", "task", "project"]), id: text(1024) }).strict()).min(1).max(32),
-  detail: z.string().min(1).max(2000), detailDigest: SupervisionHash, state: z.enum(["open", "resolved"]),
+  detail: text(2000), detailDigest: SupervisionHash, state: z.enum(["open", "resolved"]),
   resolution: z.object({ actor: reviewed, choice: z.string().min(1).max(2000), at: SupervisionUtc }).strict().nullable(),
 }).strict().refine(c => (c.state === "resolved") === (c.resolution !== null), "A resolved conflict records its choice.");
 export type ProjectRecord = z.infer<typeof ProjectRecordSchema>;

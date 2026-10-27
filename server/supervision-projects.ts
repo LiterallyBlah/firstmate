@@ -4,13 +4,14 @@
 import { z } from "zod";
 import { SupervisionActorSchema, SupervisionUuid, SupervisionVersionRefSchema, type SupervisionActor, type SupervisionExpected, type SupervisionStatus } from "../shared/supervision";
 import { PlanId, type WorkflowPlan } from "../shared/workflow-plans";
+import { PilotOperation } from "../shared/supervision-policy";
 import {
   emptyProjectRows, normalizedName, portfolioSummary, type DependencyResolution, type PlanSponsor, type PortfolioConflict,
   type PortfolioSummary, type ProjectRecord,
 } from "../shared/supervision-projects";
 import { digest } from "./submissions";
 import { SupervisionError, SUPERVISION_INDEX_LIMITS, type SupervisionMutation, type SupervisionStore } from "./supervision-store";
-import { conflictId, dependencyResolutionId, intentId, taskKey } from "./supervision-project-state";
+import { conflictId, dependencyResolutionId, intentId, projectRowId, taskKey } from "./supervision-project-state";
 import { policyRef, projectGrantConflicts, sameVector, type PolicyTarget } from "./supervision-policy";
 
 type Code = "STALE" | "HELD" | "UNKNOWN_OWNER" | "UNSUPPORTED" | "CONFLICT";
@@ -22,6 +23,7 @@ export const expected = (status: SupervisionStatus, mutations: SupervisionMutati
   const id = m.kind === "workflow" ? m.event.plan : m.kind === "retirement" ? m.receipt.plan : m.kind === "binding" ? m.value.scopeId : m.kind === "backend" ? m.value.planId : m.value.id;
   return { kind: m.kind, id, version: versionOf(status, m.kind, id) };
 });
+const plainText = (max: number) => z.string().min(1).max(max).refine(v => !!v.trim() && !/[\x00-\x1f\x7f]/.test(v), "Plain one-line text");
 const reviewedActor = (actor: SupervisionActor) => actor.kind === "captain-ui" || actor.kind === "mate-chat";
 /** Cooperative: an agent counts only through an active work binding of one of these scopes. Never authenticated. */
 export function boundTo(status: SupervisionStatus, actor: SupervisionActor, scopeIds: readonly string[]): boolean {
@@ -62,8 +64,24 @@ export const ProjectInputSchema = z.object({ projectId: SupervisionUuid, expecte
 export const SponsorInputSchema = z.object({ planScopeId: SupervisionUuid, expectedVersion: z.number().int().min(0), sponsorScopeId: SupervisionUuid.nullable(),
   claims: z.array(z.object({ projectId: SupervisionUuid, agents: z.number().int().min(0).max(1_000_000), turns: z.number().int().min(0).max(1_000_000),
     priority: z.number().int().min(1).max(9) }).strict()).min(1).max(64) }).strict();
-export const IntentInputSchema = z.object({ intakeId: z.string().min(1).max(300), textDigest: z.string().regex(/^[0-9a-f]{64}$/), ownerScopeId: SupervisionUuid,
+export const IntentInputSchema = z.object({ intakeId: plainText(300), textDigest: z.string().regex(/^[0-9a-f]{64}$/), ownerScopeId: SupervisionUuid,
   projectIds: z.array(SupervisionUuid).min(1).max(64), tasks: z.array(z.object({ hostId: z.string().min(1).max(256), projectId: SupervisionUuid, nodeId: PlanId }).strict()).max(100) }).strict();
+const GrantTargetSchema = z.object({ scopeId: SupervisionUuid, planId: PlanId, projectIds: z.array(SupervisionUuid).min(2).max(64),
+  hostId: plainText(256), operation: PilotOperation }).strict();
+/** A grant conflict names an existing scoped plan: its owning scope, its backend plan and exactly its project set. */
+function grantTarget(status: SupervisionStatus, target: z.infer<typeof GrantTargetSchema>): z.infer<typeof GrantTargetSchema> {
+  const scope = status.scopes.find(s => s.id === target.scopeId), backend = status.backends.find(b => b.planId === target.planId);
+  if (!scope || scope.kind !== "plan" || scope.mode !== "scoped" || scope.state === "retired" || backend?.ownerScopeId !== scope.id || backend.backend !== "scoped")
+    refuse("UNKNOWN_OWNER", "A grant conflict names an existing scoped plan through its owning scope.");
+  if (new Set(target.projectIds).size !== target.projectIds.length || target.projectIds.length !== scope.projectIds.length || target.projectIds.some(p => !scope.projectIds.includes(p)))
+    refuse("CONFLICT", "A grant conflict names exactly the plan's own project set.");
+  if (target.projectIds.some(p => !rowsOf(status).projects.some(r => r.id === p))) refuse("UNKNOWN_OWNER", "Every project of the plan must be admitted.");
+  return { ...target, projectIds: [...target.projectIds].sort() };
+}
+function authorizeGrantRecorder(status: SupervisionStatus, actor: SupervisionActor, target: z.infer<typeof GrantTargetSchema>): void {
+  const scopes = [target.scopeId, ...status.scopes.filter(s => s.kind === "general" || (s.kind === "project" && s.projectIds.some(p => target.projectIds.includes(p)))).map(s => s.id)];
+  if (!reviewedActor(actor) && !boundTo(status, actor, scopes)) refuse("UNKNOWN_OWNER", "Only General, an involved project owner, the plan owner or the captain records a grant conflict.");
+}
 export type IntentOutcome = { outcome: "claimed" | "duplicate"; intentId: string } | { outcome: "conflict"; intentId: string; conflictId: string | null };
 
 export class SupervisionProjects {
@@ -89,8 +107,10 @@ export class SupervisionProjects {
       if (!reviewedActor(a)) refuse("UNSUPPORTED", "Project admission and allocation are the captain's, recorded through the UI or chat.");
       const old = rowsOf(status).projects.find(p => p.id === input.projectId);
       if (versionOf(status, "project", input.projectId) !== input.expectedVersion) refuse("STALE", "The project record changed; reread it.");
+      // Only the admitted -> stopped transition is exempt from the admission bound (rollback must stay possible).
+      const stopping = input.state === "stopped" && old?.state !== "stopped";
+      if (!stopping) admissionRoom(status);
       if (input.state === "admitted") {
-        admissionRoom(status);
         for (const ref of input.sourceVector) {
           const source = status.policySources.find(s => s.id === ref.id);
           if (ref.kind !== "policy-source" || !source || !sameVector([ref], [policyRef("policy-source", source)]) || status.policySources.some(s => s.supersedes.includes(ref.id)))
@@ -100,7 +120,8 @@ export class SupervisionProjects {
       const value: ProjectRecord = { id: input.projectId, version: input.expectedVersion + 1, scopeId: input.scopeId, name: input.name.trim(),
         aliases: [...new Set(input.aliases.map(x => x.trim()))].filter(x => normalizedName(x) !== normalizedName(input.name)), state: input.state,
         budget: input.budget, sourceVector: input.state === "stopped" && old ? old.sourceVector : input.sourceVector, provenance: a };
-      return [{ kind: "project", value }];
+      if (old && digest({ ...old, version: 0, provenance: null }) === digest({ ...value, version: 0, provenance: null })) refuse("CONFLICT", "The project record is unchanged.");
+      return [{ kind: "project", value }, ...projectStopMutations(status, value, old)];
     });
   }
 
@@ -185,7 +206,7 @@ export class SupervisionProjects {
       const subjects = [{ kind: "intent" as const, id }, ...tasks.map(t => ({ kind: "task" as const, id: taskKey(t) }))];
       const involved = [...new Set([...projectIds, ...s.scopes.filter(x => rivals.includes(x.id)).flatMap(x => x.projectIds)])];
       const m = conflictMutation(s, { kind: "scope", projectIds: involved, subjects,
-        detail: `Intake ${input.intakeId} would give ${tasks.length ? "its tasks" : "it"} a second owner (${[owner.id, ...rivals].join(", ")}). Choose one owner.` });
+        detail: `Intake ${JSON.stringify(input.intakeId)} would give ${tasks.length ? "its tasks" : "it"} a second owner (${[owner.id, ...rivals].join(", ")}). Choose one owner.` });
       const open = rowsOf(s).conflicts.find(c => c.kind === "scope" && c.state === "open" && c.subjects.some(x => x.kind === "intent" && x.id === id));
       outcome = { outcome: "conflict", intentId: id, conflictId: m?.kind === "portfolio-conflict" ? m.value.id : open?.id ?? null };
       return m ? [m] : refuse("CONFLICT", "unchanged-open-conflict");
@@ -200,15 +221,16 @@ export class SupervisionProjects {
   /** Attach qualified resolutions to a plan's cross-plan bare edges, without rewriting the v1 definition.
    * Exactly one owning plan resolves; missing, removed, ambiguous or cross-backend prerequisites hold. Unchanged rows write nothing.
    */
-  async resolveDependencies(requestId: string, actor: SupervisionActor, raw: { planScopeId: string; planId: string }): Promise<{ changed: number; rows: DependencyResolution[] }> {
+  async resolveDependencies(requestId: string, actor: SupervisionActor, raw: { planScopeId: string; planId: string },
+    legacyPlans: readonly WorkflowPlan[] = []): Promise<{ changed: number; rows: DependencyResolution[] }> {
     this.enabled();
-    const status = await this.store.read(), next = qualifiedDependencies(status, raw.planScopeId, raw.planId);
+    const status = await this.store.read(), next = qualifiedDependencies(status, raw.planScopeId, raw.planId, legacyPlans);
     const changed = next.filter(r => { const old = rowsOf(status).dependencies.find(d => d.id === r.id); return !old || digest({ ...old, version: 0 }) !== digest({ ...r, version: 0 }); });
     if (!changed.length) return { changed: 0, rows: next };
     await this.command(requestId, { op: "dependencies", raw }, actor, (s, a) => {
       admissionRoom(s);
       if (!reviewedActor(a) && !boundTo(s, a, [raw.planScopeId])) refuse("UNKNOWN_OWNER", "Only the dependent plan's owner or the captain records its dependencies.");
-      return qualifiedDependencies(s, raw.planScopeId, raw.planId).filter(r => {
+      return qualifiedDependencies(s, raw.planScopeId, raw.planId, legacyPlans).filter(r => {
         const old = rowsOf(s).dependencies.find(d => d.id === r.id); return !old || digest({ ...old, version: 0 }) !== digest({ ...r, version: 0 });
       }).map(value => ({ kind: "dependency-resolution" as const, value }));
     });
@@ -218,15 +240,25 @@ export class SupervisionProjects {
   /** Record (once) the cross-project grant conflicts that hold this operation. The operation itself is held by
    * `checkPolicy` regardless; unrelated projects and plans are untouched. Unchanged conflicts write nothing.
    */
-  async recordGrantConflicts(requestId: string, actor: SupervisionActor, target: PolicyTarget): Promise<{ conflicts: ReturnType<typeof projectGrantConflicts>; recorded: boolean }> {
+  async recordGrantConflicts(requestId: string, actor: SupervisionActor, raw: PolicyTarget): Promise<{ conflicts: ReturnType<typeof projectGrantConflicts>; recorded: boolean }> {
     this.enabled();
-    const status = await this.store.read(), conflicts = projectGrantConflicts(status, target);
-    if (target.projectIds.length < 2 || !conflicts.length) return { conflicts, recorded: false };
-    const conflict = (s: SupervisionStatus) => conflictMutation(s, { kind: "grant", projectIds: [...target.projectIds], subjects: [{ kind: "plan-scope", id: target.scopeId }],
-      detail: `${target.operation} for plan ${target.planId} is held: ${projectGrantConflicts(s, target).map(c => `${c.projectId} ${c.problem}`).join("; ")}.` });
-    if (!conflict(status)) return { conflicts, recorded: false };
-    await this.command(requestId, { op: "grant-conflict", target }, actor, s => { admissionRoom(s); const m = conflict(s); return m ? [m] : refuse("CONFLICT", "Unchanged."); });
-    return { conflicts, recorded: true };
+    const target = GrantTargetSchema.parse(raw);
+    const conflict = (s: SupervisionStatus) => {
+      const checked = grantTarget(s, target), problems = projectGrantConflicts(s, checked);
+      if (!problems.length) return { problems, mutation: null };
+      const name = (id: string) => JSON.stringify(rowsOf(s).projects.find(p => p.id === id)!.name);
+      // Built only from validated identities and closed codes; project names are quoted data.
+      return { problems, mutation: conflictMutation(s, { kind: "grant", projectIds: [...checked.projectIds], subjects: [{ kind: "plan-scope", id: checked.scopeId }],
+        detail: `${checked.operation} for plan ${checked.planId} is held: ${problems.map(c => `${name(c.projectId)} ${c.problem}`).join("; ")}.` }) };
+    };
+    const status = await this.store.read(), first = conflict(status);
+    authorizeGrantRecorder(status, actor, target);
+    if (!first.mutation) return { conflicts: first.problems, recorded: false };
+    await this.command(requestId, { op: "grant-conflict", target }, actor, (s, a) => {
+      admissionRoom(s); authorizeGrantRecorder(s, a, target);
+      const m = conflict(s).mutation; return m ? [m] : refuse("CONFLICT", "Unchanged.");
+    });
+    return { conflicts: first.problems, recorded: true };
   }
   /** The captain's (or mate-recorded) choice closes a conflict. It is a record, not an effect: the chosen change is its own command. */
   resolveConflict(requestId: string, actor: SupervisionActor, raw: { conflictId: string; expectedVersion: number; choice: string }) {
@@ -241,7 +273,7 @@ export class SupervisionProjects {
   }
 
   /** Read-only. Never transacts, sends, creates a session or wakes a scope; a held journal reads as a lower bound. */
-  async portfolio(): Promise<PortfolioSummary> { return portfolioSummary(await this.store.read()); }
+  async portfolio(): Promise<PortfolioSummary> { this.enabled(); return portfolioSummary(await this.store.read()); }
 }
 
 function remaining(status: SupervisionStatus, projectId: string, except: string): { agents: number; turns: number } | null {
@@ -274,7 +306,8 @@ function claimConflicts(status: SupervisionStatus, row: PlanSponsor): ConflictIn
 }
 
 /** Pure: the qualified resolution of every cross-plan bare edge of one plan. In-plan edges stay with the reducer. */
-export function qualifiedDependencies(status: SupervisionStatus, planScopeId: string, planId: string): DependencyResolution[] {
+/** `legacyPlans` (the legacy writer's plans, read-only) lets a prerequisite on a legacy backend read as cross-backend. */
+export function qualifiedDependencies(status: SupervisionStatus, planScopeId: string, planId: string, legacyPlans: readonly WorkflowPlan[] = []): DependencyResolution[] {
   const backend = status.backends.find(b => b.planId === planId);
   if (backend?.ownerScopeId !== planScopeId) refuse("UNKNOWN_OWNER", "Resolve dependencies through the dependent plan's owner.");
   const plan = status.plans.find(p => p.plan.definition.id === planId)?.plan ?? refuse("UNKNOWN_OWNER", "The plan has no stored definition.");
@@ -285,7 +318,8 @@ export function qualifiedDependencies(status: SupervisionStatus, planScopeId: st
     const owners = status.plans.map(p => p.plan).filter(p => p.definition.id !== planId && p.definition.nodes.some(n => n.id === edge.node));
     const removed = status.plans.some(p => p.plan.definition.id !== planId && (p.plan.removed ?? []).some(r => r.node.id === edge.node));
     const base = { id, version: (old?.version ?? 0) + 1, scopeId: planScopeId, planId, nodeId: node.id, edge: { node: edge.node, on: edge.on } };
-    if (owners.length !== 1) { out.push({ ...base, target: null, state: "held", reason: owners.length ? "ambiguous" : removed ? "removed" : "missing" }); continue; }
+    if (owners.length !== 1) { out.push({ ...base, target: null, state: "held", reason: owners.length ? "ambiguous" : removed ? "removed" :
+      legacyPlans.some(p => p.definition.id !== planId && p.definition.nodes.some(n => n.id === edge.node)) ? "cross-backend" : "missing" }); continue; }
     const target = owners[0]!, route = status.backends.find(b => b.planId === target.definition.id), routeOwner = status.scopes.find(s => s.id === route?.ownerScopeId);
     if (route?.backend !== "scoped" || route.state !== "active" || !routeOwner || routeOwner.state === "retired") { out.push({ ...base, target: null, state: "held", reason: "cross-backend" }); continue; }
     const task = status.tasks.find(t => t.planId === target.definition.id && t.nodeId === edge.node);
@@ -304,4 +338,30 @@ export function dependencyState(status: SupervisionStatus, row: DependencyResolu
   if (!state || state.held || state.invalidated) return { state: "held", reason: "prerequisite-held" };
   const met = row.edge.on === "answered" ? !!state.answer : row.edge.on === "landed" ? state.state === "landed" : ["done", "landed"].includes(state.state);
   return met ? { state: "met", reason: row.edge.on } : { state: "waiting", reason: state.state };
+}
+
+/** Deterministic identity of the admission hold a project stop puts on one plan scope. */
+export const projectStopHoldId = (projectId: string, scopeId: string) => projectRowId("project-stop", projectId, scopeId);
+/** A project stop reuses S03's per-plan stop mechanism for every plan scope of the project (cross-project ones too):
+ * a `plan.start`/`model.use` operation hold, which the S04 gateway and supervisor sessions already enforce, and
+ * cancellation of every still-reserved effect in that scope, in the same commit. Already dispatched effects continue.
+ * Re-admission releases exactly the holds this project's stop wrote; another project's stop keeps its own.
+ */
+export function projectStopMutations(status: SupervisionStatus, next: ProjectRecord, old: ProjectRecord | undefined): SupervisionMutation[] {
+  const scopes = status.scopes.filter(s => s.kind === "plan" && s.state !== "retired" && s.projectIds.includes(next.id));
+  const out: SupervisionMutation[] = [];
+  if (next.state === "stopped" && old?.state !== "stopped") {
+    for (const scope of scopes) {
+      const id = projectStopHoldId(next.id, scope.id), hold = status.operationHolds.find(h => h.id === id);
+      const planId = status.backends.find(b => b.ownerScopeId === scope.id)?.planId ?? "unplanned";
+      out.push({ kind: "operation-hold", value: { id, version: (hold?.version ?? 0) + 1, scopeId: scope.id, planId, operations: ["plan.start", "model.use"],
+        reason: `Admissions are stopped for project ${next.name}.`, sourceVector: [{ kind: "project", id: next.id, version: next.version, digest: digest(next) }], state: "held" } });
+      for (const effect of status.effects.filter(e => e.scopeId === scope.id && e.state === "reserved"))
+        out.push({ kind: "effect", value: { ...effect, version: effect.version + 1, state: "cancelled" } });
+    }
+  }
+  if (next.state === "admitted" && old?.state === "stopped")
+    for (const hold of status.operationHolds.filter(h => h.state === "held" && scopes.some(s => projectStopHoldId(next.id, s.id) === h.id)))
+      out.push({ kind: "operation-hold", value: { ...hold, version: hold.version + 1, state: "released" } });
+  return out;
 }
