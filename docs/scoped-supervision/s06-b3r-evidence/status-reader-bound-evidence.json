@@ -1,0 +1,16 @@
+{
+  "sourceHead": "c82bec30ce34bc47f8d1b8e7d042468677caaa25",
+  "history": 176,
+  "warmReadMs": [
+    5.1547999999997955,
+    5.202800000000025,
+    5.039900000000216,
+    5.18119999999999,
+    5.110599999999977
+  ],
+  "fullScans": 0,
+  "historicalReducerCalls": 0,
+  "newTransitionCalls": 1,
+  "commitMs": 17.770500000000084,
+  "committedBeforePollRelease": true
+}
