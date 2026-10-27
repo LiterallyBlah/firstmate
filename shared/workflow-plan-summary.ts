@@ -1,4 +1,5 @@
 import type { WorkflowSnapshot } from "./workflow-rpc";
+import type { PortfolioSummary } from "./supervision-projects";
 import { decisionOwner, planFinished, planOwner, type PlanNode, type PlanNodeState, type WorkflowPlan } from "./workflow-plans";
 
 export const PLAN_PAGE_SIZE = 10;
@@ -197,4 +198,20 @@ export function compactWorkflowBearings(snapshot: WorkflowSnapshot): string {
   const due = decisions(snapshot.now), upcoming = decisions(snapshot.comingUp);
   return ["Open plans", ...overview, ...(due.length ? ["Due", ...due] : []), ...(upcoming.length ? ["Coming up", ...upcoming] : []),
     ...(snapshot.problems ?? []).map(p => `- Plans unavailable: ${line(p.replace(/^Plans unavailable:\s*/i, ""))}`), ...(snapshot.warnings ?? []).map(p => `- Workflow note: ${line(p)}`)].join("\n");
+}
+
+/** S09: General's read-only portfolio lines, from the stored projection. Only unresolved cross-project choices,
+ * unsponsored cross-project plans and per-project allocation; never plan progress, memory text or routine facts.
+ */
+export function compactPortfolioBearings(portfolio: PortfolioSummary): string {
+  if (!portfolio.projects.length && !portfolio.crossProject.length && !portfolio.general.conflicts.length) return "";
+  const line = (text: string, max = 200) => { const t = text.replace(/\s+/g, " ").trim(); return t.length > max ? t.slice(0, max - 1) + "…" : t; };
+  const budget = (p: PortfolioSummary["projects"][number]) => p.budget ? `${p.granted.agents}/${p.budget.agents} agents granted` : "allocation unknown";
+  const stale = portfolio.lowerBound ? ` (stored ${portfolio.freshness}; counts are a lower bound)` : "";
+  return [`Portfolio${stale}`,
+    ...portfolio.projects.map(p => `- ${line(p.name, 80)}${p.state === "stopped" ? " (admissions stopped)" : ""}: ${p.plans} plan${p.plans === 1 ? "" : "s"}; ${budget(p)}${p.queued ? `; ${p.queued} queued` : ""}${p.memory.pending ? `; ${p.memory.pending} memory proposal${p.memory.pending === 1 ? "" : "s"} pending` : ""}${p.conflicts ? `; ${p.conflicts} open choice${p.conflicts === 1 ? "" : "s"}` : ""}.`),
+    ...(portfolio.general.conflicts.length || portfolio.general.unsponsored.length ? ["For General"] : []),
+    ...portfolio.general.conflicts.map(c => `- ${c.kind}: ${line(c.detail, 240)}`),
+    ...portfolio.general.unsponsored.map(id => `- sponsor: cross-project plan ${id} has no sponsor.`),
+  ].join("\n");
 }

@@ -156,12 +156,20 @@ mutations are refused. pr-watch's typed spool is opt-in (`FIRSTMATE_PR_OBSERVATI
 Dedupe is per source against its latest observation, and every content change in a stream is a new transition.
 A full spool fails the run without moving the baseline. Board correlation pages the typed timeline and records gaps.
 S08 writes stop at journal sequence 128, reserving the rest for effects and reconciliation.
+S09 (`docs/scoped-supervision/S09.md`) adds disabled project context and cross-project coordination: admitted projects
+with captain-set allocations, one sponsor per plan scope with all-or-none per-project budget claims (FIFO within
+priority, never borrowed), one owner per captain intake, qualified resolutions attached to unchanged bare cross-plan
+edges, CAS project memory and portfolio conflict records. Memory and these records are context only. `checkPolicy`
+refuses citing them, and a stopped project holds only new `plan.start`. Cross-project choices are owned by General,
+one-project choices by the project. `portfolioSummary` is a pure read. Nothing is wired, and Bearings is unchanged.
+S09 writes stop at sequence 192; releases, stops and resolutions stay available for rollback.
 
 | File                          | What it owns                                                                              |
 | ----------------------------- | ----------------------------------------------------------------------------------------- |
 | `index.server.ts`             | Wiring — the RPCs, the display settings document, the steer relay hook.                    |
 | `index.client.tsx`            | Wiring — the screen, sidebar item, two panels, settings screen, ⌘K items, `/fm` `/bearings` `/ahoy`. |
 | `shared/supervision-migration.ts`, `server/supervision-gate.ts`, `server/supervision-migrate.ts` | S07: migration/disposition records, the legacy delivery cutover gate, and the disabled per-scope importer. |
+| `shared/supervision-projects.ts`, `server/supervision-project-state.ts`, `server/supervision-projects.ts`, `server/supervision-memory.ts` | S09: project/sponsor/intent/dependency/memory/conflict records, their journal row checks, the disabled coordination and memory commands, and the pure portfolio summary. |
 | `shared/fleet.ts`             | Every RPC contract, the card/fleet shapes, the daemon config shape, and `CREW_LABELS`.     |
 | `shared/settings.ts`          | The host settings document: List/Board, column order and folds, the chat's width, the poll interval, card spacing. |
 | `templates/`                  | **Every file the plugin writes into the home**, as Markdown laid out as it lands there, and the parts that go inside them. The first mate's behaviour is `templates/data/charter.md`. |
