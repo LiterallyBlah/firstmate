@@ -81,11 +81,11 @@ export const SHIPPED_QUALIFICATIONS: readonly StrongQualification[] = [];
 
 const parseVersion = (v: string) => { const m = /^(\d+)\.(\d+)\.(\d+)/.exec(v); return m ? [Number(m[1]), Number(m[2]), Number(m[3])] as const : null; };
 const compare = (a: readonly number[], b: readonly number[]) => a[0]! - b[0]! || a[1]! - b[1]! || a[2]! - b[2]!;
-/** The S00 column that describes an installed version. A version S00 did not inspect has none: unqualified. */
+/** The exact Paseo versions S00 inspected, one per column (R11 N7). Any other version, including another patch or a
+ * prerelease of the same minor, has no column and is unqualified: a re-probe adds its own exact version. */
+export const S00_INSPECTED = { "0.11.0": "floor011", "0.12.0": "proposal012", "0.13.0": "disk013" } as const satisfies Record<string, S00Column>;
 export function s00Column(installed: string): S00Column | null {
-  const v = parseVersion(installed);
-  if (!v || v[0] !== 0) return null;
-  return v[1] === 11 ? "floor011" : v[1] === 12 ? "proposal012" : v[1] === 13 ? "disk013" : null;
+  return Object.hasOwn(S00_INSPECTED, installed) ? S00_INSPECTED[installed as keyof typeof S00_INSPECTED] : null;
 }
 
 export interface CapabilityRequest {
@@ -94,7 +94,8 @@ export interface CapabilityRequest {
   /** Per-capability flags. All off by default. */
   flags: readonly string[];
   qualifications?: readonly unknown[];
-  /** A later S00 re-probe's rows. Defaults to the frozen S00 table; nothing at runtime supplies another. */
+  /** Test seam only: a hypothetical re-probe's rows. Defaults to the frozen S00 table; nothing at runtime supplies another,
+   * and it must be removed (with qualifications bound to digest-verified artifacts) before anything is wired (R11 N5). */
   s00?: Readonly<Record<S00Row, Readonly<Record<S00Column, S00Support>>>>;
 }
 export interface CapabilityVerdict {
@@ -105,8 +106,9 @@ export interface CapabilityReport {
   format: "firstmate.strong-capabilities/1"; installedVersion: string | null;
   /** `strong` only when every capability is enabled; anything less is cooperative, said plainly. */
   mode: "cooperative" | "strong"; capabilities: CapabilityVerdict[]; limits: readonly string[]; problems: string[];
-  /** Explicit claims. Each is true only when its capabilities are all enabled. */
-  claims: { authenticatedCallers: boolean; receiverExclusion: boolean; automaticFailover: boolean; automaticTakeover: boolean; conditionalArchive: boolean; fullAccessConfinement: false };
+  /** Explicit claims. Each is true only when its capabilities are all enabled. Failover and takeover are never claimed:
+   * S04 implements manual replacement only, whatever primitives exist (R11 N6). */
+  claims: { authenticatedCallers: boolean; receiverExclusion: boolean; automaticFailover: false; automaticTakeover: false; conditionalArchive: boolean; fullAccessConfinement: false };
 }
 
 /** Evaluate every strong capability. Pure. An unknown flag or a malformed qualification is reported, never used. */
@@ -135,13 +137,12 @@ export function evaluateStrongCapabilities(request: CapabilityRequest): Capabili
   });
   const strong = capabilities.every(c => c.state === "enabled");
   const on = (id: StrongCapability) => capabilities.find(c => c.id === id)!.state === "enabled";
-  const failover = on("authenticated-caller") && on("receiver-fence") && on("durable-subscriptions") && on("heartbeat-transfer");
   return { format: "firstmate.strong-capabilities/1", installedVersion: request.installedVersion,
     mode: strong ? "strong" : "cooperative", capabilities, limits: strong ? [STRONG_LIMIT] : COOPERATIVE_LIMITS,
     problems: [...(unknownFlags.length ? [`Unknown capability flag(s) ignored: ${unknownFlags.join(", ")}.`] : []),
       ...(malformed > 0 ? [`${malformed} qualification record(s) are malformed and ignored.`] : [])],
-    claims: { authenticatedCallers: on("authenticated-caller"), receiverExclusion: on("receiver-fence"), automaticFailover: failover,
-      automaticTakeover: failover, conditionalArchive: on("conditional-archive"), fullAccessConfinement: false } };
+    claims: { authenticatedCallers: on("authenticated-caller"), receiverExclusion: on("receiver-fence"), automaticFailover: false,
+      automaticTakeover: false, conditionalArchive: on("conditional-archive"), fullAccessConfinement: false } };
 }
 
 /** Use a strong capability or refuse. A refusal is final for that call: there is no cooperative fallback. */
@@ -161,26 +162,54 @@ export function strongFlags(env: Record<string, string | undefined> = process.en
 // approval needs and refuses until each condition has its evidence.
 
 export const EXECUTOR_CONDITIONS = [
-  { id: "realpath", source: "R10 B1-R", met: "code", detail: "Symlink and junction aliases resolved before planning (`resolveCleanupAliases`)." },
+  { id: "realpath", source: "R10 B1-R", met: "code", detail: "Top-level symlink and junction aliases of candidates and retained paths resolved before planning (`resolveCleanupAliases`)." },
   { id: "E1", source: "R10 round 3", met: "code", detail: "A retained filesystem root (`/`, `C:\\`) contains every path on it." },
   { id: "E2", source: "R10 round 3", met: "code", detail: "`\\\\?\\C:\\…` is canonicalised; other `\\\\?\\`/`\\\\.\\` forms and mid-path drive segments refuse the pass." },
   { id: "E3", source: "R10 round 3", met: "code", detail: "Path-like `retained` entries that are not absolute and canonical are refused at job definition." },
-  { id: "live-readers", source: "R10 live-daemon readers", met: "evidence", detail: "`retainedWorkspaces()` and `nativeSchedules()` exercised through the plugin channel on a throwaway daemon of the installed version." },
+  { id: "no-follow-delete", source: "R11 N3", met: "executor", detail: "The executor deletes without following links (lstat, unlink a link itself, never recurse through one), so an alias nested inside a selected candidate cannot reach a retained worktree." },
+  { id: "live-readers", source: "R10 live-daemon readers", met: "evidence", detail: "`retainedWorkspaces()` and `nativeSchedules()` exercised through the plugin channel on a throwaway daemon of the installed version, with a non-empty history that includes a persisted session whose provider is unavailable." },
   { id: "N7", source: "R10 N7", met: "gate", detail: "Duplicate-cleaner detection without a declared timer link stays a decision at the advisory-activation gate." },
   { id: "receiver", source: "S11 conservative", met: "gate", detail: "Advisory reservations are not receiver-enforced; an executor runs cooperatively and claims no exclusion." },
 ] as const;
-export const ReaderEvidenceSchema = z.object({
-  daemonVersion: semver, ref: z.string().min(1).max(1024), digest: SupervisionHash,
-  readers: z.object({ retainedWorkspaces: z.enum(["complete", "refused"]), nativeSchedules: z.enum(["complete", "incomplete"]) }).strict(),
-}).strict();
-export interface ExecutorApproval { approved: boolean; conditions: { id: string; satisfied: boolean; detail: string }[] }
-/** Whether a maintenance executor may be approved. Reader evidence must be for the installed version; N7 and the
+
+/** What a reader run must show (R11 N2). Read from the run's own artifact, never from a separate self-attested record. */
+const ReaderArtifactSchema = z.object({
+  paseo: semver, verdict: z.string(),
+  result: z.object({
+    retainedWorkspaces: z.object({ result: z.enum(["complete", "refused"]), value: z.object({ paths: z.array(z.string()) }).passthrough().optional() }).passthrough(),
+    nativeSchedules: z.object({ complete: z.boolean(), schedules: z.array(z.unknown()).optional() }).passthrough(),
+    /** Added by a run that seeds sessions: history pages read, entries, and entries whose provider was unavailable. */
+    history: z.object({ pages: z.number().int().min(0), entries: z.number().int().min(0), unavailableProviderSessions: z.number().int().min(0) }).strict().optional(),
+  }).passthrough(),
+}).passthrough();
+export type ConditionState = "met" | "partial" | "open";
+export interface ExecutorApproval { approved: boolean; conditions: { id: string; state: ConditionState; satisfied: boolean; detail: string; reasons: string[] }[] }
+/** The live-reader condition from a run's artifact: `met` only with both readers complete on the installed version and a
+ * non-empty history that includes an unavailable-provider session; `partial` for a smoke run that has neither. */
+export function readerCondition(installedVersion: string | null, artifact: string | undefined): { state: ConditionState; reasons: string[] } {
+  if (artifact === undefined) return { state: "open", reasons: ["No reader run artifact."] };
+  let parsed: z.infer<typeof ReaderArtifactSchema>;
+  try { parsed = ReaderArtifactSchema.parse(JSON.parse(artifact)); } catch { return { state: "open", reasons: ["The reader artifact is not a reader run result."] }; }
+  const r = parsed.result, reasons: string[] = [];
+  if (parsed.paseo !== installedVersion) return { state: "open", reasons: [`The run was on Paseo ${parsed.paseo}, not installed ${installedVersion ?? "(unknown)"}.`] };
+  if (r.retainedWorkspaces.result !== "complete" || !r.nativeSchedules.complete) return { state: "open", reasons: ["A reader did not complete."] };
+  if (!r.history || r.history.entries === 0) reasons.push("The history listing was empty: no entry was parsed and pagination across pages was not exercised.");
+  else if (r.history.unavailableProviderSessions === 0) reasons.push("No persisted session with an unavailable provider was listed.");
+  if (!(r.nativeSchedules.schedules ?? []).length) reasons.push("The schedule listing was empty.");
+  return { state: reasons.length ? "partial" : "met", reasons };
+}
+/** Whether a maintenance executor may be approved. Code conditions are met here; the executor must declare that it
+ * deletes without following links; reader evidence comes from the run artifact for the installed version; N7 and the
  * cooperative receiver limit need the captain's explicit acknowledgement at the advisory gate. */
-export function executorApproval(input: { installedVersion: string | null; readerEvidence?: unknown; acknowledged?: readonly string[] }): ExecutorApproval {
-  const evidence = ReaderEvidenceSchema.safeParse(input.readerEvidence);
-  const readers = evidence.success && evidence.data.daemonVersion === input.installedVersion && evidence.data.readers.retainedWorkspaces === "complete"
-    && evidence.data.readers.nativeSchedules === "complete";
-  const conditions = EXECUTOR_CONDITIONS.map(c => ({ id: c.id, detail: c.detail,
-    satisfied: c.met === "code" ? true : c.met === "evidence" ? readers : (input.acknowledged ?? []).includes(c.id) }));
+export function executorApproval(input: { installedVersion: string | null; readerArtifact?: string | undefined; acknowledged?: readonly string[];
+  executor?: { deleteFollowsLinks: boolean } }): ExecutorApproval {
+  const readers = readerCondition(input.installedVersion, input.readerArtifact);
+  const conditions = EXECUTOR_CONDITIONS.map(c => {
+    const { state, reasons }: { state: ConditionState; reasons: string[] } = c.met === "code" ? { state: "met", reasons: [] }
+      : c.met === "evidence" ? readers
+      : c.met === "executor" ? (input.executor?.deleteFollowsLinks === false ? { state: "met", reasons: [] } : { state: "open", reasons: ["No executor declares no-follow deletion."] })
+      : (input.acknowledged ?? []).includes(c.id) ? { state: "met", reasons: [] } : { state: "open", reasons: ["Not acknowledged at the advisory gate."] };
+    return { id: c.id, detail: c.detail, state, satisfied: state === "met", reasons };
+  });
   return { approved: conditions.every(c => c.satisfied), conditions };
 }

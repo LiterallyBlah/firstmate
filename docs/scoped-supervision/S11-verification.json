@@ -1,25 +1,31 @@
 {
-  "format": "firstmate.s11-verification/1",
+  "format": "firstmate.s11-verification/2",
   "slice": "S11",
   "base": {
     "commit": "d37c28f4bf2c97c859c652b6ad56c6dd7872860f",
     "note": "origin/main, the PR #158 (S10) merge"
   },
+  "review": {
+    "r11": "data/fm-ss-r11/report.md",
+    "reviewedHead": "751ed96459016978666033916bf1e3aadd7a7205",
+    "corrections": "docs/scoped-supervision/S11.md#r11-corrections-datafm-ss-r11reportmd-reviewed-head-751ed964"
+  },
   "d6": "option 2, conservative rollout amendment (data/fm-ss-d6): U1-U3 not delivered or assumed; strong capabilities refused",
   "r10Conditions": {
-    "realpath": "code: resolveCleanupAliases",
-    "E1": "code: root containment",
-    "E2": "code: long-path canonicalisation/refusal",
-    "E3": "code: JobInputSchema.retained refine",
-    "liveReaders": "evidence: docs/scoped-supervision/s11-readers/result.json (Paseo 0.13.0, both readers complete)",
-    "N7": "kept at the advisory-activation gate (executorApproval acknowledgement)"
+    "realpath": "code: resolveCleanupAliases (top-level aliases)",
+    "E1": "code",
+    "E2": "code",
+    "E3": "code",
+    "noFollowDelete": "executor condition (R11 N3); no executor ships",
+    "liveReaders": "PARTIAL (R11 N2): docs/scoped-supervision/s11-readers/result.json, Paseo 0.13.0, both readers complete, empty history; Windows only",
+    "N7": "kept at the advisory-activation gate"
   },
+  "s07ToS04": "implemented: SupervisorSessions.attach (explicit captain/first-mate action, S07-committed scope, no existing binding)",
   "journalBands": "S11 writes no journal rows; readiness reports S08 128, S10 160, S04/S09 192 from the owning constants",
   "runtime": {
     "node": "v23.7.0",
     "platform": "win32",
-    "paseoInstalled": "0.13.0",
-    "coreAutocrlf": true
+    "paseoInstalled": "0.13.0"
   },
   "typecheck": {
     "command": "npx tsc --noEmit",
@@ -27,9 +33,9 @@
     "output": ""
   },
   "s11Suites": {
-    "command": "npx vitest run server/supervision-capabilities.test.ts server/supervision-cooperative.test.ts server/supervision-jobs.test.ts server/supervision-migrate.test.ts server/supervision-resources.test.ts server/supervision-timers.test.ts shared/supervision.test.ts",
-    "total": 290,
-    "passed": 290,
+    "command": "npx vitest run server/supervision-capabilities.test.ts server/supervision-cooperative.test.ts server/supervision-jobs.test.ts server/supervision-migrate.test.ts server/supervisor-sessions.test.ts server/supervision-resources.test.ts server/supervision-timers.test.ts shared/supervision.test.ts",
+    "total": 307,
+    "passed": 307,
     "failed": 0,
     "s11Tests": [
       {
@@ -74,7 +80,12 @@
       },
       {
         "file": "server/supervision-capabilities.test.ts",
-        "title": "A18: each strong capability is explicitly supported or refused claims failover/takeover only with every U1/U2 capability, and never full-access confinement",
+        "title": "A18: each strong capability is explicitly supported or refused never claims automatic failover or takeover, even with every primitive: S04 replaces supervisors manually (R11 N6)",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-capabilities.test.ts",
+        "title": "A18: each strong capability is explicitly supported or refused matches only the exact versions S00 inspected; other patches and prereleases are unqualified (R11 N7)",
         "status": "passed"
       },
       {
@@ -84,22 +95,42 @@
       },
       {
         "file": "server/supervision-capabilities.test.ts",
+        "title": "U1–U3 receiver seams refuse what is not delivered a subscription receiver needs heartbeat transfer as well as durable subscriptions (R11 N1/C06)",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-capabilities.test.ts",
         "title": "U1–U3 receiver seams refuse what is not delivered reads a U1 receipt strictly: a delayed old fence is STALE, a malformed or foreign answer is uncertain",
         "status": "passed"
       },
       {
         "file": "server/supervision-capabilities.test.ts",
-        "title": "R10 round-3 executor-approval conditions lists realpath, E1–E3, the live readers, N7 and the receiver limit",
+        "title": "U1–U3 receiver seams refuse what is not delivered ties the reason to the state: a reason without a rejection, or a rejection without one, is uncertain (R11 N8)",
         "status": "passed"
       },
       {
         "file": "server/supervision-capabilities.test.ts",
-        "title": "R10 round-3 executor-approval conditions refuses approval by default; code conditions are met, evidence and the gate's acknowledgements are not",
+        "title": "R10 round-3 and R11 executor-approval conditions lists realpath, E1–E3, no-follow deletion, the live readers, N7 and the receiver limit",
         "status": "passed"
       },
       {
         "file": "server/supervision-capabilities.test.ts",
-        "title": "R10 round-3 executor-approval conditions needs reader evidence for the installed version, both readers complete, and N7 kept at the advisory gate",
+        "title": "R10 round-3 and R11 executor-approval conditions refuses approval by default; code conditions are met, the executor, evidence and the gate's acknowledgements are not",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-capabilities.test.ts",
+        "title": "R10 round-3 and R11 executor-approval conditions the S11 smoke run is PARTIAL: an empty history cannot close the live-reader condition (R11 N2)",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-capabilities.test.ts",
+        "title": "R10 round-3 and R11 executor-approval conditions accepts no self-attested record: only a run artifact for the installed version with both readers complete",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-capabilities.test.ts",
+        "title": "R10 round-3 and R11 executor-approval conditions approves only with a non-empty reader run, a no-follow executor and N7/receiver acknowledged (R11 N3)",
         "status": "passed"
       },
       {
@@ -144,6 +175,26 @@
       },
       {
         "file": "server/supervision-cooperative.test.ts",
+        "title": "cooperativeReadiness: explicit dependencies of a drained cooperative scope R11 B1: no supervisor is no owner. A scope without exactly one active, verified binding is not ready",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-cooperative.test.ts",
+        "title": "cooperativeReadiness: explicit dependencies of a drained cooperative scope R11 N1/N9: a non-active backend without a migration row, and starting, planned-with-worker or unaccounted imported attempts hold",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-cooperative.test.ts",
+        "title": "cooperativeReadiness: explicit dependencies of a drained cooperative scope R11 N4: an S10 host pass with dispatched or uncertain items, or an open incident, of this scope's jobs holds",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-cooperative.test.ts",
+        "title": "cooperativeReadiness: explicit dependencies of a drained cooperative scope R11 N9: held admissions hold even with a current journal; a retired scope stays visibly held in the rollout",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-cooperative.test.ts",
         "title": "cooperativeReadiness: explicit dependencies of a drained cooperative scope a legacy, held, transferring or unknown scope is not ready",
         "status": "passed"
       },
@@ -183,6 +234,11 @@
         "status": "passed"
       },
       {
+        "file": "server/supervision-jobs.test.ts",
+        "title": "A04 in maintenance: shared caches, selectors and retained worktrees S11 / R11 N1: a resolved path overlapping a retained path excludes its candidate; a tagged candidate's resolved path is retained",
+        "status": "passed"
+      },
+      {
         "file": "server/supervision-migrate.test.ts",
         "title": "L1: a notified-but-unhandled action with General busy transfers once; the old entry goes only after its mapping",
         "status": "passed"
@@ -201,117 +257,165 @@
         "file": "server/supervision-migrate.test.ts",
         "title": "release: an aborted cutover restores removed entries exactly, sends nothing itself, and hands the plan back",
         "status": "passed"
+      },
+      {
+        "file": "server/supervisor-sessions.test.ts",
+        "title": "S04 supervisor lifecycle (synthetic receiver) S11 attach: only a scope S07 has cut over; never a dormant, bound or un-migrated scope, and never by an agent",
+        "status": "passed"
       }
     ]
   },
   "fullSuite": {
     "command": "npx vitest run",
     "files": 199,
-    "passed": 2942,
+    "passed": 2955,
     "skipped": 3,
-    "failed": 3,
+    "failed": 1,
     "failures": [
-      "server/launch-tool.test.ts remote scout (Windows EPERM flake)",
-      "server/supervision-status-reader.test.ts 176-transaction warm read (load timing)",
-      "test/supervision-r02.test.ts quarantine retries (5 s timeout under load)"
+      "server/launch-tool.test.ts (known Windows file-lock flake: reruns of that file alone failed 2 and 3 different tests)"
     ],
-    "rerun": {
-      "command": "npx vitest run server/launch-tool.test.ts server/supervision-status-reader.test.ts test/supervision-r02.test.ts",
-      "passed": 105,
-      "failed": 0
-    },
-    "note": "None of the three files is touched by S11; all pass on rerun. CI is the authoritative run."
+    "note": "S11 does not touch launch-tool or its helper. CI is the authoritative run."
   },
   "mutations": {
-    "script": ".local/s11-mut/mutate.cjs and mutate2.cjs (development only, not shipped)",
-    "distinctGuards": 38,
-    "caught": 37,
-    "lines": [
-      "caught E1 root containment",
-      "caught E2 strip long-path prefix",
-      "not caught: E2 refuse UNC/device long path (redundant; see notes)",
-      "caught E2 mid-path drive segment",
-      "caught E3 definition refine",
-      "caught E3 tilde",
-      "caught realpath candidate names",
-      "caught realpath retained resolved name",
-      "caught realpath non-ENOENT refuses",
-      "caught requireStrong refusal",
-      "caught S00 row check",
-      "caught uninspected version",
-      "caught qualification version max (test added; missed on the first run)",
-      "caught qualification needs bypass analysis",
-      "caught qualification live only",
-      "caught failover needs all U1/U2",
-      "caught executor evidence version",
-      "caught executor N7 gate",
-      "caught bind refuses disabled receiver",
-      "caught foreign admission uncertain",
-      "caught stale fence STALE",
-      "caught readiness transfer awaits ack",
-      "caught readiness unresolved hold",
-      "caught readiness removal pending",
-      "caught readiness effects",
-      "caught readiness unknown callback owner",
-      "caught readiness imported live worker",
-      "caught readiness unresolved node (test added; missed on the first run)",
-      "caught readiness bands",
-      "caught readiness freshness",
-      "caught readiness scope legacy",
-      "caught readiness binding",
-      "caught readiness cutover prepared",
-      "caught readiness cutover aborted",
-      "caught readiness suspect reservation",
-      "caught readiness held dependency",
-      "caught readiness board sends",
-      "caught readiness operation holds"
-    ],
-    "notes": [
-      "E2 UNC/device throw: removing it still refuses every tested form through the ? segment or not-absolute rule, so no test can distinguish it.",
-      "Two guards missed on the first run (qualification version max, readiness unresolved node) received tests and are now caught."
-    ]
+    "original": {
+      "script": ".local/s11-mut/mutate.cjs and mutate2.cjs (development only, not shipped)",
+      "distinctGuards": 38,
+      "caught": 37,
+      "lines": [
+        "caught E1 root containment",
+        "caught E2 strip long-path prefix",
+        "not caught: E2 refuse UNC/device long path (redundant; see notes)",
+        "caught E2 mid-path drive segment",
+        "caught E3 definition refine",
+        "caught E3 tilde",
+        "caught realpath candidate names",
+        "caught realpath retained resolved name",
+        "caught realpath non-ENOENT refuses",
+        "caught requireStrong refusal",
+        "caught S00 row check",
+        "caught uninspected version",
+        "caught qualification version max (test added; missed on the first run)",
+        "caught qualification needs bypass analysis",
+        "caught qualification live only",
+        "caught failover needs all U1/U2",
+        "caught executor evidence version",
+        "caught executor N7 gate",
+        "caught bind refuses disabled receiver",
+        "caught foreign admission uncertain",
+        "caught stale fence STALE",
+        "caught readiness transfer awaits ack",
+        "caught readiness unresolved hold",
+        "caught readiness removal pending",
+        "caught readiness effects",
+        "caught readiness unknown callback owner",
+        "caught readiness imported live worker",
+        "caught readiness unresolved node (test added; missed on the first run)",
+        "caught readiness bands",
+        "caught readiness freshness",
+        "caught readiness scope legacy",
+        "caught readiness binding",
+        "caught readiness cutover prepared",
+        "caught readiness cutover aborted",
+        "caught readiness suspect reservation",
+        "caught readiness held dependency",
+        "caught readiness board sends",
+        "caught readiness operation holds"
+      ],
+      "notes": [
+        "E2 UNC/device throw: removing it still refuses every tested form through the ? segment or not-absolute rule, so no test can distinguish it.",
+        "Two guards missed on the first run (qualification version max, readiness unresolved node) received tests and are now caught."
+      ]
+    },
+    "r11": {
+      "script": ".local/s11-mut/mutate3.cjs (development only)",
+      "distinctGuards": 23,
+      "caught": 23,
+      "lines": [
+        "caught B1 no binding is no owner",
+        "caught B1 two bindings",
+        "caught B1 binding must be active",
+        "caught B1 verified workspace",
+        "caught N9 admissions held",
+        "caught N9 planned node naming a worker is live",
+        "caught N9 retired scopes listed in rollout",
+        "caught N1/R01 cutover backend check",
+        "caught N1/R04 starting is live",
+        "caught N1/R03 unaccounted imported attempt",
+        "caught N4 unsettled host pass",
+        "caught N4 open incident",
+        "caught N1/J03 realPath overlap",
+        "caught N1/J04 tagged realPath retained",
+        "caught attach actor",
+        "caught attach needs cut-over",
+        "caught attach never a second binding",
+        "caught N8 reason tied to state",
+        "caught N2 empty history is partial",
+        "caught N2 unavailable provider required",
+        "caught N2 artifact version",
+        "caught N3 no-follow executor",
+        "caught N7 exact version"
+      ]
+    }
   },
   "liveReaders": {
     "script": "docs/scoped-supervision/s11-readers/run.mjs",
     "result": "docs/scoped-supervision/s11-readers/result.json",
     "resultSha256": "ca196767dab04aa15618849e02cc997886db24e056cb32bff738d4682e870ac3",
-    "limit": "Empty history listing (no session was created); multi-page pagination and the missing workspaceId/cwd refusal remain fixture-only. Windows only."
+    "condition": "partial",
+    "limit": "Empty history listing (no session was created); multi-page pagination, unavailable-provider sessions and the missing workspaceId/cwd refusal remain fixture-only. Windows only."
   },
+  "hashes": "sha256 over LF-normalised bytes (equal to git blob content); gitBlob is authoritative",
   "files": {
     "server/supervision-capabilities.ts": {
-      "sha256": "054ee610cf67a1351c96b270e8255f921fa3c1a39b646df6762cf600b764b753",
-      "gitBlob": "bafdda6829641965510dad6cd81c6493e8b8c892"
+      "sha256": "5b5edf27521f953b4269368a5367b75e1a0c614235e634e7d6fe2976626a8e79",
+      "gitBlob": "de4c12e9d379002724994b85503c83b11f34153e"
     },
     "server/supervision-receivers.ts": {
-      "sha256": "0cba88d19870a85b0903ff230f7d0732ec746145e99edd985ccc06792db1e3f2",
-      "gitBlob": "ec860108a8756968ea5fc97190bf02d293352a20"
+      "sha256": "b3b54e9e1eb3acfdfe2d5ee50feb422fdbc85986f53ab095b3b97fc5b2a1bebe",
+      "gitBlob": "8b8232e73dfd8b7d38aa63b2aca8c02ac5e01b32"
     },
     "server/supervision-cooperative.ts": {
-      "sha256": "13064b4dedf2d4783f6c1723cfda39be9bd1129002df7fb621ef5acdb549133a",
-      "gitBlob": "7cf6070023f718819434761fe9c83d86393ffe0a"
+      "sha256": "8b7c1840c0e09238b5f646585d9f70e64c9ac2bafb25eee1300afe01668d093b",
+      "gitBlob": "dd2bf8b4c0adf5cf6854493cc363f9db21b1ffa0"
     },
     "server/supervision-jobs.ts": {
-      "sha256": "575d49847a50c13e4025af1005f5f6fd1eb3f7a66465b586679d2d6a35520377",
+      "sha256": "7bb32ef72246bad2b34b1b0ebabbc68174e34a0c5d8de7d27db1c75d32e18aed",
       "gitBlob": "2b77d817f4a4bfb6bfa15c655eabb1c73a3a8d2f"
     },
+    "server/supervisor-sessions.ts": {
+      "sha256": "11aae0dcdc844e3531a525fb846257e55a956802c451dbcb77dfea190a8a1dd3",
+      "gitBlob": "2bba6d1c1656fe1c9f555c295442b3737e42c0b2"
+    },
     "server/supervision-capabilities.test.ts": {
-      "sha256": "f3e3995a318049bbccadc46660d034fff0e2701b06642b33a0822565784b2716",
-      "gitBlob": "5481faed8a70db00bea50540f3e140e08af05632"
+      "sha256": "e65c8dce81f1bd407a1b7fa2d334a109c39b2c95394903a1fb05bdccfc2afc6d",
+      "gitBlob": "1d070fd893c29746bca2a373680bb4684af96f6b"
     },
     "server/supervision-cooperative.test.ts": {
-      "sha256": "36573c431600e0478ce5365c3d2b7455380fc7e4ccf66d7691466d2fbb3847e9",
-      "gitBlob": "1ec542d517c8373f4c3bae30997bce6dff4d5afd"
+      "sha256": "bdf1a165690263ba8d7349d717aae0acccb518e1e97a05bccf4f212b4c35d631",
+      "gitBlob": "9e4b1559b75afeacc4922e8b7713d71222f1ebe9"
     },
     "server/supervision-jobs.test.ts": {
-      "sha256": "cd5f5f1ebdf411d96182be3c357af80804001f84c92b57c0ad2cb90a0602aea4",
-      "gitBlob": "d188487307512a6488a705677b49731711d8a953"
+      "sha256": "fd3ead3868bd8a2c9e715d68e43ec44d13a651107a04c3e618ed5a42bff62078",
+      "gitBlob": "a06d3be5af4d3e0406d187ead203822b3dca2d61"
     },
     "server/supervision-migrate.test.ts": {
-      "sha256": "8bdd95b32861d680340f5016fd7369ec6c6f6101a264c601f156b21c12c804b1",
-      "gitBlob": "f0b3d8e0c16355e720fa689f22126919b6ca8bee"
+      "sha256": "4c64ee76989b95e881288c7d13673156dd5fadfae12b270e7e5efa9d42fe5acc",
+      "gitBlob": "57e3dcaa9a60c385bdd084cbae57e85738102b3b"
+    },
+    "server/supervisor-sessions.test.ts": {
+      "sha256": "a52ec2c2ee0f0eda3e6d7e147b32327ea9eb1a9ca963ccbf1baf4576d03407af",
+      "gitBlob": "65cb0fa2f0a0bfc434fea88e659d5b274eae8bb5"
+    },
+    "server/archive-inventory.ts": {
+      "sha256": "fcf0bfe77ec8f8c65c5045f2807e5dece57922bda3a0442f9906fcd1d5d89497",
+      "gitBlob": "dd3531dd0e6586520312653843b7ad579126ebc6"
+    },
+    "server/daemon-session.ts": {
+      "sha256": "637f781098c0379f2411e59eefb6b76a626c124114a084b2ad927fa1de56d7f2",
+      "gitBlob": "02183f752744924f3a3a91f0f0b1387364b5a4aa"
     },
     "docs/scoped-supervision/s11-readers/run.mjs": {
-      "sha256": "01cec59b7f39a1b9531a559036c2a0823746f150921fae03bbd714ecc4094847",
+      "sha256": "938960d58b31587994f07647c7d88bf3362de7b248453abab39e605942f4b010",
       "gitBlob": "c6ad23b10f3c8b0a1bcce344e8cc484037c8bf00"
     },
     "docs/scoped-supervision/s11-readers/result.json": {

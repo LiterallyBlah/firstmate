@@ -475,6 +475,17 @@ describe("A04 in maintenance: shared caches, selectors and retained worktrees", 
       { workspaces: [], volumes: [], paths: [] }).selected).toEqual([]);
   });
 
+  it("S11 / R11 N1: a resolved path overlapping a retained path excludes its candidate; a tagged candidate's resolved path is retained", () => {
+    const none = { workspaces: [], volumes: [] }, selectors = [{ kind: "path-prefix" as const, value: "/cache" }];
+    // J03: the literal path is clear, but it resolves onto a retained worktree.
+    expect(planCleanup({ id: J, selectors, retained: [] }, "mini", [{ id: "a", path: "/cache/a", realPath: "/cache/live/wt", owner: "known" }, { id: "b", path: "/cache/b", realPath: "/cache/b", owner: "known" }],
+      { ...none, paths: ["/cache/live/wt"] }).selected.map(s => s.candidate.id)).toEqual(["b"]);
+    // J04: a volume-tagged candidate that resolves elsewhere protects that place too.
+    expect(planCleanup({ id: J, selectors, retained: [] }, "mini", [{ id: "vol", path: "/cache/vol", realPath: "/cache/real-vol", volumeId: "v1", owner: "known" },
+      { id: "inside", path: "/cache/real-vol/x", realPath: "/cache/real-vol/x", owner: "known" }, { id: "ok", path: "/cache/tmp", realPath: "/cache/tmp", owner: "known" }],
+      { workspaces: [], volumes: ["v1"], paths: [] }).selected.map(s => s.candidate.id)).toEqual(["ok"]);
+  });
+
   it("cleanup stays inside its selectors and never touches retained worktrees, volumes or unknown owners", async () => {
     await activate();
     const candidates: MaintenanceCandidate[] = [

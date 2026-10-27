@@ -21,10 +21,14 @@ beforeAll(async () => {
   base = await store.read();
 });
 const scope = (id: string, extra: object = {}) => ({ id, homeId: base.homeId, kind: "plan", projectIds: [], sponsorId: null, version: 1, mode: "scoped", state: "active", ...extra });
+/** An active, verified supervisor binding: the scope's one current owner. */
+const bound = (scopeId: string, extra: object = {}) => ({ scopeId, epoch: 1, hostId: "local", agentId: `sup-${scopeId.slice(0, 4)}`, workspaceId: "ws-sup",
+  profileDigest: "b".repeat(64), state: "active", checkpointHash: "c".repeat(64), acknowledgedSeq: 0, heartbeatDue: null, ...extra });
 /** A drained scope with one finished scoped attempt, and an unrelated scope. Extra rows are synthetic projection rows. */
 function status(patch: (s: SupervisionStatus) => void = () => {}): SupervisionStatus {
   const s = structuredClone(base) as SupervisionStatus;
   s.scopes = [scope(SCOPE), scope(OTHER)] as never;
+  s.bindings = [bound(SCOPE), bound(OTHER)] as never;
   s.tasks = [{ id: TASK, ownerScopeId: SCOPE, planId: "scheduler", nodeId: "build", projectId: randomUUID(), hostId: "local", version: 1, currentAttempt: ATTEMPT }];
   s.attempts = [{ id: ATTEMPT, taskId: TASK, ordinal: 1, briefHash: "a".repeat(64), launchEffectId: randomUUID(), worker: { hostId: "local", agentId: "w1", workspaceId: "ws1" },
     originalNotificationOwner: null, notificationStatus: "known", spentAgents: 1, spentTurns: 1, state: "prompted", evidenceIds: [], version: 2 }];
@@ -78,8 +82,51 @@ describe("cooperativeReadiness: explicit dependencies of a drained cooperative s
   it("A05: a stopped scope (operation hold) and a suspect or prepared supervisor are held, not taken over", () => {
     expect(unmet(status(x => { x.operationHolds = [{ scopeId: SCOPE, state: "held", operations: ["plan.start"], reason: "Project stopped." } as never]; }))).toEqual(["holds"]);
     for (const state of ["prepared", "suspect"])
-      expect(unmet(status(x => { x.bindings = [{ scopeId: SCOPE, epoch: 2, state } as never]; }))).toEqual(["binding"]);
-    expect(unmet(status(x => { x.bindings = [{ scopeId: SCOPE, epoch: 2, state: "active" } as never]; }))).toEqual([]);
+      expect(unmet(status(x => { x.bindings = [bound(SCOPE, { epoch: 2, state })] as never; }))).toEqual(["binding"]);
+    expect(unmet(status(x => { x.bindings = [bound(SCOPE, { epoch: 2 })] as never; }))).toEqual([]);
+  });
+  it("R11 B1: no supervisor is no owner. A scope without exactly one active, verified binding is not ready", () => {
+    const r = cooperativeReadiness(status(x => { x.bindings = [bound(OTHER)] as never; }), SCOPE);
+    expect(r.ready).toBe(false);
+    expect(r.dependencies.find(d => d.id === "binding")).toMatchObject({ satisfied: false, reasons: [expect.stringMatching(/No current owner/)] });
+    expect(unmet(status(x => { x.bindings = [bound(SCOPE, { state: "retired" })] as never; }))).toEqual(["binding"]);
+    expect(unmet(status(x => { x.bindings = [bound(SCOPE, { workspaceId: null, workspaceIntent: "ws-i" })] as never; }))).toEqual(["binding"]);
+    expect(unmet(status(x => { x.bindings = [bound(SCOPE), bound(SCOPE, { epoch: 2 })] as never; }))).toEqual(["binding"]);
+    // A dormant, never-bound scope does not count either.
+    expect(unmet(status(x => { x.scopes[0]!.state = "dormant"; x.bindings = [] as never; }))).toEqual(["binding"]);
+    expect(cooperativeRollout(status(x => { x.bindings = [bound(OTHER)] as never; }))).toMatchObject({ ready: [OTHER], held: [{ scopeId: SCOPE, unmet: ["binding"] }] });
+  });
+  it("R11 N1/N9: a non-active backend without a migration row, and starting, planned-with-worker or unaccounted imported attempts hold", () => {
+    for (const [backend, state] of [["scoped", "prepared"], ["scoped", "held"], ["legacy", "active"]])
+      expect(unmet(status(x => { x.backends = [{ planId: "scheduler", ownerScopeId: SCOPE, backend, state, sourceHash: null, version: 1 } as never]; }))).toEqual(["cutover"]);
+    expect(unmet(status(x => { x.backends = [{ planId: "scheduler", ownerScopeId: SCOPE, backend: "scoped", state: "active", sourceHash: null, version: 1 } as never]; }))).toEqual([]);
+    const imported = (node: object | null) => status(x => {
+      x.attempts[0]!.importedFrom = { migrationId: randomUUID(), legacyAttempt: "legacy-1", node: "build" };
+      x.attempts[0]!.originalNotificationOwner = "general";
+      x.plans = [{ scopeId: SCOPE, plan: { definition: { id: "scheduler" }, nodes: node ? { build: { attempt: "legacy-1", ...node } } : {} } as never }];
+    });
+    expect(unmet(imported(null))).toEqual(["workers"]); // Unaccounted: the legacy attempt is in no node.
+    expect(unmet(imported({ state: "starting" }))).toEqual(["workers"]);
+    expect(unmet(imported({ state: "planned", agentId: "worker-1" }))).toEqual(["workers"]);
+    expect(unmet(imported({ state: "planned" }))).toEqual([]);
+    expect(unmet(imported({ state: "done" }))).toEqual([]);
+  });
+  it("R11 N4: an S10 host pass with dispatched or uncertain items, or an open incident, of this scope's jobs holds", () => {
+    const JOB = randomUUID();
+    const rows = (hosts: object[], incidents: object[]) => status(x => { x.maintenance = { reservations: [], occurrences: [],
+      jobs: [{ id: JOB, scopeId: SCOPE } as never], hosts: hosts as never, incidents: incidents as never }; });
+    const host = (state: string) => ({ id: randomUUID(), jobId: JOB, hostId: "mini", items: [{ key: "k", state }] });
+    expect(unmet(rows([host("dispatched")], []))).toEqual(["reservations"]);
+    expect(unmet(rows([host("uncertain")], []))).toEqual(["reservations"]);
+    expect(unmet(rows([host("done")], []))).toEqual([]);
+    expect(unmet(rows([], [{ id: randomUUID(), jobId: JOB, kind: "offline", state: "open" }]))).toEqual(["reservations"]);
+    expect(unmet(rows([], [{ id: randomUUID(), jobId: JOB, kind: "offline", state: "resolved" }]))).toEqual([]);
+    // Another scope's job does not hold this one.
+    expect(unmet(rows([{ ...host("uncertain"), jobId: randomUUID() }], []))).toEqual([]);
+  });
+  it("R11 N9: held admissions hold even with a current journal; a retired scope stays visibly held in the rollout", () => {
+    expect(unmet(status(x => { x.storage.admissionsHeld = true; }))).toEqual(["journal"]);
+    expect(cooperativeRollout(status(x => { x.scopes[1]!.state = "retired"; }))).toMatchObject({ ready: [SCOPE], held: [{ scopeId: OTHER, unmet: ["scope"] }] });
   });
   it("a legacy, held, transferring or unknown scope is not ready", () => {
     expect(unmet(status(x => { x.scopes[0]!.mode = "legacy"; }))).toEqual(["scope"]);

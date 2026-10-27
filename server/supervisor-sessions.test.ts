@@ -4,6 +4,7 @@ import type { SupervisionActor } from "../shared/supervision";
 import { activationEffects, supervisorSpend } from "./supervisor-sessions";
 import { deriveContinuation, recordContinuation } from "./supervision-continuation";
 import { captain, s04Fixture, type S04Fixture, type ScopeHandle } from "../test/supervision-s04-fixture";
+import { expected } from "../test/supervision-fixture";
 
 const profile = { provider: "claude/opus-5.5", modeId: "default", thinkingOptionId: "high" };
 async function dormant(fx: S04Fixture, n = 1) { return fx.addScope(n, `plan-${n}`, [`n${n}-trial`], false); }
@@ -52,6 +53,21 @@ describe("S04 supervisor lifecycle (synthetic receiver)", { timeout: 60000 }, ()
     expect((await fx.gateway.reconcile(effects.create!.id)).state).toBe("succeeded");
     await fx.sessions.verify(scope.id, 1);
     expect(fx.receiver.agents.size).toBe(1);
+  });
+
+  it("S11 attach: only a scope S07 has cut over; never a dormant, bound or un-migrated scope, and never by an agent", async () => {
+    const fx = await s04Fixture(), scope = await dormant(fx), bound = await fx.addScope(2, "plan-2", ["n2-trial"]);
+    const attach = async (id: string, actor: SupervisionActor = captain) => fx.sessions.attach({ requestId: randomUUID(), scopeId: id,
+      scopeVersion: (await fx.store.read()).scopes.find(s => s.id === id)!.version, profile, opening: "x" }, actor);
+    await expect(attach(scope.id)).rejects.toMatchObject({ code: "HELD" });
+    await expect(attach(bound.id)).rejects.toMatchObject({ code: "HELD" });
+    await expect(attach(scope.id, { kind: "agent", id: "general-first-mate", source: "x" })).rejects.toMatchObject({ code: "UNSUPPORTED" });
+    await expect(attach(scope.id, { kind: "system", id: "timer", source: "x" })).rejects.toMatchObject({ code: "UNSUPPORTED" });
+    expect((await fx.store.read()).bindings.filter(b => b.scopeId === scope.id)).toEqual([]);
+    // Active with no binding but never migrated by S07: still not attachable.
+    const row = (await fx.store.read()).scopes.find(s => s.id === scope.id)!, active = { ...row, state: "active" as const, version: row.version + 1 };
+    await fx.store.transact(expected([{ kind: "scope", value: active }], row.version), randomUUID(), [{ kind: "scope", value: active }]);
+    await expect(attach(scope.id)).rejects.toMatchObject({ code: "HELD", message: expect.stringMatching(/S07 has cut over/) });
   });
 
   it("never lets a scope supervisor be the global first mate", async () => {

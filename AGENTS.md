@@ -174,12 +174,17 @@ segment and retained-path containment. S10 admissions stop at 160, closures at 1
 S11 (`docs/scoped-supervision/S11.md`) follows D6's conservative amendment: U1–U3 are not delivered or assumed.
 `server/supervision-capabilities.ts` keeps the S00 strong rows and refuses every strong capability (`UNSUPPORTED`,
 never a cooperative fallback) unless its flag, an S00-supported version column and a live `StrongQualification` all
-hold; none ships, and `fullAccessConfinement` is always false. `server/supervision-receivers.ts` holds the U1–U3
+hold; none ships, versions match S00's exact inspected releases, and failover, takeover and `fullAccessConfinement` are
+always false. `server/supervision-receivers.ts` holds the U1–U3
 adapter shapes, refusing any receiver for a capability not enabled. `server/supervision-cooperative.ts` is a pure
-read: a scope is ready for cooperative rollout only when every named S01/S03/S04/S07/S08/S09/S10 dependency holds
-(no uncertainty, unaccounted callback owner, unfinished cutover, suspect reservation or reached journal band).
+read: a scope is ready for cooperative rollout only when every named S01/S03/S04/S07/S08/S09/S10 dependency holds,
+including exactly one active, verified supervisor binding (no binding is no owner), and no uncertainty, unaccounted
+callback owner, unfinished cutover, suspect reservation, unsettled host pass, open incident or reached journal band.
+`SupervisorSessions.attach` is the only way an S07-committed scope gets its first supervisor: explicit, captain or
+first mate only, never over an existing binding.
 It writes nothing and never claims fleet-wide relief. R10's E1–E3 and realpath (`resolveCleanupAliases`) are fixed in
-`planCleanup`; `executorApproval` also needs installed-version reader evidence and N7/receiver acknowledgements.
+`planCleanup`; `executorApproval` also needs a no-follow-deleting executor, a non-empty reader run artifact for the
+installed version (the S11 smoke run is only partial) and N7/receiver acknowledgements.
 
 | File                          | What it owns                                                                              |
 | ----------------------------- | ----------------------------------------------------------------------------------------- |

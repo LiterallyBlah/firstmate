@@ -21,7 +21,9 @@ export const AdmissionReceiptSchema = z.object({
   receiptVersion: count.min(1), caller: text(),
   /** Why a rejection happened, as the receiver states it: a stale fence is `stale-fence`. */
   reason: z.enum(["stale-fence", "unauthenticated", "precondition", "other"]).nullable(),
-}).strict();
+}).strict()
+  // R11 N8: a rejection always names its reason and nothing else has one; an inconsistent receipt reads as uncertain.
+  .refine(r => (r.state === "rejected") === (r.reason !== null), "A reason accompanies a rejection, and only a rejection.");
 export type AdmissionReceipt = z.infer<typeof AdmissionReceiptSchema>;
 export interface EffectAdmissionReceiver {
   admitEffect(request: z.infer<typeof AdmissionRequestSchema>): Promise<unknown>;

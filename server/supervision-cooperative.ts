@@ -7,7 +7,7 @@
  * A ready scope is cooperative, nothing more (`COOPERATIVE_LIMITS`): no isolation, failover or takeover claim.
  */
 import type { SupervisionStatus } from "../shared/supervision";
-import { MAINTENANCE_ADMISSION_CEILING } from "../shared/supervision-maintenance";
+import { MAINTENANCE_ADMISSION_CEILING, unsettled } from "../shared/supervision-maintenance";
 import { SOURCE_LIMITS } from "../shared/supervision-sources";
 import { COOPERATIVE_LIMITS } from "./supervision-capabilities";
 import { SUPERVISION_INDEX_LIMITS } from "./supervision-store";
@@ -42,14 +42,19 @@ export function cooperativeReadiness(status: SupervisionStatus, scopeId: string)
 
   const journal = dep("journal", "S01", [
     ...(status.freshness !== "current" ? [`The journal is ${status.freshness}; nothing can be shown drained.`] : []),
+    ...(status.freshness === "current" && status.storage.admissionsHeld ? ["Journal admissions are held (storage or admission ceiling); new work cannot be admitted."] : []),
     ...reached.map(b => `Journal sequence ${status.sequence} reached ${b.slice}'s band at ${b.ceiling}: ${b.stops} stopped, so observations may be stale.`),
   ]);
   const scopeDep = dep("scope", "S03", !scope ? ["The scope is not registered."] : [
     ...(scope.mode !== "scoped" ? ["The scope is still legacy."] : []),
     ...(["held", "transferring", "retired"].includes(scope.state) ? [`The scope is ${scope.state}.`] : []),
   ]);
-  const binding = dep("binding", "S04", status.bindings.filter(b => b.scopeId === scopeId && (b.state === "prepared" || b.state === "suspect"))
-    .map(b => `Supervisor epoch ${b.epoch} is ${b.state}: its owner is not shown current, and a replacement is manual only.`));
+  // R11 B1: a scope is supervised only by exactly one active binding with a verified workspace. No binding is no owner.
+  const own = status.bindings.filter(b => b.scopeId === scopeId);
+  const binding = dep("binding", "S04", own.length === 0 ? ["No current owner: the scope has no supervisor binding (attach one explicitly; nothing is taken over)."]
+    : own.length > 1 ? [`${own.length} bindings name this scope; exactly one current owner is required.`]
+    : own[0]!.state !== "active" ? [`Supervisor epoch ${own[0]!.epoch} is ${own[0]!.state}: its owner is not shown current, and a replacement is manual only.`]
+    : own[0]!.workspaceId === null ? [`Supervisor epoch ${own[0]!.epoch} has no verified workspace.`] : []);
 
   // S07: a plan this scope owns is cut over only by a committed migration; prepared/barrier hold both writers.
   const cutoverReasons: string[] = [];
@@ -77,22 +82,30 @@ export function cooperativeReadiness(status: SupervisionStatus, scopeId: string)
     if (!plan) return null;
     const all = [...Object.values(plan.nodes), ...(plan.removed ?? []).map(r => r.state)];
     const flat = all.flatMap(s => [s, ...(s.priorAttempts ?? [])]);
-    return flat.find(s => s.attempt === attempt)?.state ?? null;
+    return flat.find(s => s.attempt === attempt) ?? null;
   };
   const workers = dep("workers", "S07", attempts.flatMap(a => {
     const out: string[] = [];
     if (a.notificationStatus === "unknown") out.push(`Attempt ${a.id}'s native callback owner is unknown.`);
     if (a.importedFrom) {
-      const state = nodeState(tasks.find(t => t.id === a.taskId)!.planId, a.importedFrom.legacyAttempt);
-      if (state === null || LIVE_NODE.includes(state)) out.push(`Imported legacy attempt ${a.importedFrom.legacyAttempt} is ${state ?? "unaccounted"}; its callback still goes to ${a.originalNotificationOwner ?? "an unknown owner"}.`);
+      const node = nodeState(tasks.find(t => t.id === a.taskId)!.planId, a.importedFrom.legacyAttempt), state = node?.state ?? null;
+      // As S07's inventory: a planned node that already names a worker is treated as live.
+      if (state === null || LIVE_NODE.includes(state) || (state === "planned" && node?.agentId)) out.push(`Imported legacy attempt ${a.importedFrom.legacyAttempt} is ${state ?? "unaccounted"}; its callback still goes to ${a.originalNotificationOwner ?? "an unknown owner"}.`);
     }
     return out;
   }).concat(status.plans.filter(p => p.scopeId === scopeId).flatMap(p => Object.entries(p.plan.nodes)
     .filter(([, s]) => s.state === "unresolved").map(([node]) => `Plan ${p.plan.definition.id} node ${node} is unresolved (an uncertain launch).`))));
 
   const rows = status.maintenance;
-  const reservations = dep("reservations", "S10", (rows?.reservations ?? []).filter(r => r.scopeId === scopeId && r.state === "suspect")
-    .map(r => `Reservation ${r.id} is suspect: its holder's lease expired without terminal evidence.`));
+  // S10: a suspect reservation, a host pass with dispatched or uncertain items, or an open incident of this scope's jobs.
+  const jobs = new Set((rows?.jobs ?? []).filter(j => j.scopeId === scopeId).map(j => j.id));
+  const reservations = dep("reservations", "S10", [
+    ...(rows?.reservations ?? []).filter(r => r.scopeId === scopeId && r.state === "suspect")
+      .map(r => `Reservation ${r.id} is suspect: its holder's lease expired without terminal evidence.`),
+    ...(rows?.hosts ?? []).filter(h => jobs.has(h.jobId) && unsettled(h) > 0)
+      .map(h => `Host pass ${h.id} on ${h.hostId} has ${unsettled(h)} dispatched or uncertain item(s); they are never reapplied.`),
+    ...(rows?.incidents ?? []).filter(i => jobs.has(i.jobId) && i.state === "open").map(i => `Maintenance incident ${i.id} (${i.kind}) is open.`),
+  ]);
   const dependencies = dep("dependencies", "S09", (status.projects?.dependencies ?? []).filter(d => d.scopeId === scopeId && d.state === "held")
     .map(d => `Plan ${d.planId} node ${d.nodeId}'s dependency on ${d.edge.node} is held (${d.reason}).`));
   const boardSends = dep("board-sends", "S08", status.sources.submissions.filter(x => x.scopeId === scopeId && (x.state === "reserved" || x.state === "uncertain"))
@@ -109,7 +122,8 @@ export function cooperativeReadiness(status: SupervisionStatus, scopeId: string)
 /** Every non-General scope's readiness. Fleet-wide relief is never claimed here: a held scope, or any legacy source
  * outside the census S12 owns, still delivers to General. */
 export function cooperativeRollout(status: SupervisionStatus) {
-  const scopes = status.scopes.filter(s => s.kind !== "general" && s.state !== "retired").map(s => cooperativeReadiness(status, s.id));
+  // Retired scopes stay listed (held): a released plan is legacy again and must stay visible to S12's census.
+  const scopes = status.scopes.filter(s => s.kind !== "general").map(s => cooperativeReadiness(status, s.id));
   return { format: "firstmate.cooperative-rollout/1" as const, sequence: status.sequence, ready: scopes.filter(s => s.ready).map(s => s.scopeId),
     held: scopes.filter(s => !s.ready).map(s => ({ scopeId: s.scopeId, unmet: s.dependencies.filter(d => !d.satisfied).map(d => d.id) })),
     fleetWideRelief: false as const, scopes };

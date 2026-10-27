@@ -33,7 +33,7 @@ describe("S00 probes are kept, not re-derived", () => {
     for (const c of STRONG_CAPABILITIES) for (const r of c.rows) expect(rows.some(x => x.id === r)).toBe(true);
   });
   it("maps only the versions S00 inspected to a column", () => {
-    expect([s00Column("0.11.0"), s00Column("0.12.3"), s00Column("0.13.0"), s00Column("0.14.0"), s00Column("1.0.0"), s00Column("x")])
+    expect([s00Column("0.11.0"), s00Column("0.12.0"), s00Column("0.13.0"), s00Column("0.14.0"), s00Column("1.0.0"), s00Column("x")])
       .toEqual(["floor011", "proposal012", "disk013", null, null, null]);
   });
 });
@@ -93,7 +93,7 @@ describe("A18: each strong capability is explicitly supported or refused", () =>
     expect(evaluateStrongCapabilities({ installedVersion: "0.13.0", flags: ["durable-subscriptions"], qualifications: [q], ...s013 })
       .capabilities.find(c => c.id === "durable-subscriptions")!.state).toBe("refused");
   });
-  it("claims failover/takeover only with every U1/U2 capability, and never full-access confinement", () => {
+  it("never claims automatic failover or takeover, even with every primitive: S04 replaces supervisors manually (R11 N6)", () => {
     const quals = ALL.map(id => qualification(id, "0.13.0", "0.13.0"));
     const partial = evaluateStrongCapabilities({ installedVersion: "0.13.0", flags: ALL.filter(id => id !== "heartbeat-transfer"), qualifications: quals, ...s013 });
     expect(partial.mode).toBe("cooperative");
@@ -101,21 +101,33 @@ describe("A18: each strong capability is explicitly supported or refused", () =>
     const all = evaluateStrongCapabilities({ installedVersion: "0.13.0", flags: ALL, qualifications: quals, ...s013 });
     expect(all.mode).toBe("strong");
     expect(all.limits).toEqual([STRONG_LIMIT]);
-    expect(all.claims).toMatchObject({ automaticFailover: true, automaticTakeover: true, conditionalArchive: true, fullAccessConfinement: false });
+    expect(all.claims).toEqual({ authenticatedCallers: true, receiverExclusion: true, automaticFailover: false, automaticTakeover: false, conditionalArchive: true, fullAccessConfinement: false });
+  });
+  it("matches only the exact versions S00 inspected; other patches and prereleases are unqualified (R11 N7)", () => {
+    for (const v of ["0.13.1", "0.13.0-beta.1", "0.11.2", "0.12.9"]) {
+      expect(s00Column(v)).toBeNull();
+      expect(evaluateStrongCapabilities({ installedVersion: v, flags: ["conditional-archive"], qualifications: [qualification("conditional-archive", "0.11.0", "0.13.9")], ...s013 })
+        .capabilities.find(c => c.id === "conditional-archive")).toMatchObject({ state: "refused", reasons: expect.arrayContaining([expect.stringMatching(/S00 did not inspect/)]) });
+    }
   });
 });
 
 describe("U1–U3 receiver seams refuse what is not delivered", () => {
   const off = evaluateStrongCapabilities({ installedVersion: "0.13.0", flags: [] });
   const receiver = { admitEffect: async () => ({}), getEffect: async () => null };
+  const subscriptions = { list: async () => [], transfer: async () => ({}), cancel: async () => ({}) };
+  const enabled = (ids: string[]) => evaluateStrongCapabilities({ installedVersion: "0.13.0", flags: ids, qualifications: ids.map(id => qualification(id, "0.13.0", "0.13.0")), ...s013 });
   it("binds nothing and refuses any supplied receiver whose capability is not enabled", () => {
     expect(bindStrongReceivers(off, {})).toEqual({});
     expect(() => bindStrongReceivers(off, { admission: receiver })).toThrow(expect.objectContaining({ code: "UNSUPPORTED" }));
     expect(() => bindStrongReceivers(off, { archive: { archiveIfUnchanged: async () => ({}) } })).toThrow(expect.objectContaining({ code: "UNSUPPORTED" }));
-    const on = evaluateStrongCapabilities({ installedVersion: "0.13.0", flags: ["authenticated-caller", "receiver-fence"],
-      qualifications: [qualification("authenticated-caller", "0.13.0", "0.13.0"), qualification("receiver-fence", "0.13.0", "0.13.0")], ...s013 });
+    const on = enabled(["authenticated-caller", "receiver-fence"]);
     expect(bindStrongReceivers(on, { admission: receiver })).toEqual({ admission: receiver });
-    expect(() => bindStrongReceivers(on, { subscriptions: { list: async () => [], transfer: async () => ({}), cancel: async () => ({}) } })).toThrow(/durable-subscriptions/);
+    expect(() => bindStrongReceivers(on, { subscriptions })).toThrow(/durable-subscriptions/);
+  });
+  it("a subscription receiver needs heartbeat transfer as well as durable subscriptions (R11 N1/C06)", () => {
+    expect(() => bindStrongReceivers(enabled(["durable-subscriptions"]), { subscriptions })).toThrow(/heartbeat-transfer/);
+    expect(bindStrongReceivers(enabled(["durable-subscriptions", "heartbeat-transfer"]), { subscriptions })).toEqual({ subscriptions });
   });
   it("reads a U1 receipt strictly: a delayed old fence is STALE, a malformed or foreign answer is uncertain", () => {
     const stale = readAdmission("effect-1", { effectId: "e1", effectKey: "effect-1", state: "rejected", receiptVersion: 2, caller: "scope-a@1", reason: "stale-fence" });
@@ -124,23 +136,46 @@ describe("U1–U3 receiver seams refuse what is not delivered", () => {
     expect(readAdmission("effect-1", { effectId: "e2", effectKey: "effect-2", state: "admitted", receiptVersion: 1, caller: "c", reason: null })).toMatchObject({ state: "uncertain" });
     expect(() => refuseStaleAdmission(readAdmission("effect-1", { effectId: "e1", effectKey: "effect-1", state: "admitted", receiptVersion: 1, caller: "c", reason: null }) as never)).not.toThrow();
   });
+  it("ties the reason to the state: a reason without a rejection, or a rejection without one, is uncertain (R11 N8)", () => {
+    for (const state of ["admitted", "not-admitted", "succeeded", "failed", "uncertain"])
+      expect(readAdmission("k", { effectId: "e", effectKey: "k", state, receiptVersion: 1, caller: "c", reason: "stale-fence" })).toMatchObject({ state: "uncertain" });
+    expect(readAdmission("k", { effectId: "e", effectKey: "k", state: "rejected", receiptVersion: 1, caller: "c", reason: null })).toMatchObject({ state: "uncertain" });
+  });
 });
 
-describe("R10 round-3 executor-approval conditions", () => {
-  const evidence = { daemonVersion: "0.13.0", ref: "docs/scoped-supervision/s11-readers/result.json", digest: "c".repeat(64),
-    readers: { retainedWorkspaces: "complete", nativeSchedules: "complete" } };
-  it("lists realpath, E1–E3, the live readers, N7 and the receiver limit", () => {
-    expect(EXECUTOR_CONDITIONS.map(c => c.id)).toEqual(["realpath", "E1", "E2", "E3", "live-readers", "N7", "receiver"]);
+describe("R10 round-3 and R11 executor-approval conditions", () => {
+  const run = (extra: object = {}, result: object = {}) => JSON.stringify({ paseo: "0.13.0", verdict: "both readers complete", ...extra,
+    result: { retainedWorkspaces: { result: "complete", value: { workspaces: [], paths: [] } }, nativeSchedules: { complete: true, schedules: [{ id: "s" }] }, ...result } });
+  const seeded = { history: { pages: 2, entries: 3, unavailableProviderSessions: 1 } };
+  const ack = ["N7", "receiver"], executor = { deleteFollowsLinks: false };
+  it("lists realpath, E1–E3, no-follow deletion, the live readers, N7 and the receiver limit", () => {
+    expect(EXECUTOR_CONDITIONS.map(c => c.id)).toEqual(["realpath", "E1", "E2", "E3", "no-follow-delete", "live-readers", "N7", "receiver"]);
   });
-  it("refuses approval by default; code conditions are met, evidence and the gate's acknowledgements are not", () => {
+  it("refuses approval by default; code conditions are met, the executor, evidence and the gate's acknowledgements are not", () => {
     const a = executorApproval({ installedVersion: "0.13.0" });
     expect(a.approved).toBe(false);
-    expect(a.conditions.filter(c => !c.satisfied).map(c => c.id)).toEqual(["live-readers", "N7", "receiver"]);
+    expect(a.conditions.filter(c => !c.satisfied).map(c => c.id)).toEqual(["no-follow-delete", "live-readers", "N7", "receiver"]);
   });
-  it("needs reader evidence for the installed version, both readers complete, and N7 kept at the advisory gate", () => {
-    expect(executorApproval({ installedVersion: "0.13.1", readerEvidence: evidence, acknowledged: ["N7", "receiver"] }).approved).toBe(false);
-    expect(executorApproval({ installedVersion: "0.13.0", readerEvidence: { ...evidence, readers: { retainedWorkspaces: "refused", nativeSchedules: "complete" } }, acknowledged: ["N7", "receiver"] }).approved).toBe(false);
-    expect(executorApproval({ installedVersion: "0.13.0", readerEvidence: evidence, acknowledged: ["receiver"] }).approved).toBe(false);
-    expect(executorApproval({ installedVersion: "0.13.0", readerEvidence: evidence, acknowledged: ["N7", "receiver"] }).approved).toBe(true);
+  it("the S11 smoke run is PARTIAL: an empty history cannot close the live-reader condition (R11 N2)", () => {
+    const artifact = readFileSync(join(process.cwd(), "docs/scoped-supervision/s11-readers/result.json"), "utf8");
+    const a = executorApproval({ installedVersion: "0.13.0", readerArtifact: artifact, acknowledged: ack, executor });
+    expect(a.approved).toBe(false);
+    expect(a.conditions.find(c => c.id === "live-readers")).toMatchObject({ state: "partial", satisfied: false, reasons: [expect.stringMatching(/history listing was empty/)] });
+    expect(executorApproval({ installedVersion: "0.13.0", readerArtifact: run(), acknowledged: ack, executor }).conditions.find(c => c.id === "live-readers")!.state).toBe("partial");
+    expect(executorApproval({ installedVersion: "0.13.0", readerArtifact: run({}, { history: { pages: 1, entries: 2, unavailableProviderSessions: 0 } }), acknowledged: ack, executor })
+      .conditions.find(c => c.id === "live-readers")).toMatchObject({ state: "partial", reasons: [expect.stringMatching(/unavailable provider/)] });
+  });
+  it("accepts no self-attested record: only a run artifact for the installed version with both readers complete", () => {
+    const state = (artifact: string | undefined, installedVersion = "0.13.0") => executorApproval({ installedVersion, readerArtifact: artifact, acknowledged: ack, executor }).conditions.find(c => c.id === "live-readers")!.state;
+    expect(state(JSON.stringify({ daemonVersion: "0.13.0", digest: "0".repeat(64), readers: { retainedWorkspaces: "complete", nativeSchedules: "complete" } }))).toBe("open");
+    expect(state(run({}, seeded), "0.13.1")).toBe("open");
+    expect(state(run({}, { ...seeded, retainedWorkspaces: { result: "refused" } }))).toBe("open");
+    expect(state("not json")).toBe("open");
+    expect(state(run({}, seeded))).toBe("met");
+  });
+  it("approves only with a non-empty reader run, a no-follow executor and N7/receiver acknowledged (R11 N3)", () => {
+    expect(executorApproval({ installedVersion: "0.13.0", readerArtifact: run({}, seeded), acknowledged: ack, executor: { deleteFollowsLinks: true } }).approved).toBe(false);
+    expect(executorApproval({ installedVersion: "0.13.0", readerArtifact: run({}, seeded), acknowledged: ["receiver"], executor }).approved).toBe(false);
+    expect(executorApproval({ installedVersion: "0.13.0", readerArtifact: run({}, seeded), acknowledged: ack, executor }).approved).toBe(true);
   });
 });
