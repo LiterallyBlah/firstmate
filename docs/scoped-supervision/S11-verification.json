@@ -303,8 +303,8 @@
       "gitBlob": "1ec542d517c8373f4c3bae30997bce6dff4d5afd"
     },
     "server/supervision-jobs.test.ts": {
-      "sha256": "7e44d36dd8e678fc1ef89c66df842e1de83828a8ed3d6d724b2c5d811216fe54",
-      "gitBlob": "58a9750ea8a2142cd836c0a87882731d34a5e6e7"
+      "sha256": "cd5f5f1ebdf411d96182be3c357af80804001f84c92b57c0ad2cb90a0602aea4",
+      "gitBlob": "d188487307512a6488a705677b49731711d8a953"
     },
     "server/supervision-migrate.test.ts": {
       "sha256": "8bdd95b32861d680340f5016fd7369ec6c6f6101a264c601f156b21c12c804b1",

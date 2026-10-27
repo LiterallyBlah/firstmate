@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, symlink } from "node:fs/promises";
+import { mkdir, realpath, symlink } from "node:fs/promises";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SupervisionActor, SupervisionEffect, SupervisionStatus } from "../shared/supervision";
@@ -450,7 +450,10 @@ describe("A04 in maintenance: shared caches, selectors and retained worktrees", 
   });
 
   it("S11 / R10 B1-R realpath: symlink and junction aliases are resolved before planning, on real directories", async () => {
-    const root = join(process.env.PASEO_HOME!, `alias-${randomUUID()}`), cache = join(root, "cache"), live = join(cache, "sessions", "s1");
+    // Selectors name canonical directories: a temp dir can itself be an alias (a Windows 8.3 short name on CI).
+    const alias = join(process.env.PASEO_HOME!, `alias-${randomUUID()}`);
+    await mkdir(alias, { recursive: true });
+    const root = await realpath(alias), cache = join(root, "cache"), live = join(cache, "sessions", "s1");
     await mkdir(live, { recursive: true }); await mkdir(join(cache, "tmp"), { recursive: true }); await mkdir(join(root, "elsewhere"), { recursive: true });
     // A worktree reported through an alias outside the selector, and a candidate that is an alias leading out of it.
     await symlink(join(cache, "sessions"), join(root, "link"), "junction");
@@ -466,6 +469,10 @@ describe("A04 in maintenance: shared caches, selectors and retained worktrees", 
     expect(planCleanup({ id: J, selectors, retained: [] }, "mini", resolved.candidates, resolved.retained).selected.map(s => s.candidate.id)).toEqual(["tmp"]);
     // A retained path that cannot be resolved for any reason but absence refuses the pass.
     await expect(resolveCleanupAliases(candidates, retained, async () => { throw Object.assign(new Error("EACCES"), { code: "EACCES" }); })).rejects.toThrow(RetainedPathError);
+    // A selector written through an alias cannot contain any resolved path: everything is excluded, never widened.
+    const aliased = [{ kind: "path-prefix" as const, value: join(root, "link").replaceAll("\\", "/") }];
+    expect(planCleanup({ id: J, selectors: aliased, retained: [] }, "mini", await resolveCleanupAliases([{ id: "s1", path: join(root, "link", "s1"), owner: "known" }], { workspaces: [], volumes: [], paths: [] }).then(r => r.candidates),
+      { workspaces: [], volumes: [], paths: [] }).selected).toEqual([]);
   });
 
   it("cleanup stays inside its selectors and never touches retained worktrees, volumes or unknown owners", async () => {
