@@ -536,6 +536,9 @@ export class SupervisionMigrator {
     const unaccounted = rows.filter(d => d.route === "hold" || ["pending", "mismatch"].includes(d.removal.state) || (d.route === "transfer-fact" && !d.destination?.outboxId));
     if (unaccounted.length) fail("HELD", `Unaccounted legacy deliveries (resolve each hold with evidence, or release the cutover): ${unaccounted.map(d => `${d.source}:${d.id} (${d.route}, ${d.removal.state})`).join(", ")}.`);
     // A claim named by a disposition is accounted by it; any other open claim for the plan was re-inventoried as a hold.
+    // Re-verified here, not only at the freeze: the barrier, the commit and the release reserve must still fit.
+    if (status.sequence + 2 + MIGRATION_LIMITS.abortReserve > SUPERVISION_INDEX_LIMITS.transactions)
+      fail("HELD", `Journal headroom fell below what the barrier and commit need (sequence ${status.sequence}); release the cutover (abort) with the reserved transaction.`);
     const target = this.target(m.planId, freeze.tokens);
     const open = (await this.gate.claims()).filter(c => !c.result && !rows.some(d => d.claimId === c.claim.id) && c.claim.items.some(i => CutoverGate.classify(claimItem(i), target)));
     if (open.length) fail("HELD", `Legacy send claims are unaccounted: ${open.map(c => c.claim.id).join(", ")}.`);
@@ -599,11 +602,19 @@ export class SupervisionMigrator {
     if (!reason.trim() || !["captain-ui", "mate-chat", "agent"].includes(actor.kind)) fail("UNKNOWN_OWNER", "A release names the main first mate or the captain and a reason.");
     let status = await this.options.store.read(), m = this.migration(status, migrationId);
     if (m.state === "committed" || await this.gate.sidecar(m.planId, "committed")) fail("HELD", "The cutover has committed; recovery is forward (hold, or transfer at a higher epoch).");
-    const archived = await this.archived(m.planId);
     if (m.state !== "aborted") {
+      // Only transferred informational facts go back to the old owner. An entry whose disposition records it as
+      // handled (already-handled, including an opaque, possibly imperative watch row) is withheld: restoring it
+      // would deliver an instruction its own record says was carried out.
+      const archived = await this.archived(m.planId), rows = status.dispositions ?? [];
+      const restore = archived.filter(a => rows.find(d => d.id === a.id)?.route === "transfer-fact");
+      const withheld = archived.filter(a => !restore.includes(a)).map(a => {
+        const d = rows.find(x => x.id === a.id);
+        return { id: a.id, reason: `${d?.source ?? "unknown"} recorded ${d?.route ?? "without a disposition"}${d?.resolvedBy ? ` by ${d.resolvedBy.actor} (${d.resolvedBy.evidenceRef})` : ""}; not re-delivered.`.slice(0, 2000) };
+      });
       const scope = status.scopes.find(s => s.id === m.scopeId)!, backend = status.backends.find(b => b.planId === m.planId)!;
       await this.scopedTransaction(migrationUuid(migrationId, "abort"), status, [
-        { kind: "migration", value: { ...m, version: m.version + 1, state: "aborted", aborted: { actor: `${actor.kind}:${actor.id}`, reason: reason.slice(0, 2000), restored: archived.map(a => a.id) } } },
+        { kind: "migration", value: { ...m, version: m.version + 1, state: "aborted", aborted: { actor: `${actor.kind}:${actor.id}`, reason: reason.slice(0, 2000), restored: restore.map(a => a.id), withheld } } },
         { kind: "backend", value: { ...backend, version: backend.version + 1, state: "retired" } },
         { kind: "scope", value: { ...scope, version: scope.version + 1, state: "retired" } }]);
       await this.boundary("aborted");
@@ -611,9 +622,10 @@ export class SupervisionMigrator {
     }
     return this.finishRelease(m);
   }
-  /** Restore archived entries exactly (only where absent), then publish the release. Idempotent after a crash. */
+  /** Restore exactly the entries the release receipt names (only where absent), then publish the release.
+   * Idempotent after a crash; withheld entries stay archived as evidence. */
   private async finishRelease(m: MigrationReceipt): Promise<MigrationReceipt> {
-    const archived = await this.archived(m.planId);
+    const archived = (await this.archived(m.planId)).filter(a => m.aborted!.restored.includes(a.id));
     await this.gate.run(async () => {
       for (const a of archived) {
         const value = a.value as { source: string; entry: unknown };

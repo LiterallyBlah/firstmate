@@ -32,7 +32,7 @@ import { TEMPLATES, message } from "./templates";
 const MAX_RELAYED_CHARS = 4000;
 
 /** Refuses anything that is not a live crewmate, so the board cannot be pointed at an arbitrary agent. */
-async function requireCrew(paseo: PaseoApi, agentId: string): Promise<PaseoAgent> {
+async function requireCrew(paseo: PaseoApi, agentId: string, stop = false): Promise<PaseoAgent> {
   const agent = await fetchLiveAgent(paseo, agentId);
   if (agent === null) throw new Error(`Paseo has no live agent ${agentId}.`);
   if (Object.values(SCOPE_LABELS).some(label => label in agent.labels)) {
@@ -44,7 +44,9 @@ async function requireCrew(paseo: PaseoApi, agentId: string): Promise<PaseoAgent
   // S07: a worker of a frozen or migrated plan is no longer the legacy board's; nor is its relay General's.
   const gate = cutoverGate(resolveHome(await readFirstmateConfig()));
   const item = { source: "burst" as const, id: `crew:${agentId}`, payloadHash: agentId, agentKey: agentId };
-  const verdict = await gate.verdict(item, "send");
+  // Stopping is the safe direction: an unreadable record that cannot name its workers never blocks Interrupt or End.
+  const targets = (await gate.targets()).filter(t => !stop || !t.damaged || t.tokens !== null);
+  const verdict = await gate.verdict(item, "send", targets);
   if (!verdict.admit) { await gate.refusal(item, verdict.reason); throw new Error(`${agent.title ?? agentId}: ${verdict.reason}`); }
   return agent;
 }
@@ -138,12 +140,12 @@ export async function steerCrew(paseo: PaseoApi, steers: CaptainSteers, agentId:
 }
 
 export async function interruptCrew(paseo: PaseoApi, agentId: string): Promise<void> {
-  await requireCrew(paseo, agentId);
+  await requireCrew(paseo, agentId, true);
   await stopAgent(agentId);
 }
 
 export async function exitCrew(paseo: PaseoApi, agentId: string): Promise<void> {
-  await requireCrew(paseo, agentId);
+  await requireCrew(paseo, agentId, true);
   await paseo.agents.ref(agentId).archive();
 }
 

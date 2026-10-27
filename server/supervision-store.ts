@@ -1028,6 +1028,11 @@ export class SupervisionStore {
       const next = this.apply(snapshot.frames, body);
       const nextOwnership = ownership(next.frames), nextDigest = ownershipDigest(nextOwnership);
       const retainedOwnership = snapshot.ownership.some(o => ownershipDigest(o) === nextDigest) ? snapshot.ownership : [...snapshot.ownership, nextOwnership];
+      // S07: every open cutover keeps one transaction reserved for its release; no other write may take it.
+      const open = [...snapshot.frames.values()].filter(f => f.kind === "migration" && ["prepared", "barrier"].includes((f.value as MigrationReceipt).state)).length;
+      const releasing = body.mutations.some(m => m.kind === "migration" && m.value.state === "aborted");
+      if (open && !releasing && snapshot.sequence + 1 > SUPERVISION_INDEX_LIMITS.transactions - open)
+        fail("HELD", "The last journal transactions are reserved to release open cutovers; release one (abort) or reconcile the journal deliberately.");
       if (snapshot.sequence >= SUPERVISION_INDEX_LIMITS.transactions || Buffer.byteLength(canonical({ frames: [...next.frames], ownership: retainedOwnership })) > SUPERVISION_INDEX_LIMITS.projectionBytes)
         fail("HELD", "Pilot history/projection bound reached; stop admissions and retain the journal for audit.");
       const pending = inboxProjection(next.frames).assignments.filter(a => a.primaryEventId === a.id && !terminal(a)).length;

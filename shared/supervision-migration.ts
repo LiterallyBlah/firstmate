@@ -77,7 +77,9 @@ export const MigrationReceiptSchema = z.object({
   /** Checked before the freeze: journal sequence then, the whole migration's worst-case transactions, the ceiling. */
   capacity: z.object({ sequenceAtFreeze: count, transactionsNeeded: count, ceiling: count, preparedMutations: count, commitMutations: count }).strict(),
   /** A recorded release back to the legacy backend. Nothing is re-sent; removed entries are restored as they were. */
-  aborted: z.object({ actor: text(300), reason: text(2000), restored: z.array(text(400)).max(200) }).strict().nullable(),
+  aborted: z.object({ actor: text(300), reason: text(2000), restored: z.array(text(400)).max(200),
+    /** Archived entries deliberately NOT put back: their disposition says they were handled. Never re-delivered. */
+    withheld: z.array(z.object({ id: text(400), reason: text(2000) }).strict()).max(200) }).strict().nullable(),
 }).strict();
 export type MigrationReceipt = z.infer<typeof MigrationReceiptSchema>;
 

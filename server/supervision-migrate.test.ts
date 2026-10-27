@@ -16,6 +16,7 @@ import { pluginDir } from "./data-dir";
 import { answerDecision } from "./decision-answer";
 import type { PaseoApi } from "./host-types";
 import { extendBurstNote, flushMateNotes, queueBurstNote, queueMateNote } from "./mate";
+import { CaptainSteers, exitCrew, steerCrew } from "./crew";
 import { NeedsYouService, readConfiguredDecisionHome } from "./needs-you-service";
 import { digest } from "./submissions";
 import { SupervisionCommands } from "./supervision-commands";
@@ -617,4 +618,47 @@ it.each(["aborted", "restored"])("release: a crash at %s leaves both writers hel
   expect(await notes()).toEqual([original]);
   await legacy.execute({ op: "ack", plan: "scheduler", ids: ["x"], kind: "told" }, randomUUID(), GENERAL);
   expect(sent).toHaveLength(0);
+});
+
+it("R1: a release never restores an entry its disposition records as handled, and says so", async () => {
+  await migrator.arm();
+  await runner.enqueuePrompt("cleanup", "Archive the scheduler workspace now.", new Date("2026-10-27T10:00:00Z"));
+  busy = true;
+  await migrator.prepare(input);
+  const held = (await store.read()).dispositions!.find(d => d.source === "watch-queue")!;
+  await migrator.resolveHold(input.migrationId, held.id, "already-handled", { ref: "the captain archived it by hand", digest: "c".repeat(64) }, captainUi);
+  await migrator.reconcile(input.migrationId);
+  expect(await runner.queued()).toEqual([]);
+  await migrator.abort(input.migrationId, "Release for the test.", owner);
+  const m = (await store.read()).migrations![0]!;
+  expect(m.aborted).toMatchObject({ restored: [], withheld: [{ id: held.id, reason: expect.stringContaining("already-handled") }] });
+  busy = false; await runner.flush();
+  expect(await runner.queued()).toEqual([]);
+  expect(sent).toHaveLength(0); // The handled instruction is not delivered again.
+});
+
+it("R2: an unreadable record that cannot name its workers never blocks stopping a crewmate", async () => {
+  await mkdir(join(legacy.root, ".scoped", "ghost"), { recursive: true });
+  await writeFile(join(legacy.root, ".scoped", "ghost", "freeze.json"), "{torn");
+  const archived: string[] = [];
+  const crewApi = { agents: { ref: (id: string) => ({
+    refresh: async () => ({ agent: { id, title: id, status: "idle", archivedAt: null, labels: { "firstmate.role": "crew" } } }),
+    archive: async () => { archived.push(id); }, send: async () => undefined }) } } as unknown as PaseoApi;
+  await exitCrew(crewApi, "worker-any");
+  expect(archived).toEqual(["worker-any"]);
+  await expect(steerCrew(crewApi, new CaptainSteers(), "worker-any", "keep going")).rejects.toThrow(/damaged cutover record/);
+});
+
+it("R3: the release transaction is reserved; other writes cannot take it", async () => {
+  await migrator.arm(); await migrator.prepare(input);
+  const limits = SUPERVISION_INDEX_LIMITS as { transactions: number }, ceiling = limits.transactions;
+  limits.transactions = (await store.read()).sequence + 1;
+  try {
+    const s = await store.read(), scope = s.scopes.find(x => x.id === input.scopeId)!;
+    await expect(store.transact([{ kind: "scope", id: scope.id, version: scope.version }], randomUUID(), [{ kind: "scope", value: { ...scope, version: scope.version + 1, state: "held" } }]))
+      .rejects.toThrow(/reserved to release/);
+    await expect(migrator.barrier(input.migrationId)).rejects.toMatchObject({ code: "HELD" });
+    await migrator.abort(input.migrationId, "Out of headroom; release.", owner);
+    expect((await store.read()).migrations![0]!.state).toBe("aborted");
+  } finally { limits.transactions = ceiling; }
 });
