@@ -1,6 +1,6 @@
 /** R09 regressions (data/fm-ss-r09/report.md, reviewed head 14af5867): B1, B2 and N1–N4, on the S04 synthetic receiver. */
 import { randomUUID } from "node:crypto";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { SupervisionActor } from "../shared/supervision";
 import { portfolioSummary } from "../shared/supervision-projects";
 import { compactPortfolioBearings } from "../shared/workflow-plan-summary";
@@ -101,13 +101,18 @@ describe("R09 corrections", { timeout: 120000 }, () => {
     const { projects, input } = await admitted(fx, scope, 1);
     await projects.recordProject(randomUUID(), captain, { ...input, expectedVersion: 1, state: "stopped" });
     expect(await code(projects.recordProject(randomUUID(), captain, { ...input, expectedVersion: 2, state: "stopped" }))).toBe("CONFLICT");
-    let version = 2, agents = 2;
-    for (;;) {
-      const result = await code(projects.recordProject(randomUUID(), captain, { ...input, budget: { agents: ++agents, turns: agents }, expectedVersion: version, state: "stopped" }));
-      if (result !== "committed") { expect(result).toBe("HELD"); break; }
-      version++;
-    }
-    expect((await fx.store.read()).sequence).toBe(SUPERVISION_INDEX_LIMITS.admissions);
+    // At the admission bound (presented without writing ~190 real transactions): a change while stopped is refused,
+    // while re-stopping after a re-admission (admitted -> stopped) stays available for rollback.
+    const real = fx.store.transactCommand.bind(fx.store);
+    const atBound = vi.spyOn(fx.store, "transactCommand").mockImplementation((id, hash, actor, prepare) =>
+      real(id, hash, actor, status => prepare({ ...status, sequence: SUPERVISION_INDEX_LIMITS.admissions })));
+    expect(await code(projects.recordProject(randomUUID(), captain, { ...input, budget: { agents: 3, turns: 3 }, expectedVersion: 2, state: "stopped" }))).toBe("HELD");
+    expect(await code(projects.recordProject(randomUUID(), captain, { ...input, expectedVersion: 2, state: "admitted" }))).toBe("HELD");
+    atBound.mockRestore();
+    await projects.recordProject(randomUUID(), captain, { ...input, expectedVersion: 2, state: "admitted" });
+    atBound.mockImplementation((id, hash, actor, prepare) => real(id, hash, actor, status => prepare({ ...status, sequence: SUPERVISION_INDEX_LIMITS.admissions })));
+    expect(await code(projects.recordProject(randomUUID(), captain, { ...input, expectedVersion: 3, state: "stopped" }))).toBe("committed");
+    atBound.mockRestore();
   });
 
   it("N2: an intake ID with control characters is refused at input, so no conflict detail can carry one", async () => {
