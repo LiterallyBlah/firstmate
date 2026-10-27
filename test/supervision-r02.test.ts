@@ -136,7 +136,9 @@ describe('R02 correction boundary regressions', () => {
       expect(new Set(seen).size).toBe(expectedIds.length);
     }
     expect(fresh.inbox.assignments.map(a => a.ordinal).slice(0, 3)).toEqual([36, 1, 2]);
-  }, 20_000);
+    // ~1.6 s locally; the byte, page-size and ordering assertions are the bound, not wall time. A loaded hosted
+    // Windows runner (random ~10-14 s pauses, heavy store files on both workers) exceeded 20 s with no code slowdown.
+  }, 60_000);
 
   it.each([false, true])('retains same-outcome quarantine and provenance after retries/restart (handled primary: %s)', async handled => {
     const f = await inboxFixture();
