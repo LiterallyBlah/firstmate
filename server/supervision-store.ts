@@ -98,6 +98,13 @@ type CachedScan = { scan: Scan; checkpoint: Checkpoint; directories: string; req
   workflowRequests: Map<string, { requestHash: string; eventHash: string; transaction: Transaction }> };
 type StoreLockLease = { active: boolean };
 const storeLocks = new AsyncLocalStorage<ReadonlyMap<string, StoreLockLease>>();
+type StorePublication = { epoch: number; active: Promise<void> | null };
+const publications = new Map<string, StorePublication>();
+function publicationFor(root: string): StorePublication {
+  let state = publications.get(root);
+  if (!state) { state = { epoch: 0, active: null }; publications.set(root, state); }
+  return state;
+}
 const emptyPrefix = digest({ format: "firstmate.supervision-prefix/1" });
 const extendPrefix = (previous: string, event: Transaction, tip: Anchor, marker: Anchor) => digest({ previous,
   sequence: event.sequence, event: event.hash, tip: tip.hash, publication: marker.hash });
@@ -175,18 +182,33 @@ export class SupervisionStore {
   }
   private locked<T>(work: () => Promise<T>): Promise<T> {
     return serialized(this.root, () => {
+      const publication = publicationFor(this.root);
+      let release!: () => void;
+      publication.active = new Promise<void>(resolve => { release = resolve; });
+      publication.epoch++;
       const lease: StoreLockLease = { active: true };
       const held = new Map(storeLocks.getStore()); held.set(this.root, lease);
       return storeLocks.run(held, async () => {
         try { return await work(); }
-        finally { lease.active = false; }
+        finally { lease.active = false; publication.epoch++; publication.active = null; release(); }
       });
     });
   }
-  private reading<T>(work: () => Promise<T>): Promise<T> {
-    // A checked prepare callback may read its own snapshot. Other readers must wait for
-    // this process's publication/checkpoint boundary, never observe its staging window.
-    return storeLocks.getStore()?.get(this.root)?.active ? work() : this.locked(work);
+  private async reading<T>(work: () => Promise<T>): Promise<T> {
+    // A prepare callback reads within its own transaction. Other reads wait for active
+    // publication, but never acquire the writer lock. If a writer overlaps the read,
+    // discard that result (including a transient hold) and check the new checkpoint.
+    if (storeLocks.getStore()?.get(this.root)?.active) return work();
+    const publication = publicationFor(this.root);
+    for (;;) {
+      if (publication.active) { await publication.active; continue; }
+      const epoch = publication.epoch;
+      let result: T | undefined, error: unknown, failed = false;
+      try { result = await work(); } catch (cause) { error = cause; failed = true; }
+      if (publication.active || publication.epoch !== epoch) continue;
+      if (failed) throw error;
+      return result as T;
+    }
   }
   private writable(): void { if (!this.options.writable) fail("UNSUPPORTED", "Scoped supervision writes are disabled."); }
   private file(sequence: number, suffix: string) { return join(this.root, "transactions", `${pad(sequence)}.${suffix}.json`); }
@@ -677,14 +699,31 @@ export class SupervisionStore {
    * Historical corruption holds this instance until a subsequent successful audit/recovery.
    */
   async audit(): Promise<SupervisionStatus> {
-    return this.reading(async () => structuredClone(this.status(await this.checkedFullScan())));
+    return this.locked(async () => structuredClone(this.status(await this.checkedFullScan())));
   }
   /** Rebuild only a derived checkpoint after a full valid history scan. Never reconstruct an
    * authority record or discard a pending transaction. No receiver/agent effects are involved.
    */
-  async recoverIndex(): Promise<void> {
+  async recoverIndex(observed?: { homeId: string; sequence: number; hash: string | null }): Promise<void> {
     this.writable();
-    await this.locked(async () => { this.cached = null; await this.saveCheckpoint(await this.scanFull()); });
+    await this.locked(async () => {
+      this.cached = null;
+      const snapshot = await this.scanFull();
+      if (snapshot.problems.length || !snapshot.initialized) fail("HELD", snapshot.problems.join(" ") || "No validated journal for index recovery.");
+      if (observed && (observed.homeId !== this.homeId || observed.sequence !== snapshot.sequence || observed.hash !== snapshot.hash))
+        fail("STALE", "Recovery observation changed under the index repair lock.");
+      if (observed) {
+        try {
+          const checkpoint = await this.readCheckpoint();
+          if (digest(checkpoint) === digest(await this.checkpointFor(snapshot)))
+            fail("STALE", "Checkpoint is already current; inspect before another repair.");
+        } catch (error) {
+          if (error instanceof SupervisionError && error.code === "STALE") throw error;
+          // Missing or invalid derived checkpoint is the explicit repair case.
+        }
+      }
+      await this.saveCheckpoint(snapshot);
+    });
   }
   private accepted(snapshot: Scan, requestId: string): Transaction | undefined {
     return this.cached?.scan === snapshot ? this.cached.requests.get(requestId) : snapshot.transactions.find(t => t.requestId === requestId);

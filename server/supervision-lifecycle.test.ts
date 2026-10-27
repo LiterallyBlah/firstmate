@@ -11,6 +11,7 @@ import { SupervisionLifecycle, registerSupervisionLifecycle } from "./supervisio
 import { handleScopeRequest, scopeRoute, legacyRoute } from "./scope-requests";
 import { WorkflowPlanStore, planSubjectHash } from "./workflow-plans";
 import { SupervisionStore } from "./supervision-store";
+import { expected, scope as scopeRow } from "../test/supervision-fixture";
 
 async function integrated() {
   const fx = await s04Fixture(), ingress = new SupervisionEvents(fx.store), inbox = new SupervisionInbox(fx.store, { offers: true });
@@ -43,6 +44,26 @@ it("restart and effect recovery audit old history before any receiver operation"
   await expect(f.lifecycle.recover("restart")).rejects.toMatchObject({ code: "HELD" });
   expect((await f.lifecycle.wake(scope.id, "restart")).state).toBe("held");
   await expect(f.gateway.reconcile(randomUUID())).rejects.toMatchObject({ code: "HELD" });
+  const held = await f.store.read();
+  await expect(f.lifecycle.recoverIndex({ homeId: held.homeId, sequence: held.sequence, hash: held.hash })).rejects.toMatchObject({ code: "HELD" });
+  expect(f.receiver.calls).toHaveLength(calls);
+});
+it("explicit operator index recovery repairs only a validated stale checkpoint, with no receiver call", async () => {
+  const f = await integrated();
+  const first = [{ kind: "scope" as const, value: scopeRow(f.store.homeId) }];
+  await f.store.transact(expected(first), randomUUID(), first);
+  const next = [{ kind: "scope" as const, value: { ...first[0]!.value, version: 2 } }];
+  const requestId = randomUUID(), calls = f.receiver.calls.length;
+  f.hooks.boundary = async name => { if (name === "publication:linked") throw Error("operator fixture: checkpoint still old"); };
+  try { await expect(f.store.transact(expected(next, 1), requestId, next)).rejects.toMatchObject({ code: "HELD" }); }
+  finally { f.hooks.boundary = null; }
+  const held = await f.store.read(); expect(held.freshness).toBe("held");
+  await expect(f.lifecycle.recover("restart")).rejects.toMatchObject({ code: "HELD" });
+  await expect(f.lifecycle.recoverIndex({ homeId: held.homeId, sequence: held.sequence - 1, hash: held.hash })).rejects.toMatchObject({ code: "STALE" });
+  expect(await f.lifecycle.recoverIndex({ homeId: held.homeId, sequence: held.sequence, hash: held.hash }))
+    .toMatchObject({ homeId: held.homeId, sequence: 2, hash: held.hash });
+  await expect(f.lifecycle.recoverIndex({ homeId: held.homeId, sequence: held.sequence, hash: held.hash })).rejects.toMatchObject({ code: "HELD" });
+  expect(await f.store.transact(expected(next, 1), requestId, next)).toMatchObject({ sequence: 2, requestId });
   expect(f.receiver.calls).toHaveLength(calls);
 });
 async function acknowledge(f: Fixture, scope: ScopeHandle, offerId: string, actor?: string) {

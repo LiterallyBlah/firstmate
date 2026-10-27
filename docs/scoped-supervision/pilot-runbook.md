@@ -97,6 +97,11 @@ An in-memory snapshot serves that validated projection and accepted-request inde
 can validate at most 32 new transactions against its cached prefix; it does not replay the old prefix.
 Root/resource changes or a larger tail require full historical validation. Cold startup always
 validates all history before trusting a snapshot, even when the durable checkpoint looks current.
+The production inbox, combined Needs-you, scope and crew-seen status paths share one read-only
+store per configured home for the server lifetime. A home switch starts a separate cold validation;
+ordinary polling of the same home stays warm. The 5-second Needs-you poll does not construct a new
+store or wake a model. Before admitting a live trial, complete and record that home's cold startup
+audit, then measure its warm status route under the intended client polling load.
 
 This cooperative pilot stops **new effects at 192 transactions**, reserving 64 records for known work
 and reconciliation, with an absolute **256-transaction** ceiling and **8 MiB of projection plus retained
@@ -106,9 +111,11 @@ truncates, evicts or resets history or spend. Warm reads perform constant journa
 anchor work plus response serialization bounded by that state ceiling. New launches perform only
 their new transitions, with no historical reducer replay. Tests cover 11 versus 176 transactions,
 a launch after 176, new-effect refusal at 192 with admitted outcome recording still allowed,
-32-item tail overflow, and the 256-transaction hard boundary. Reads wait for an in-process publication/
-checkpoint boundary, so concurrent owners do not observe that writer's transient staging window. Full audits,
-cold startup and recovery remain O(history), bounded by the admitted pilot history; this is not a
+32-item tail overflow, and the 256-transaction hard boundary. Warm reads do not hold the writer lock:
+they wait for an active in-process publication, and retry when a writer overlaps their check so no
+transient staging result is served. The 176-transaction status-poll regression pauses a warm reader
+at its anchor, commits before releasing it and then observes the new head. Explicit full audits and
+index repair serialize with writers. Full audits, cold startup and recovery remain O(history), bounded by the admitted pilot history; this is not a
 claim of constant cost for arbitrary future fleets. Do not raise these pilot bounds to clear a hold.
 
 **Changed detection timing:** an in-place edit to an old, non-anchor entry or old evidence can remain
@@ -125,7 +132,15 @@ A missing/stale checkpoint or any anchor/digest mismatch triggers full validatio
 invalid checkpoint exposes no accepted plan projection, even if the journal validates. Explicit
 `recoverIndex()` rebuilds only derived metadata after a full valid scan; `recoverPublication()` also
 audits the whole journal and refreshes the index after completing an exact pending publication.
-Neither repairs missing/corrupt authority, discards history or retries an external effect. A crash
+The qualified local operator attachment must stop admissions, inspect the held status's home ID,
+sequence, hash and problems, then invoke `SupervisionLifecycle.recoverIndex({ homeId, sequence, hash })`
+with those exact observed values. That method performs a full audit, accepts only a checkpoint-only
+hold on an unchanged journal head, calls `SupervisionStore.recoverIndex()` and audits the result.
+It has no public RPC or request-file route in this disabled delivery; the future operator attachment
+and its authority need separate review. A stale observation or damaged journal refuses repair.
+After a successful receipt, reread the original request/effect IDs and reconcile known work before
+admissions resume; recovery never authorizes a resend.
+These recovery paths do not repair missing/corrupt authority, discard history or retry an external effect. A crash
 after journal publication but before checkpoint replacement holds until index recovery, then the
 original request receipt replays. Checkpoint writes use synced staging plus atomic replacement; a
 missing result is not proof an effect failed. These are process-crash/cooperative guarantees, not

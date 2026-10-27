@@ -193,6 +193,22 @@ export class SupervisionLifecycle {
     }));
     return { effects: scopes.flatMap(s => s.effects), observations: scopes.flatMap(s => s.observations), wakes: scopes.map(s => s.wake) };
   }
+  /** Explicit local operator step after a held checkpoint-only recovery audit. The live
+   * attachment must qualify who can invoke it; there is no public request-file/RPC route.
+   * It restores derived index metadata only and never performs receiver effects.
+   */
+  async recoverIndex(observed: { homeId: string; sequence: number; hash: string | null }) {
+    this.enabled();
+    const before = await this.store.audit();
+    if (before.homeId !== observed.homeId || before.sequence !== observed.sequence || before.hash !== observed.hash)
+      refuse("STALE", "Recovery observation changed; inspect the held journal again.");
+    if (before.freshness !== "held" || !before.problems.some(p => p.startsWith("Checkpoint validation failed;")))
+      refuse("HELD", "Only a fully validated journal with a stale/missing checkpoint can rebuild its index.");
+    await this.store.recoverIndex(observed);
+    const after = await this.store.audit();
+    if (after.freshness !== "current") refuse("HELD", "Index recovery did not yield a current audited journal.");
+    return { homeId: after.homeId, sequence: after.sequence, hash: after.hash };
+  }
 }
 const offerCause = (o: InboxOffer) => `mailbox:${o.id}:${o.sends}`;
 const turnKey = (scopeId: string, epoch: number, causation: string) => effectLogicalKey({ scopeId, subject: `epoch:${epoch}`, operation: "agent.send", causation, objectiveRevision: 0 });

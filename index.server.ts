@@ -27,7 +27,7 @@ import { pluginDir } from "./server/data-dir";
 import { join } from "node:path";
 import { pageReceiptTimeline } from "./shared/receipts";
 import { ReportCache, loadFleet, readAgentTools } from "./server/fleet";
-import { SupervisionStore } from "./server/supervision-store";
+import { SupervisionStatusReader } from "./server/supervision-status-reader";
 import { supervisionInboxStatus, hasScopedWorker } from "./server/supervision-status";
 import { readSupervisionInbox } from "./shared/supervision-rpc";
 import { registerScopeRpcs } from "./server/scope-rpc";
@@ -106,7 +106,8 @@ import {
 
 export default function contribute(server: PluginServerContext) {
   // Read-only S02 surface. No initialize/coordinator, ingress attachment, offer runner or activation flag.
-  const readSupervision = async () => new SupervisionStore(pluginDir(), resolveHome(await readFirstmateConfig())).read();
+  const supervisionReader = new SupervisionStatusReader(pluginDir());
+  const readSupervision = async (home?: string) => supervisionReader.read(home ?? resolveHome(await readFirstmateConfig()));
   server.handle(readSupervisionInbox, async input => supervisionInboxStatus(await readSupervision(), input));
   const stopWorkflows = startWorkflowService();
   server.handle(ensureSharedTerminalRpc, ({ workspaceId }, { paseo }) => ensureSharedTerminal(paseo, workspaceId));
@@ -140,7 +141,7 @@ export default function contribute(server: PluginServerContext) {
     const config = await readFirstmateConfig(), home = resolveHome(config);
     const base = await withWorkflowNeeds(snapshot, home);
     try {
-      const status = await new SupervisionStore(pluginDir(), home).read();
+      const status = await readSupervision(home);
       return status.scopes.length || status.problems.length ? withScopedNeedsYou(base, status) : base;
     } catch {
       return { ...base, scopedComplete: false, scopedProblems: ["Scoped decisions unavailable. Existing decisions remain available; the total is incomplete."] };
@@ -150,7 +151,7 @@ export default function contribute(server: PluginServerContext) {
   // UI and execution stay separately disabled. Activation requires separately reviewed wiring.
   registerScopeRpcs(server, { read: async () => {
     const config = await readFirstmateConfig(), home = resolveHome(config);
-    return { home, generalId: config.mateAgentId || null, status: await new SupervisionStore(pluginDir(), home).read() };
+    return { home, generalId: config.mateAgentId || null, status: await readSupervision(home) };
   }, readNeeds: () => readCombinedNeeds(), uiEnabled: false, executionEnabled: false });
   server.handle(readWorkflowPlans, async () => workflowSnapshot(resolveHome(await readFirstmateConfig())));
   server.handle(actOnWorkflowPlan, async ({ homeId, requestId, command }, { paseo }) => {
