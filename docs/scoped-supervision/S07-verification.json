@@ -5,8 +5,8 @@
     "commit": "503e0c35986feb594ae225ba75e8c4118e9479ad",
     "note": "origin/main, the PR #153 (S06) merge"
   },
-  "sourceCommit": "d944650113093ca118200b70dbcf93c9734d9505",
-  "sourceTree": "d5f420eab0f35cc3916059c4a70420949a7c8c3c",
+  "sourceCommit": "d9a21d21e9fd61bd0418bb2e13ff140fd60a66c4",
+  "sourceTree": "5ebfa6178e31f6daa298dd98c3672ae461747387",
   "runtime": {
     "node": "v23.7.0",
     "platform": "win32"
@@ -18,148 +18,202 @@
   },
   "s07Suite": {
     "command": "npx vitest run server/supervision-migrate.test.ts",
-    "total": 23,
-    "passed": 23,
+    "total": 34,
+    "passed": 34,
     "failed": 0,
     "tests": [
       {
         "title": "is inert until armed: no claim, sidecar or refusal file is written by ordinary delivery",
         "status": "passed",
-        "durationMs": 148
+        "durationMs": 179
       },
       {
         "title": "A12: imports byte-exact history, original request receipts, attempts, budget and holds; legacy bytes never change",
         "status": "passed",
-        "durationMs": 291
+        "durationMs": 370
       },
       {
         "title": "refuses corrupt, quarantined and retired history without freezing anything",
         "status": "passed",
-        "durationMs": 88
+        "durationMs": 104
       },
       {
         "title": "L1: a notified-but-unhandled action with General busy transfers once; the old entry goes only after its mapping",
         "status": "passed",
-        "durationMs": 426
+        "durationMs": 500
       },
       {
         "title": "L2: enqueue-before-notified crash joins one pending event, and the enqueuer checks the gate before insertion",
         "status": "passed",
-        "durationMs": 264
+        "durationMs": 284
       },
       {
         "title": "L3: an accepted send that crashed before removal is accepted, never handled or unsent, and is never resent",
         "status": "passed",
-        "durationMs": 293
+        "durationMs": 317
       },
       {
         "title": "L3: a claim left without a result by a stopped process is uncertain, not unsent",
         "status": "passed",
-        "durationMs": 169
+        "durationMs": 299
       },
       {
         "title": "L4: an accepted decision answer is imported with its identities and held; a frozen task refuses new answers",
         "status": "passed",
-        "durationMs": 292
+        "durationMs": 270
       },
       {
         "title": "L4: an uncertain answer whose accepted append was lost carries the claim's accepted receipt and stays held",
         "status": "passed",
-        "durationMs": 169
+        "durationMs": 152
       },
       {
         "title": "L5: a send in flight blocks the freeze; once accounted, the cutover records it accepted",
         "status": "passed",
-        "durationMs": 262
+        "durationMs": 251
       },
       {
         "title": "L5: when the cutover wins, legacy flush and enqueue refuse the target while an unrelated scope keeps flowing",
         "status": "passed",
-        "durationMs": 307
+        "durationMs": 281
       },
       {
         "title": "L5: a burst for the target's worker is refused, an extension cannot change it, and a payload change holds removal",
         "status": "passed",
-        "durationMs": 366
+        "durationMs": 335
       },
       {
         "title": "L5: mixed/opaque watch output stays with its legacy owner and holds only this transfer until explicitly drained",
         "status": "passed",
-        "durationMs": 309
+        "durationMs": 301
       },
       {
         "title": "A13.store: a crash at frozen holds both writers and resumes the same migration",
         "status": "passed",
-        "durationMs": 337
+        "durationMs": 326
       },
       {
         "title": "A13.store: a crash at prepared holds both writers and resumes the same migration",
         "status": "passed",
-        "durationMs": 336
+        "durationMs": 318
       },
       {
         "title": "A13.store: a crash at prepared-sidecar holds both writers and resumes the same migration",
         "status": "passed",
-        "durationMs": 314
+        "durationMs": 330
       },
       {
         "title": "A13.store: a crash at barrier holds both writers and resumes the same migration",
         "status": "passed",
-        "durationMs": 320
+        "durationMs": 315
       },
       {
         "title": "A13.store: a crash at committed-sidecar holds both writers and resumes the same migration",
         "status": "passed",
-        "durationMs": 324
+        "durationMs": 317
       },
       {
         "title": "A13.store: a source change during the freeze refuses the barrier and the commit",
         "status": "passed",
-        "durationMs": 133
+        "durationMs": 128
       },
       {
         "title": "A13.store: after commit the legacy writer stays refused, even without its sidecar, and nothing rolls back",
         "status": "passed",
-        "durationMs": 205
+        "durationMs": 208
       },
       {
         "title": "A13.store: neither backend writes while prepared; the scoped plan cannot be advanced before commit",
         "status": "passed",
-        "durationMs": 129
+        "durationMs": 130
       },
       {
         "title": "queueMateNote and watch-runtime traffic keep their legacy route through the gate during a freeze",
         "status": "passed",
-        "durationMs": 168
+        "durationMs": 142
       },
       {
         "title": "exports a separate scoped projection bound to its preimage; backlog bytes and direct edits stay out of authority",
         "status": "passed",
-        "durationMs": 197
+        "durationMs": 199
+      },
+      {
+        "title": "B1: watch output naming the plan after the freeze becomes a resolvable hold; a generic step name is no clue",
+        "status": "passed",
+        "durationMs": 287
+      },
+      {
+        "title": "B3: a missing, disabled or stale decision ledger refuses the dry run and prepare without freezing",
+        "status": "passed",
+        "durationMs": 105
+      },
+      {
+        "title": "B4: the whole migration's journal budget is checked before the freeze and reported by the dry run",
+        "status": "passed",
+        "durationMs": 112
+      },
+      {
+        "title": "B5/M1: a running legacy worker holds completion until accounted; afterwards scoped guards recognize it",
+        "status": "passed",
+        "durationMs": 335
+      },
+      {
+        "title": "release: an aborted cutover restores removed entries exactly, sends nothing itself, and hands the plan back",
+        "status": "passed",
+        "durationMs": 309
+      },
+      {
+        "title": "release is refused once a cutover has committed",
+        "status": "passed",
+        "durationMs": 183
+      },
+      {
+        "title": "an answer hold is the captain's to resolve, never the old owner's",
+        "status": "passed",
+        "durationMs": 157
+      },
+      {
+        "title": "a damaged sidecar is visible, scoped to its plan where provable, and records one refusal per item",
+        "status": "passed",
+        "durationMs": 190
+      },
+      {
+        "title": "a torn later stage keeps the readable stage's scope: unrelated plans still flow",
+        "status": "passed",
+        "durationMs": 195
+      },
+      {
+        "title": "release: a crash at aborted leaves both writers held until resume finishes the same release",
+        "status": "passed",
+        "durationMs": 300
+      },
+      {
+        "title": "release: a crash at restored leaves both writers held until resume finishes the same release",
+        "status": "passed",
+        "durationMs": 292
       }
     ]
   },
+  "revision": {
+    "answers": "R07 (data/fm-ss-r07/report.md): B1-B5, decisions 2 and 4, N2, M1",
+    "previousSource": "d944650113093ca118200b70dbcf93c9734d9505"
+  },
+  "s08MergeCheck": {
+    "s08Head": "b203b70cf1eea160709748a175aa5c77ec8898d3",
+    "method": "scratch worktree at this source; git merge --no-commit origin/fm/fm-ss-s08; union resolution of the AGENTS.md, server/supervision-store.ts and shared/supervision.ts conflicts (both sides' rows, mutations and imports kept); worktree removed afterwards",
+    "typecheck": "exit 0",
+    "tests": "server/supervision-migrate, supervision-sources, crew-scoped, pr-watch, supervision-store: 109/109 passed",
+    "probe": "B5/M1 test extended with isScopedSourceWorker(status, 'local', 'worker-trial') === true after commit (imported attempt rows)"
+  },
   "affectedSuites": {
-    "command": "npx vitest run (supervision store/crash/index/commands/lifecycle, scoped pilot, workflow board/plans, decision-answer, watches, watch-service-routing, launch-tool)",
-    "total": 407,
-    "passed": 402,
-    "failed": 4,
+    "command": "npx vitest run (supervision store/crash/index/commands/lifecycle, scoped pilot, workflow board/plans, decision-answer, watches, watch-service-routing, crew, crew-scoped, item-threads, files, launch-tool)",
+    "total": 378,
+    "passed": 376,
+    "failed": 1,
     "failures": [
       {
         "file": "server/launch-tool.test.ts",
         "title": "records under a successor, warns, rejects a guest, and status takes no lock"
-      },
-      {
-        "file": "server/launch-tool.test.ts",
-        "title": "preserves BOM, other lines and line endings (\"\\n\"), saves the exact recovery line"
-      },
-      {
-        "file": "server/launch-tool.test.ts",
-        "title": "reports missing inspect fields as unknown and does not replace an already-recorded identity"
-      },
-      {
-        "file": "server/supervision-index.test.ts",
-        "title": "warm reads at 176 transactions replay no historical reducers or full scans"
       }
     ]
   },
@@ -173,9 +227,13 @@
       ]
     },
     "branchFullSuite": {
-      "passed": 2794,
+      "passed": 2801,
+      "total": 2810,
       "failed": [
-        "server/supervision-index.test.ts > warm reads at 176 transactions replay no historical reducers or full scans"
+        "launch-tool x2",
+        "supervision-index x2 (176-transaction timeouts)",
+        "supervision-r02 (timeout)",
+        "supervision-migrate L5 burst (5 s timeout under load; the file now sets a 30 s per-test timeout and passes 34/34 in three reruns and under concurrent load)"
       ]
     }
   },
@@ -185,21 +243,24 @@
     "result": "no supervision/ directory: no pre-checkpoint store exists"
   },
   "sha256": {
-    "shared/supervision-migration.ts": "a731e1f1d0bbd22b77f983a1eb310a35775d25994fb95e383d075a69d1ec5b23",
-    "server/supervision-gate.ts": "420636e27412b8083dcd6e57e3f11cd0561768cad7add7b7816980b29b3e2cce",
-    "server/supervision-migrate.ts": "c7aca008a5783aa9485a548f55319eea4b626de8e2113aef5f7a182092f1d334",
-    "server/supervision-migrate.test.ts": "00fc4acb6515b10452e53a0b228e1f74843b504b220d21f41c5180b016de1791",
-    "server/supervision-store.ts": "9467e140571735f7b12135ba8b3c4875e89ab2b02a49148625c987d6b1908882",
-    "server/workflow-plans.ts": "2c74593fcf85b5dacbc730aae915f7379f2ef735a7af8474304ac7a58afeb669",
+    "shared/supervision-migration.ts": "fdb5b8599e56ad4a0b95d8e2ae37acad032b34e30ea742e48e2300f459cd0fdc",
+    "server/supervision-gate.ts": "f6fa8748daedeafb335e4bfe20362c5142ee186ec3b06c826ffd5417732a7852",
+    "server/supervision-migrate.ts": "d106aea9ae674dd655c1ef679520a4dd79f888ed592864e3c000a742fa947754",
+    "server/supervision-migrate.test.ts": "f1f71533ea08807c60728d00e56f8116a250c906f2027e546d3db5c11890ed25",
+    "server/supervision-store.ts": "19f5598ea0f7c86ba8255153713efe1be71a4244027cd2a6713fc6bb356fd540",
+    "server/workflow-plans.ts": "3bed5a7a962bdb92c1ff470c853e5de49e5f9a9d16d59f24a7ea08a74e51e702",
     "server/workflow-service.ts": "fa06bafb2b5b5529b735e3bf6d86e6f597c28c8fa36fd723fe297df42af1ebb9",
-    "server/mate.ts": "7d6745d72c752030ab377339062c645961c56b47e28e826cb31c9e3eb5a73044",
-    "server/decision-answer.ts": "b8b15853387c22f9b2e5ca681ca4f28c421c561f7b8164258121e78628b42b7e",
-    "server/watches.ts": "3f2818c4b6cdec08663b0177fa3fc73f18e3018d27f6d4459003c2af30c7177a",
+    "server/mate.ts": "5665ec6148f5e039b249da7849bd814d0e11494f78d244c6105d8b69eedde5ea",
+    "server/decision-answer.ts": "cfe39d7a8e8ea6c475b0f4b74531f4131b5d15ba59898f6ae3b6bace6b13d373",
+    "server/watches.ts": "6df5d04579ddb8e38235aeaed12aefe7cf5500ff906221d4ace83e3c8c9b62f9",
     "server/watch-service.ts": "185e2693fd8547d07ec0f1fec6c1059eb0e6ae7d45664f22f12a8073f60dc521",
-    "server/supervision-routing.ts": "ddf1b227ad462907f3a35da76ee22ddf8ae2bf37319603968263a714a6e81e32",
-    "server/workflow-board.ts": "a9bffe637723df8165d14a01dcfc53a5e1a339a2aa89d4633a68725af240a649",
+    "server/supervision-routing.ts": "18a0bcf6c433e93ac03a1d4316697df4c8612efe08fb98d48f86365a60d39ec2",
+    "server/workflow-board.ts": "b690f07a937ab0469a807ccdb9d791e5f2aa501f61590e14dd4683b5a8188834",
     "server/files.ts": "72bdafa36ed7a64bcf790bb13cd3522a3828d6ce9eae0106d4d4f25753e6da86",
-    "docs/scoped-supervision/S07.md": "2e5b8a542ff84e77da7b8384479fef895ebbe23f68c3b0483d65c85678d93463",
-    "docs/scoped-supervision/pilot-runbook.md": "4e012358a8b4122a4bf894b225c422ef84dae043328ef1cf9a7fa28bfde2c361"
+    "server/crew.ts": "b29463400202eb9eb96a49bab7a3da203045b800bbd4fba7942cfdd3d4fef0f0",
+    "server/item-threads.ts": "cb86d53d960ff7ea5bc4c5d9e9ee39495cfdaf2ed0dd0113cb16c9a3663f8e31",
+    "shared/supervision.ts": "ae0d93d18815241a53cf49728728b84e435b5c70b84240784b498dee21b13890",
+    "docs/scoped-supervision/S07.md": "05a46fad1a018f0a216cf35bf2849896839625bb447f7fa07b54f3eff6c17a70",
+    "docs/scoped-supervision/pilot-runbook.md": "82195a3fb46f6ce257c5f5ccf3b4a1b99279df83c91e34fffe6aeccd25e42cdc"
   }
 }
