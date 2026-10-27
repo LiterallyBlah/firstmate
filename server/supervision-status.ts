@@ -19,14 +19,18 @@ export function supervisionInboxStatus(status: SupervisionStatus, input: { scope
   const offers = inbox.offers.filter(o => (!scopeId || o.scopeId === scopeId) && o.state !== "retired" && o.state !== "acknowledged");
   // S08: an agentless source (a bound pull request, a remote host) belongs to a scope only by its recorded owner.
   const sources = inbox.sources.filter(s => !scopeId || (s.agentId !== null ? agents.has(s.agentId) : s.scopeId === scopeId));
+  // S08: a captain board message with an unknown outcome stays visible outside chat until a typed read settles it.
+  const unknownSends = status.sources.submissions.filter(x => (!scopeId || x.scopeId === scopeId) && (x.state === "uncertain" || x.state === "reserved"));
   const rows = pageKind === "events" ? all.filter((a, i) => (scopeId ? a.ordinal! : i + 1) > after).map(a => ({ event: inbox.events.find(e => e.id === a.id)!, disposition: a }))
     : (pageKind === "sources" ? sources : offers).slice(after);
   const output: SupervisionInboxStatus = { format: "firstmate.supervision-inbox/1", homeId: status.homeId, scopeId, sequence: status.sequence, hash: status.hash, pageKind,
     freshness: status.freshness, observedAt: now.toISOString(), offersEnabled: false, deliverySupported: false,
-    problems: [...status.problems, ...quarantined.map(a => `Unresolved malformed observation ${a.id}; retained in quarantine under consequence ${a.primaryEventId}.`)].slice(0, 8).map(p => p.slice(0, 1024)),
+    problems: [...status.problems, ...quarantined.map(a => `Unresolved malformed observation ${a.id}; retained in quarantine under consequence ${a.primaryEventId}.`),
+      ...unknownSends.map(x => `Board message ${x.messageId} to ${x.agentId}: delivery ${x.state === "reserved" ? "not yet recorded" : "outcome unknown"}; it will not be resent. Check the worker's conversation.`)].slice(0, 8).map(p => p.slice(0, 1024)),
     counts: { pending: pending.length, triage: triage.length, quarantined: quarantined.length,
       acknowledgedUnhandled: pending.filter(a => a.state === "acknowledged").length, uncertainOffers: offers.filter(o => o.state === "uncertain").length,
-      sourcesWithGaps: sources.filter(s => s.coverage === "gap" || s.coverage === "unknown").length, lowerBound: status.freshness === "held" },
+      sourcesWithGaps: sources.filter(s => s.coverage === "gap" || s.coverage === "unknown").length, lowerBound: status.freshness === "held",
+      unknownBoardSends: unknownSends.length },
     oldestPendingAt, oldestPendingAgeMs: oldestPendingAt ? Math.max(0, now.getTime() - Date.parse(oldestPendingAt)) : null,
     admissionsHeld: status.storage.admissionsHeld || status.freshness !== "current" || inbox.assignments.filter(a => a.id === a.primaryEventId && !terminal(a)).length >= INBOX_LIMITS.pending || inbox.sources.some(s => s.gaps.includes("queue-pressure")),
     watermark: scopeId ? inbox.mailboxes.find(b => b.id === scopeId)?.watermark ?? 0 : null,

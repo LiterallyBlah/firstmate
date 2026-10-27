@@ -7,7 +7,7 @@ import type { RemoteSnapshot } from "../shared/remotes";
 import type { PrObservation } from "../shared/supervision-sources";
 import { CAPTAIN_STEER_MESSAGE_ID_PREFIX } from "../shared/fleet";
 import { expected, seed } from "../test/supervision-fixture";
-import { inboxFixture, ids, now, second } from "../test/supervision-inbox-fixture";
+import { inboxFixture, ids, now, second, timelinePage } from "../test/supervision-inbox-fixture";
 import { supervisionInboxStatus } from "./supervision-status";
 import {
   ScopedBoardSteer, SupervisionSources, ghPullRequestReader, normalizePullRequest, prReadiness, refuseScopedRemoteMutation, remoteCoverage, remoteFingerprint,
@@ -226,8 +226,15 @@ describe("S08 remote catalog observation", () => {
 });
 
 describe("S08 persistent scoped board submissions", () => {
-  function api(timeline: unknown[] = []) {
-    return { agents: { ref: () => ({ timeline: { refetch: vi.fn(async () => ({ entries: timeline.map((item, i) => ({ seqStart: i, seqEnd: i, item })) })) } }) } } as unknown as PaseoApi;
+  /** A typed timeline served in 32-entry pages, newest last, like the public refetch. */
+  function api(timeline: unknown[] = [], agentId = "worker-a") {
+    const entries = timeline.map((item, i) => ({ seqStart: i + 1, seqEnd: i + 1, turnId: "t", timestamp: now.toISOString(), item }));
+    const refetch = vi.fn(async (input: { direction: string; cursor?: { seq: number }; limit: number }) => {
+      const end = input.direction === "before" ? input.cursor!.seq - 1 : entries.length, slice = entries.slice(Math.max(0, end - input.limit), end);
+      return timelinePage({ agentId, entries: slice as never, direction: input.direction as never, hasOlder: (slice[0]?.seqStart ?? 1) > 1,
+        startCursor: slice[0] ? { epoch: "timeline-1", seq: slice[0].seqStart } : null, endCursor: slice.at(-1) ? { epoch: "timeline-1", seq: slice.at(-1)!.seqEnd } : null });
+    });
+    return Object.assign({ agents: { ref: () => ({ timeline: { refetch } }) } } as unknown as PaseoApi, { refetch });
   }
   it("persists the captain's message identity and target attempt/epoch before the send", async () => {
     const f = await fixture();
@@ -280,5 +287,100 @@ describe("S08 persistent scoped board submissions", () => {
     const f = await fixture(), send = vi.fn();
     await expect(new ScopedBoardSteer(f.store, f.sources, send as never).steer({} as PaseoApi, "unregistered", "hi")).rejects.toMatchObject({ code: "UNKNOWN_OWNER" });
     expect(send).not.toHaveBeenCalled();
+  });
+});
+
+describe("R08 corrections", () => {
+  const status = (state: string) => ({ __typename: "StatusContext", context: "codecov/patch", state, targetUrl: "https://codecov.example/me/web/42" });
+  /** A typed timeline served in 32-entry pages (as the board tests use). */
+  function paged(timeline: unknown[]) {
+    const entries = timeline.map((item, i) => ({ seqStart: i + 1, seqEnd: i + 1, turnId: "t", timestamp: now.toISOString(), item }));
+    const refetch = vi.fn(async (input: { direction: string; cursor?: { seq: number }; limit: number }) => {
+      const end = input.direction === "before" ? input.cursor!.seq - 1 : entries.length, slice = entries.slice(Math.max(0, end - input.limit), end);
+      return timelinePage({ agentId: "worker-a", entries: slice as never, direction: input.direction as never, hasOlder: (slice[0]?.seqStart ?? 1) > 1,
+        startCursor: slice[0] ? { epoch: "timeline-1", seq: slice[0].seqStart } : null, endCursor: slice.at(-1) ? { epoch: "timeline-1", seq: slice.at(-1)!.seqEnd } : null });
+    });
+    return Object.assign({ agents: { ref: () => ({ timeline: { refetch } }) } } as unknown as PaseoApi, { refetch });
+  }
+  const ended = { agent: { id: "worker-a" } as never, turnId: "t2", outcome: { kind: "completed" } as never, timeline: [] };
+
+  it("F1: red → green → red with identical content is three transitions; readiness is red, not a stale ready", async () => {
+    const f = await fixture();
+    await f.sources.bindPullRequest({ scopeId: ids.scope, attemptId: ids.attempt, repository: REPO, pr: 42 });
+    const approved = [review("r1", "alice", H1)];
+    for (const [minute, state] of [[0, "FAILURE"], [1, "SUCCESS"], [2, "FAILURE"]] as const)
+      await f.sources.observePullRequest(pr(H1, minute, { statusCheckRollup: [status(state)], reviews: approved }), { kind: "pr", key: "poll" });
+    // The same red again from the same source is still a quiet repeat.
+    expect((await f.sources.observePullRequest(pr(H1, 3, { statusCheckRollup: [status("FAILURE")], reviews: approved }), { kind: "pr", key: "poll" })).written).toBe(false);
+    const s = await f.store.read();
+    expect(s.inbox.assignments.map(a => a.state)).toEqual(["assigned", "assigned", "assigned"]);
+    expect(new Set(s.inbox.events.map(e => e.consequenceKey)).size).toBe(3);
+    expect(await f.sources.readiness(REPO, 42, { expectedHead: H1 })).toMatchObject({ state: "red", invalidated: [{ head: H1, reason: "checks-red" }] });
+  });
+
+  it("F3: a typed steer more than 32 entries back is found by paging; an unreachable one is a visible page gap", async () => {
+    const f = await fixture(), board = new ScopedBoardSteer(f.store, f.sources, vi.fn(async () => {}) as never, { now: () => now });
+    const row = await board.steer({} as PaseoApi, "worker-a", "rerun the suite");
+    const tools = Array.from({ length: 40 }, (_, i) => ({ type: "tool_call", callId: `c${i}` }));
+    const long = paged([{ type: "user_message", text: "rerun the suite", clientMessageId: row.messageId }, ...tools, { type: "assistant_message", text: "green" }]);
+    expect(await board.turnEnded(ended, long)).toHaveLength(1);
+    expect(long.refetch).toHaveBeenCalledTimes(2);
+    expect((await f.store.read()).sources.submissions[0]).toMatchObject({ correlation: { certainty: "verified" } });
+
+    const other = await board.steer({} as PaseoApi, "worker-a", "and lint");
+    const tooLong = paged([{ type: "user_message", text: "and lint", clientMessageId: other.messageId }, ...Array.from({ length: 300 }, (_, i) => ({ type: "tool_call", callId: `d${i}` }))]);
+    expect(await board.turnEnded(ended, tooLong)).toEqual([]);
+    const s = await f.store.read();
+    expect(s.inbox.sources.find(c => c.kind === "board" && c.agentId === "worker-a" && c.gaps.includes("page-gap"))).toBeDefined();
+    expect(supervisionInboxStatus(s, { scopeId: ids.scope }, now).counts.sourcesWithGaps).toBeGreaterThan(0);
+  });
+
+  it("F3: a page for another agent or a changed epoch is a gap, never a correlation", async () => {
+    const f = await fixture(), board = new ScopedBoardSteer(f.store, f.sources, vi.fn(async () => {}) as never, { now: () => now });
+    const row = await board.steer({} as PaseoApi, "worker-a", "x");
+    const wrong = { agents: { ref: () => ({ timeline: { refetch: async () => timelinePage({ agentId: "someone-else",
+      entries: [{ seqStart: 1, seqEnd: 1, turnId: "t", timestamp: now.toISOString(), item: { type: "user_message", text: "x", clientMessageId: row.messageId } }] as never }) } }) } } as unknown as PaseoApi;
+    expect(await board.turnEnded(ended, wrong)).toEqual([]);
+    expect((await f.store.read()).inbox.sources.find(c => c.kind === "board")!.gaps).toContain("malformed");
+  });
+
+  it("F4/F5: a crash between send and record leaves an unknown outcome that reconciles, shows in status and settles only on a typed read", async () => {
+    const f = await fixture();
+    // The send never returns: the process "dies" with the reservation committed and nothing settled.
+    void new ScopedBoardSteer(f.store, f.sources, (() => new Promise(() => {})) as never, { now: () => now }).steer({} as PaseoApi, "worker-a", "deploy check");
+    let s = await f.store.read();
+    for (let i = 0; i < 50 && !s.sources.submissions.length; i++) { await new Promise(r => setTimeout(r, 20)); s = await f.store.read(); }
+    expect(s.sources.submissions[0]).toMatchObject({ state: "reserved" });
+    expect(supervisionInboxStatus(s, { scopeId: ids.scope }, now)).toMatchObject({ counts: { unknownBoardSends: 1 }, problems: [expect.stringContaining("not yet recorded")] });
+    // A fresh adapter instance (after restart) holds nothing in memory; the journal is all it has.
+    const restarted = new ScopedBoardSteer(f.store, f.sources);
+    expect(await restarted.reconcile(new Date(now.getTime() + 60_000))).toEqual([]);
+    expect(await restarted.reconcile(new Date(now.getTime() + 6 * 60_000))).toHaveLength(1);
+    s = await f.store.read();
+    expect(s.sources.submissions[0]!.state).toBe("uncertain");
+    expect(supervisionInboxStatus(s, { scopeId: ids.scope }, now).problems).toEqual([expect.stringContaining("outcome unknown")]);
+    // Text alone never settles it; the typed read does.
+    const row = s.sources.submissions[0]!;
+    await restarted.turnEnded({ ...ended, timeline: [{ type: "user_message", text: "deploy check" }, { type: "assistant_message", text: "ok" }] as never });
+    expect((await f.store.read()).sources.submissions[0]!.state).toBe("uncertain");
+    await restarted.turnEnded({ ...ended, turnId: "t3", timeline: [{ type: "user_message", text: "deploy check", clientMessageId: row.messageId }, { type: "assistant_message", text: "ok" }] as never });
+    s = await f.store.read();
+    expect(s.sources.submissions[0]).toMatchObject({ state: "accepted", correlation: { certainty: "verified", turnId: "t3" } });
+    expect(supervisionInboxStatus(s, { scopeId: ids.scope }, now).counts.unknownBoardSends).toBe(0);
+  });
+
+  it("F6: observations stop at their own ceiling, leaving the rest of the journal for effects and reconciliation", async () => {
+    const f = await fixture(), at0 = (await f.store.read()).sequence;
+    const capped = new SupervisionSources(f.store, { now: () => now, observationCeiling: at0 + 1 });
+    await capped.observePullRequest(pr(H1, 0), { kind: "pr", key: "poll" });
+    await expect(capped.observePullRequest(pr(H2, 1), { kind: "pr", key: "poll" })).rejects.toMatchObject({ code: "HELD" });
+    await expect(capped.gap("remote", "srv", null, "catalog", ["outage"])).rejects.toMatchObject({ code: "HELD" });
+    await expect(new ScopedBoardSteer(f.store, capped, vi.fn() as never).steer({} as PaseoApi, "worker-a", "hi")).rejects.toMatchObject({ code: "HELD" });
+    expect((await f.store.read()).sequence).toBe(at0 + 1);
+  });
+
+  it("F9: reviewer exclusion and the author check ignore login case", () => {
+    const obs = pr(H1, 0, { author: { login: "Builder" }, reviews: [review("r1", "builder", H1), review("r2", "Worker-Bot", H1)] });
+    expect(prReadiness(REPO, 42, [obs], { excludeReviewers: ["worker-bot"] })).toMatchObject({ state: "blocked", approvals: [] });
   });
 });

@@ -46,12 +46,15 @@ export function validateSourceChange(kind: string, value: unknown, prior: unknow
       const transitions: Record<string, string[]> = { reserved: ["reserved", "accepted", "uncertain", "failed"], accepted: ["accepted"],
         uncertain: ["uncertain", "accepted"], failed: ["failed"] };
       if (digest(identity) !== digest(oldIdentity) || !transitions[old.state]?.includes(row.state) ||
-        (old.correlation && digest(old.correlation) !== digest(row.correlation))) fail("HELD", "Board submission identity, send outcome and correlation are retained.");
+        (old.correlation && digest(old.correlation) !== digest(row.correlation) &&
+          // An inferred (text-only) correlation may be replaced once, by a typed read; nothing else changes it.
+          !(old.correlation.certainty === "inferred" && row.correlation?.certainty === "verified"))) fail("HELD", "Board submission identity, send outcome and correlation are retained.");
       // An uncertain send becomes accepted only on typed evidence that the worker read this exact message.
-      if (old.state === "uncertain" && row.state === "accepted" && row.correlation?.certainty !== "verified")
+      if (old.state !== row.state && old.state !== "reserved" && row.state === "accepted" && row.correlation?.certainty !== "verified")
         fail("HELD", "Only a typed clientMessageId read settles an uncertain board send.");
     }
     if (row.correlation && !["accepted", "uncertain"].includes(row.state)) fail("HELD", "Only a sent board message can be correlated to a turn.");
+    if (row.correlation && old?.state === "reserved" && row.correlation.certainty !== "verified") fail("HELD", "Only a typed read settles a reserved board message.");
   }
 }
 

@@ -8,7 +8,7 @@
  */
 import { execFile } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
-import { readdir, readFile, rm } from "node:fs/promises";
+import { lstat, readdir, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import type { PluginLifecycleEvents, PluginLifecycleRegistration } from "@getpaseo/plugin/server";
 import type { z } from "zod";
@@ -20,7 +20,7 @@ import {
   PR_OBSERVATION_FORMAT, PrObservationSchema, Repository, SOURCE_LIMITS,
   type BoardSubmission, type PrCheck, type PrObservation, type PrReadiness, type RemoteCoverage, type SourceBinding,
 } from "../shared/supervision-sources";
-import type { PaseoApi } from "./host-types";
+import type { PaseoApi, TimelinePage } from "./host-types";
 import { inboxRef, inboxTransaction } from "./supervision-inbox";
 import { eventOwners, terminal } from "./supervision-inbox-state";
 import { sourceBindingId } from "./supervision-source-state";
@@ -32,16 +32,20 @@ import { canonical, digest } from "./submissions";
 type Subject = z.infer<typeof SupervisionEventSchema>["subject"];
 const blobId = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
 
-/** One normalized observation from a non-hook source. `identity` decides deduplication; `consequence`
- * decides the single semantic outcome shared by every source that observed the same thing. */
+/** One normalized observation from a non-hook source. `identity` decides per-source deduplication against
+ * that source's LATEST observation only; `consequence` is the content shared by every source observing the same
+ * state of one `stream` (a pull request, a remote worker, a board message). Each change of content in a stream is
+ * a new transition with its own consequence, so A→B→A is three transitions, never a swallowed repeat. */
 export interface SourceObservation {
   kind: "pr" | "remote" | "board" | "watch"; hostId: string; agentId: string | null; scopeId?: string | null;
   /** Stable name of the source within its kind/host/agent, e.g. `owner/repo#12` or `catalog`. */
   sourceName: string; gaps: InboxSource["gaps"]; coverage: "unknown" | "gap";
-  subject: Subject; identity: unknown; consequence: unknown; payload: unknown; critical: boolean;
+  stream: unknown; subject: Subject; identity: unknown; consequence: unknown; payload: unknown; critical: boolean;
   certainty: "reported" | "inferred";
   /** Extra immutable evidence (for example a full observation), published only when the event is new. */
   evidence?: Uint8Array[];
+  /** Completing an already reserved board submission is not a new observation and spends no observation budget. */
+  budgetExempt?: boolean;
 }
 export type SourceAdmission = { eventId: string | null; written: boolean; duplicate: boolean };
 
@@ -51,36 +55,50 @@ const sameGaps = (a: InboxSource | undefined, gaps: readonly string[], coverage:
 const normalHost = (host: string) => host.trim().toLowerCase();
 
 export class SupervisionSources {
-  constructor(readonly store: SupervisionStore, private readonly options: { now?: () => Date } = {}) {}
+  constructor(readonly store: SupervisionStore, private readonly options: { now?: () => Date; observationCeiling?: number } = {}) {}
   private now() { return SupervisionUtc.parse((this.options.now?.() ?? new Date()).toISOString()); }
+  /** F6: observations share the pilot journal, so they stop at a lower ceiling than effects (192) and all
+   * writes (256). Transactions from the ceiling up stay reserved for gateway effects and reconciliation. */
+  budget(s: SupervisionStatus, exempt = false) {
+    const ceiling = this.options.observationCeiling ?? SOURCE_LIMITS.observationCeiling;
+    if (!exempt && s.sequence >= ceiling) throw new SupervisionError("HELD",
+      `Source observation budget reached (journal sequence ${s.sequence} of ${ceiling}); the rest of the journal is reserved for effects and reconciliation.`);
+  }
 
-  /** Admit one observation. Unchanged content and unchanged coverage write nothing, so quiet polls
-   * cost no transaction. The source row (baseline) commits in the SAME transaction as its event. */
+  /** Admit one observation. An observation equal to its source's latest, with unchanged coverage, writes
+   * nothing, so quiet polls cost no transaction. The source row commits in the SAME transaction as its event. */
   async admit(o: SourceObservation, requestId: string = randomUUID(), extra?: (s: SupervisionStatus, eventId: string | null) => SupervisionMutation[]): Promise<SourceAdmission> {
     let payload = canonical(o.payload ?? null), malformed = false;
     if (Buffer.byteLength(payload) > INBOX_LIMITS.payloadBytes) { payload = canonical({ digest: digest(o.payload), bytes: Buffer.byteLength(payload), omitted: "oversized" }); malformed = true; }
     const hostId = normalHost(o.hostId), scopeId = o.scopeId ?? null, gaps = [...new Set<InboxSource["gaps"][number]>([...o.gaps, ...(malformed ? ["malformed" as const] : [])])];
-    const coverage = gaps.length ? "gap" as const : o.coverage;
-    const id = sourceRowId(o.kind, hostId, o.agentId, o.sourceName), observationHash = digest([o.kind, hostId, o.agentId, o.identity, digest(payload)]);
-    const sourceKey = digest([o.sourceName, digest(o.identity)]);
-    const quiet = (s: SupervisionStatus) => {
-      const known = s.inbox.events.find(e => e.envelope.source.kind === o.kind && e.envelope.source.hostId === hostId && e.envelope.source.key === sourceKey);
-      return known && sameGaps(s.inbox.sources.find(c => c.id === id), gaps, coverage, scopeId) && !extra ? known : null;
+    const id = sourceRowId(o.kind, hostId, o.agentId, o.sourceName), observationHash = digest([o.kind, hostId, o.agentId, o.identity]);
+    const stream = `s08:${digest(o.stream)}`, family = o.kind === "watch" ? "pr" : o.kind, content = digest(o.consequence);
+    const place = (s: SupervisionStatus) => {
+      const events = s.inbox.events.filter(e => e.envelope.causationId === stream);
+      const own = events.filter(e => e.envelope.source.kind === o.kind && e.envelope.source.hostId === hostId).at(-1);
+      const transitions = new Set(events.map(e => e.consequenceKey)).size, current = digest(["s08", family, stream, content, transitions]);
+      const repeat = events.at(-1)?.consequenceKey === current, prior = s.inbox.sources.find(c => c.id === id);
+      // Equal remote content under a different settled update may hide a new turn; it stays flagged until the content changes.
+      const collision = o.kind === "remote" && repeat && (own?.observationHash !== observationHash || !!prior?.gaps.includes("content-collision"));
+      const all = [...gaps, ...(collision ? ["content-collision" as const] : [])], coverage = all.length ? "gap" as const : o.coverage;
+      const known = own?.observationHash === observationHash ? own : null;
+      return { prior, gaps: all, coverage, known, quiet: !!known && sameGaps(prior, all, coverage, scopeId) && !extra,
+        consequenceKey: repeat ? current : digest(["s08", family, stream, content, transitions + 1]), sourceKey: digest([o.sourceName, observationHash, events.length]) };
     };
-    const early = quiet(await this.store.read());
-    if (early) return { eventId: early.id, written: false, duplicate: true };
+    const status = await this.store.read(), early = place(status);
+    if (early.quiet) return { eventId: early.known!.id, written: false, duplicate: true };
+    this.budget(status, o.budgetExempt);
     let outcome: SourceAdmission = { eventId: null, written: true, duplicate: false };
-    await serialized(`${this.store.root}:ingress`, () => inboxTransaction(this.store, requestId, { op: "s08-source", kind: o.kind, hostId, sourceKey, observationHash, gaps }, async s => {
-      const prior = s.inbox.sources.find(c => c.id === id);
+    await serialized(`${this.store.root}:ingress`, () => inboxTransaction(this.store, requestId, { op: "s08-source", kind: o.kind, hostId, stream, observationHash, gaps }, async s => {
+      this.budget(s, o.budgetExempt);
+      const { prior, gaps, coverage, known, consequenceKey, sourceKey } = place(s);
       const source: InboxSource = { id, kind: o.kind, hostId, agentId: o.agentId, epoch: null, cursor: null, maxSeq: null,
         coverage, gaps, observedAt: this.now(), version: (prior?.version ?? 0) + 1, ...(scopeId ? { scopeId } : {}) };
       const mutations: SupervisionMutation[] = [{ kind: "inbox-source", value: source }];
-      const known = s.inbox.events.find(e => e.envelope.source.kind === o.kind && e.envelope.source.hostId === hostId && e.envelope.source.key === sourceKey);
       if (known) {
         outcome = { eventId: known.id, written: true, duplicate: true };
         return { mutations: [...mutations, ...(extra?.(s, known.id) ?? [])], resultIds: [known.id] };
       }
-      const consequenceKey = digest(["s08", o.kind === "watch" ? "pr" : o.kind, o.consequence]);
       const primary = s.inbox.assignments.find(a => a.consequenceKey === consequenceKey && a.id === a.primaryEventId);
       const pending = s.inbox.assignments.filter(a => a.id === a.primaryEventId && !terminal(a)).length;
       if (!primary && pending >= INBOX_LIMITS.pending) {
@@ -92,7 +110,7 @@ export class SupervisionSources {
       const extraBlobs = await Promise.all((o.evidence ?? []).map(bytes => this.store.putBlob(bytes)));
       const event: InboxEvent = { id: eventId, version: 1, critical: malformed || o.critical, consequenceKey, observationHash,
         envelope: SupervisionEventSchema.parse({ version: 1, eventId, source: { kind: o.kind, hostId, key: sourceKey, epoch: null, cursor: null },
-          observedAt: at, subject: { ...o.subject }, certainty: malformed ? "unknown" : o.certainty, payloadRef: `blob:${blob.id}`,
+          observedAt: at, subject: { ...o.subject }, certainty: malformed ? "unknown" : o.certainty, payloadRef: `blob:${blob.id}`, causationId: stream,
           evidence: [blob, ...extraBlobs].map(b => ({ ref: `blob:${b.id}`, digest: b.id, freshness: at })) }) };
       const owners = eventOwners(event, s.tasks, s.attempts, s.sources.bindings);
       const owner = owners.length === 1 && !malformed && s.scopes.find(scope => scope.id === owners[0]!.scopeId)?.mode === "scoped" ? owners[0]! : null;
@@ -121,9 +139,11 @@ export class SupervisionSources {
 
   /** A coverage change without an event (outage, fetch failure). Writes only when coverage changes:
    * an unchanged outage is one incident, not one transaction per poll. */
-  async gap(kind: SourceObservation["kind"], hostId: string, agentId: string | null, sourceName: string, gaps: InboxSource["gaps"], scopeId: string | null = null) {
+  async gap(kind: SourceObservation["kind"], hostId: string, agentId: string | null, sourceName: string, gaps: InboxSource["gaps"], scopeId: string | null = null, exempt = false) {
     const host = normalHost(hostId), id = sourceRowId(kind, host, agentId, sourceName), coverage = gaps.length ? "gap" : "unknown";
-    if (sameGaps((await this.store.read()).inbox.sources.find(c => c.id === id), gaps, coverage, scopeId)) return false;
+    const status = await this.store.read();
+    if (sameGaps(status.inbox.sources.find(c => c.id === id), gaps, coverage, scopeId)) return false;
+    this.budget(status, exempt);
     await serialized(`${this.store.root}:ingress`, () => inboxTransaction(this.store, randomUUID(), { op: "s08-gap", id, gaps, at: this.now() }, s => {
       const prior = s.inbox.sources.find(c => c.id === id);
       if (sameGaps(prior, gaps, coverage, scopeId)) return { mutations: [], resultIds: [id] };
@@ -138,7 +158,9 @@ export class SupervisionSources {
   /** Register the exact attempt that owns a pull request. A different owner is a CONFLICT, never a reroute. */
   async bindPullRequest(input: { scopeId: string; attemptId: string; repository: string; pr: number }, requestId = randomUUID()) {
     const repository = Repository.parse(input.repository.toLowerCase()), id = sourceBindingId(repository, input.pr);
+    this.budget(await this.store.read());
     return serialized(`${this.store.root}:ingress`, () => inboxTransaction(this.store, requestId, { op: "s08-bind", ...input, repository }, s => {
+      this.budget(s);
       const attempt = s.attempts.find(a => a.id === input.attemptId), task = attempt ? s.tasks.find(t => t.id === attempt.taskId) : undefined;
       const scope = s.scopes.find(x => x.id === input.scopeId);
       if (!attempt || !task || task.ownerScopeId !== input.scopeId || scope?.mode !== "scoped" || scope.state === "retired")
@@ -159,9 +181,9 @@ export class SupervisionSources {
     const status = await this.store.read(), binding = status.sources.bindings.find(b => b.id === sourceBindingId(obs.repository, obs.pr) && b.state === "active");
     const full = Buffer.from(canonical(obs)), evidence = blobId(full);
     return this.admit({ kind: provenance.kind, hostId: provenance.kind === "pr" ? "github.com" : "local", agentId: null, scopeId: binding?.scopeId ?? null,
-      sourceName: `${obs.repository}#${obs.pr}`, gaps: ["no-cursor"], coverage: "unknown",
+      sourceName: `${obs.repository}#${obs.pr}`, gaps: ["no-cursor"], coverage: "unknown", stream: ["pull-request", obs.repository, obs.pr],
       subject: { repositoryId: obs.repository, pr: obs.pr, head: obs.head },
-      identity: semanticPr(obs), consequence: [obs.repository, obs.pr, semanticPr(obs)], critical: true, certainty: "reported", evidence: [full],
+      identity: semanticPr(obs), consequence: semanticPr(obs), critical: true, certainty: "reported", evidence: [full],
       payload: { format: PR_OBSERVATION_FORMAT, observation: `blob:${evidence}`, provenance: provenance.kind, key: provenance.key.slice(0, 256),
         state: obs.state, head: obs.head, observedAt: obs.observedAt, checks: obs.checks.length, reviews: obs.reviews.length } }, requestId);
   }
@@ -210,10 +232,12 @@ export class SupervisionSources {
     catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return { ingested: 0, rejected: 0 }; throw error; }
     let ingested = 0, rejected = 0;
     for (const name of names) {
-      const path = join(directory, name), bytes = await readFile(path);
+      const path = join(directory, name), info = await lstat(path);
       let obs: PrObservation | null = null;
       try {
-        if (bytes.length > SOURCE_LIMITS.spoolBytes) throw new Error("oversized");
+        // Regular files only (never follow a link), and the size is checked before anything is read.
+        if (!info.isFile() || info.size > SOURCE_LIMITS.spoolBytes) throw new Error("not a bounded regular file");
+        const bytes = await readFile(path);
         const spool = JSON.parse(bytes.toString("utf8")) as { format?: unknown; url?: unknown; observedAt?: unknown; pull?: unknown };
         if (spool.format !== "firstmate.pr-watch-spool/1" || typeof spool.url !== "string" || typeof spool.observedAt !== "string") throw new Error("format");
         const ref = parsePullRequestUrl(spool.url);
@@ -223,7 +247,9 @@ export class SupervisionSources {
         // Retain the bytes for inspection; the watch source shows the malformed input until it is removed by hand.
         await this.gap("watch", "local", null, "pr-watch", ["no-cursor", "malformed"]); rejected++; continue;
       }
-      await this.observePullRequest(obs, { kind: "watch", key: name });
+      const admitted = await this.observePullRequest(obs, { kind: "watch", key: name });
+      // Only an observation the journal holds (new or an identical latest) lets its spool file go.
+      if (admitted.eventId === null) { rejected++; continue; }
       await rm(path, { force: true }); ingested++;
     }
     return { ingested, rejected };
@@ -240,7 +266,9 @@ export class SupervisionSources {
       const hostId = normalHost(host.serverId), report = coverage.find(c => c.serverId === host.serverId)!;
       const hostGaps = report.gaps as InboxSource["gaps"];
       await this.gap("remote", hostId, null, "catalog", hostGaps);
-      const registered = status.attempts.filter(a => a.worker && normalHost(a.worker.hostId) === hostId);
+      // Current attempts of active scoped owners only: finished attempts and legacy-mode scopes are not observed here.
+      const registered = status.attempts.filter(a => a.worker && normalHost(a.worker.hostId) === hostId && status.tasks.some(t => t.id === a.taskId && t.currentAttempt === a.id &&
+        status.scopes.some(scope => scope.id === t.ownerScopeId && scope.mode === "scoped" && scope.state !== "retired")));
       for (const attempt of registered) {
         const agentId = attempt.worker!.agentId, worker = host.workers.find(w => w.id === agentId && w.followed !== true);
         const scopeId = status.tasks.find(t => t.id === attempt.taskId)?.ownerScopeId ?? null;
@@ -249,13 +277,9 @@ export class SupervisionSources {
           await this.gap("remote", hostId, agentId, "worker", [...hostGaps, ...(worker ? [] : ["fetch-failed" as const])], scopeId); continue;
         }
         const fingerprint = remoteFingerprint(worker), running = worker.status === "running";
-        const prior = status.inbox.events.filter(e => e.envelope.source.kind === "remote" && e.envelope.source.hostId === hostId && e.envelope.subject.agentId === agentId);
-        const consequence = ["remote", hostId, agentId, fingerprint], identity = [fingerprint, running ? null : worker.updatedAt];
-        // Equal content under a different settled update may hide a new turn. The same poll repeated is not a collision.
-        const collision = !running && prior.some(e => e.consequenceKey === digest(["s08", "remote", consequence]) && e.envelope.source.key !== digest(["worker", digest(identity)]));
-        const admitted = await this.admit({ kind: "remote", hostId, agentId, scopeId, sourceName: "worker",
-          gaps: [...hostGaps, ...(collision ? ["content-collision" as const] : [])], coverage: "unknown",
-          subject: { agentId }, identity, consequence, certainty: "inferred",
+        // A settled update with equal content is flagged by admit as a possible hidden turn (content-collision).
+        const admitted = await this.admit({ kind: "remote", hostId, agentId, scopeId, sourceName: "worker", gaps: hostGaps, coverage: "unknown",
+          stream: ["remote", hostId, agentId], subject: { agentId }, identity: [fingerprint, running ? null : worker.updatedAt], consequence: fingerprint, certainty: "inferred",
           critical: !running && worker.status !== "initializing",
           payload: { format: "firstmate.remote-observation/1", status: worker.status, updatedAt: worker.updatedAt, fingerprint,
             permissions: (worker.pendingPermissions ?? []).map(p => p.id).slice(0, 32), skewSeconds: report.clockSkewSeconds,
@@ -327,8 +351,10 @@ function approvalsAt(observations: readonly PrObservation[], head: string, autho
   const latest = new Map<string, PrObservation["reviews"][number]>(), stale: string[] = [];
   for (const review of [...reviews.values()].sort((a, b) => String(a.submittedAt).localeCompare(String(b.submittedAt)))) {
     if (review.commit !== head) { stale.push(review.id); continue; }
-    if (!review.author || review.author === author || exclude.includes(review.author) || !["APPROVED", "CHANGES_REQUESTED", "DISMISSED"].includes(review.state)) continue;
-    latest.set(review.author, review);
+    // GitHub logins are case-insensitive: the author or an excluded builder in other case never counts.
+    const login = review.author?.toLowerCase();
+    if (!login || login === author?.toLowerCase() || exclude.some(x => x.toLowerCase() === login) || !["APPROVED", "CHANGES_REQUESTED", "DISMISSED"].includes(review.state)) continue;
+    latest.set(login, review);
   }
   const values = [...latest.values()];
   return { approvals: values.filter(r => r.state === "APPROVED").map(r => ({ reviewId: r.id, author: r.author! })),
@@ -443,9 +469,12 @@ export class ScopedBoardSteer {
   async steer(paseo: PaseoApi, agentId: string, text: string): Promise<BoardSubmission> {
     const words = text.trim();
     if (!words) throw new Error("Nothing to send.");
+    // A new captain message is a new journal record: it needs observation budget before anything is sent.
+    this.sources.budget(await this.store.read());
     const blob = await this.store.putBlob(Buffer.from(words)), id = randomUUID(), messageId = `${CAPTAIN_STEER_MESSAGE_ID_PREFIX}${id}`;
     let submission!: BoardSubmission;
     await serialized(`${this.store.root}:ingress`, () => inboxTransaction(this.store, id, { op: "s08-board-reserve", agentId, text: blob.id }, s => {
+      this.sources.budget(s);
       const { attempt, task, binding } = this.owner(s, agentId);
       submission = { id, messageId, scopeId: task.ownerScopeId, taskId: task.id, attemptId: attempt.id, epoch: binding.epoch, hostId: "local", agentId,
         textDigest: blob.id, payloadRef: `blob:${blob.id}`, state: "reserved", createdAt: this.now(), correlation: null, version: 1 };
@@ -469,34 +498,70 @@ export class ScopedBoardSteer {
     }));
   }
 
+  /** F4: a reservation whose send never settled (a crash between send and record) becomes an explicit unknown
+   * outcome once it is older than any send could take. It is never resent; a later typed read can still settle it. */
+  async reconcile(now = this.options.now?.() ?? new Date()) {
+    const cutoff = now.getTime() - SOURCE_LIMITS.staleReservationMs, settled: string[] = [];
+    for (const row of (await this.store.read()).sources.submissions)
+      if (row.state === "reserved" && Date.parse(row.createdAt) <= cutoff) { await this.settle(row.id, "uncertain"); settled.push(row.id); }
+    return settled;
+  }
+
+  /** The finished turn's entries. A non-empty hook timeline is the turn itself. An empty one is read back
+   * through the public typed refetch, page by page (S02's qualification: same agent, same epoch, no gap, no
+   * error), until every open message is found or the pages are older than the oldest open message. Anything
+   * short of that is a recorded page gap, never a silent miss. */
+  private async turnItems(agentId: string, timeline: readonly TurnItem[], open: readonly BoardSubmission[], paseo?: PaseoApi): Promise<{ items: TurnItem[]; gap: InboxSource["gaps"][number] | null }> {
+    if (timeline.length) return { items: [...timeline], gap: null };
+    if (!paseo) return { items: [], gap: "empty-timeline" };
+    const oldest = Math.min(...open.map(r => Date.parse(r.createdAt))) - 60_000;
+    const wanted = new Set(open.map(r => r.messageId));
+    let entries: TimelinePage["entries"] = [], epoch: string | null = null, cursor: TimelinePage["startCursor"] = null;
+    for (let page = 0; page < SOURCE_LIMITS.timelinePages; page++) {
+      let read: TimelinePage;
+      try { read = await paseo.agents.ref(agentId).timeline.refetch({ direction: cursor ? "before" : "tail", limit: 32, projection: "canonical", ...(cursor ? { cursor } : {}) }); }
+      catch { return { items: entries.map(e => e.item as TurnItem), gap: "fetch-failed" }; }
+      if (read.agentId !== agentId || read.error) return { items: [], gap: read.error ? "fetch-failed" : "malformed" };
+      if (epoch !== null && read.epoch !== epoch) return { items: [], gap: "epoch-changed" };
+      if (read.gap || read.staleCursor || read.reset) return { items: entries.map(e => e.item as TurnItem), gap: "page-gap" };
+      epoch = read.epoch; entries = [...read.entries, ...entries];
+      for (const e of read.entries) { const item = e.item as TurnItem; if (item.type === "user_message" && item.clientMessageId) wanted.delete(item.clientMessageId); }
+      const first = read.entries[0];
+      if (!wanted.size || !read.hasOlder || !read.startCursor || (first && Date.parse(first.timestamp) < oldest)) return { items: entries.map(e => e.item as TurnItem), gap: null };
+      cursor = read.startCursor;
+    }
+    return { items: entries.map(e => e.item as TurnItem), gap: "page-gap" };
+  }
+
   /** Correlate a finished turn to the submissions it read. A typed clientMessageId is verified; a text
-   * match is inferred and grants nothing more than an inferred observation. */
+   * match is inferred and grants nothing more than an inferred observation (a later typed read upgrades it). */
   async turnEnded(event: Pick<PluginLifecycleEvents["agent.turn_ended"], "agent" | "turnId" | "outcome" | "timeline">, paseo?: PaseoApi) {
     if (event.outcome.kind === "canceled") return [];
     const status = await this.store.read();
-    const open = status.sources.submissions.filter(x => x.agentId === event.agent.id && !x.correlation && ["accepted", "uncertain"].includes(x.state));
+    const open = status.sources.submissions.filter(x => x.agentId === event.agent.id && (!x.correlation || x.correlation.certainty === "inferred"));
     if (!open.length) return [];
-    let items = event.timeline as readonly { type: string; text?: string; clientMessageId?: string }[];
-    if (!items.length && paseo) {
-      try { items = (await paseo.agents.ref(event.agent.id).timeline.refetch({ direction: "tail", limit: 32, projection: "canonical" })).entries.map(e => e.item as typeof items[number]); }
-      catch { await this.sources.gap("board", "local", event.agent.id, "board", ["fetch-failed"], open[0]!.scopeId); return []; }
-    }
+    const { items, gap } = await this.turnItems(event.agent.id, event.timeline as readonly TurnItem[], open, paseo);
     const users = items.filter(i => i.type === "user_message"), answer = closing(items);
     const admitted: string[] = [];
     for (const row of open) {
       const words = await readFile(join(this.store.root, "blobs", row.textDigest), "utf8");
-      const certainty = users.some(u => u.clientMessageId === row.messageId) ? "verified" as const : users.some(u => (u.text ?? "").includes(words)) ? "inferred" as const : null;
-      if (!certainty) continue;
+      const typed = users.some(u => u.clientMessageId === row.messageId);
+      // A reservation, or an existing inferred correlation, is only ever settled by a typed read.
+      const certainty = typed ? "verified" as const : !row.correlation && row.state !== "reserved" && users.some(u => (u.text ?? "").includes(words)) ? "inferred" as const : null;
+      if (!certainty) {
+        if (gap) await this.sources.gap("board", "local", row.agentId, "board", ["no-cursor", gap], row.scopeId, true);
+        continue;
+      }
       const result = await this.sources.admit({ kind: "board", hostId: "local", agentId: row.agentId, scopeId: row.scopeId, sourceName: row.messageId,
-        gaps: ["no-cursor", ...(certainty === "inferred" ? ["fingerprint-only" as const] : [])], coverage: "unknown",
+        gaps: ["no-cursor", ...(certainty === "inferred" ? ["fingerprint-only" as const] : [])], coverage: "unknown", stream: ["board", row.messageId], budgetExempt: true,
         subject: { agentId: row.agentId, attemptId: row.attemptId, ...(event.turnId ? { turnId: event.turnId } : {}) },
-        identity: [row.messageId, event.turnId ?? null], consequence: [row.messageId], critical: true, certainty: certainty === "verified" ? "reported" : "inferred",
+        identity: [row.messageId, event.turnId ?? null, certainty], consequence: [row.messageId], critical: true, certainty: certainty === "verified" ? "reported" : "inferred",
         payload: { format: "firstmate.board-exchange/1", messageId: row.messageId, submissionId: row.id, turnId: event.turnId ?? null, correlation: certainty,
           // The worker's answer is untrusted evidence for the scope owner: quoted, capped, never a status-line completion.
           answer: answer === null ? null : { trust: "untrusted-worker-text", digest: digest(answer), quoted: JSON.stringify(answer.slice(0, SOURCE_LIMITS.answerChars)), clipped: answer.length > SOURCE_LIMITS.answerChars } } },
         undefined, (s, eventId) => {
           const current = s.sources.submissions.find(x => x.id === row.id);
-          if (!eventId || !current || current.correlation) return [];
+          if (!eventId || !current || current.correlation?.certainty === "verified" || (current.correlation && certainty === "inferred")) return [];
           return [{ kind: "board-submission", value: { ...current, state: certainty === "verified" ? "accepted" : current.state,
             correlation: { turnId: event.turnId ?? null, eventId, certainty }, version: current.version + 1 } }];
         });
@@ -505,6 +570,8 @@ export class ScopedBoardSteer {
     return admitted;
   }
 }
+
+type TurnItem = { type: string; text?: string; clientMessageId?: string };
 
 function closing(items: readonly { type: string; text?: string }[]): string | null {
   const tail: string[] = [];

@@ -137,6 +137,9 @@ versioned PR head/check/review observations with explicit `source-binding` owner
 readiness, remote catalog fingerprints (inferred, never complete coverage) and persisted scoped `board-submission`
 steers correlated by clientMessageId. Only refusal guards are wired: scoped workers' item discussions and remote
 mutations are refused. pr-watch's typed spool is opt-in (`FIRSTMATE_PR_OBSERVATIONS=1`); default output is unchanged.
+Dedupe is per source against its latest observation, and every content change in a stream is a new transition.
+A full spool fails the run without moving the baseline. Board correlation pages the typed timeline and records gaps.
+S08 writes stop at journal sequence 128, reserving the rest for effects and reconciliation.
 
 | File                          | What it owns                                                                              |
 | ----------------------------- | ----------------------------------------------------------------------------------------- |

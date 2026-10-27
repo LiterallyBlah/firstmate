@@ -259,13 +259,19 @@ async function main() {
   }
 
   // Each observation is its own new file, synced before prs.json advances: a crash in between repeats
-  // an observation (which FirstMate deduplicates) rather than losing one.
+  // an observation (which FirstMate deduplicates) rather than losing one. A spool too full to take every
+  // observation of this run fails the run instead, before anything is written and before prs.json moves:
+  // nothing is dropped, and the plugin reports the failure.
   async function spool() {
     const directory = join(stateDir, "pr-observations");
     await mkdir(directory, { recursive: true });
     const waiting = (await readdir(directory)).filter((name) => name.endsWith(".json")).length;
+    if (waiting + observations.length > MAX_SPOOLED) {
+      throw new Error(`the observation spool ${directory} holds ${waiting} files and this run has ${observations.length} more; ` +
+        `it takes at most ${MAX_SPOOLED}. Nothing was recorded and the baseline did not move. Ingest or remove the spool, or unset FIRSTMATE_PR_OBSERVATIONS.`);
+    }
     let index = 0;
-    for (const entry of observations.slice(0, Math.max(0, MAX_SPOOLED - waiting))) {
+    for (const entry of observations) {
       const file = await open(join(directory, `${Date.parse(entry.observedAt)}-${process.pid}-${index++}.json`), "wx");
       try {
         await file.writeFile(`${JSON.stringify(entry)}\n`);

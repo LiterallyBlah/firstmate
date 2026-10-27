@@ -365,6 +365,22 @@ describe("pr-watch S08 opt-in observation spool", () => {
     }
   });
 
+  it("a full spool fails the run visibly, records nothing and leaves the baseline where it was", async () => {
+    const { answer, run, state } = await setup();
+    await answer({ [A]: observed(), [B]: observed() });
+    expect(await run(undefined, { FIRSTMATE_PR_OBSERVATIONS: "1" })).toMatchObject({ code: 0 });
+    const baseline = await readFile(join(state, "prs.json"), "utf8"), dir = join(state, "pr-observations");
+    for (const name of await readdir(dir)) await rm(join(dir, name));
+    await Promise.all(Array.from({ length: 255 }, (_, i) => writeFile(join(dir, `0-0-${i}.json`), "{}")));
+    await answer({ [A]: observed({ state: "MERGED" }), [B]: observed() });
+    const full = await run(undefined, { FIRSTMATE_PR_OBSERVATIONS: "1" });
+    expect(full.code).not.toBe(0);
+    expect(full.stderr).toContain("observation spool");
+    expect(full.stdout).toBe("");
+    expect(await readdir(dir)).toHaveLength(255);
+    expect(await readFile(join(state, "prs.json"), "utf8")).toBe(baseline);
+  });
+
   it("a crash before the baseline is saved leaves the observation spooled, so it is observed again, not lost", async () => {
     const { answer, run, state } = await setup();
     await answer({ [A]: observed(), [B]: observed() });

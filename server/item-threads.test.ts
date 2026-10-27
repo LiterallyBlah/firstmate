@@ -116,4 +116,10 @@ describe("S08 scoped board traffic", () => {
     // A legacy item keeps its existing discussion path unchanged.
     expect((await sendThread(home, card(), input("two"), deliver, async () => false)).messages).toHaveLength(1);
   });
+  it("a lost-response retry of an already recorded message replays its record even after the worker became scoped", async () => {
+    const home = await fixture(), deliver = vi.fn(delivered);
+    const first = await sendThread(home, card(), input("one"), deliver, async () => false);
+    expect(await sendThread(home, card(), input("one"), deliver, async () => true)).toEqual(first);
+    expect(deliver).toHaveBeenCalledTimes(1);
+  });
 });

@@ -76,4 +76,9 @@ export interface RemoteCoverage {
   claim: "fingerprint-only" | "none"; gaps: string[]; workers: number; followedExcluded: number; error: boolean;
 }
 
-export const SOURCE_LIMITS = { staleRemoteMs: 3 * 60 * 1000, clockSkewSeconds: 180, answerChars: 4000, spoolFiles: 64, spoolBytes: 64 * 1024 } as const;
+/** `observationCeiling`: S08 sources write only while the pilot journal's sequence is below it, keeping the
+ * band up to the effect ceiling (192) and the write ceiling (256) for gateway effects and reconciliation.
+ * `staleReservationMs`: a board reservation older than this whose send never settled is an unknown outcome.
+ * `timelinePages`: how many 32-entry pages a board correlation reads back before recording a page gap. */
+export const SOURCE_LIMITS = { staleRemoteMs: 3 * 60 * 1000, clockSkewSeconds: 180, answerChars: 4000, spoolFiles: 64, spoolBytes: 64 * 1024,
+  observationCeiling: 128, staleReservationMs: 5 * 60 * 1000, timelinePages: 8 } as const;
