@@ -7,11 +7,14 @@
   },
   "review": {
     "r10": "data/fm-ss-r10/report.md",
-    "reviewedHead": "32b8e2aca0fcc0e8a32fefde515f26499c64696d",
+    "reviewedHeads": [
+      "32b8e2aca0fcc0e8a32fefde515f26499c64696d",
+      "f6a03b0e94fffe385b1f56d63b5d0ad3e75cabf2"
+    ],
     "corrections": "docs/scoped-supervision/S10.md#r10-corrections"
   },
-  "sourceCommit": "0aad9f2180979f1f7aafaa3a81f315e9e56c88e5",
-  "sourceTree": "8f8e80f177e8928fc03cdcdcb584b76532a53d2a",
+  "sourceCommit": "313d5bacc54474062345f8c968d7518495856a91",
+  "sourceTree": "5f7a4511b62cf31d8203333d65a0d16f829e261d",
   "d5": "option 1, durable daily occurrences (data/fm-ss-d5)",
   "runtime": {
     "node": "v23.7.0",
@@ -25,8 +28,8 @@
   },
   "s10Suite": {
     "command": "npx vitest run server/supervision-resources.test.ts server/supervision-jobs.test.ts server/supervision-timers.test.ts",
-    "total": 43,
-    "passed": 43,
+    "total": 48,
+    "passed": 48,
     "failed": 0,
     "tests": [
       {
@@ -111,6 +114,11 @@
       },
       {
         "file": "server/supervision-jobs.test.ts",
+        "title": "A04 in maintenance: shared caches, selectors and retained worktrees R10 B1-R (Q1/Q2): retained paths are canonicalized and compared case-insensitively; an unclean one defers the pass",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-jobs.test.ts",
         "title": "A04 in maintenance: shared caches, selectors and retained worktrees cleanup stays inside its selectors and never touches retained worktrees, volumes or unknown owners",
         "status": "passed"
       },
@@ -142,6 +150,21 @@
       {
         "file": "server/supervision-jobs.test.ts",
         "title": "rollout, rollback and the journal's own guards R10 N3: past 160 waiting relabels and admissions write nothing; past 192 only settlement continues",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-jobs.test.ts",
+        "title": "rollout, rollback and the journal's own guards R10 N9: dispatch is a closure (refused at 192 even after its pass started below it); observe is a closure in an observe-mode job",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-jobs.test.ts",
+        "title": "rollout, rollback and the journal's own guards R10 N9: an observe-mode observation is refused at 192 and recorded between 160 and 192",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-jobs.test.ts",
+        "title": "rollout, rollback and the journal's own guards R10 N8: past 160 the summary says the maintenance observation budget is exhausted and reads as a lower bound",
         "status": "passed"
       },
       {
@@ -220,6 +243,11 @@
         "status": "passed"
       },
       {
+        "file": "server/supervision-resources.test.ts",
+        "title": "R10 N11: promote and renew take the same bounded lease as reserve",
+        "status": "passed"
+      },
+      {
         "file": "server/supervision-timers.test.ts",
         "title": "A17.preserve: the timer disposition inventory lists every timer with its schedule, zone, owner and disposition, holding the unknown heartbeat",
         "status": "passed"
@@ -248,20 +276,25 @@
   },
   "fullSuite": {
     "command": "npx vitest run",
-    "total": 2913,
-    "passed": 2908,
-    "failed": 2,
+    "total": 2918,
+    "passed": 2912,
+    "failed": 3,
     "skipped": 3,
     "failures": [
       {
         "file": "server/launch-tool.test.ts",
-        "title": "reconciles an explicit CLI error (explicit-found) before choosing a state",
-        "cause": "AssertionError: expected undefined to be 'recorded' // Object.is equality\n    at C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s10/server/launch-tool.test.ts:3"
+        "title": "refuses a live recorded worker before effects, and never guesses failed reads mean gone",
+        "cause": "AssertionError: expected 'attempt-open' to be 'unsupported-before-effects' // Object.is equality\n    at C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s10/serve"
       },
       {
-        "file": "server/pr-watch.test.ts",
-        "title": "mentions a pull request gh keeps failing on once, and fails the run when gh can read none",
-        "cause": "Error: Test timed out in 5000ms.\nIf this is a long-running test, pass a timeout value as the last argument or configure it globally with \"testTimeout\".\n    at t"
+        "file": "server/launch-tool.test.ts",
+        "title": "checks real local branch/merge-base, canonical cwd, labels and parent; arming stays reported",
+        "cause": "AssertionError: expected { ok: false, code: 'EPERM', …(1) } to match object { state: 'recorded', …(3) }\n(3 matching properties omitted from actual)\n    at Proxy"
+      },
+      {
+        "file": "server/launch-tool.test.ts",
+        "title": "reconciles an explicit CLI error (explicit-found) before choosing a state",
+        "cause": "AssertionError: expected undefined to be 'recorded' // Object.is equality\n    at C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s10/server/launch-tool.test.ts:3"
       }
     ],
     "note": "Failures are in launch-tool.test.ts and pr-watch.test.ts, files S10 does not touch (Windows file-lock EPERM / load timeout); both files passed 99/99 on immediate rerun. CI is the gate."
@@ -402,13 +435,57 @@
     {
       "guard": "N5 stranded running pass superseded",
       "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "C18 dispatch is a closure",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "C19 observe is a closure",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "B1-R retained paths compared case-insensitively",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "B1-R candidate compared case-insensitively",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "B1-R dot and empty segments dropped",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "B1-R relative retained path refuses the plan",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "B1-R .. retained path refuses the plan",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "B1-R path-shaped job.retained entries protected",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "N8 summary flags exhausted observation budget",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "N11 renew lease bound",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "N11 promote lease bound",
+      "result": "a test failed with the guard removed"
     }
   ],
   "sha256": {
-    "shared/supervision-maintenance.ts": "0928102fc51d5af5080d89fc111b4b78633a8cc9469d12affd11377334d89ac1",
+    "shared/supervision-maintenance.ts": "6832666656f6aac31f1ba564a2c6c2748905bff44ddb48e43f1718f23df1e1a6",
     "server/supervision-maintenance-state.ts": "39437192d77f281343836df45f0466e115366b4f7a788f74f02b66569f025d3d",
-    "server/supervision-resources.ts": "42d8082f70a630bdc4cab5a94d0ff11b476e12b426366285eb960bdabca434c4",
-    "server/supervision-jobs.ts": "68a72d05459d18ffb627e9a08db91e18d6b227d732349dc16d906929c0d3a8c1",
+    "server/supervision-resources.ts": "8d721a839fca9ec095dca92abfcaaf03d424c0eba8a1c7810cd6c216fbaf3b77",
+    "server/supervision-jobs.ts": "1a560319138a9cfd2842f65dee722fb80a5813a90bb876365111bd07357086e2",
     "server/archive-inventory.ts": "fcf0bfe77ec8f8c65c5045f2807e5dece57922bda3a0442f9906fcd1d5d89497",
     "server/watch-config.ts": "00faf023b12d70ce921784bd03be8edd96fa1fdc5ec40017cb597d5ac509c519",
     "server/watch-service.ts": "bb41a2d9671df4db165ba09b7b768db0351d4b59096585b15d4c114fc991d172",
@@ -417,9 +494,9 @@
     "shared/supervision.ts": "3f8205d45c447922ce148d24e4ac9923e86c03cfcbbbd23d6d81d5f4b3f9adee",
     "server/templates.ts": "5d5dd3e9168a76e60322b1579ff621f676bab44f004a5d32d904fa5dc5b04b7a",
     "templates/messages/maintenance-incident.md": "a6056c1b32f4687684d12551815be58b99af5a6ec2fd47dd79314ccb457dea08",
-    "server/supervision-resources.test.ts": "1ac749d7a30973fe29934109332c6fe179fafa84f75ae75fbc692b91d5083018",
-    "server/supervision-jobs.test.ts": "4c7dd32d009d87b6b79fe2a1ba3da2416ebe9cb3fc9c1222bb4c2309ae571cee",
+    "server/supervision-resources.test.ts": "8c41fb911d06706327a137426ad8ad3f2aa6ea275b6de4b7c07f2fcf44271631",
+    "server/supervision-jobs.test.ts": "234515ce9b36bddbb20927a30ae0824116c9672e9a5c234770dff67ebbad066e",
     "server/supervision-timers.test.ts": "bf5a4382323106b15773bd6710ec2f804fefe2afb381e51e69edad7a4506264b",
-    "docs/scoped-supervision/S10.md": "56f4a48608c32c62f5c47c5dd83de8b978c3fffeb0b9bb4df8ab3bd7dd3685a8"
+    "docs/scoped-supervision/S10.md": "6e464e667c7c152f9fce55264bb08adfd61dff7c44e9677c96eadfefdad7af1e"
   }
 }
