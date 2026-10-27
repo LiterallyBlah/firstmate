@@ -96,6 +96,9 @@ export const SupervisionAttemptSchema = z.object({
   worker: z.object({ hostId: text(), agentId: text(), workspaceId: text() }).strict().nullable(),
   originalNotificationOwner: text().nullable(), notificationStatus: z.enum(["known", "reported", "unknown"]),
   spentAgents: count, spentTurns: count, state: text(), evidenceIds: unique(SupervisionUuid, 256), version: positive,
+  /** S07 v1 extension: an attempt imported from legacy history at cutover commit. It names no gateway launch
+   * effect (`launchEffectId` is a reserved identity only); its spend and worker identity are the legacy record's. */
+  importedFrom: z.object({ migrationId: SupervisionUuid, legacyAttempt: text(64), node: PlanId }).strict().optional(),
 }).strict();
 /** Prepared/held always denies both writers. The only prepared -> active move is S07's committed migration. */
 export const SupervisionBackendSchema = z.object({

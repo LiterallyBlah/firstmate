@@ -177,10 +177,9 @@ original request receipt replays. Checkpoint writes use synced staging plus atom
 missing result is not proof an effect failed. These are process-crash/cooperative guarantees, not
 authenticated immutable storage or disk-loss protection.
 
-**Admission preflight (R06O):** confirm the target home has no supervision store created before
-checkpoints existed (S01–S05, f94c338 era): `<plugin-data>/firstmate/supervision/*/` must either be
-absent or contain `checkpoint.json` beside a non-empty `transactions/`. Such a store would be refused
-permanently; production has never initialized one, so the expected result is "absent".
+**Admission preflight (R06O):**
+- **No pre-checkpoint store.** Confirm the target home has no supervision store created before checkpoints existed (S01–S05, the f94c338 era). For each `<plugin-data>/firstmate/supervision/*/`, refuse only if `transactions/` is non-empty and there is no `checkpoint.json` beside it. A freshly initialized store has `checkpoint.json` beside an empty `transactions/`, and that is valid. Production has never initialized one, so the expected result is "absent".
+- **Exactly one installed build.** Run `paseo plugin ls --json` and confirm the one daemon lists exactly one FirstMate plugin, at the reviewed build. An older build, or one without the S07 cutover gate (an S08-only build, for example), does not read the gate or its sidecars and must not be installed alongside it.
 
 Before a live trial, qualify at most two local chains under these history/state limits. Record every
 warm read and checked launch duration. The proposed admission stop limits are **2 seconds for any

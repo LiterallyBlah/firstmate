@@ -22,6 +22,8 @@ import { stopAgent } from "./cli";
 import { closingText, fetchLiveAgent } from "./fleet";
 import type { PaseoAgent, PaseoApi } from "./host-types";
 import { askMate, extendBurstNote, queueBurstNote } from "./mate";
+import { readFirstmateConfig, resolveHome } from "./config";
+import { cutoverGate } from "./supervision-gate";
 import { receiptJournal } from "./receipts";
 import { sendWithoutInterrupting } from "./send";
 import { TEMPLATES, message } from "./templates";
@@ -39,6 +41,11 @@ async function requireCrew(paseo: PaseoApi, agentId: string): Promise<PaseoAgent
   if (agent.labels[CREW_LABELS.role] !== CREW_LABELS.crewRole) {
     throw new Error(`${agent.title ?? agentId} is not one of the crew.`);
   }
+  // S07: a worker of a frozen or migrated plan is no longer the legacy board's; nor is its relay General's.
+  const gate = cutoverGate(resolveHome(await readFirstmateConfig()));
+  const item = { source: "burst" as const, id: `crew:${agentId}`, payloadHash: agentId, agentKey: agentId };
+  const verdict = await gate.verdict(item, "send");
+  if (!verdict.admit) { await gate.refusal(item, verdict.reason); throw new Error(`${agent.title ?? agentId}: ${verdict.reason}`); }
   return agent;
 }
 

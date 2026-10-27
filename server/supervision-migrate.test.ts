@@ -23,12 +23,16 @@ import { cutoverGate, liveClaims } from "./supervision-gate";
 import { exportScopedProjection, legacyAdapters, migrationUuid, SupervisionMigrator, type MigrationInput } from "./supervision-migrate";
 import { writeTextFile } from "./files";
 import { acceptPolicyInventory, currentPolicyVector, policyRef } from "./supervision-policy";
-import { SupervisionStore } from "./supervision-store";
+import { SUPERVISION_INDEX_LIMITS, SupervisionStore } from "./supervision-store";
+import { hasScopedWorker } from "./supervision-status";
+import { workflowSnapshot } from "./workflow-board";
 import { watchItem, WatchRunner, type QueuedNote } from "./watches";
 import { LegacyCutoverError, planSubjectHash, type WorkflowPlanStore } from "./workflow-plans";
 import { planOwnership } from "./workflow-ownership";
 import { queuePlanNotes, workflowStore } from "./workflow-service";
 
+// Each case drives several durable stages; allow for a loaded CI host.
+vi.setConfig({ testTimeout: 30000 });
 const daemonRoot = process.env.PASEO_HOME!;
 const OWNER = "plan-owner", GENERAL = "general-mate";
 const owner: SupervisionActor = { kind: "agent", id: OWNER, source: "fixture/scoped-owner" };
@@ -38,7 +42,7 @@ type Sent = { recipient: string; messageId: string | undefined; text: string };
 
 let home: string, legacy: WorkflowPlanStore, store: SupervisionStore, migrator: SupervisionMigrator, runner: WatchRunner;
 let sent: Sent[], busy: boolean, chronology: string[], blockSend: Promise<void> | null, failSend: "after" | null;
-let service: NeedsYouService | null, clock: number;
+let service: NeedsYouService, clock: number;
 let input: MigrationInput;
 
 const api = {
@@ -72,7 +76,7 @@ beforeEach(async () => {
   await writeFile(join(home, "data/backlog.md"), "# Backlog\n## In flight\n- [ ] build - Build the scheduler (hold: Which storage?) (agent: worker-build)\n## Queued\n## Done\n");
   await writeFile(join(home, "data/orders.md"), "Pilot implementation and isolated tests only.\n");
   await updateFirstmateConfig({ home, mateAgentId: "", migration: null, mateLaunch: null }); await updateFirstmateConfig({ mateAgentId: GENERAL });
-  sent = []; busy = false; chronology = []; blockSend = null; failSend = null; service = null; clock = 1000;
+  sent = []; busy = false; chronology = []; blockSend = null; failSend = null; clock = 1000;
   legacy = workflowStore(home);
   await legacy.execute({ op: "draft", definition: workflowFixture() }, randomUUID(), GENERAL);
   await legacy.execute({ op: "draft", definition: otherPlan() }, randomUUID(), GENERAL);
@@ -81,13 +85,16 @@ beforeEach(async () => {
   runner = new WatchRunner({ home: async () => home, disabled: async () => [],
     deliver: async text => { if (busy) return "wait"; const messageId = `firstmate-watch-${randomUUID()}`; sent.push({ recipient: GENERAL, messageId, text }); chronology.push(`send:${messageId}`); return "sent"; },
     gate: async () => ({ gate: cutoverGate(home), recipient: GENERAL }), stateFile: join(pluginDir(), "watches.json"), scriptStateRoot: join(pluginDir(), "watch-state"), now: () => new Date("2026-10-27T10:00:00Z") });
+  // The decision ledger is required: a cutover must prove which answers were sent.
+  service = new NeedsYouService({ root: join(process.env.PASEO_HOME!, "ledger"), home: readConfiguredDecisionHome, catalog: async () => null, enabled: () => true, now: () => clock });
+  await service.read(); clock += 2000; await service.read();
   migrator = makeMigrator();
   input = { plan: "scheduler", scopeId: randomUUID(), projectId: randomUUID(), migrationId: randomUUID(),
     prerequisites: { inventory: "fixture inventory accepted", rollbackBuild: "fixture compatible build", policy: "fixture policy import accepted" } };
 });
 afterEach(async () => { runner.stop(); await service?.stop(); });
 function makeMigrator(boundary?: (name: string) => Promise<void>) {
-  return new SupervisionMigrator({ home, store, legacy, enabled: true, adapters: legacyAdapters(runner, service ? () => service!.read() : null),
+  return new SupervisionMigrator({ home, store, legacy, enabled: true, adapters: legacyAdapters(runner, () => service.read()),
     boundary: async name => { chronology.push(`boundary:${name}`); await boundary?.(name); } });
 }
 async function notes() { return (await readFirstmateConfig()).mateNotes; }
@@ -136,8 +143,14 @@ it("A12: imports byte-exact history, original request receipts, attempts, budget
   const dry = await migrator.dryRun(input);
   expect(dry.parity).toBe(true);
   expect(await readdir(join(legacy.root, ".scoped"))).toEqual(["armed.json"]); // A dry run writes nothing.
-  const committed = await cutover();
+  await migrator.prepare(input); await migrator.reconcile(input.migrationId);
+  const callback = (await store.read()).dispositions!.find(d => d.source === "worker-callback")!;
+  expect(callback).toMatchObject({ route: "hold", original: { attemptId: before.nodes.trial!.attempt } });
+  await migrator.resolveHold(input.migrationId, callback.id, "already-handled", { ref: "launch never issued; attempt quiescent", digest: "a".repeat(64) }, owner);
+  await migrator.barrier(input.migrationId);
+  const committed = await migrator.commit(input.migrationId);
   const status = await store.read(), scoped = status.plans.find(p => p.plan.definition.id === "scheduler")!;
+  expect(status.attempts).toEqual([expect.objectContaining({ importedFrom: expect.objectContaining({ legacyAttempt: before.nodes.trial!.attempt, node: "trial" }), spentAgents: committed.imported.attempts[0]!.spent })]);
   expect(scoped.plan.hash).toBe(before.hash);
   expect(scoped.plan.nodes).toEqual(before.nodes);
   expect(committed.imported.budget).toEqual(planOwnership(before).budget);
@@ -262,13 +275,13 @@ it("L3: a claim left without a result by a stopped process is uncertain, not uns
   (liveClaims() as Set<string>).delete(claim!); // The claiming process died between claim and result.
   await migrator.prepare(input);
   expect((await store.read()).dispositions!.find(x => x.original.actionId === action)).toMatchObject({ delivery: "uncertain", claimId: claim, route: "transfer-fact" });
+  // B2: the disposition that names the dead claim accounts for it; the cutover completes, nothing is re-sent.
+  await migrator.reconcile(input.migrationId); await migrator.barrier(input.migrationId); await migrator.commit(input.migrationId);
+  expect(sent).toHaveLength(0);
 });
 
 it("L4: an accepted decision answer is imported with its identities and held; a frozen task refuses new answers", async () => {
-  service = new NeedsYouService({ root: join(process.env.PASEO_HOME!, "ledger"), home: readConfiguredDecisionHome, catalog: async () => null, enabled: () => true, now: () => clock });
-  await service.read(); clock += 2000;
-  const snapshot = await service.read(), request = snapshot.requests.find(r => r.source.taskId === "build")!;
-  migrator = makeMigrator();
+  const snapshot = await service!.read(), request = snapshot.requests.find(r => r.source.taskId === "build")!;
   await migrator.arm();
   const answer = (submissionId: string, text: string) => ({ homeId: snapshot.homeId!, requestId: request.id, recordRevision: request.revision, submissionId, text });
   expect((await answerDecision(api, service, answer("accepted-1", "Use SQLite."))).outcome).toBe("accepted");
@@ -286,17 +299,15 @@ it("L4: an accepted decision answer is imported with its identities and held; a 
   const reanswer = vi.spyOn(await import("./decision-answer"), "answerDecision");
   await migrator.reconcile(input.migrationId);
   await expect(migrator.barrier(input.migrationId)).rejects.toMatchObject({ code: "HELD" });
-  await migrator.resolveHold(input.migrationId, held[0]!.id, "already-handled", { ref: "data/build/report.md#answer", digest: "d".repeat(64) }, "captain-review");
+  await migrator.resolveHold(input.migrationId, held[0]!.id, "already-handled", { ref: "data/build/report.md#answer", digest: "d".repeat(64) }, captainUi);
   await migrator.barrier(input.migrationId); await migrator.commit(input.migrationId);
   expect(reanswer).not.toHaveBeenCalled(); // The migrator reconciles the original answer; it never answers again.
   expect(sent).toHaveLength(before);
 });
 
 it("L4: an uncertain answer whose accepted append was lost carries the claim's accepted receipt and stays held", async () => {
-  service = new NeedsYouService({ root: join(process.env.PASEO_HOME!, "ledger"), home: readConfiguredDecisionHome, catalog: async () => null, enabled: () => true, now: () => clock });
-  await service.read(); clock += 2000;
-  const snapshot = await service.read(), request = snapshot.requests.find(r => r.source.taskId === "build")!;
-  migrator = makeMigrator(); await migrator.arm();
+  const snapshot = await service!.read(), request = snapshot.requests.find(r => r.source.taskId === "build")!;
+  await migrator.arm();
   const mutate = service.mutate.bind(service);
   vi.spyOn(service, "mutate").mockImplementation(async (target, change) => {
     if (change.kind === "answer" && change.outcome === "accepted") throw new Error("lost accepted append");
@@ -379,7 +390,7 @@ it("L5: mixed/opaque watch output stays with its legacy owner and holds only thi
   expect(sent[0]!.text).toContain("Disk healthy."); expect(sent[0]!.text).not.toContain("PR 12");
   expect((await runner.queued()).map(q => q.name)).toEqual(["pr-watch"]);
   await expect(migrator.barrier(input.migrationId)).rejects.toMatchObject({ code: "HELD" });
-  await migrator.resolveHold(input.migrationId, held[0]!.id, "drain-legacy", { ref: "captain: let General see it", digest: "e".repeat(64) }, "captain-review");
+  await migrator.resolveHold(input.migrationId, held[0]!.id, "drain-legacy", { ref: "captain: let General see it", digest: "e".repeat(64) }, owner);
   await runner.flush();
   expect(sent[1]!.recipient).toBe(GENERAL); expect(sent[1]!.text).toContain("PR 12");
   await migrator.reconcile(input.migrationId);
@@ -463,4 +474,145 @@ it("exports a separate scoped projection bound to its preimage; backlog bytes an
   expect(await readFile(join(home, "data/backlog.md"), "utf8")).toBe(backlog);
   await expect(writeTextFile(home, { path: first.path, content: "edited", expectedModifiedMs: null, force: true })).rejects.toThrow(/projection/);
   await writeTextFile(home, { path: "data/scoped/proposals/scheduler.md", content: "Proposal", expectedModifiedMs: null, force: true });
+});
+
+it("B1: watch output naming the plan after the freeze becomes a resolvable hold; a generic step name is no clue", async () => {
+  await migrator.arm(); await migrator.prepare(input);
+  await runner.enqueuePrompt("pr-watch", "PR 12 on branch fm/scheduler: checks red.", new Date("2026-10-27T10:01:00Z"));
+  await runner.enqueuePrompt("storage", "Nightly build cache pruned; disk healthy.", new Date("2026-10-27T10:01:00Z"));
+  await runner.flush();
+  expect(sent.map(s => s.text).join("\n")).toContain("disk healthy"); // A generic step name alone is not the plan.
+  expect((await runner.queued()).map(q => q.name)).toEqual(["pr-watch"]);
+  await expect(migrator.barrier(input.migrationId)).rejects.toThrow(/resolve each hold/);
+  const late = (await store.read()).dispositions!.find(d => d.source === "watch-queue")!;
+  expect(late).toMatchObject({ route: "hold", reason: expect.stringContaining("after the freeze") });
+  await migrator.resolveHold(input.migrationId, late.id, "drain-legacy", { ref: "first mate: General may read it", digest: "e".repeat(64) }, owner);
+  await runner.flush();
+  expect(sent.at(-1)!.text).toContain("PR 12");
+  await migrator.reconcile(input.migrationId); await migrator.barrier(input.migrationId); await migrator.commit(input.migrationId);
+  expect((await migrator.report("scheduler")).complete).toBe(true);
+});
+
+it("B3: a missing, disabled or stale decision ledger refuses the dry run and prepare without freezing", async () => {
+  await migrator.arm();
+  const withLedger = (decisions: (() => Promise<never>) | null) => new SupervisionMigrator({ home, store, legacy, enabled: true, adapters: legacyAdapters(runner, decisions) });
+  await expect(withLedger(null).dryRun(input)).rejects.toThrow(/Needs-you ledger is unavailable/);
+  await expect(withLedger(null).prepare(input)).rejects.toMatchObject({ code: "HELD" });
+  const off = new NeedsYouService({ root: join(process.env.PASEO_HOME!, "ledger-off"), home: readConfiguredDecisionHome, catalog: async () => null, enabled: () => false, now: () => clock });
+  await expect(withLedger((() => off.read()) as never).prepare(input)).rejects.toThrow(/Needs-you ledger is disabled/);
+  await off.stop();
+  expect(await cutoverGate(home).sidecar("scheduler", "freeze")).toBeNull();
+});
+
+it("B4: the whole migration's journal budget is checked before the freeze and reported by the dry run", async () => {
+  await migrator.arm();
+  const dry = await migrator.dryRun(input);
+  expect(dry.capacity).toMatchObject({ ok: true, ceiling: 256, sequence: 0 });
+  expect(dry.capacity.transactionsNeeded).toBeGreaterThan(3);
+  const limits = SUPERVISION_INDEX_LIMITS as { transactions: number };
+  const ceiling = limits.transactions; limits.transactions = dry.capacity.transactionsNeeded - 1;
+  try {
+    const tight = await migrator.dryRun(input);
+    expect(tight.capacity.ok).toBe(false); expect(tight.problems.join(" ")).toMatch(/headroom/);
+    await expect(migrator.prepare(input)).rejects.toThrow(/Capacity/);
+    expect(await cutoverGate(home).sidecar("scheduler", "freeze")).toBeNull();
+  } finally { limits.transactions = ceiling; }
+});
+
+it("B5/M1: a running legacy worker holds completion until accounted; afterwards scoped guards recognize it", async () => {
+  await captain("scheduler", "approve");
+  await legacy.execute({ op: "start", plan: "scheduler", node: "trial" }, randomUUID(), GENERAL);
+  const attempt = (await legacy.get("scheduler"))!.nodes.trial!.attempt!;
+  await legacy.execute({ op: "record", plan: "scheduler", node: "trial", state: "running", attempt, evidence: "Worker created.", agentId: "worker-trial", workspaceId: "ws-trial" }, randomUUID(), GENERAL);
+  await migrator.arm(); await migrator.prepare(input); await migrator.reconcile(input.migrationId);
+  const callback = (await store.read()).dispositions!.find(d => d.source === "worker-callback")!;
+  expect(callback).toMatchObject({ route: "hold", original: { attemptId: attempt, agentId: "worker-trial" }, recipient: GENERAL });
+  expect((await migrator.report("scheduler")).legacyDeliveryPossible).toEqual(expect.arrayContaining([expect.stringContaining("worker callback")]));
+  await expect(migrator.barrier(input.migrationId)).rejects.toMatchObject({ code: "HELD" });
+  await expect(migrator.resolveHold(input.migrationId, callback.id, "drain-legacy", { ref: "", digest: "f".repeat(64) }, owner)).rejects.toThrow(/evidence/);
+  await migrator.resolveHold(input.migrationId, callback.id, "drain-legacy", { ref: "worker-trial finished; General recorded its finish note", digest: "f".repeat(64) }, owner);
+  await migrator.barrier(input.migrationId); await migrator.commit(input.migrationId);
+  const status = await store.read();
+  expect(hasScopedWorker(status, "worker-trial")).toBe(true);
+  expect(status.attempts[0]!).toMatchObject({ worker: { agentId: "worker-trial", workspaceId: "ws-trial" }, originalNotificationOwner: GENERAL, importedFrom: { legacyAttempt: attempt } });
+  expect(await cutoverGate(home).verdict({ source: "burst", id: "crew:worker-trial", payloadHash: "x", agentKey: "worker-trial" }, "send")).toMatchObject({ admit: false, stage: "committed" });
+  const final = await migrator.report("scheduler"); // The approve action still awaits its scoped owner; no worker callback remains open.
+  expect(final.legacyDeliveryPossible).toEqual([expect.stringMatching(/^transfer .* awaits its owner's result$/)]); expect(final.complete).toBe(false);
+});
+
+it("release: an aborted cutover restores removed entries exactly, sends nothing itself, and hands the plan back", async () => {
+  await migrator.arm();
+  const action = await captain("scheduler", "changes", { text: "Pause the trial." });
+  await queuePlanNotes(home);
+  busy = true;
+  const original = (await notes())[0]!;
+  await migrator.prepare(input); await migrator.reconcile(input.migrationId);
+  expect(await notes()).toEqual([]);
+  await expect(migrator.abort(input.migrationId, "", owner)).rejects.toMatchObject({ code: "UNKNOWN_OWNER" });
+  await migrator.abort(input.migrationId, "The captain wants this plan to stay with General for now.", owner);
+  expect(await notes()).toEqual([original]);
+  expect(sent).toHaveLength(0);
+  const status = await store.read();
+  expect(status.migrations![0]).toMatchObject({ state: "aborted", aborted: { actor: `agent:${OWNER}`, restored: [expect.any(String)] } });
+  expect(status.backends[0]!.state).toBe("retired"); expect(status.scopes.find(s => s.id === input.scopeId)!.state).toBe("retired");
+  expect((await migrator.report("scheduler")).stage).toBe("aborted");
+  await legacy.execute({ op: "ack", plan: "scheduler", ids: [`scheduler:captain:${action}`], kind: "handled" }, randomUUID(), GENERAL);
+  busy = false; await flushMateNotes(api);
+  expect(sent.map(s => s.messageId)).toEqual([original.id]); // The restored informational note, under its own identity.
+  await expect(migrator.prepare({ ...input, migrationId: randomUUID() })).rejects.toMatchObject({ code: "CONFLICT" });
+});
+
+it("release is refused once a cutover has committed", async () => {
+  await migrator.arm(); await cutover();
+  await expect(migrator.abort(input.migrationId, "too late", owner)).rejects.toMatchObject({ code: "HELD" });
+});
+
+it("an answer hold is the captain's to resolve, never the old owner's", async () => {
+  const snapshot = await service.read(), request = snapshot.requests.find(r => r.source.taskId === "build")!;
+  await migrator.arm();
+  await answerDecision(api, service, { homeId: snapshot.homeId!, requestId: request.id, recordRevision: request.revision, submissionId: "held-answer", text: "Use SQLite." });
+  await migrator.prepare(input);
+  const held = (await store.read()).dispositions!.find(d => d.source === "decision-submission")!;
+  await expect(migrator.resolveHold(input.migrationId, held.id, "already-handled", { ref: "mate says done", digest: "1".repeat(64) }, owner)).rejects.toMatchObject({ code: "UNKNOWN_OWNER" });
+});
+
+it("a damaged sidecar is visible, scoped to its plan where provable, and records one refusal per item", async () => {
+  await mkdir(join(legacy.root, ".scoped", "ghost"), { recursive: true });
+  await writeFile(join(legacy.root, ".scoped", "ghost", "freeze.json"), "{torn");
+  const unrelated = await captain("harbor", "changes", { text: "Harbor keeps going." });
+  for (let n = 0; n < 5; n++) await queuePlanNotes(home);
+  expect((await notes()).map(n => n.id)).toEqual([`firstmate-plan-${unrelated}`]);
+  await flushMateNotes(api);
+  expect(sent.map(s => s.messageId)).toEqual([`firstmate-plan-${unrelated}`]);
+  const snapshot = await service.read(), request = snapshot.requests.find(r => r.source.taskId === "build")!;
+  const answer = { homeId: snapshot.homeId!, requestId: request.id, recordRevision: request.revision, submissionId: "same-try", text: "SQLite." };
+  for (let n = 0; n < 3; n++) await expect(answerDecision(api, service, answer)).rejects.toThrow(/damaged cutover record \(ghost\)/);
+  await expect(answerDecision(api, service, answer)).rejects.not.toThrow(/Plans/);
+  expect(await readdir(join(legacy.root, ".scoped", "refusals"))).toHaveLength(1);
+  expect((await workflowSnapshot(home)).problems!.join(" ")).toMatch(/Cutover record for ghost is damaged.*main first mate/);
+});
+
+it("a torn later stage keeps the readable stage's scope: unrelated plans still flow", async () => {
+  await migrator.arm(); await migrator.prepare(input);
+  await writeFile(join(legacy.root, ".scoped", "scheduler", "committed.json"), "{");
+  const unrelated = await captain("harbor", "changes", { text: "Still flowing." });
+  await queuePlanNotes(home); await flushMateNotes(api);
+  expect(sent.map(s => s.messageId)).toEqual([`firstmate-plan-${unrelated}`]);
+  expect(await cutoverGate(home).verdict({ source: "plan-note", id: "x", payloadHash: "y", plan: "scheduler" }, "send")).toMatchObject({ admit: false, stage: "damaged" });
+});
+
+it.each(["aborted", "restored"])("release: a crash at %s leaves both writers held until resume finishes the same release", async point => {
+  await migrator.arm();
+  await captain("scheduler", "changes", { text: "Hold." }); await queuePlanNotes(home);
+  busy = true;
+  const original = (await notes())[0]!;
+  await migrator.prepare(input); await migrator.reconcile(input.migrationId);
+  migrator = makeMigrator(async name => { if (name === point) throw new Error(`crash at ${name}`); });
+  await expect(migrator.abort(input.migrationId, "Release for the test.", owner)).rejects.toThrow(`crash at ${point}`);
+  await expect(legacy.execute({ op: "ack", plan: "scheduler", ids: ["x"], kind: "told" }, randomUUID(), GENERAL)).rejects.toBeInstanceOf(LegacyCutoverError);
+  migrator = makeMigrator();
+  expect((await migrator.resume(input)).state).toBe("aborted");
+  expect(await notes()).toEqual([original]);
+  await legacy.execute({ op: "ack", plan: "scheduler", ids: ["x"], kind: "told" }, randomUUID(), GENERAL);
+  expect(sent).toHaveLength(0);
 });

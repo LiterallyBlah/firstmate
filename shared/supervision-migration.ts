@@ -12,7 +12,9 @@ const text = (max = 1024) => z.string().min(1).max(max);
 export const MIGRATION_COMPATIBILITY = 1;
 
 /** Every plugin-owned legacy delivery path the cutover inventories. */
-export const LegacyDeliverySource = z.enum(["plan-action", "config.mateNotes", "burst", "decision-submission", "watch-queue"]);
+/** `send-claim` is a crashed send with no other disposition; `worker-callback` a legacy worker or launch whose
+ * native finish notification still goes to its original creator. Both are holds until accounted. */
+export const LegacyDeliverySource = z.enum(["plan-action", "config.mateNotes", "burst", "decision-submission", "watch-queue", "send-claim", "worker-callback"]);
 /** Transport history only. `accepted` is never a handling acknowledgement. */
 export const LegacyDeliveryState = z.enum(["queued", "offered", "accepted", "uncertain", "handled"]);
 export const LegacyDeliveryRoute = z.enum(["transfer-fact", "drain-legacy", "hold", "already-handled"]);
@@ -26,6 +28,7 @@ export const LegacyDeliveryDispositionSchema = z.object({
     actionId: text(200).optional(), noteId: text(300).optional(), requestId: text(300).optional(),
     submissionId: text(300).optional(), messageId: text(400).optional(), revision: count.optional(),
     watch: z.object({ name: text(300), ran: text(64), kind: z.enum(["output", "failed"]) }).strict().optional(),
+    claimItem: text(400).optional(), attemptId: text(64).optional(), agentId: text(300).optional(), launchFile: text(300).optional(),
   }).strict(),
   payloadHash: SupervisionHash,
   sourceTip: z.object({ sequence: count, hash: SupervisionHash }).strict(),
@@ -51,7 +54,7 @@ export type LegacyDeliveryDisposition = z.infer<typeof LegacyDeliveryDisposition
 export const MigrationReceiptSchema = z.object({
   format: z.literal("firstmate.migration-receipt/1"),
   id: SupervisionUuid, version, compatibility: z.literal(MIGRATION_COMPATIBILITY), homeId: text(),
-  planId: PlanId, scopeId: SupervisionUuid, state: z.enum(["prepared", "barrier", "committed"]),
+  planId: PlanId, scopeId: SupervisionUuid, state: z.enum(["prepared", "barrier", "committed", "aborted"]),
   frozenAt: SupervisionUtc,
   /** The slice's separate gates, named by the evidence the operator supplied; none is checked here. */
   prerequisites: z.object({ inventory: text(), rollbackBuild: text(), policy: text() }).strict(),
@@ -71,6 +74,10 @@ export const MigrationReceiptSchema = z.object({
   /** Backlog/tag projection preimage; exports bind to it and never replace non-owned bytes. */
   projectionPreimage: z.object({ backlog: SupervisionHash.nullable(), itemTags: SupervisionHash.nullable() }).strict(),
   sidecars: z.object({ freeze: SupervisionHash, prepared: SupervisionHash.nullable(), committed: SupervisionHash.nullable() }).strict(),
+  /** Checked before the freeze: journal sequence then, the whole migration's worst-case transactions, the ceiling. */
+  capacity: z.object({ sequenceAtFreeze: count, transactionsNeeded: count, ceiling: count, preparedMutations: count, commitMutations: count }).strict(),
+  /** A recorded release back to the legacy backend. Nothing is re-sent; removed entries are restored as they were. */
+  aborted: z.object({ actor: text(300), reason: text(2000), restored: z.array(text(400)).max(200) }).strict().nullable(),
 }).strict();
 export type MigrationReceipt = z.infer<typeof MigrationReceiptSchema>;
 
@@ -84,7 +91,7 @@ export const CutoverTokensSchema = z.object({
 export type CutoverTokens = z.infer<typeof CutoverTokensSchema>;
 export const CutoverSidecarSchema = z.object({
   format: z.literal("firstmate.cutover-sidecar/1"), compatibility: z.literal(MIGRATION_COMPATIBILITY),
-  stage: z.enum(["freeze", "prepared", "committed"]), homeId: text(), planId: PlanId, migrationId: SupervisionUuid, scopeId: SupervisionUuid,
+  stage: z.enum(["freeze", "prepared", "committed", "aborted"]), homeId: text(), planId: PlanId, migrationId: SupervisionUuid, scopeId: SupervisionUuid,
   at: SupervisionUtc, sourceHash: SupervisionHash, inventoryHash: SupervisionHash, tokens: CutoverTokensSchema,
   /** Scoped transaction this stage follows (prepared: the prepared commit; committed: the barrier). */
   transaction: SupervisionHash.nullable(), hash: SupervisionHash,

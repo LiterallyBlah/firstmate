@@ -304,7 +304,10 @@ export class WorkflowPlanStore {
   /** S07 compatibility sidecar stage for a plan, read without any lock. Legacy history stays byte-identical. */
   async cutover(id: string): Promise<"freeze" | "prepared" | "committed" | null> {
     const gate = new CutoverGate(this.home, this.root);
-    return (await gate.sidecar(id, "committed") ?? await gate.sidecar(id, "prepared") ?? await gate.sidecar(id, "freeze"))?.stage ?? null;
+    // A released cutover (aborted) hands the plan back to this writer.
+    if (await gate.sidecar(id, "aborted")) return null;
+    const stage = (await gate.sidecar(id, "committed") ?? await gate.sidecar(id, "prepared") ?? await gate.sidecar(id, "freeze"))?.stage ?? null;
+    return stage === "aborted" ? null : stage;
   }
   /** The legacy writer's own serialization boundary, shared with the S07 freeze. */
   locked<T>(work: () => Promise<T>): Promise<T> { return serialized(resolve(this.root), work); }

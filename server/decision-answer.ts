@@ -116,7 +116,7 @@ export async function answerDecision(
         const verdict = await gate.verdict(item, "send");
         if (!verdict.admit) {
           await gate.refusal(item, verdict.reason);
-          throw new Error(`${verdict.reason} Answer it from Plans instead.`);
+          throw new Error(verdict.stage === "committed" ? `${verdict.reason} Answer it from Plans instead.` : verdict.reason);
         }
         snapshot = await service.mutate(target, {
           kind: "answer",

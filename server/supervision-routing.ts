@@ -20,6 +20,9 @@ export async function legacyRoute(supervision: SupervisionStore, command: Workfl
   if (!plan) return;
   const status = await supervision.read();
   if (status.freshness === "uninitialized") return;
+  // S07: a released (aborted) cutover handed the plan back; its retired scoped rows are history, not an owner.
+  const released = new Set((status.migrations ?? []).filter(m => m.state === "aborted").map(m => m.planId));
+  if (released.has(plan) && !status.backends.some(b => b.planId === plan && b.state !== "retired")) return;
   const candidates = taskTargets(command), tasks = [...status.tasks, ...status.retainedOwnership.flatMap(o => o.tasks)];
   if (status.backends.some(b => b.planId === plan) || status.retainedOwnership.some(o => o.workflows.some(w => w.plan === plan)) ||
     candidates.some(c => tasks.some(t => t.nodeId === c.node && (!c.host || t.hostId.trim().toLowerCase() === c.host))))

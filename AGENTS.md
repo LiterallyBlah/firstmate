@@ -140,9 +140,14 @@ persists a claim before the network call and its result before removal. Unarmed 
 `server/supervision-migrate.ts` freezes one plan under the gate and the legacy writer's lock, imports
 its chain byte-for-byte with one disposition per affected delivery, commits transfer mappings before
 compare-by-ID/payload removal, and activates the scoped backend only after barrier and committed
-sidecars. Holds (decision answers, opaque watch rows) never resend; they move only by explicit
-evidence. Legacy `.scoped/<plan>/` sidecars refuse the old writer; a committed scoped backend refuses
-it too. Keep every new legacy delivery path behind this gate.
+sidecars. Holds (decision answers, opaque watch rows, live worker callbacks, crashed claims) never
+resend; they move only by explicit evidence, answer holds by the captain. Anything new for a frozen plan
+is re-inventoried as a hold, never a terminal stray. A capacity preflight runs before the freeze, a
+fresh Needs-you ledger is required, and `abort` releases a prepared cutover back to legacy, restoring
+archived entries exactly. Commit imports attempt rows (`importedFrom`) so scoped worker guards see
+migrated workers. Legacy `.scoped/<plan>/` sidecars refuse the old writer; a committed scoped backend
+refuses it too. Keep every new legacy delivery path (including crew actions and item discussions)
+behind this gate.
 
 | File                          | What it owns                                                                              |
 | ----------------------------- | ----------------------------------------------------------------------------------------- |

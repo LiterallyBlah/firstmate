@@ -62,7 +62,9 @@ const normalHost = (host: string | null | undefined) => (host ?? "local").trim()
 function agentOf(key: string): string { const remote = /^remote:[^:]+:(.+)$/.exec(key); return remote ? remote[1]! : key; }
 
 export interface CutoverTarget { plan: string; stage: CutoverSidecar["stage"]; sidecar: CutoverSidecar; drains: Set<string>; damaged: false }
-export interface DamagedTarget { plan: string; damaged: true; problem: string }
+/** A stage file that cannot be read. Tokens from any still-readable stage scope the block to this plan;
+ * without them the block covers every delivery that cannot be proved unrelated. */
+export interface DamagedTarget { plan: string; damaged: true; problem: string; tokens: CutoverSidecar["tokens"] | null; stage: CutoverSidecar["stage"] | null }
 
 export class CutoverRefusal extends Error {
   constructor(readonly plan: string, readonly stage: string, message: string) { super(message); }
@@ -123,21 +125,30 @@ export class CutoverGate {
     catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return []; throw error; }
     const result: (CutoverTarget | DamagedTarget)[] = [];
     for (const plan of names.filter(n => n !== "claims" && n !== "refusals" && !n.endsWith(".json") && !n.endsWith(".tmp")).sort()) {
-      try {
-        const sidecar = await this.sidecar(plan, "committed") ?? await this.sidecar(plan, "prepared") ?? await this.sidecar(plan, "freeze");
-        if (!sidecar) continue;
-        let drains: string[] = [];
-        try { drains = (await readdir(join(this.directory, plan, "drain"))).filter(n => /^[0-9a-f]{64}\.json$/.test(n)).map(n => n.slice(0, 64)); }
-        catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
-        result.push({ plan, stage: sidecar.stage, sidecar, drains: new Set(drains), damaged: false });
-      } catch (error) { result.push({ plan, damaged: true, problem: error instanceof Error ? error.message : String(error) }); }
+      const stages = new Map<CutoverSidecar["stage"], CutoverSidecar>(), problems: string[] = [];
+      for (const stage of ["aborted", "committed", "prepared", "freeze"] as const) {
+        try { const value = await this.sidecar(plan, stage); if (value) stages.set(stage, value); }
+        catch (error) { problems.push(error instanceof Error ? error.message : String(error)); }
+      }
+      // A readable release returns the plan to its legacy owner; it is published last and never removed.
+      if (stages.has("aborted")) continue;
+      const sidecar = stages.get("committed") ?? stages.get("prepared") ?? stages.get("freeze");
+      if (problems.length) { result.push({ plan, damaged: true, problem: problems.join(" "), tokens: sidecar?.tokens ?? null, stage: sidecar?.stage ?? null }); continue; }
+      if (!sidecar) continue;
+      let drains: string[] = [];
+      try { drains = (await readdir(join(this.directory, plan, "drain"))).filter(n => /^[0-9a-f]{64}\.json$/.test(n)).map(n => n.slice(0, 64)); }
+      catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") { result.push({ plan, damaged: true, problem: String(error), tokens: sidecar.tokens, stage: sidecar.stage }); continue; } }
+      result.push({ plan, stage: sidecar.stage, sidecar, drains: new Set(drains), damaged: false });
     }
     return result;
   }
   /** How an item relates to one target: by an authoritative identity, by a mention only, or not at all. */
   static classify(item: GateItem, target: CutoverTarget | DamagedTarget): "identity" | "mention" | null {
-    if (target.damaged) return ["plan-note", "burst", "decision"].includes(item.source) ? "identity" : null;
-    const t = target.sidecar.tokens;
+    if (target.damaged && !target.tokens) {
+      if (item.plan !== undefined) return item.plan === target.plan ? "identity" : null;
+      return ["plan-note", "burst", "decision"].includes(item.source) ? "identity" : null; // Not provably unrelated.
+    }
+    const t = target.damaged ? target.tokens! : target.sidecar.tokens;
     if (item.plan === t.plan || (item.actionId && t.actions.includes(item.actionId))) return "identity";
     if (item.agentKey && t.agents.includes(agentOf(item.agentKey))) return "identity";
     if (item.task && t.tasks.some(x => x.task === item.task!.taskId && (item.task!.host === null || normalHost(x.host) === normalHost(item.task!.host)))) return "identity";
@@ -153,7 +164,8 @@ export class CutoverGate {
       const relation = CutoverGate.classify(item, target);
       if (!relation) continue;
       const stage = target.damaged ? "damaged" : target.stage;
-      if (target.damaged) return { admit: false, plan: target.plan, stage, reason: `Cutover record for ${target.plan} is unreadable: ${target.problem}` };
+      if (target.damaged && relation === "mention" && item.source !== "watch") continue;
+      if (target.damaged) return { admit: false, plan: target.plan, stage, reason: `A damaged cutover record (${target.plan}) may own this ${item.source === "decision" ? "answer" : "delivery"}; it is held until the main first mate reconciles that record.` };
       const drained = mode === "send" && target.drains.has(itemFingerprint(item));
       if (relation === "identity" && !drained) return { admit: false, plan: target.plan, stage, reason: `${target.plan} is ${stage === "committed" ? "owned by its scoped supervisor" : "in a held cutover"}; the legacy ${item.source} path cannot deliver it.` };
       if (relation === "mention" && item.source === "watch" && stage !== "committed" && !drained)
@@ -222,14 +234,16 @@ export class CutoverGate {
     return rows.sort((a, b) => a.claim.at.localeCompare(b.claim.at) || a.claim.id.localeCompare(b.claim.id));
   }
   /** A refused legacy delivery is accounted, never silently dropped. */
+  /** One record per distinct item and reason: a retried or ticking producer never floods the directory. */
   async refusal(item: GateItem, reason: string): Promise<void> {
-    await this.write(join("refusals", `${randomUUID()}.json`), { format: "firstmate.delivery-refusal/1", at: new Date().toISOString(),
+    await this.write(join("refusals", `${digest({ item: itemFingerprint(item), reason })}.json`), { format: "firstmate.delivery-refusal/1", at: new Date().toISOString(),
       item: { source: item.source, id: item.id, payloadHash: item.payloadHash }, reason: reason.slice(0, 2000) });
   }
   private async write(relative: string, value: unknown): Promise<void> {
     const path = join(this.directory, relative);
     try { await publish(path, value); }
     catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "EEXIST" && relative.startsWith("refusals")) return;
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
       await mkdir(join(path, ".."), { recursive: true });
       await publish(path, value);
@@ -239,8 +253,22 @@ export class CutoverGate {
 
 /** Plan, node and worker identities a text names as whole words. A clue for holding, never an owner. */
 export function mentions(text: string, tokens: CutoverSidecar["tokens"]): string[] {
-  const words = new Set(text.split(/[^A-Za-z0-9_.:-]+/).flatMap(w => [w, w.replace(/[.:]+$/, "")]));
-  return [tokens.plan, ...tokens.nodes, ...tokens.agents].filter(token => token.length >= 3 && words.has(token));
+  const words = new Set(text.toLowerCase().split(/[^a-z0-9_.:-]+/).flatMap(w => [w, w.replace(/[.:]+$/, "")]));
+  // Generic step names ("build", "trial") are everyday words; only distinctive ones count as a clue.
+  const distinctive = (id: string) => id.length >= 10 || /[-_.:0-9]/.test(id);
+  return [tokens.plan, ...tokens.nodes.filter(distinctive), ...tokens.agents].filter(token => token.length >= 3 && words.has(token.toLowerCase()));
+}
+
+/** What the board shows while a cutover holds deliveries: every damaged record and every frozen plan, with its owner. */
+export async function cutoverProblems(gate: CutoverGate): Promise<{ problems: string[]; warnings: string[] }> {
+  const problems: string[] = [], warnings: string[] = [];
+  let targets: (CutoverTarget | DamagedTarget)[];
+  try { targets = await gate.targets(); } catch (error) { return { problems: [`Cutover records are unreadable: ${String(error)}. Plan notes, crew relays and answers may be held; the main first mate reconciles.`], warnings }; }
+  for (const t of targets) {
+    if (t.damaged) problems.push(`Cutover record for ${t.plan} is damaged (${t.problem}). ${t.tokens ? `Deliveries that belong to ${t.plan}` : "Plan notes, crew relays and answers that cannot be proved unrelated"} are held; the main first mate reconciles the record (docs/scoped-supervision/S07.md).`);
+    else if (t.stage !== "committed") warnings.push(`Plan ${t.plan} is held in a scoped cutover (${t.stage}); its legacy deliveries wait for the first mate to finish or release it.`);
+  }
+  return { problems, warnings };
 }
 
 const gates = new Map<string, CutoverGate>();

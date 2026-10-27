@@ -9,6 +9,7 @@ import { compactWorkflowBearings } from "../shared/workflow-plan-summary";
 import { workflowNodeOwnsCard } from "../shared/workflow-identity";
 import { dependenciesMet, planSubjectHash, planBacklogLine, backlogSection, samePlanItem } from "./workflow-plans";
 import { workflowStore } from "./workflow-service";
+import { cutoverGate, cutoverProblems } from "./supervision-gate";
 import { digest } from "./submissions";
 import { parseBacklog } from "./backlog";
 import { resolveInHome } from "./files";
@@ -34,6 +35,9 @@ export async function workflowSnapshot(home: string): Promise<WorkflowSnapshot> 
   let read: { plans: WorkflowPlan[]; problems: string[]; warnings?: string[]; quarantined?: QuarantinedWorkflow[] };
   const store = workflowStore(home);
   try { read = await store.read(); } catch (e) { read = { plans: [], problems: [`Plans unavailable: ${String(e)}`] }; }
+  // S07: damaged cutover records and held cutovers are visible, with their owner, wherever plan problems are.
+  const cutover = await cutoverProblems(cutoverGate(home));
+  read = { ...read, problems: [...read.problems, ...cutover.problems], warnings: [...(read.warnings ?? []), ...cutover.warnings] };
   // The browser retains all history; due actions below still exclude finished plans. A plan in an S07
   // cutover is no longer the legacy mate's: its retained history still resolves dependencies only.
   const allPlans = read.plans, held = new Set<string>();

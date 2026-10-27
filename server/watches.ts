@@ -361,6 +361,15 @@ export class WatchRunner {
   /** The persisted queue, for a cutover inventory. Watch rows have no ids; their exact fields identify them. */
   async queued(): Promise<QueuedNote[]> { return structuredClone((await this.load()).queue); }
 
+  /** Puts back an entry a released cutover archived, exactly, unless one with its identity is already queued. */
+  async restoreQueued(entry: QueuedNote): Promise<"restored" | "present"> {
+    const state = await this.load();
+    if (state.queue.some((note) => watchItem(note).id === watchItem(entry).id)) return "present";
+    state.queue.push(structuredClone(entry));
+    await this.persist();
+    return "restored";
+  }
+
   /** Compare-by-identity/payload removal for a published cutover disposition. Never sends anything. */
   async removeQueued(id: string, payloadHash: string): Promise<"removed" | "absent" | "mismatch"> {
     const state = await this.load();

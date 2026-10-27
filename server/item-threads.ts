@@ -7,6 +7,7 @@ import { itemTagKey } from "../shared/item-tags";
 import { ItemThreadSchema, type ItemThread, type ThreadMessage, type sendItemThread } from "../shared/item-threads";
 import { readTextFile, replaceTextIfUnchanged, writeTextFile } from "./files";
 import { serialized } from "./serialize";
+import { cutoverGate } from "./supervision-gate";
 import { message, TEMPLATES } from "./templates";
 
 export function threadPath(key: string): string {
@@ -88,6 +89,10 @@ export async function sendThread(
 ): Promise<ItemThread> {
   const key = itemTagKey(card);
   if (key !== input.key) throw new Error("The item changed. Reopen its discussion.");
+  // S07: a frozen or migrated plan's task is discussed with its scoped owner, never the legacy first mate.
+  const gate = cutoverGate(home), item = { source: "decision" as const, id: `thread:${input.id}`, payloadHash: key, ...(card.taskId ? { task: { taskId: card.taskId, host: card.remote?.host ?? null } } : {}) };
+  const verdict = await gate.verdict(item, "send");
+  if (!verdict.admit) { await gate.refusal(item, verdict.reason); throw new Error(verdict.reason); }
   return serialized(`${home}:${threadPath(key)}:send`, async () => {
     let { text: previous, thread } = await load(home, key);
     const existing = thread.messages.find((entry) => entry.id === input.id);

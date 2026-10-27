@@ -405,7 +405,9 @@ export async function extendBurstNote(key: string, now: () => number = Date.now)
 export function noteItem(note: MateNote): GateItem {
   const payloadHash = digest(note);
   const plan = /^firstmate-plan-([0-9a-f-]{36})$/.exec(note.id);
-  if (plan) return { source: "plan-note", id: note.id, payloadHash, actionId: plan[1]! };
+  // The plugin renders the action's own plan id into the note (queuePlanNotes); it scopes, never grants.
+  const owner = /"plan":"([a-z0-9][a-z0-9-]*)"/.exec(note.text)?.[1];
+  if (plan) return { source: "plan-note", id: note.id, payloadHash, actionId: plan[1]!, ...(owner ? { plan: owner } : {}) };
   if (note.burst) return { source: "burst", id: note.id, payloadHash, agentKey: note.burst.key };
   return { source: note.id.startsWith("firstmate-watch-runtime-") ? "watch-runtime" : "mate-note", id: note.id, payloadHash, text: note.text };
 }

@@ -199,9 +199,12 @@ export function dispositionIdentity(d: LegacyDeliveryDisposition) {
 export const inventoryHash = (rows: LegacyDeliveryDisposition[]) => digest(rows.map(dispositionIdentity));
 function checkMigrationChange(next: MigrationReceipt, old: MigrationReceipt | undefined): void {
   if (!old) { if (next.state !== "prepared" || next.version !== 1) fail("CONFLICT", "A migration starts prepared."); return; }
-  const fixed = (m: MigrationReceipt) => ({ ...m, version: 0, state: null, inventory: null, sidecars: { freeze: m.sidecars.freeze } });
+  const fixed = (m: MigrationReceipt) => ({ ...m, version: 0, state: null, inventory: null, sidecars: { freeze: m.sidecars.freeze }, aborted: null });
   const order = ["prepared", "barrier", "committed"];
-  if (digest(fixed(old)) !== digest(fixed(next)) || order.indexOf(next.state) < order.indexOf(old.state) || old.state === "committed" ||
+  // Abort is a recorded release from prepared or barrier only; committed and aborted are terminal.
+  const aborting = next.state === "aborted" && ["prepared", "barrier"].includes(old.state) && !!next.aborted && digest(old.inventory) === digest(next.inventory);
+  if (!aborting && (next.state === "aborted" || old.aborted || next.aborted)) fail("HELD", "Only a prepared or barrier migration can be released, once, with its record.");
+  if (digest(fixed(old)) !== digest(fixed(next)) || (!aborting && order.indexOf(next.state) < order.indexOf(old.state)) || ["committed", "aborted"].includes(old.state) ||
     (old.state !== "prepared" && digest(old.inventory) !== digest(next.inventory)) || (old.sidecars.prepared && old.sidecars.prepared !== next.sidecars.prepared) ||
     old.inventory.dispositionIds.some(id => !next.inventory.dispositionIds.includes(id)))
     fail("HELD", "Migration identity, source, imported index and inventory are immutable; cutover only moves forward.");
@@ -213,7 +216,8 @@ function checkDispositionChange(next: LegacyDeliveryDisposition, old: LegacyDeli
     old.scopeId !== next.scopeId || old.planId !== next.planId || digest(old.destination?.consequenceId ?? null) !== digest(next.destination?.consequenceId ?? null) ||
     (old.destination?.outboxId && old.destination.outboxId !== next.destination?.outboxId) ||
     (Object.keys(old.receipts) as (keyof typeof old.receipts)[]).some(k => old.receipts[k] !== null && old.receipts[k] !== next.receipts[k]) ||
-    (!["pending", "mismatch"].includes(old.removal.state) && digest(old.removal) !== digest(next.removal)) ||
+    (!["pending", "mismatch"].includes(old.removal.state) && digest(old.removal) !== digest(next.removal) &&
+      !(old.removal.receipt === null && old.removal.state === next.removal.state)) ||
     removalOrder.indexOf(next.removal.state) < removalOrder.indexOf(old.removal.state)) fail("HELD", "Disposition identity, delivery history and receipts are retained.");
   if (old.route !== next.route) {
     // Only an explicit, evidence-bound resolution moves a hold; a removal mismatch may only become a hold.
@@ -515,12 +519,13 @@ export class SupervisionStore {
         const row = get("workflow", m.planId) as (WorkflowRow & { migrationId?: string }) | undefined;
         if (m.homeId !== this.homeId || !backend || backend.backend !== "scoped" || backend.ownerScopeId !== m.scopeId || backend.sourceHash !== m.source.sourceHash ||
           row?.migrationId !== m.id || digest(m.imported.requests) !== m.imported.indexHash) fail("CONFLICT", "Migration receipt, backend, source and imported index must agree.");
-        if ((m.state === "committed") !== (backend.state === "active") || (m.state !== "committed" && backend.state !== "prepared"))
-          fail("HELD", "The scoped backend activates only with a committed cutover; before that both writers stay held.");
+        if (m.state === "aborted" ? backend.state !== "retired" || (get("scope", m.scopeId) as { state?: string } | undefined)?.state !== "retired" :
+          (m.state === "committed") !== (backend.state === "active") || (m.state !== "committed" && backend.state !== "prepared"))
+          fail("HELD", "The scoped backend activates only with a committed cutover, and a release retires it with its scope; before that both writers stay held.");
         const rows = m.inventory.dispositionIds.map(id => get("delivery-disposition", id) as LegacyDeliveryDisposition | undefined);
         if (rows.some(d => !d || d.migrationId !== m.id || d.planId !== m.planId || d.scopeId !== m.scopeId) ||
           inventoryHash(rows as LegacyDeliveryDisposition[]) !== m.inventory.hash) fail("CONFLICT", "Delivery inventory hash does not match its dispositions.");
-        if (m.state !== "prepared") {
+        if (m.state === "barrier" || m.state === "committed") {
           if (!m.sidecars.prepared) fail("HELD", "The barrier follows a verified prepared sidecar.");
           for (const d of rows as LegacyDeliveryDisposition[]) if (d.route === "hold" || ["pending", "mismatch"].includes(d.removal.state) ||
             (d.route === "transfer-fact" && !(d.destination?.outboxId && get("outbox", d.destination.outboxId))))
@@ -583,6 +588,12 @@ export class SupervisionStore {
         const attempt = SupervisionAttemptSchema.parse(value), task = get("task", attempt.taskId) as z.infer<typeof SupervisionTaskSchema> | undefined;
         const effect = get("effect", attempt.launchEffectId) as z.infer<typeof SupervisionEffectSchema> | undefined;
         const ordinal = key(attempt.taskId, String(attempt.ordinal));
+        if (attempt.importedFrom) {
+          // An S07 import: no gateway launch effect exists; the committed migration's imported index vouches for it.
+          const m = get("migration", attempt.importedFrom.migrationId) as MigrationReceipt | undefined;
+          if (!task || !m || m.planId !== task.planId || task.nodeId !== attempt.importedFrom.node || effect ||
+            !m.imported.attempts.some(a => a.attempt === attempt.importedFrom!.legacyAttempt && a.node === attempt.importedFrom!.node)) fail("CONFLICT", "An imported attempt must match its migration's imported index.");
+        } else
         if (!task || !effect || effect.attemptId !== attempt.id || effect.scopeId !== task.ownerScopeId) fail("CONFLICT", "Attempt/task/launch effect must be committed together.");
         if (attempt.worker && attempt.worker.hostId.trim().toLowerCase() !== task.hostId.trim().toLowerCase()) fail("CONFLICT", "Worker host does not match its task identity.");
         // Current task pointers define ownership, including later worker assignment. Historical
@@ -958,6 +969,19 @@ export class SupervisionStore {
       }
       return this.commit(snapshot, body, requestId, requestHash);
     });
+  }
+  /** Read-only admission check for a whole prepared body: schema, row rules, indexes and the pilot ceilings,
+   * without publishing anything. S07 runs it before a freeze so a cutover never strands on an append refusal.
+   */
+  async validate(expectedVersions: SupervisionExpected[], mutations: StoreMutation[], reserve = 0): Promise<{ sequence: number }> {
+    const body = BodySchema.parse({ actor: this.actor, expectedVersions, mutations });
+    const snapshot = await this.reading(() => this.sharedScan());
+    if (snapshot.problems.length) fail("HELD", snapshot.problems.join(" "));
+    const next = this.apply(snapshot.frames, body);
+    if (snapshot.sequence + 1 + reserve > SUPERVISION_INDEX_LIMITS.transactions ||
+      Buffer.byteLength(canonical({ frames: [...next.frames], ownership: [...snapshot.ownership, ownership(next.frames)] })) > SUPERVISION_INDEX_LIMITS.projectionBytes)
+      fail("HELD", `Not enough journal headroom: sequence ${snapshot.sequence}, ${reserve + 1} transactions needed, ceiling ${SUPERVISION_INDEX_LIMITS.transactions}.`);
+    return { sequence: snapshot.sequence };
   }
   /** Internal S03 checked preparation: replay precedes current admission; preparation and publication
    * share the coordinator's serialization boundary. No model/network call belongs in prepare.
