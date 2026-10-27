@@ -1,59 +1,128 @@
 {
-  "format": "firstmate.s06-verification/1",
-  "sourceCommit": "d8cdf2aad77ae193e7e0b045d4b2f78772d0814b",
-  "baseHead": "c14df7039a48bdeca893db0616e96e3eafa1e2e6",
-  "sourceDigest": "6bd000977758f43ddee83d4fd99ce0acf7c2cc203502cf2f53056b69f0c90f59",
-  "files": [
+  "format": "firstmate.s06-verification/2",
+  "sourceCommit": "260d169d4c76b8eb7f23388c718369d3d6aab922",
+  "sourceTree": "63cb6f9b335834455920cbf1227360f5b84d6c74",
+  "previousDeliveredHead": "f94c338cbd3f33426a60e792f744ae8a0360cc7a",
+  "priorManifest": {
+    "path": "docs/scoped-supervision/S06-initial-verification.json",
+    "sha256": "126330c3273193a9c0806b8398615d9c4032da16bd448a83de8bf7399724a50b"
+  },
+  "sourceFiles": [
     {
-      "path": ".github/workflows/check.yml",
-      "workingSHA256": "5963ff5d817cf91dde27d4eed126eea0e711fdd77d3ac2999a2ac1b7c4fb1429",
-      "committedSHA256": "09cf70127c633206af5b6dab3aeb06867f78de61c7de78567eb39b35e3a48f2d",
-      "gitBlob": "4f6f1dce4b2628eea643e34edfe0d2c0b3f3f9b7"
+      "path": "docs/scoped-supervision/S06-diagnosis.md",
+      "workingSHA256": "e984653bb9e6f77334ae7172b0a5ab0b53e2dc65d380e3a81b7456512cc37924",
+      "committedSHA256": "e984653bb9e6f77334ae7172b0a5ab0b53e2dc65d380e3a81b7456512cc37924",
+      "gitBlob": "9b33afeb0aa322221b7afe994cc453cf7778461a"
     },
     {
-      "path": "server/supervision-store.ts",
-      "workingSHA256": "df166c26a923d7f222b1d1e92f4901df4d5b8a698fde4c91317578a8c1e4deae",
-      "committedSHA256": "705a984019341afc2c3b3709d3f0004094957052d80061432b91aff19333a761",
-      "gitBlob": "4f5679edd7745d9c8e2d042ef364dbd012f6ecbf"
-    },
-    {
-      "path": "server/supervision-store.test.ts",
-      "workingSHA256": "7787d07be20cd69d162262e30f9e63f7c67cd06dd2d7fc999c0b135052cc3dc8",
-      "committedSHA256": "95f7ae5f3f6800d06d52e835b9e42cd29bf44b203db9619a6b0fb725ad4d863c",
-      "gitBlob": "dfc5603a06fbf1c9a8bc39dfea7eefc7d3f7765e"
-    },
-    {
-      "path": "server/supervision-metrics.ts",
-      "workingSHA256": "b31d09acf4398956ed9761245db8b49dc4c6ac5e5974ddb0e91d43322ae5cbd7",
-      "committedSHA256": "b31d09acf4398956ed9761245db8b49dc4c6ac5e5974ddb0e91d43322ae5cbd7",
-      "gitBlob": "a457c4a8a6053ae22f8ce574462dc4f7156512b1"
-    },
-    {
-      "path": "test/supervision-s04-fixture.ts",
-      "workingSHA256": "b5f1ce48504108f6ec94393969eba3864f8ec64fbcd32364ab1bd7459ca0388f",
-      "committedSHA256": "b810b3a83a8e447f37e84ebd3b09f8d93ed8a2f5e533ff13bfb6376a31f3c060",
-      "gitBlob": "ef8be53dd710e9abd0bceba33d829d437975a5f1"
-    },
-    {
-      "path": "test/scoped-supervision-pilot.test.ts",
-      "workingSHA256": "7cbd9dac2cff0d0db5d5c240447188fdd4a7a650a238f8e26bbcfc411290e53e",
-      "committedSHA256": "7cbd9dac2cff0d0db5d5c240447188fdd4a7a650a238f8e26bbcfc411290e53e",
-      "gitBlob": "227b68dcb39b5a446cfa5410530d88ed7fbd0011"
+      "path": "docs/scoped-supervision/S06-initial-verification.json",
+      "workingSHA256": "126330c3273193a9c0806b8398615d9c4032da16bd448a83de8bf7399724a50b",
+      "committedSHA256": "126330c3273193a9c0806b8398615d9c4032da16bd448a83de8bf7399724a50b",
+      "gitBlob": "796d06440418f418512f55bde26d9f39978bd28e"
     },
     {
       "path": "docs/scoped-supervision/pilot-runbook.md",
-      "workingSHA256": "f8574e13a019dbe0c75369c9e1a24867c842f3faadaa0b5b3ac0f0f0c3a6f139",
-      "committedSHA256": "f8574e13a019dbe0c75369c9e1a24867c842f3faadaa0b5b3ac0f0f0c3a6f139",
-      "gitBlob": "3bbbb156ccfcd719c21db1f160b094781d4721e7"
+      "workingSHA256": "ad91dbf9ed3966444ce47b23f9947b6e92d03797024210f704e2e1879a5b0c93",
+      "committedSHA256": "ad91dbf9ed3966444ce47b23f9947b6e92d03797024210f704e2e1879a5b0c93",
+      "gitBlob": "b0dc7b3300ebd6f8958b0eeceaa0db088a578299"
     },
     {
-      "path": "docs/scoped-supervision/S06-diagnosis.md",
-      "workingSHA256": "09f77adaac930cef85a12a72c95beef8616404be37d91dacc297d9fb5638eabf",
-      "committedSHA256": "09f77adaac930cef85a12a72c95beef8616404be37d91dacc297d9fb5638eabf",
-      "gitBlob": "c6cc803b309ef8fbf5aba740c15773ddbdf3c457"
+      "path": "server/charter-file.test.ts",
+      "workingSHA256": "b55e7d66a135fb428e37516be23a199d176b5b40630a17a43506815dc1690252",
+      "committedSHA256": "f78b3fae8817201db296d79a024b352e394b9115d213d8e9e31df643d0485d7d",
+      "gitBlob": "0e93dbb352a0105da8a4df11d65fc65e687322fd"
+    },
+    {
+      "path": "server/crew-scoped.test.ts",
+      "workingSHA256": "6c255e0b8755e85dad4c4dc795882068e1d95d317ba92690dabc9d9396f1cdd9",
+      "committedSHA256": "6c255e0b8755e85dad4c4dc795882068e1d95d317ba92690dabc9d9396f1cdd9",
+      "gitBlob": "85c5bf6c20726258915079fb64941139a5e0f21b"
+    },
+    {
+      "path": "server/crew.ts",
+      "workingSHA256": "b6a62c47e3364694f117081bfb8fcbe50de01c6adde11528cc03f458f589f579",
+      "committedSHA256": "b49b1f354f535c4441e828c3338a0eb683f221cd868f3e5499bcebf92498eb01",
+      "gitBlob": "bdcf0310421149886a7cdb36a3ae440a903d74b7"
+    },
+    {
+      "path": "server/scope-requests.test.ts",
+      "workingSHA256": "b85943fdb42b5b93ca14e3c595f1c58a0cf347d42c5ae004d6e1d7de9bfdb535",
+      "committedSHA256": "9388404cc96a1bf4c46518bc6267e24aeb91b15d0807fc2c92c578cb42e34a1c",
+      "gitBlob": "d0785b2cd8e06e213ff8b9e5717096e697d6494e"
+    },
+    {
+      "path": "server/scope-requests.ts",
+      "workingSHA256": "bf07f4ae03243e47e81e6c46b8dd0486e6e6d56d88f4cd080a833b03667bfc3d",
+      "committedSHA256": "3cad8ffb60a30e44cd9c10e0cc74dcc5724f6acd30effc2eb125779b9cf9a17e",
+      "gitBlob": "41cb3752422b35aed1e2078bf562c1193a47850c"
+    },
+    {
+      "path": "server/supervision-crash.test.ts",
+      "workingSHA256": "c1b1d198652812e48c546fc4adbfd1c2568eca3ff9b6b30cd5d9c1ad21414e6f",
+      "committedSHA256": "d116f38c48a97fd424f28900281d64cce4ee88c20cd7fcbc9ddadfd59d073c67",
+      "gitBlob": "30adc3659cdcb4e2eacae817a2a20de082d1f2f3"
+    },
+    {
+      "path": "server/supervision-effects.ts",
+      "workingSHA256": "d8888a8a8742dd0c8ca89f38efc1195d7b5ceab241e859916c08c2d6220fdea6",
+      "committedSHA256": "f0891b43ff1d4f1b835ba51c31457230ac0eb4a3489592032984fe41c726e619",
+      "gitBlob": "6439f6b076997e9bae6ebff69b72737e7fae1b6e"
+    },
+    {
+      "path": "server/supervision-events.test.ts",
+      "workingSHA256": "e1761c747580d8ea55738a79f4f796a73756dfa0c7af5beb182debfebd36c6d2",
+      "committedSHA256": "28915f59e493ea074af5807fde4af74cd00471fe83bc1fd40349bd381dc70360",
+      "gitBlob": "2e571a03834b2775d6c2c07ebd4b4a7298161295"
+    },
+    {
+      "path": "server/supervision-index.test.ts",
+      "workingSHA256": "4a9cba5d78f98a7df3704821eb5b13fd8a94f1a450e7dfbeaf1ae925fdd9083a",
+      "committedSHA256": "4a9cba5d78f98a7df3704821eb5b13fd8a94f1a450e7dfbeaf1ae925fdd9083a",
+      "gitBlob": "363b9bb9b9bbf7ef267695ee60e68b0e55adea5e"
+    },
+    {
+      "path": "server/supervision-lifecycle.test.ts",
+      "workingSHA256": "c7353fb61feba6fafb695ffb3896644679ee8f31e3d453f523f64e6a80ef70d3",
+      "committedSHA256": "735a4adcfeaed4b375b5dc2b79068d6e864507fcf3c581a5b3b2f3f0a498d894",
+      "gitBlob": "84693f4792180ca65c793de99a7198de610cdcad"
+    },
+    {
+      "path": "server/supervision-lifecycle.ts",
+      "workingSHA256": "4149401f0c1040224560c5bb733b860fa318f6893286c95e09f3e13a6d2647b4",
+      "committedSHA256": "91209792f29fee3bef9e02bc02de6d0b39e631120dcdc3a6e8f2aaddff072893",
+      "gitBlob": "b31153705767ddd3d34809a7180fc8d1015008dd"
+    },
+    {
+      "path": "server/supervision-metrics.ts",
+      "workingSHA256": "3b22f7f22b0fbbf018709764df1dfe5ad655fefcf48cc8337cedd591ae92375a",
+      "committedSHA256": "3b22f7f22b0fbbf018709764df1dfe5ad655fefcf48cc8337cedd591ae92375a",
+      "gitBlob": "05100e7dd782a217b6cc526c6b82c90c4cf5e214"
+    },
+    {
+      "path": "server/supervision-r04.test.ts",
+      "workingSHA256": "5e80a46e486194ca1a9bad51e8e4cb7e183fcda32b914baf6383f99c4e49c46a",
+      "committedSHA256": "347a5e69ec27242e0389abccf03f5fabf2d5885fa4fc9bcb42580b3f199c0f61",
+      "gitBlob": "898f433f7105e5847fe2b67a7463145dc172d0c3"
+    },
+    {
+      "path": "server/supervision-store.ts",
+      "workingSHA256": "a54c284f3d7a8478e49b2e5919c723e836ac63b1efe7243e85f32d453585efd0",
+      "committedSHA256": "e1480062aa2bc1f190e8d61c26f3d2d26455f89fff81bcaeaacb02321edc3887",
+      "gitBlob": "33e5b0e77d4472698d8925b73d26f9ec17b1ca3a"
+    },
+    {
+      "path": "templates/data/charter.md",
+      "workingSHA256": "19b2f74c444a26e5015de9f253a5d754908e2ca3b62902718ca993e08e93d810",
+      "committedSHA256": "5888b7c2f550dd25ea67648afcca9f55a1a2f840d49b8a249ba43002dd55084e",
+      "gitBlob": "643b1e1dadf46eabb1e91b758299dec282502cba"
+    },
+    {
+      "path": "test/scoped-supervision-pilot.test.ts",
+      "workingSHA256": "9f35ac0b2cea039b6141693e723735ec1a46faa5397043ae7597a0e68c283f4b",
+      "committedSHA256": "9f35ac0b2cea039b6141693e723735ec1a46faa5397043ae7597a0e68c283f4b",
+      "gitBlob": "9bccec07567a6cdc34a23e13a3abebe8ba394298"
     }
   ],
-  "sourceNote": "Local tests ran before source commit. Working SHA256 identifies the verified source. Dataset sourceHead is the checkout base, not the dirty source identity. This manifest pins the source commit with the same files. Final delivered-head CI is separate.",
   "guarantee": "synthetic-new-plan-cooperative-only",
   "liveActivated": false,
   "timeoutIncreasedAfterDiagnosis": false,
@@ -63,142 +132,259 @@
   },
   "checks": {
     "typecheck": {
-      "exitCode": 0,
-      "logSHA256": "89b255e66fd85bceba4705310f153a6f7faf4a48f701fa17e27cfde16a982d0a"
+      "command": "npm run typecheck",
+      "passed": true
     },
     "fullSuite": {
-      "command": "npm test -- --maxWorkers=2 --testTimeout=20000 --reporter=default --reporter=json --outputFile=.local/s06/all-tests.json",
-      "tests": 2742,
-      "passed": 2739,
+      "command": "vitest run --passWithNoTests --maxWorkers=2 --testTimeout=20000 --reporter=default --reporter=json",
+      "total": 2766,
+      "passed": 2763,
       "failed": 0,
-      "pending": 3,
-      "files": 187,
-      "jsonSHA256": "4da97dd6cf2acb82b8701a3bb067acef75928d23c95b02c3474348fa14c52c22",
-      "logSHA256": "98d34facee7df44488c4182332d72eb148b4b7eb0a5be0ee4362b3b989a72a2b"
+      "skipped": 3,
+      "files": 189,
+      "jsonSHA256": "782134d173cbe04fe0485c8d71c641d9312ecee4e59769257e8cd3abde4abc7a",
+      "logSHA256": "8da3c78f4c11695f26e17310fb8a04457548fb69c212dd3b6359025a4fad2c80"
     },
     "pilot": {
-      "status": "passed",
       "assertions": [
         {
           "title": "A08/A09/A19: both builder/reviewer chains advance in one project during a ten-minute General turn",
           "status": "passed",
-          "durationMs": 88718.9564
+          "durationMs": 6787.9451
         },
         {
           "title": "A19 baseline: actual legacy note delivery waits for General; missing typed ack/cost remain unknown",
           "status": "passed",
-          "durationMs": 38.00590000000375
+          "durationMs": 37.129399999999805
         },
         {
           "title": "A02/A01: simultaneous builder/review facts retain both owners; old-head review refuses one deduplicated next step",
           "status": "passed",
-          "durationMs": 105448.0521
+          "durationMs": 4708.574
         },
         {
           "title": "A05/rollback: narrow instruction hold stops queued admissions, preserves admitted work and lets another plan drain",
           "status": "passed",
-          "durationMs": 16830.059600000008
+          "durationMs": 1466.5887999999995
         },
         {
           "title": "A06: interrupted ingress at event:linked retains cursor/event together before any offer",
           "status": "passed",
-          "durationMs": 5793.463700000022
+          "durationMs": 1295.2641999999996
         },
         {
           "title": "A06: interrupted ingress at publication:synced retains cursor/event together before any offer",
           "status": "passed",
-          "durationMs": 5463.357400000008
+          "durationMs": 1297.5040000000008
         },
         {
           "title": "A06: interrupted ingress at publication:linked retains cursor/event together before any offer",
           "status": "passed",
-          "durationMs": 5229.064100000018
+          "durationMs": 1099.9926999999989
         },
         {
           "title": "A06: owner page recovery after reservation never loses or duplicates handling",
           "status": "passed",
-          "durationMs": 6271.533100000001
+          "durationMs": 1103.0787000000018
         },
         {
           "title": "A06: owner page recovery after send-reply never loses or duplicates handling",
           "status": "passed",
-          "durationMs": 5681.448300000018
+          "durationMs": 1032.8452999999972
         },
         {
           "title": "A06: owner page recovery after ack never loses or duplicates handling",
           "status": "passed",
-          "durationMs": 5951.709500000026
+          "durationMs": 931.8410000000003
         },
         {
           "title": "A06/A20: lost worker workspace reply retains original IDs, cumulative spend and uncertainty",
           "status": "passed",
-          "durationMs": 2129.7612999999837
+          "durationMs": 570.5139999999992
         },
         {
           "title": "A06/A20: lost worker create reply retains original IDs, cumulative spend and uncertainty",
           "status": "passed",
-          "durationMs": 2528.7137999999977
+          "durationMs": 650.336299999999
         },
         {
           "title": "A06/A20: lost worker send reply retains original IDs, cumulative spend and uncertainty",
           "status": "passed",
-          "durationMs": 3208.5685999999987
+          "durationMs": 780.5515000000014
         },
         {
           "title": "A07.scoped/A01: two-device answer during manual transfer reaches only the new epoch and replays its original receipt",
           "status": "passed",
-          "durationMs": 6039.569500000012
+          "durationMs": 790.464100000001
         },
         {
           "title": "A20: worker and supervisor exhaustion refuse additional spend; lost sends reserve worst-case turns",
           "status": "passed",
-          "durationMs": 6786.6861999999965
+          "durationMs": 1165.5414999999994
         },
         {
-          "title": "A17.preserve: pilot enable/disable/restart preserves real watch timers, four disabled definitions and offline coverage",
+          "title": "A17.preserve: pilot enable/disable/restart preserves the actual four disabled watch identities, schedules and timer",
           "status": "passed",
-          "durationMs": 5381.807700000005
+          "durationMs": 1050.7900999999983
         },
         {
           "title": "A19: metadata rejects prompt fields, duplicate denominators, false timing and synthetic provider-cost claims",
           "status": "passed",
-          "durationMs": 3.4619999999995343
+          "durationMs": 1.9776999999994587
         }
       ]
     },
-    "budgetRefinement": {
-      "passed": 1,
-      "failed": 0,
-      "jsonSHA256": "08211df5a1ae58f63d381456b9b6f60c0e7038184b39f0f878376fca6be2254c"
+    "index": {
+      "assertions": [
+        {
+          "title": "warm reads at 11 transactions replay no historical reducers or full scans",
+          "status": "passed",
+          "durationMs": 236.1443
+        },
+        {
+          "title": "warm reads at 176 transactions replay no historical reducers or full scans",
+          "status": "passed",
+          "durationMs": 2711.5134
+        },
+        {
+          "title": "launch work stays bounded after 176 transactions instead of replaying the prefix for each step",
+          "status": "passed",
+          "durationMs": 4908.3603
+        },
+        {
+          "title": "a reader validates a bounded new tail; startup and an oversized tail validate full history",
+          "status": "passed",
+          "durationMs": 742.0087000000003
+        },
+        {
+          "title": "old in-place corruption is caught by explicit audit and automatic startup validation",
+          "status": "passed",
+          "durationMs": 71.8125
+        },
+        {
+          "title": "a concurrent read waits for publication and checkpointing instead of exposing a transient held projection",
+          "status": "passed",
+          "durationMs": 32.1155000000017
+        },
+        {
+          "title": "a detached callback cannot reuse an expired writer lock while a later checkpoint is staged",
+          "status": "passed",
+          "durationMs": 50.97770000000128
+        },
+        {
+          "title": "every read detects a tampered checkpoint event anchor",
+          "status": "passed",
+          "durationMs": 55.41580000000067
+        },
+        {
+          "title": "every read detects a tampered checkpoint tip anchor",
+          "status": "passed",
+          "durationMs": 56.07330000000002
+        },
+        {
+          "title": "every read detects a tampered checkpoint publication anchor",
+          "status": "passed",
+          "durationMs": 59.914600000000064
+        },
+        {
+          "title": "a missing checkpoint validates history but refuses its projection until explicit recovery",
+          "status": "passed",
+          "durationMs": 67.60319999999956
+        },
+        {
+          "title": "a stale checkpoint validates history but refuses its projection until explicit recovery",
+          "status": "passed",
+          "durationMs": 72.8112000000001
+        },
+        {
+          "title": "a digest checkpoint validates history but refuses its projection until explicit recovery",
+          "status": "passed",
+          "durationMs": 72.66989999999896
+        },
+        {
+          "title": "interruption at checkpoint:written preserves the request and recovers only the index",
+          "status": "passed",
+          "durationMs": 54.78219999999965
+        },
+        {
+          "title": "interruption at checkpoint:synced preserves the request and recovers only the index",
+          "status": "passed",
+          "durationMs": 52.74879999999939
+        },
+        {
+          "title": "interruption at checkpoint:replaced preserves the request and recovers only the index",
+          "status": "passed",
+          "durationMs": 51.35570000000007
+        },
+        {
+          "title": "the history ceiling holds admissions without deleting or resetting history",
+          "status": "passed",
+          "durationMs": 3736.7554
+        }
+      ]
     },
-    "regression": {
-      "transactions": 12,
-      "oldHashes": 312,
-      "fixedHashes": 48,
-      "redLogSHA256": "6be460f6df660f56198799e01980c89e987a373579a5cc2da7a00cac9ae84245"
-    },
-    "tempRace": {
-      "oldTempCasesFailed": 2,
-      "durableMissingControlPassed": true,
-      "redLogSHA256": "904f9d0465886b89f5ffc32941105572b5ae0af9df84db9f37eb03a6738afe21",
-      "storeTestsJSONSHA256": "2e3e777324cde4dc5baa62df7a00d8ba5cb17d9ad059d76f0ae11c59db6f4589"
+    "a17Mutation": {
+      "format": "firstmate.s06-a17-mutation/1",
+      "sourceCommit": "260d169d4c76b8eb7f23388c718369d3d6aab922",
+      "control": "R06 actual retained-identity reenabling mutation",
+      "reviewerControlSHA256": "144ba1a5f3e6ba68963f7b26d39c260f2814e370c166cb5d4821e15c325f2170",
+      "reviewerTestSHA256": "614799d90de97fc63e9fa8f94aaa7811ec9ddf7946678d487996dd4a8bca920a",
+      "rawLocalResultSHA256": "4b0e5a066919a2c864b110ee263bcc77ea60c97a3efb27f91b49e57c9b212a37",
+      "results": [
+        {
+          "title": "A17.preserve: pilot enable/disable/restart preserves the actual four disabled watch identities, schedules and timer",
+          "status": "failed"
+        },
+        {
+          "title": "R06 A17 mutation control ran and reenables the actual preserved identities",
+          "status": "passed"
+        }
+      ],
+      "interpretation": "The actual-watch mutation passes its control and fails the revised A17.preserve assertion."
     }
+  },
+  "acceptance": {
+    "A17": {
+      "status": "partial",
+      "qualified": [
+        "actual-four-disabled-watch-identities-and-schedules",
+        "timer-and-definition-preservation",
+        "reenabling-mutation-sensitivity"
+      ],
+      "unqualified": [
+        "native-storage-03:15-local-and-offline-host-coverage",
+        "unknown-native-heartbeat-owner-no-replacement"
+      ]
+    },
+    "B1": "all-four-legacy-controls-and-steer-relay-refuse-scoped-targets",
+    "B2": "native-General-callbacks-and-trial-General-turns-counted-separately-from-deduplicated-ingress",
+    "B3": "cumulative-prefix-checkpoint-anchor-tail-bounds-with-startup-recovery-explicit-audit"
   },
   "evidence": [
     {
-      "path": "docs/scoped-supervision/s06-evidence/scoped-metrics.json",
-      "sha256": "799928156e360586b899dc23495a06efeddd104e1d98507983fb6034b1d0b671",
-      "bytes": 4100
+      "path": "docs/scoped-supervision/s06-revision-evidence/scoped-metrics.json",
+      "sha256": "4ff750a9a095f25f9a9146fbdab8f91cd7b47e0014353ad2bf7e3d6ebdddbab2",
+      "bytes": 4168
     },
     {
-      "path": "docs/scoped-supervision/s06-evidence/legacy-metrics.json",
-      "sha256": "1cc0b6f336e808c172c16deb1d9f7d3e5270c2bbb4bdc23e90c12627f1692540",
-      "bytes": 4025
+      "path": "docs/scoped-supervision/s06-revision-evidence/legacy-metrics.json",
+      "sha256": "dcfc6786da2752266e91a21301b7c9dd5b252e5526ba9df6e46ec4f2adcc31e5",
+      "bytes": 4093
     },
     {
-      "path": "docs/scoped-supervision/s06-evidence/qualification-receipts.json",
-      "sha256": "01eb7a2288d0d2edf4e54e08c0b095fda98d7eb7fc9ecc8e2148e05d05a147d9",
-      "bytes": 91973
+      "path": "docs/scoped-supervision/s06-revision-evidence/qualification-receipts.json",
+      "sha256": "21a891df1981a4e93ae562cdde193657c466fd9bb98ccb7991ba3de0cafa482e",
+      "bytes": 92328
+    },
+    {
+      "path": "docs/scoped-supervision/s06-revision-evidence/index-bound-evidence.json",
+      "sha256": "902a09befb8519146fc338a0cd6bc275ee3d72f99b28cb9a170f8287929a2854",
+      "bytes": 891
+    },
+    {
+      "path": "docs/scoped-supervision/s06-revision-evidence/a17-mutation-result.json",
+      "sha256": "fd82cc342a9d4ff760da4fe69c0b97bd81ed060628e4228edc46c456e66ec73c",
+      "bytes": 891
     }
   ],
   "exclusions": [
@@ -207,6 +393,7 @@
     "occurrence scheduling",
     "remote effects",
     "strong authentication/fencing",
-    "install/routing approval"
+    "install/routing approval",
+    "unavailable native watch/heartbeat adapters"
   ]
 }
