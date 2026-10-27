@@ -41,7 +41,8 @@ describe("scoped transaction authority", () => {
       return original(...args);
     });
     try {
-      const after = await store.read();
+      // A new instance validates everything, so it lists and sizes the staging file.
+      const after = await new SupervisionStore(dataRoot, home).read();
       expect(removed).toBe(true); expect(after.freshness).toBe("current"); expect(after).toEqual(before);
     } finally { spy.mockReset(); spy.mockImplementation(original); }
   });

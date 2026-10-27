@@ -12,10 +12,10 @@ export class SupervisionStatusReader {
     (root, home) => new SupervisionStore(root, home)) {
     this.dataRoot = resolve(dataRoot);
   }
-  async read(home: string) {
+  async read(home: string, options?: { settleAfterMs?: number }) {
     const homeId = workflowHomeIdentity(home);
     let store = this.stores.get(homeId);
     if (!store) { store = this.create(this.dataRoot, home); this.stores.set(homeId, store); }
-    return store.read();
+    return store.read(options);
   }
 }

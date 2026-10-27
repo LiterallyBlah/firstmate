@@ -135,7 +135,68 @@ it.each(["missing", "stale", "digest"])("a %s checkpoint validates history but r
     await writeFile(path, `${canonical({ ...checkpoint, hash: digest(checkpoint) })}\n`); }
   const status = await f.store.read(); expect(status.freshness).toBe("held"); expect(status.scopes).toEqual([]); expect(status.plans).toEqual([]);
   expect(status.retainedOwnership.length).toBeGreaterThan(0);
-  await f.store.recoverIndex(); expect(await f.store.read()).toMatchObject({ freshness: "current", sequence: 2 });
+  if (damage === "stale") {
+    await f.store.recoverIndex(); expect(await f.store.read()).toMatchObject({ freshness: "current", sequence: 2 });
+  } else {
+    // Only a consistent ancestor is repaired. A lost or divergent witness is an integrity incident.
+    await expect(f.store.recoverIndex()).rejects.toMatchObject({ code: "HELD", message: expect.stringContaining("Integrity incident") });
+    expect((await f.store.read()).freshness).toBe("held");
+  }
+});
+it("a missing checkpoint over an empty journal (interrupted initialization) is rebuilt", async () => {
+  const f = await fixture(); await rm(join(f.store.root, "checkpoint.json"));
+  expect((await f.store.read()).freshness).toBe("held");
+  await f.store.recoverIndex(); expect(await f.store.read()).toMatchObject({ freshness: "current", sequence: 0 });
+});
+it.each(["recoverIndex", "recoverPublication"] as const)("%s refuses a checkpoint ahead of a journal that lost its final published transaction", async operation => {
+  const f = await fixture(); for (let n = 0; n < 5; n++) await f.advance();
+  const checkpoint = await readFile(join(f.store.root, "checkpoint.json"), "utf8");
+  for (const suffix of ["event", "tip", "publication"]) await rm(f.path(5, suffix));
+  const held = await f.store.audit(); expect(held).toMatchObject({ freshness: "held", sequence: 4 });
+  await expect(f.store[operation]()).rejects.toMatchObject({ code: "HELD", message: expect.stringContaining("journal ends at 4") });
+  expect(await readFile(join(f.store.root, "checkpoint.json"), "utf8")).toBe(checkpoint);
+  expect(await f.store.audit()).toMatchObject({ freshness: "held", sequence: 4 });
+});
+it("a status reader stays warm across new evidence blobs but never accepts a removed or forged one", async () => {
+  const f = await fixture(); await f.advance();
+  const reader = new SupervisionStore(f.data, f.home), full = vi.spyOn(reader as any, "scanFull");
+  await reader.read(); full.mockClear();
+  const blob = await f.store.putBlob(Buffer.from(`evidence ${randomUUID()}`));
+  expect(await reader.read()).toMatchObject({ freshness: "current", sequence: 1 }); expect(full).not.toHaveBeenCalled();
+  await f.advance(); await f.store.putBlob(Buffer.from(`more ${randomUUID()}`));
+  expect(await reader.read()).toMatchObject({ freshness: "current", sequence: 2 }); expect(full).not.toHaveBeenCalled();
+  // A forged name falls back to full validation; a removed blob also leaves the warm path.
+  const forged = join(f.store.root, "blobs", "f".repeat(64)); await writeFile(forged, "not its digest");
+  await reader.read(); expect(full).toHaveBeenCalledTimes(1); await rm(forged); full.mockClear();
+  await reader.read(); await rm(join(f.store.root, "blobs", blob.id)); full.mockClear();
+  await reader.read(); expect(full).toHaveBeenCalledTimes(1);
+});
+it("an overlapped display read settles on its committed head only past its budget; default reads retry", async () => {
+  const f = await fixture(); await f.advance();
+  const reader = new SupervisionStore(f.data, f.home); await reader.read();
+  const overlapped = async (options: { settleAfterMs?: number }) => {
+    let entered!: () => void, resume!: () => void, paused = true;
+    const atAnchor = new Promise<void>(resolve => { entered = resolve; }), gate = new Promise<void>(resolve => { resume = resolve; });
+    const original = (reader as any).anchorHash.bind(reader);
+    const spy = vi.spyOn(reader as any, "anchorHash").mockImplementation(async (...args: unknown[]) => {
+      if (paused) { paused = false; entered(); await gate; } return original(args[0] as number);
+    });
+    try {
+      const reading = reader.read(options); await atAnchor;
+      await f.advance(); resume(); return await reading;
+    } finally { resume(); spy.mockRestore(); }
+  };
+  expect(await overlapped({})).toMatchObject({ freshness: "current", sequence: 2 });
+  expect(await overlapped({ settleAfterMs: 60_000 })).toMatchObject({ freshness: "current", sequence: 3 });
+  expect(await overlapped({ settleAfterMs: 0 })).toMatchObject({ freshness: "current", sequence: 3 }); // Its own validated head.
+  expect(await reader.read({ settleAfterMs: 0 })).toMatchObject({ freshness: "current", sequence: 4 });
+});
+it("concurrent status reads share one validation", async () => {
+  const f = await fixture(); await f.advance();
+  const reader = new SupervisionStore(f.data, f.home), scan = vi.spyOn(reader as any, "scan");
+  const reads = await Promise.all(Array.from({ length: 5 }, () => reader.read()));
+  expect(scan).toHaveBeenCalledTimes(1); expect(reads.every(r => r.freshness === "current" && r.sequence === 1)).toBe(true);
+  reads[0]!.scopes.length = 0; expect(reads[1]!.scopes).toHaveLength(1); // Each caller owns its copy.
 });
 it.each(["checkpoint:written", "checkpoint:synced", "checkpoint:replaced"])("interruption at %s preserves the request and recovers only the index", async point => {
   const f = await fixture(); f.fault(point);

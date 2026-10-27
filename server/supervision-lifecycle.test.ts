@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { writeFile } from "node:fs/promises";
+import { rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { s04Fixture, planDefinition, captain, type ScopeHandle } from "../test/supervision-s04-fixture";
@@ -64,6 +64,23 @@ it("explicit operator index recovery repairs only a validated stale checkpoint, 
     .toMatchObject({ homeId: held.homeId, sequence: 2, hash: held.hash });
   await expect(f.lifecycle.recoverIndex({ homeId: held.homeId, sequence: held.sequence, hash: held.hash })).rejects.toMatchObject({ code: "HELD" });
   expect(await f.store.transact(expected(next, 1), requestId, next)).toMatchObject({ sequence: 2, requestId });
+  expect(f.receiver.calls).toHaveLength(calls);
+});
+it("operator index recovery refuses a checkpoint ahead of a journal missing its published final transaction", async () => {
+  const f = await integrated();
+  let version = 0;
+  for (let n = 0; n < 5; n++) {
+    const mutation = [{ kind: "scope" as const, value: { ...scopeRow(f.store.homeId), version: version + 1 } }];
+    await f.store.transact(expected(mutation, version), randomUUID(), mutation); version++;
+  }
+  const head = await f.store.read(), calls = f.receiver.calls.length;
+  const name = (suffix: string) => join(f.store.root, "transactions", `${String(head.sequence).padStart(12, "0")}.${suffix}.json`);
+  for (const suffix of ["event", "tip", "publication"]) await rm(name(suffix));
+  const held = await f.store.audit();
+  expect(held).toMatchObject({ freshness: "held", sequence: head.sequence - 1 });
+  await expect(f.lifecycle.recoverIndex({ homeId: held.homeId, sequence: held.sequence, hash: held.hash }))
+    .rejects.toMatchObject({ code: "HELD", message: expect.stringContaining("Integrity incident") });
+  expect(await f.store.audit()).toMatchObject({ freshness: "held", sequence: head.sequence - 1 });
   expect(f.receiver.calls).toHaveLength(calls);
 });
 async function acknowledge(f: Fixture, scope: ScopeHandle, offerId: string, actor?: string) {

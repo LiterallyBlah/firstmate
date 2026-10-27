@@ -95,11 +95,23 @@ coordinator record. The checkpoint binds sequence, transaction hash, projection 
 and a cumulative digest extending over every validated event/tip/publication hash in its prefix.
 An in-memory snapshot serves that validated projection and accepted-request index. A second reader
 can validate at most 32 new transactions against its cached prefix; it does not replay the old prefix.
-Root/resource changes or a larger tail require full historical validation. Cold startup always
+Evidence blobs are content-addressed and append-only, and nearly every writer operation adds one, so
+a changed blobs directory stays on the warm path when every cached blob keeps its file identity and
+every new blob hashes to its own name; tail transactions still recheck the blobs they reference.
+A removed, replaced or misnamed blob, a changed coordinator file list, a journal change without a
+checkpoint, or a larger tail requires full historical validation. Coordinator records are compared
+by durable name (and hash-checked on every read), because Windows can report a directory's earlier
+write time late. A write that lands during a warm read retries the warm read (at most three times)
+rather than discarding the cache. Retained ownership capsules are hashed once each, not once per
+comparison per transaction, so a launch's tail costs its own transitions, not history. Cold startup always
 validates all history before trusting a snapshot, even when the durable checkpoint looks current.
 The production inbox, combined Needs-you, scope and crew-seen status paths share one read-only
 store per configured home for the server lifetime. A home switch starts a separate cold validation;
-ordinary polling of the same home stays warm. The 5-second Needs-you poll does not construct a new
+ordinary polling of the same home stays warm, including across launches and other writer operations.
+Concurrent reads in one publication epoch share one validation. The display routes (inbox,
+Needs-you, scope) may, after 750 ms of reads overlapped by back-to-back commits, serve their own
+result if it validated against a published checkpoint: an earlier committed head, never a
+staging-window hold. Crew-seen, receipt and request lookups always wait for the newest head. The 5-second Needs-you poll does not construct a new
 store or wake a model. Before admitting a live trial, complete and record that home's cold startup
 audit, then measure its warm status route under the intended client polling load.
 
@@ -132,6 +144,15 @@ A missing/stale checkpoint or any anchor/digest mismatch triggers full validatio
 invalid checkpoint exposes no accepted plan projection, even if the journal validates. Explicit
 `recoverIndex()` rebuilds only derived metadata after a full valid scan; `recoverPublication()` also
 audits the whole journal and refreshes the index after completing an exact pending publication.
+Both repair only when the existing checkpoint is a consistent **ancestor** of the validated journal:
+its sequence is not past the journal head, and its transaction hash, projection hash, cumulative
+prefix digest and anchor equal the values recomputed at its sequence. A crash between publication
+and checkpoint replacement only ever leaves it behind. A checkpoint ahead of the journal (for
+example, a deleted published transaction) or on a divergent prefix is reported as an integrity
+incident and refused: it may be the last witness of lost history and needs deliberate
+reconciliation, never a rebuild. Checkpoints are replaced atomically and never deleted, so a missing
+or unreadable one is likewise refused over a nonempty journal; only an empty journal (initialization
+interrupted before its first index) is rebuilt.
 The qualified local operator attachment must stop admissions, inspect the held status's home ID,
 sequence, hash and problems, then invoke `SupervisionLifecycle.recoverIndex({ homeId, sequence, hash })`
 with those exact observed values. That method performs a full audit, accepts only a checkpoint-only
@@ -140,7 +161,8 @@ It has no public RPC or request-file route in this disabled delivery; the future
 and its authority need separate review. A stale observation or damaged journal refuses repair.
 After a successful receipt, reread the original request/effect IDs and reconcile known work before
 admissions resume; recovery never authorizes a resend.
-These recovery paths do not repair missing/corrupt authority, discard history or retry an external effect. A crash
+These recovery paths do not repair missing/corrupt authority, discard history or retry an external effect;
+the ancestor rule above is what keeps an index rebuild from overwriting the record of lost history. A crash
 after journal publication but before checkpoint replacement holds until index recovery, then the
 original request receipt replays. Checkpoint writes use synced staging plus atomic replacement; a
 missing result is not proof an effect failed. These are process-crash/cooperative guarantees, not

@@ -107,7 +107,10 @@ import {
 export default function contribute(server: PluginServerContext) {
   // Read-only S02 surface. No initialize/coordinator, ingress attachment, offer runner or activation flag.
   const supervisionReader = new SupervisionStatusReader(pluginDir());
-  const readSupervision = async (home?: string) => supervisionReader.read(home ?? resolveHome(await readFirstmateConfig()));
+  // Display routes may serve an earlier committed head after 750 ms of overlapping writes;
+  // crew-seen decides whether to clear attention, so it always waits for the newest head.
+  const readSupervision = async (home?: string, newest = false) =>
+    supervisionReader.read(home ?? resolveHome(await readFirstmateConfig()), newest ? {} : { settleAfterMs: 750 });
   server.handle(readSupervisionInbox, async input => supervisionInboxStatus(await readSupervision(), input));
   const stopWorkflows = startWorkflowService();
   server.handle(ensureSharedTerminalRpc, ({ workspaceId }, { paseo }) => ensureSharedTerminal(paseo, workspaceId));
@@ -361,7 +364,7 @@ export default function contribute(server: PluginServerContext) {
   // A crewmate whose finish the first mate has been told about leaves Paseo's "Ready to review"; see server/crew-seen.ts.
   const unregisterCrewSeen = registerCrewSeen(server, readFirstmateConfig, undefined, undefined,
     async () => {
-      const snapshot = await readSupervision();
+      const snapshot = await readSupervision(undefined, true);
       return agentId => snapshot.freshness !== "held" && !hasScopedWorker(snapshot, agentId);
     });
   // The first mate's tool calls and its crew's turn ends, for the receipt journal; idle while it is off.

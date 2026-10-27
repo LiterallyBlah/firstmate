@@ -94,7 +94,9 @@ const CheckpointSchema = z.object({ format: z.literal("firstmate.supervision-che
   sequence: number, transactionHash: SupervisionHash.nullable(), prefixDigest: SupervisionHash,
   projectionHash: SupervisionHash, anchorHash: SupervisionHash.nullable(), hash: SupervisionHash }).strict();
 type Checkpoint = z.infer<typeof CheckpointSchema>;
-type CachedScan = { scan: Scan; checkpoint: Checkpoint; directories: string; requests: Map<string, Transaction>;
+/** Durable blob name -> stat identity. Evidence is content-addressed and append-only. */
+type BlobIdentities = Map<string, string>;
+type CachedScan = { scan: Scan; checkpoint: Checkpoint; directories: string; blobs: BlobIdentities; requests: Map<string, Transaction>;
   workflowRequests: Map<string, { requestHash: string; eventHash: string; transaction: Transaction }> };
 type StoreLockLease = { active: boolean };
 const storeLocks = new AsyncLocalStorage<ReadonlyMap<string, StoreLockLease>>();
@@ -105,6 +107,8 @@ function publicationFor(root: string): StorePublication {
   if (!state) { state = { epoch: 0, active: null }; publications.set(root, state); }
   return state;
 }
+/** Sentinel: journal metadata moved while a warm read was checking it. */
+const changedDuringRead = new Error("Supervision journal changed during a warm read.");
 const emptyPrefix = digest({ format: "firstmate.supervision-prefix/1" });
 const extendPrefix = (previous: string, event: Transaction, tip: Anchor, marker: Anchor) => digest({ previous,
   sequence: event.sequence, event: event.hash, tip: tip.hash, publication: marker.hash });
@@ -167,6 +171,15 @@ function ownership(frames: Map<string, Frame>): z.infer<typeof OwnershipSchema> 
     workflows: [...values<WorkflowRow>("workflow").map(w => ({ plan: w.plan.definition.id, inventory: w.inventory })),
       ...values<{ receipt: z.infer<typeof RetirementSchema> }>("retirement").map(r => ({ plan: r.receipt.plan, inventory: r.receipt.inventory }))] };
 }
+/** Retained capsules are never mutated once validated, and one is kept per distinct ownership,
+ * so nearly one per transaction. Hash each once rather than once per comparison per transaction.
+ */
+const ownershipDigests = new WeakMap<object, string>();
+function ownershipDigest(value: z.infer<typeof OwnershipSchema>): string {
+  let saved = ownershipDigests.get(value);
+  if (saved === undefined) ownershipDigests.set(value, saved = digest(value));
+  return saved;
+}
 const frameDigest = (frames: Map<string, Frame>) => digest([...frames.entries()].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0));
 
 export class SupervisionStore {
@@ -174,6 +187,7 @@ export class SupervisionStore {
   readonly root: string;
   private coordinator: Coordinator | null = null;
   private cached: CachedScan | null = null;
+  private shared: { epoch: number; scan: Promise<Scan> } | null = null;
   private readonly actor: SupervisionActor;
   constructor(dataRoot: string, home: string, private readonly options: SupervisionStoreOptions = {}) {
     this.homeId = workflowHomeIdentity(home); // Never realpath; exactly the existing durable namespace.
@@ -194,18 +208,24 @@ export class SupervisionStore {
       });
     });
   }
-  private async reading<T>(work: () => Promise<T>): Promise<T> {
+  private async reading<T>(work: () => Promise<T>, settle?: { afterMs: number; committed: (result: T) => boolean }): Promise<T> {
     // A prepare callback reads within its own transaction. Other reads wait for active
     // publication, but never acquire the writer lock. If a writer overlaps the read,
     // discard that result (including a transient hold) and check the new checkpoint.
     if (storeLocks.getStore()?.get(this.root)?.active) return work();
-    const publication = publicationFor(this.root);
+    const publication = publicationFor(this.root), started = performance.now();
     for (;;) {
       if (publication.active) { await publication.active; continue; }
       const epoch = publication.epoch;
       let result: T | undefined, error: unknown, failed = false;
       try { result = await work(); } catch (cause) { error = cause; failed = true; }
-      if (publication.active || publication.epoch !== epoch) continue;
+      if (publication.active || publication.epoch !== epoch) {
+        // Back-to-back writes (a launch) would otherwise hold a status poll for their whole run.
+        // Past its budget, a display read may serve its own result if it validated against a
+        // published checkpoint: an earlier committed head, never a staging-window hold.
+        if (settle && !failed && performance.now() - started >= settle.afterMs && settle.committed(result as T)) return result as T;
+        continue;
+      }
       if (failed) throw error;
       return result as T;
     }
@@ -545,9 +565,9 @@ export class SupervisionStore {
         try {
           const anchor = verifyHash(AnchorSchema.parse(await readCanonical(join(this.root, "transactions", name))));
           if (anchor.homeId !== this.homeId || name !== `${pad(anchor.sequence)}.${anchor.format.includes("publication") ? "publication" : "tip"}.json`) fail("HELD", "Anchor identity mismatch.");
-          const ownershipDigest = digest(anchor.ownership);
-          if (!retainedDigests.has(ownershipDigest)) {
-            retainedDigests.add(ownershipDigest); result.ownership.push(anchor.ownership);
+          const retained = ownershipDigest(anchor.ownership);
+          if (!retainedDigests.has(retained)) {
+            retainedDigests.add(retained); result.ownership.push(anchor.ownership);
           }
         } catch (error) { result.problems.push(`Damaged retained ownership ${name}: ${String(error)}`); }
       }
@@ -584,8 +604,12 @@ export class SupervisionStore {
    * prefix bytes are thereafter audited explicitly; its anchor is checked on EVERY read.
    */
   private async directories(): Promise<string> {
-    return canonical(await Promise.all([this.root, join(this.root, "transactions"), join(this.root, "blobs"), join(this.root, "coordinators")].map(async path => {
+    const coordinators = join(this.root, "coordinators");
+    return canonical(await Promise.all([this.root, join(this.root, "transactions"), join(this.root, "blobs"), coordinators].map(async path => {
       const s = await stat(path, { bigint: true });
+      // Windows can report a directory's earlier write time late, with no new write. Coordinator
+      // records are hash-checked on every read; only their durable names need to stay put.
+      if (path === coordinators) return [String(s.dev), String(s.ino), ...(await readdir(path)).filter(n => !n.endsWith(".tmp")).sort()];
       return [s.dev, s.ino, s.mtimeNs, s.ctimeNs].map(String);
     })));
   }
@@ -613,7 +637,33 @@ export class SupervisionStore {
       sequence: snapshot.sequence, transactionHash: snapshot.hash, prefixDigest: snapshot.prefixDigest,
       projectionHash: frameDigest(snapshot.frames), anchorHash: await this.anchorHash(snapshot.sequence) });
   }
-  private cache(snapshot: Scan, checkpoint: Checkpoint, directories: string): Scan {
+  private async blobIdentities(): Promise<BlobIdentities> {
+    const directory = join(this.root, "blobs"), names = await readdir(directory);
+    if (names.some(n => !/^[0-9a-f]{64}(?:\.[0-9a-f-]+\.tmp)?$/.test(n))) fail("HELD", "Unknown evidence blob metadata.");
+    return new Map(await Promise.all(names.filter(n => !n.endsWith(".tmp")).map(async name => {
+      const s = await stat(join(directory, name), { bigint: true });
+      return [name, [s.ino, s.size, s.mtimeNs].map(String).join(":")] as const;
+    })));
+  }
+  /** A changed blobs directory need not cost a full validation. Every cached blob must keep its
+   * identity (no removal or replacement), and every new one must hash to its own name. Blobs a
+   * tail transaction references are checked again there; unreferenced evidence stays inert.
+   */
+  private async addedBlobs(prior: BlobIdentities): Promise<{ identities: BlobIdentities; bytes: number }> {
+    const identities = await this.blobIdentities();
+    let bytes = 0;
+    for (const [name, identity] of prior) if (identities.get(name) !== identity) fail("HELD", "Evidence blob removed or replaced.");
+    for (const name of identities.keys()) if (!prior.has(name)) {
+      const content = await readFile(join(this.root, "blobs", name));
+      if (rawDigest(content) !== name) fail("HELD", "New evidence blob is not content-addressed.");
+      bytes += content.length;
+    }
+    return { identities, bytes };
+  }
+  private async cache(snapshot: Scan, checkpoint: Checkpoint, directories: string, blobs?: BlobIdentities): Promise<Scan> {
+    // A writer reuses the identities it already holds while the blobs directory is unchanged.
+    const blobsDirectory = (signature: string) => (JSON.parse(signature) as string[][])[2]!.join();
+    blobs ??= this.cached && blobsDirectory(this.cached.directories) === blobsDirectory(directories) ? this.cached.blobs : await this.blobIdentities();
     const prior = this.cached, reuse = prior && prior.scan.sequence <= snapshot.sequence &&
       (prior.scan.hash === null || snapshot.transactions[prior.scan.sequence - 1]?.hash === prior.scan.hash);
     const requests = reuse ? prior.requests : new Map<string, Transaction>();
@@ -623,7 +673,7 @@ export class SupervisionStore {
       for (const mutation of transaction.body.mutations) if (mutation.kind === "workflow") workflowRequests.set(key(mutation.event.plan, mutation.event.requestId),
         { requestHash: mutation.event.requestHash, eventHash: mutation.event.hash, transaction });
     }
-    this.cached = { scan: snapshot, checkpoint, directories, requests, workflowRequests };
+    this.cached = { scan: snapshot, checkpoint, directories, blobs, requests, workflowRequests };
     return snapshot;
   }
   private async saveCheckpoint(snapshot: Scan): Promise<void> {
@@ -634,7 +684,7 @@ export class SupervisionStore {
       try { await file.writeFile(`${canonical(checkpoint)}\n`); await this.boundary("checkpoint:written"); await file.sync(); await this.boundary("checkpoint:synced"); }
       finally { await file.close(); }
       await rename(temporary, path); await this.boundary("checkpoint:replaced");
-      this.cache(snapshot, checkpoint, await this.directories());
+      await this.cache(snapshot, checkpoint, await this.directories());
     } finally { await rm(temporary, { force: true }); }
   }
   private async checkedFullScan(): Promise<Scan> {
@@ -645,7 +695,7 @@ export class SupervisionStore {
       const before = await this.directories(), checkpoint = await this.readCheckpoint();
       if (digest(checkpoint) !== digest(await this.checkpointFor(snapshot)) || before !== await this.directories())
         fail("HELD", "Checkpoint is stale or mismatches the validated prefix; explicit index recovery required.");
-      return this.cache(snapshot, checkpoint, before);
+      return await this.cache(snapshot, checkpoint, before, await this.blobIdentities());
     } catch (error) {
       snapshot.problems.push(`Checkpoint validation failed; full history was checked, admissions held until explicit recovery: ${String(error)}`);
       // Keep independent ownership reservations, but do not expose an unaccepted projection.
@@ -653,47 +703,68 @@ export class SupervisionStore {
     }
   }
   private async scan(): Promise<Scan> {
-    const cached = this.cached;
-    if (!cached) return this.checkedFullScan();
-    try {
-      const checkpoint = await this.readCheckpoint(), before = await this.directories();
-      const identity = IdentitySchema.parse(await readCanonical(join(this.root, "identity.json")));
-      if (identity.homeId !== this.homeId || checkpoint.anchorHash !== await this.anchorHash(checkpoint.sequence)) fail("HELD", "Checkpoint anchor/digest mismatch.");
-      const coordinator = cached.scan.coordinators.at(-1);
-      if (coordinator && verifyHash(CoordinatorSchema.parse(await readCanonical(join(this.root, "coordinators", `${pad(coordinator.generation)}.json`)))).hash !== coordinator.hash)
-        fail("HELD", "Checkpoint coordinator identity changed.");
-      if (checkpoint.hash === cached.checkpoint.hash && before === cached.directories) return cached.scan;
-      // A current writer can advance this reader by at most a bounded tail. Missing/stale
-      // checkpoints and unrelated directory changes go through a full validation below.
-      if (checkpoint.sequence > cached.scan.sequence && checkpoint.sequence - cached.scan.sequence <= SUPERVISION_INDEX_LIMITS.tail &&
-        canonical(JSON.parse(before).slice(2)) === canonical(JSON.parse(cached.directories).slice(2))) {
-        if (cached.checkpoint.anchorHash !== await this.anchorHash(cached.scan.sequence)) fail("HELD", "Prior checkpoint anchor changed.");
-        const next = { ...cached.scan, frames: new Map(cached.scan.frames), transactions: [...cached.scan.transactions], ownership: [...cached.scan.ownership] };
-        const seen = new Set(next.transactions.map(t => t.requestId));
-        for (let sequence = next.sequence + 1; sequence <= checkpoint.sequence; sequence++) {
-          const event = verifyHash(TransactionSchema.parse(await readCanonical(this.file(sequence, "event"))));
-          const tip = verifyHash(AnchorSchema.parse(await readCanonical(this.file(sequence, "tip"))));
-          const marker = verifyHash(AnchorSchema.parse(await readCanonical(this.file(sequence, "publication"))));
-          if (event.homeId !== this.homeId || event.sequence !== sequence || event.previous !== next.hash || tip.previous !== next.hash ||
-            tip.homeId !== this.homeId || tip.sequence !== sequence || tip.format !== "firstmate.supervision-tip/1" || tip.transactionHash !== event.hash ||
-            tip.requestId !== event.requestId || tip.requestHash !== event.requestHash || tip.generation !== event.generation ||
-            digest(event.body) !== event.requestHash || next.coordinators[event.generation - 1]?.hash !== event.coordinatorHash || seen.has(event.requestId) ||
-            digest({ ...marker, format: tip.format, hash: tip.hash }) !== digest(tip)) fail("HELD", "Checkpoint tail chain/identity mismatch.");
-          await this.checkBlobs(event.body.mutations); checkInboxRequest(event.body.mutations, event.requestId);
-          const applied = this.apply(next.frames, event.body);
-          if (digest(applied.changes) !== digest(event.changes) || frameDigest(applied.frames) !== event.projectionHash ||
-            digest(ownership(applied.frames)) !== digest(tip.ownership)) fail("HELD", "Checkpoint tail projection mismatch.");
-          next.frames = applied.frames; next.transactions.push(event); seen.add(event.requestId);
-          if (!next.ownership.some(o => digest(o) === digest(tip.ownership))) next.ownership.push(tip.ownership);
-          next.sequence = sequence; next.hash = event.hash; next.prefixDigest = extendPrefix(next.prefixDigest, event, tip, marker);
-          next.bytes += Buffer.byteLength(canonical(event) + canonical(tip) + canonical(marker)) + 3;
-        }
-        // Directory accounting and coordinator changes cannot be guessed from the event tail.
-        if (digest(checkpoint) !== digest(await this.checkpointFor(next)) || before !== await this.directories()) fail("HELD", "Checkpoint tail digest mismatch.");
-        return this.cache(next, checkpoint, before);
+    for (let attempt = 0; ; attempt++) {
+      const cached = this.cached;
+      if (!cached) return this.checkedFullScan();
+      try { return await this.warmScan(cached); }
+      catch (error) {
+        // A write that lands mid-read is retried warm, a few times; anything else, or a writer
+        // that keeps overlapping, gets full validation (retained ownership, exact failure).
+        if (error === changedDuringRead && attempt < 3) continue;
+        return this.checkedFullScan();
       }
-    } catch { /* Full historical validation supplies retained ownership and the exact failure. */ }
-    return this.checkedFullScan();
+    }
+  }
+  private async warmScan(cached: CachedScan): Promise<Scan> {
+    const checkpoint = await this.readCheckpoint(), before = await this.directories();
+    const identity = IdentitySchema.parse(await readCanonical(join(this.root, "identity.json")));
+    if (identity.homeId !== this.homeId || checkpoint.anchorHash !== await this.anchorHash(checkpoint.sequence)) fail("HELD", "Checkpoint anchor/digest mismatch.");
+    const coordinator = cached.scan.coordinators.at(-1);
+    if (coordinator && verifyHash(CoordinatorSchema.parse(await readCanonical(join(this.root, "coordinators", `${pad(coordinator.generation)}.json`)))).hash !== coordinator.hash)
+      fail("HELD", "Checkpoint coordinator identity changed.");
+    if (checkpoint.hash === cached.checkpoint.hash && before === cached.directories) return cached.scan;
+    const now = JSON.parse(before) as string[][], prior = JSON.parse(cached.directories) as string[][];
+    const same = (index: number) => now[index]!.join() === prior[index]!.join();
+    if (!same(3)) fail("HELD", "Coordinator metadata changed; validate full history.");
+    // Nearly every writer operation adds evidence: accept checked additions, never a loss.
+    const blobs = same(2) ? { identities: cached.blobs, bytes: 0 } : await this.addedBlobs(cached.blobs);
+    if (checkpoint.hash === cached.checkpoint.hash) {
+      if (!same(0) || !same(1)) fail("HELD", "Journal metadata changed without a checkpoint.");
+      if (before !== await this.directories()) throw changedDuringRead;
+      return await this.cache({ ...cached.scan, bytes: cached.scan.bytes + blobs.bytes }, checkpoint, before, blobs.identities);
+    }
+    // A current writer can advance this reader by at most a bounded tail. Missing/stale
+    // checkpoints and unrelated directory changes go through a full validation below.
+    if (checkpoint.sequence > cached.scan.sequence && checkpoint.sequence - cached.scan.sequence <= SUPERVISION_INDEX_LIMITS.tail) {
+      if (cached.checkpoint.anchorHash !== await this.anchorHash(cached.scan.sequence)) fail("HELD", "Prior checkpoint anchor changed.");
+      const next = { ...cached.scan, frames: new Map(cached.scan.frames), transactions: [...cached.scan.transactions], ownership: [...cached.scan.ownership],
+        bytes: cached.scan.bytes + blobs.bytes };
+      const seen = new Set(next.transactions.map(t => t.requestId));
+      for (let sequence = next.sequence + 1; sequence <= checkpoint.sequence; sequence++) {
+        const event = verifyHash(TransactionSchema.parse(await readCanonical(this.file(sequence, "event"))));
+        const tip = verifyHash(AnchorSchema.parse(await readCanonical(this.file(sequence, "tip"))));
+        const marker = verifyHash(AnchorSchema.parse(await readCanonical(this.file(sequence, "publication"))));
+        if (event.homeId !== this.homeId || event.sequence !== sequence || event.previous !== next.hash || tip.previous !== next.hash ||
+          tip.homeId !== this.homeId || tip.sequence !== sequence || tip.format !== "firstmate.supervision-tip/1" || tip.transactionHash !== event.hash ||
+          tip.requestId !== event.requestId || tip.requestHash !== event.requestHash || tip.generation !== event.generation ||
+          digest(event.body) !== event.requestHash || next.coordinators[event.generation - 1]?.hash !== event.coordinatorHash || seen.has(event.requestId) ||
+          digest({ ...marker, format: tip.format, hash: tip.hash }) !== digest(tip)) fail("HELD", "Checkpoint tail chain/identity mismatch.");
+        await this.checkBlobs(event.body.mutations); checkInboxRequest(event.body.mutations, event.requestId);
+        const applied = this.apply(next.frames, event.body);
+        if (digest(applied.changes) !== digest(event.changes) || frameDigest(applied.frames) !== event.projectionHash ||
+          digest(ownership(applied.frames)) !== digest(tip.ownership)) fail("HELD", "Checkpoint tail projection mismatch.");
+        next.frames = applied.frames; next.transactions.push(event); seen.add(event.requestId);
+        const tipOwnership = ownershipDigest(tip.ownership);
+        if (!next.ownership.some(o => ownershipDigest(o) === tipOwnership)) next.ownership.push(tip.ownership);
+        next.sequence = sequence; next.hash = event.hash; next.prefixDigest = extendPrefix(next.prefixDigest, event, tip, marker);
+        next.bytes += Buffer.byteLength(canonical(event) + canonical(tip) + canonical(marker)) + 3;
+      }
+      // Directory accounting and coordinator changes cannot be guessed from the event tail.
+      if (before !== await this.directories()) throw changedDuringRead;
+      if (digest(checkpoint) !== digest(await this.checkpointFor(next))) fail("HELD", "Checkpoint tail digest mismatch.");
+      return await this.cache(next, checkpoint, before, blobs.identities);
+    }
+    fail("HELD", "Checkpoint is not a bounded advance of the cached prefix.");
   }
   /** Explicit read-only audit command. Also runs automatically on startup and every recovery.
    * Historical corruption holds this instance until a subsequent successful audit/recovery.
@@ -712,18 +783,41 @@ export class SupervisionStore {
       if (snapshot.problems.length || !snapshot.initialized) fail("HELD", snapshot.problems.join(" ") || "No validated journal for index recovery.");
       if (observed && (observed.homeId !== this.homeId || observed.sequence !== snapshot.sequence || observed.hash !== snapshot.hash))
         fail("STALE", "Recovery observation changed under the index repair lock.");
-      if (observed) {
-        try {
-          const checkpoint = await this.readCheckpoint();
-          if (digest(checkpoint) === digest(await this.checkpointFor(snapshot)))
-            fail("STALE", "Checkpoint is already current; inspect before another repair.");
-        } catch (error) {
-          if (error instanceof SupervisionError && error.code === "STALE") throw error;
-          // Missing or invalid derived checkpoint is the explicit repair case.
-        }
-      }
+      const checkpoint = await this.ancestorCheckpoint(snapshot);
+      if (observed && checkpoint && digest(checkpoint) === digest(await this.checkpointFor(snapshot)))
+        fail("STALE", "Checkpoint is already current; inspect before another repair.");
       await this.saveCheckpoint(snapshot);
     });
+  }
+  /** Repair may only move a checkpoint forward. A crash between publication and checkpoint
+   * replacement leaves it behind the journal, never ahead or on another prefix, so either of
+   * those is an integrity incident: the checkpoint may be the last witness of lost history.
+   * Checkpoints are replaced atomically and never deleted, so a missing or unreadable one is
+   * only repairable over an empty journal (initialization interrupted before its first index).
+   */
+  private async ancestorCheckpoint(snapshot: Scan): Promise<Checkpoint | null> {
+    let checkpoint: Checkpoint;
+    try { checkpoint = await this.readCheckpoint(); }
+    catch (error) {
+      if (snapshot.sequence === 0) return null;
+      fail("HELD", `Integrity incident: the checkpoint over a nonempty journal is missing or unreadable, so lost history cannot be ruled out; reconcile deliberately, never rebuild: ${String(error)}`);
+    }
+    const at = checkpoint.sequence, transaction = at ? snapshot.transactions[at - 1] : undefined;
+    if (at > snapshot.sequence)
+      fail("HELD", `Integrity incident: the checkpoint records sequence ${at} but the journal ends at ${snapshot.sequence}; published history may be lost. Reconcile deliberately, never rebuild.`);
+    if (checkpoint.transactionHash !== (transaction?.hash ?? null) || checkpoint.projectionHash !== (transaction?.projectionHash ?? frameDigest(new Map())) ||
+      checkpoint.prefixDigest !== await this.prefixAt(snapshot, at) || checkpoint.anchorHash !== await this.anchorHash(at))
+      fail("HELD", `Integrity incident: the checkpoint at sequence ${at} diverges from the validated journal prefix. Reconcile deliberately, never rebuild.`);
+    return checkpoint;
+  }
+  private async prefixAt(snapshot: Scan, sequence: number): Promise<string> {
+    let prefix = emptyPrefix;
+    for (const event of snapshot.transactions.slice(0, sequence)) {
+      const tip = verifyHash(AnchorSchema.parse(await readCanonical(this.file(event.sequence, "tip"))));
+      const marker = verifyHash(AnchorSchema.parse(await readCanonical(this.file(event.sequence, "publication"))));
+      prefix = extendPrefix(prefix, event, tip, marker);
+    }
+    return prefix;
   }
   private accepted(snapshot: Scan, requestId: string): Transaction | undefined {
     return this.cached?.scan === snapshot ? this.cached.requests.get(requestId) : snapshot.transactions.find(t => t.requestId === requestId);
@@ -792,8 +886,8 @@ export class SupervisionStore {
       if (snapshot.sequence >= SUPERVISION_INDEX_LIMITS.admissions && body.mutations.some(m => m.kind === "effect" && !snapshot.frames.has(key("effect", m.value.id))))
         fail("HELD", "Pilot admission bound reached; reserve the remaining journal headroom for known work and reconciliation.");
       const next = this.apply(snapshot.frames, body);
-      const nextOwnership = ownership(next.frames), ownershipDigest = digest(nextOwnership);
-      const retainedOwnership = snapshot.ownership.some(o => digest(o) === ownershipDigest) ? snapshot.ownership : [...snapshot.ownership, nextOwnership];
+      const nextOwnership = ownership(next.frames), nextDigest = ownershipDigest(nextOwnership);
+      const retainedOwnership = snapshot.ownership.some(o => ownershipDigest(o) === nextDigest) ? snapshot.ownership : [...snapshot.ownership, nextOwnership];
       if (snapshot.sequence >= SUPERVISION_INDEX_LIMITS.transactions || Buffer.byteLength(canonical({ frames: [...next.frames], ownership: retainedOwnership })) > SUPERVISION_INDEX_LIMITS.projectionBytes)
         fail("HELD", "Pilot history/projection bound reached; stop admissions and retain the journal for audit.");
       const pending = inboxProjection(next.frames).assignments.filter(a => a.primaryEventId === a.id && !terminal(a)).length;
@@ -830,6 +924,7 @@ export class SupervisionStore {
       this.cached = null;
       const snapshot = await this.scanFull();
       if (snapshot.problems.some(p => p !== "Final transaction awaits publication.")) fail("HELD", snapshot.problems.join(" "));
+      await this.ancestorCheckpoint(snapshot);
       if (!snapshot.pending) { await this.saveCheckpoint(snapshot); return null; }
       const { event, tip } = snapshot.pending;
       const { hash: _hash, ...body } = tip;
@@ -857,12 +952,25 @@ export class SupervisionStore {
       // Account newly published evidence without replaying journal history. The anchor and
       // derived checkpoint are unchanged; only physical staging/storage accounting advances.
       const priorBytes = created ? copy.length : 0;
-      this.cache({ ...snapshot, bytes: snapshot.bytes + priorBytes }, await this.readCheckpoint(), await this.directories());
+      await this.cache({ ...snapshot, bytes: snapshot.bytes + priorBytes }, await this.readCheckpoint(), await this.directories());
       return { id, bytes: copy.length };
     });
   }
-  async read(): Promise<SupervisionStatus> {
-    return this.reading(async () => structuredClone(this.status(await this.scan())));
+  /** Concurrent reads in one publication epoch share one validation. reading() still discards,
+   * for every sharer, a result that a writer overlapped, so sharing never serves an older head.
+   */
+  private sharedScan(): Promise<Scan> {
+    if (storeLocks.getStore()?.get(this.root)?.active) return this.scan();
+    const epoch = publicationFor(this.root).epoch;
+    if (this.shared?.epoch === epoch) return this.shared.scan;
+    const entry = { epoch, scan: this.scan() }, clear = () => { if (this.shared === entry) this.shared = null; };
+    this.shared = entry; entry.scan.then(clear, clear);
+    return entry.scan;
+  }
+  /** `settleAfterMs` is for status displays only; see reading(). Decisions keep the default. */
+  async read(options: { settleAfterMs?: number } = {}): Promise<SupervisionStatus> {
+    return this.reading(async () => structuredClone(this.status(await this.sharedScan())),
+      options.settleAfterMs === undefined ? undefined : { afterMs: options.settleAfterMs, committed: status => status.freshness === "current" });
   }
   private status(snapshot: Scan): SupervisionStatus {
     const values = <T>(kind: Frame["kind"]) => [...snapshot.frames.values()].filter(f => f.kind === kind).map(f => f.value as T);
@@ -897,7 +1005,7 @@ export class SupervisionStore {
   /** Read accepted transaction identity without reauthorizing it or acquiring the coordinator. */
   async requestReceipt(requestId: string): Promise<SupervisionReceipt | null> {
     return this.reading(async () => {
-      const snapshot = await this.scan();
+      const snapshot = await this.sharedScan();
       if (snapshot.problems.length) fail("HELD", snapshot.problems.join(" "));
       const transaction = this.accepted(snapshot, requestId);
       return transaction ? this.receipt(transaction) : null;
@@ -906,7 +1014,7 @@ export class SupervisionStore {
   /** Original event/request identity and transaction receipt, independent of later policy changes. */
   async workflowRequest(planId: string, requestId: string): Promise<{ requestHash: string; eventHash: string; receipt: SupervisionReceipt } | null> {
     return this.reading(async () => {
-      const snapshot = await this.scan();
+      const snapshot = await this.sharedScan();
       if (snapshot.problems.length) fail("HELD", snapshot.problems.join(" "));
       const saved = this.cached?.scan === snapshot ? this.cached.workflowRequests.get(key(planId, requestId)) : null;
       return saved ? { requestHash: saved.requestHash, eventHash: saved.eventHash, receipt: this.receipt(saved.transaction) } : null;

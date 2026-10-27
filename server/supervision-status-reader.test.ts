@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterAll, expect, it, vi } from "vitest";
 import { SupervisionStatusReader } from "./supervision-status-reader";
@@ -8,12 +8,59 @@ import { expected, scope } from "../test/supervision-fixture";
 import { s04Fixture } from "../test/supervision-s04-fixture";
 let bounds: { sourceHead: string | undefined; history: number; warmReadMs: number[]; fullScans: number;
   historicalReducerCalls: number; newTransitionCalls: number; commitMs: number; committedBeforePollRelease: boolean } | null = null;
+let warm: { history: number; firstPollAfterLaunchMs: number; pollsDuringLaunch: number; maxPollDuringLaunchMs: number; fullScans: number } | null = null;
 afterAll(async () => {
   if (process.env.FIRSTMATE_PILOT_EVIDENCE !== "1" || !bounds) return;
   await mkdir(".local/s06", { recursive: true });
-  await writeFile(".local/s06/status-reader-bound-evidence.json", JSON.stringify(bounds, null, 2) + "\n");
+  await writeFile(".local/s06/status-reader-bound-evidence.json", JSON.stringify({ ...bounds, launchesBetweenPolls: warm }, null, 2) + "\n");
 });
 
+it("production status reader stays warm across real launches (blob writes) at about 176 transactions", async () => {
+  const f = await s04Fixture({ limits: { supervisorSessions: 99, supervisorTurns: 999 } });
+  const plan = async (n: number) => {
+    const handle = await f.addScope(n, `warm-${n}`, [`w${n}-a`, `w${n}-b`]);
+    await f.draft(handle, [{ id: `w${n}-a`, kind: "ship" }, { id: `w${n}-b`, after: [{ node: `w${n}-a`, on: "done" }] }], true);
+    return handle;
+  };
+  await f.launch(await plan(1), "w1-a");
+  let version = 0;
+  while ((await f.store.read()).sequence < 154) {
+    const mutation = [{ kind: "scope" as const, value: { ...scope(f.store.homeId), version: version + 1 } }];
+    await f.store.transact(expected(mutation, version), randomUUID(), mutation); version++;
+  }
+  let store!: SupervisionStore;
+  const reader = new SupervisionStatusReader(join(f.home, "store"), (root, home) => (store = new SupervisionStore(root, home)));
+  expect((await reader.read(f.home)).freshness).toBe("current");
+  const full = vi.spyOn(store as any, "scanFull");
+  const blobsDirectory = async () => (await stat(join(store.root, "blobs"), { bigint: true })).mtimeNs;
+  const second = await plan(2), before = await blobsDirectory();
+  await f.launch(second, "w2-a");
+  expect(await blobsDirectory()).not.toBe(before); // The launch published (deduplicated) brief evidence.
+  let start = performance.now();
+  const afterLaunch = await reader.read(f.home), firstPollMs = performance.now() - start;
+  expect(afterLaunch).toMatchObject({ freshness: "current", sequence: (await f.store.read()).sequence });
+  expect(full).not.toHaveBeenCalled(); expect(firstPollMs).toBeLessThan(2000);
+
+  // Poll continuously (three overlapping callers, with the display routes' settle budget) during a launch.
+  const third = await plan(3), polls: { ms: number; sequence: number; freshness: string }[] = [];
+  let polling = true;
+  const poller = async () => { while (polling) {
+    const t = performance.now(), r = await reader.read(f.home, { settleAfterMs: 750 });
+    polls.push({ ms: performance.now() - t, sequence: r.sequence, freshness: r.freshness });
+    await new Promise(resolve => setTimeout(resolve, 0));
+  } };
+  const loops = [poller(), poller(), poller()];
+  await f.store.putBlob(Buffer.from(`new evidence ${randomUUID()}`)); // And a newly named blob.
+  await f.launch(third, "w3-a"); polling = false; await Promise.all(loops);
+  const writer = await f.store.read(), quiescent = await reader.read(f.home);
+  expect(writer.sequence).toBeGreaterThanOrEqual(176);
+  expect(quiescent).toMatchObject({ freshness: "current", sequence: writer.sequence, hash: writer.hash });
+  expect(full).not.toHaveBeenCalled();
+  expect(polls.length).toBeGreaterThan(0); expect(polls.every(p => p.freshness === "current")).toBe(true);
+  expect(Math.max(...polls.map(p => p.ms))).toBeLessThan(2000);
+  warm = { history: writer.sequence, firstPollAfterLaunchMs: firstPollMs, pollsDuringLaunch: polls.length,
+    maxPollDuringLaunchMs: Math.max(...polls.map(p => p.ms)), fullScans: full.mock.calls.length };
+}, 120000);
 it("production status reader reuses one validated store per home at 176 transactions", async () => {
   const f = await s04Fixture(), stores: SupervisionStore[] = [];
   let version = 0;
