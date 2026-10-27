@@ -117,6 +117,18 @@ async function readCanonical(path: string): Promise<unknown> {
   if (`${canonical(value)}\n` !== text) fail("HELD", "Journal is not canonical JSON.");
   return value;
 }
+async function storageBytes(directory: string, names: string[]): Promise<number> {
+  const sizes = await Promise.all(names.map(async name => {
+    try { return (await stat(join(directory, name))).size; }
+    catch (error) {
+      // A publisher may unlink its inert staging file after our readdir. Missing durable
+      // files and every other IO error still fail closed; never retry or skip authority.
+      if (name.endsWith(".tmp") && (error as NodeJS.ErrnoException).code === "ENOENT") return 0;
+      throw error;
+    }
+  }));
+  return sizes.reduce((sum, size) => sum + size, 0);
+}
 const rawDigest = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
 function mutationTarget(mutation: SupervisionMutation): [Frame["kind"], string] {
   if (mutation.kind === "workflow") return [mutation.kind, mutation.event.plan];
@@ -466,15 +478,22 @@ export class SupervisionStore {
       if (blobs.some(n => !/^[0-9a-f]{64}(?:\.[0-9a-f-]+\.tmp)?$/.test(n))) fail("HELD", "Unknown evidence blob metadata.");
       if (files.some(n => !/^\d{12}\.(?:tip|event|publication)\.json(?:\.[0-9a-f-]+\.tmp)?$/.test(n))) fail("HELD", "Unknown transaction metadata.");
       const durable = files.filter(n => n.endsWith(".json"));
-      result.bytes = (await Promise.all(files.map(async n => (await stat(join(this.root, "transactions", n))).size))).reduce((a, b) => a + b, 0);
-      result.bytes += (await Promise.all(blobs.map(async n => (await stat(join(this.root, "blobs", n))).size))).reduce((a, b) => a + b, 0);
+      result.bytes = await storageBytes(join(this.root, "transactions"), files);
+      result.bytes += await storageBytes(join(this.root, "blobs"), blobs);
       const sequences = [...new Set(durable.map(n => Number(n.slice(0, 12))))].sort((a, b) => a - b);
       // Retain independently checked capsules even when an earlier authority record is damaged.
+      // Hash each checked capsule once. Rehashing every saved capsule for every anchor made a
+      // scan quadratic in history size (and repeated gateway reads amplified that cost).
+      // This set lives only in this scan: every read still checks every persisted anchor.
+      const retainedDigests = new Set<string>();
       for (const name of durable.filter(n => /\.(tip|publication)\.json$/.test(n))) {
         try {
           const anchor = verifyHash(AnchorSchema.parse(await readCanonical(join(this.root, "transactions", name))));
           if (anchor.homeId !== this.homeId || name !== `${pad(anchor.sequence)}.${anchor.format.includes("publication") ? "publication" : "tip"}.json`) fail("HELD", "Anchor identity mismatch.");
-          if (!result.ownership.some(saved => digest(saved) === digest(anchor.ownership))) result.ownership.push(anchor.ownership);
+          const ownershipDigest = digest(anchor.ownership);
+          if (!retainedDigests.has(ownershipDigest)) {
+            retainedDigests.add(ownershipDigest); result.ownership.push(anchor.ownership);
+          }
         } catch (error) { result.problems.push(`Damaged retained ownership ${name}: ${String(error)}`); }
       }
       result.coordinators = await this.coordinators();

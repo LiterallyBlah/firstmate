@@ -55,8 +55,9 @@ export async function s04Fixture(options: { capabilities?: Partial<ReceiverCapab
     fileHash: sha(ORDERS), excerptHash: sha(ORDERS.trimEnd()), provenance: captain, supersedes: [] });
 
   /** A scoped plan owner. `bound` gives it an active epoch-1 binding; otherwise it stays dormant for activation. */
-  async function addScope(n: number, plan: string, nodes: string[], bound = true, hostId = "local"): Promise<ScopeHandle> {
-    const id = `00000000-0000-4000-8000-0000000001${String(n).padStart(2, "0")}`, projectId = `00000000-0000-4000-8000-0000000002${String(n).padStart(2, "0")}`;
+  async function addScope(n: number, plan: string, nodes: string[], bound = true, hostId = "local", sharedProject?: { id: string; name: string }): Promise<ScopeHandle> {
+    const id = `00000000-0000-4000-8000-0000000001${String(n).padStart(2, "0")}`, projectId = sharedProject?.id ?? `00000000-0000-4000-8000-0000000002${String(n).padStart(2, "0")}`;
+    const project = sharedProject?.name ?? `project-${n}`;
     const owner: SupervisionActor = { kind: "agent", id: `owner-${n}`, source: "fixture/scope-helper" };
     for (const node of nodes) { await mkdir(join(home, "data", node), { recursive: true }); await writeFile(join(home, "data", node, "brief.md"), BRIEF); }
     const mutations: SupervisionMutation[] = [
@@ -67,12 +68,12 @@ export async function s04Fixture(options: { capabilities?: Partial<ReceiverCapab
     ];
     await store.transact(expected(mutations), randomUUID(), mutations);
     const rule = PolicyRuleSchema.parse({ id: randomUUID(), version: 1, sources: [policyRef("policy-source", source)],
-      selector: { scopeIds: [id], projectIds: [projectId], projectNames: { [projectId]: `project-${n}` }, hostIds: [...new Set(["local", hostId])], planIds: [plan] },
+      selector: { scopeIds: [id], projectIds: [projectId], projectNames: { [projectId]: project }, hostIds: [...new Set(["local", hostId])], planIds: [plan] },
       operations: ["plan.start", "plan.review", "plan.stop", "plan.record", "decision.answer", "model.use"], effect: "allow",
       constraints: { models: [], profileDigests: [], requireApproval: false, requireHead: false, requireChecks: false, independentReviews: 0, requiredReviewIds: [], availability: "always" }, expiresAt: null, supersedes: [] });
     await acceptPolicyInventory(store, home, randomUUID(), captain, { sources: state.sourceAccepted ? [] : [source], rules: [rule] }, true);
     state.sourceAccepted = true;
-    return { id, projectId, project: `project-${n}`, planId: plan, owner, nodes };
+    return { id, projectId, project, planId: plan, owner, nodes };
   }
   async function input(scope: ScopeHandle, command: WorkflowCommand): Promise<ScopedPlanCommand> {
     const s = await store.read(), p = s.plans.find(p => p.plan.definition.id === scope.planId)?.plan;
