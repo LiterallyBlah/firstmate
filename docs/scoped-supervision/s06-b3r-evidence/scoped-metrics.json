@@ -1,0 +1,173 @@
+{
+  "run": {
+    "format": "firstmate.supervision-pilot-metrics/2",
+    "runId": "3e01738b-1908-4558-b688-303a1189b3d4",
+    "sourceHead": "c82bec30ce34bc47f8d1b8e7d042468677caaa25",
+    "fixtureHash": "780746f551d6a01fc5cd5ccf018d06f29c19d7de7bd66481d09983385b44ae3c",
+    "mode": "synthetic",
+    "route": "scoped",
+    "clock": "virtual",
+    "runtime": {
+      "node": "v24.18.0",
+      "platform": "win32"
+    },
+    "windowMs": 600000,
+    "generalBusyMs": 600000,
+    "samples": [
+      {
+        "eventId": "da6ead7b-1104-423c-994e-9338daecf74e",
+        "scopeId": "00000000-0000-4000-8000-000000000101",
+        "observed": 1000,
+        "committed": 1000,
+        "offered": 1010,
+        "acknowledged": 1020,
+        "handled": 1020,
+        "sourcePolls": 0
+      },
+      {
+        "eventId": "7a3ee1ca-e67b-41d8-b3ff-0fb51a678d5a",
+        "scopeId": "00000000-0000-4000-8000-000000000102",
+        "observed": 1000,
+        "committed": 1000,
+        "offered": 1010,
+        "acknowledged": 1020,
+        "handled": 1020,
+        "sourcePolls": 0
+      },
+      {
+        "eventId": "c1e18712-37e0-4b7d-8129-d1df6ff76c00",
+        "scopeId": "00000000-0000-4000-8000-000000000101",
+        "observed": 301000,
+        "committed": 301000,
+        "offered": 301010,
+        "acknowledged": 301020,
+        "handled": 301020,
+        "sourcePolls": 0
+      },
+      {
+        "eventId": "182f99e6-9556-49e1-84f4-84e9c4d7c11e",
+        "scopeId": "00000000-0000-4000-8000-000000000102",
+        "observed": 301000,
+        "committed": 301000,
+        "offered": 301010,
+        "acknowledged": 301020,
+        "handled": 301020,
+        "sourcePolls": 0
+      }
+    ],
+    "captain": [],
+    "census": {
+      "coverage": "checked-route",
+      "generalRoutinePayloads": 0,
+      "projectRoutinePayloads": 0,
+      "duplicateObservations": 4,
+      "accidentalCallbacks": 0
+    },
+    "spend": {
+      "workerSessions": 4,
+      "workerTurns": 4,
+      "supervisorSessions": 2,
+      "supervisorTurns": 6,
+      "generalTurns": 0,
+      "uncertainEffects": 0,
+      "providerTokens": null,
+      "billedMicros": null
+    }
+  },
+  "report": {
+    "runId": "3e01738b-1908-4558-b688-303a1189b3d4",
+    "mode": "synthetic",
+    "route": "scoped",
+    "clock": "virtual",
+    "windowMs": 600000,
+    "generalBusyMs": 600000,
+    "events": 4,
+    "scopes": 2,
+    "sourcePolls": 0,
+    "commit": {
+      "denominator": 4,
+      "measured": 4,
+      "missing": 0,
+      "minMs": 0,
+      "p50Ms": 0,
+      "p95Ms": 0,
+      "maxMs": 0
+    },
+    "offer": {
+      "denominator": 4,
+      "measured": 4,
+      "missing": 0,
+      "minMs": 10,
+      "p50Ms": 10,
+      "p95Ms": 10,
+      "maxMs": 10
+    },
+    "ack": {
+      "denominator": 4,
+      "measured": 4,
+      "missing": 0,
+      "minMs": 20,
+      "p50Ms": 20,
+      "p95Ms": 20,
+      "maxMs": 20
+    },
+    "handled": {
+      "denominator": 4,
+      "measured": 4,
+      "missing": 0,
+      "minMs": 20,
+      "p50Ms": 20,
+      "p95Ms": 20,
+      "maxMs": 20
+    },
+    "queueAge": {
+      "denominator": 4,
+      "measured": 4,
+      "missing": 0,
+      "minMs": 10,
+      "p50Ms": 10,
+      "p95Ms": 10,
+      "maxMs": 10
+    },
+    "captainAdmission": {
+      "denominator": 0,
+      "measured": 0,
+      "missing": 0,
+      "minMs": null,
+      "p50Ms": null,
+      "p95Ms": null,
+      "maxMs": null
+    },
+    "captainFirstReply": {
+      "denominator": 0,
+      "measured": 0,
+      "missing": 0,
+      "minMs": null,
+      "p50Ms": null,
+      "p95Ms": null,
+      "maxMs": null
+    },
+    "census": {
+      "coverage": "checked-route",
+      "generalRoutinePayloads": 0,
+      "projectRoutinePayloads": 0,
+      "duplicateObservations": 4,
+      "accidentalCallbacks": 0,
+      "zeroRoutineOnCheckedRoute": true
+    },
+    "spend": {
+      "workerSessions": 4,
+      "workerTurns": 4,
+      "supervisorSessions": 2,
+      "supervisorTurns": 6,
+      "generalTurns": 0,
+      "uncertainEffects": 0,
+      "providerTokens": null,
+      "billedMicros": null
+    }
+  },
+  "journal": {
+    "sequence": 103,
+    "hash": "0a8ac221713b5cf3ca4b35dbdced0e530e8a04fceead7c4a901589812694f075"
+  }
+}

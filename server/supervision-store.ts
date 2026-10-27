@@ -1,8 +1,9 @@
 /** Unwired S01 authority journal. Explicit writes only; reads never initialize or repair.
  * Cooperative same-user filesystem storage, not an authenticated dispatch boundary.
  */
-import { createHash } from "node:crypto";
-import { mkdir, readFile, readdir, stat } from "node:fs/promises";
+import { AsyncLocalStorage } from "node:async_hooks";
+import { createHash, randomUUID } from "node:crypto";
+import { mkdir, open, readFile, readdir, rename, rm, stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { z } from "zod";
 import {
@@ -84,7 +85,33 @@ type WorkflowRow = { scopeId: string; plan: WorkflowPlan; inventory: WorkflowOwn
 type Frame = { kind: SupervisionExpected["kind"]; id: string; version: number; value: unknown };
 type Scan = { frames: Map<string, Frame>; transactions: Transaction[]; sequence: number; hash: string | null;
   problems: string[]; initialized: boolean; ownership: z.infer<typeof OwnershipSchema>[]; pending: { event: Transaction; tip: Anchor } | null;
-  bytes: number; coordinators: Coordinator[] };
+  bytes: number; coordinators: Coordinator[]; prefixDigest: string };
+/** Bounded cooperative pilot. Full audit/recovery is deliberately separate from warm reads.
+ * These are admission ceilings, not history eviction or a guarantee about filesystem latency.
+ */
+export const SUPERVISION_INDEX_LIMITS = { transactions: 256, admissions: 192, tail: 32, projectionBytes: 8 * 1024 * 1024 } as const;
+const CheckpointSchema = z.object({ format: z.literal("firstmate.supervision-checkpoint/1"), homeId: z.string(),
+  sequence: number, transactionHash: SupervisionHash.nullable(), prefixDigest: SupervisionHash,
+  projectionHash: SupervisionHash, anchorHash: SupervisionHash.nullable(), hash: SupervisionHash }).strict();
+type Checkpoint = z.infer<typeof CheckpointSchema>;
+/** Durable blob name -> stat identity. Evidence is content-addressed and append-only. */
+type BlobIdentities = Map<string, string>;
+type CachedScan = { scan: Scan; checkpoint: Checkpoint; directories: string; blobs: BlobIdentities; requests: Map<string, Transaction>;
+  workflowRequests: Map<string, { requestHash: string; eventHash: string; transaction: Transaction }> };
+type StoreLockLease = { active: boolean };
+const storeLocks = new AsyncLocalStorage<ReadonlyMap<string, StoreLockLease>>();
+type StorePublication = { epoch: number; active: Promise<void> | null };
+const publications = new Map<string, StorePublication>();
+function publicationFor(root: string): StorePublication {
+  let state = publications.get(root);
+  if (!state) { state = { epoch: 0, active: null }; publications.set(root, state); }
+  return state;
+}
+/** Sentinel: journal metadata moved while a warm read was checking it. */
+const changedDuringRead = new Error("Supervision journal changed during a warm read.");
+const emptyPrefix = digest({ format: "firstmate.supervision-prefix/1" });
+const extendPrefix = (previous: string, event: Transaction, tip: Anchor, marker: Anchor) => digest({ previous,
+  sequence: event.sequence, event: event.hash, tip: tip.hash, publication: marker.hash });
 export interface SupervisionStoreOptions {
   /** Defaults off. Internal fixture/shadow writer only; no env flag, RPC or runtime wiring. */
   writable?: boolean;
@@ -117,6 +144,18 @@ async function readCanonical(path: string): Promise<unknown> {
   if (`${canonical(value)}\n` !== text) fail("HELD", "Journal is not canonical JSON.");
   return value;
 }
+async function storageBytes(directory: string, names: string[]): Promise<number> {
+  const sizes = await Promise.all(names.map(async name => {
+    try { return (await stat(join(directory, name))).size; }
+    catch (error) {
+      // A publisher may unlink its inert staging file after our readdir. Missing durable
+      // files and every other IO error still fail closed; never retry or skip authority.
+      if (name.endsWith(".tmp") && (error as NodeJS.ErrnoException).code === "ENOENT") return 0;
+      throw error;
+    }
+  }));
+  return sizes.reduce((sum, size) => sum + size, 0);
+}
 const rawDigest = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
 function mutationTarget(mutation: SupervisionMutation): [Frame["kind"], string] {
   if (mutation.kind === "workflow") return [mutation.kind, mutation.event.plan];
@@ -132,17 +171,64 @@ function ownership(frames: Map<string, Frame>): z.infer<typeof OwnershipSchema> 
     workflows: [...values<WorkflowRow>("workflow").map(w => ({ plan: w.plan.definition.id, inventory: w.inventory })),
       ...values<{ receipt: z.infer<typeof RetirementSchema> }>("retirement").map(r => ({ plan: r.receipt.plan, inventory: r.receipt.inventory }))] };
 }
+/** Retained capsules are never mutated once validated, and one is kept per distinct ownership,
+ * so nearly one per transaction. Hash each once rather than once per comparison per transaction.
+ */
+const ownershipDigests = new WeakMap<object, string>();
+function ownershipDigest(value: z.infer<typeof OwnershipSchema>): string {
+  let saved = ownershipDigests.get(value);
+  if (saved === undefined) ownershipDigests.set(value, saved = digest(value));
+  return saved;
+}
 const frameDigest = (frames: Map<string, Frame>) => digest([...frames.entries()].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0));
 
 export class SupervisionStore {
   readonly homeId: string;
   readonly root: string;
   private coordinator: Coordinator | null = null;
+  private cached: CachedScan | null = null;
+  private shared: { epoch: number; scan: Promise<Scan> } | null = null;
   private readonly actor: SupervisionActor;
   constructor(dataRoot: string, home: string, private readonly options: SupervisionStoreOptions = {}) {
     this.homeId = workflowHomeIdentity(home); // Never realpath; exactly the existing durable namespace.
     this.root = join(resolve(dataRoot), "supervision", digest(this.homeId));
     this.actor = SupervisionActorSchema.parse(options.actor ?? { kind: "system", id: "s01-fixture", source: "unwired-storage" });
+  }
+  private locked<T>(work: () => Promise<T>): Promise<T> {
+    return serialized(this.root, () => {
+      const publication = publicationFor(this.root);
+      let release!: () => void;
+      publication.active = new Promise<void>(resolve => { release = resolve; });
+      publication.epoch++;
+      const lease: StoreLockLease = { active: true };
+      const held = new Map(storeLocks.getStore()); held.set(this.root, lease);
+      return storeLocks.run(held, async () => {
+        try { return await work(); }
+        finally { lease.active = false; publication.epoch++; publication.active = null; release(); }
+      });
+    });
+  }
+  private async reading<T>(work: () => Promise<T>, settle?: { afterMs: number; committed: (result: T) => boolean }): Promise<T> {
+    // A prepare callback reads within its own transaction. Other reads wait for active
+    // publication, but never acquire the writer lock. If a writer overlaps the read,
+    // discard that result (including a transient hold) and check the new checkpoint.
+    if (storeLocks.getStore()?.get(this.root)?.active) return work();
+    const publication = publicationFor(this.root), started = performance.now();
+    for (;;) {
+      if (publication.active) { await publication.active; continue; }
+      const epoch = publication.epoch;
+      let result: T | undefined, error: unknown, failed = false;
+      try { result = await work(); } catch (cause) { error = cause; failed = true; }
+      if (publication.active || publication.epoch !== epoch) {
+        // Back-to-back writes (a launch) would otherwise hold a status poll for their whole run.
+        // Past its budget, a display read may serve its own result if it validated against a
+        // published checkpoint: an earlier committed head, never a staging-window hold.
+        if (settle && !failed && performance.now() - started >= settle.afterMs && settle.committed(result as T)) return result as T;
+        continue;
+      }
+      if (failed) throw error;
+      return result as T;
+    }
   }
   private writable(): void { if (!this.options.writable) fail("UNSUPPORTED", "Scoped supervision writes are disabled."); }
   private file(sequence: number, suffix: string) { return join(this.root, "transactions", `${pad(sequence)}.${suffix}.json`); }
@@ -153,7 +239,7 @@ export class SupervisionStore {
   /** Explicit NEW-store operation. A missing identity in any nonempty store is never repaired here. */
   async initialize(): Promise<void> {
     this.writable();
-    await serialized(this.root, async () => {
+    await this.locked(async () => {
       await mkdir(this.root, { recursive: true });
       const names = await readdir(this.root);
       if (names.includes("identity.json")) {
@@ -164,6 +250,7 @@ export class SupervisionStore {
       if (names.some(n => !/^identity\.json\.[0-9a-f-]+\.tmp$/.test(n))) fail("HELD", "Missing identity in a nonempty supervision store; reconcile, never reset.");
       for (const directory of ["transactions", "coordinators", "blobs"]) await mkdir(join(this.root, directory));
       await this.publish(join(this.root, "identity.json"), { format: "firstmate.supervision/1", homeId: this.homeId, schema: 1 }, "identity");
+      await this.saveCheckpoint(await this.scanFull());
     });
   }
   private async coordinators(): Promise<Coordinator[]> {
@@ -190,7 +277,7 @@ export class SupervisionStore {
   }
   async acquireCoordinator(): Promise<number> {
     this.writable();
-    return serialized(this.root, async () => {
+    return this.locked(async () => {
       const snapshot = await this.scan();
       // A complete pending event can be published by recoverPublication after ownership is acquired.
       if (!snapshot.initialized || snapshot.problems.some(p => p !== "Final transaction awaits publication.")) fail("HELD", snapshot.problems.join(" ") || "Store is not initialized.");
@@ -218,7 +305,7 @@ export class SupervisionStore {
   }
   async releaseCoordinator(): Promise<void> {
     this.writable();
-    await serialized(this.root, async () => {
+    await this.locked(async () => {
       const current = await this.assertCoordinator();
       await this.publish(join(this.root, "coordinators", `${pad(current.generation)}.release.json`), hashed({
         format: "firstmate.supervision-release/1", homeId: this.homeId, generation: current.generation, coordinatorHash: current.hash,
@@ -451,13 +538,13 @@ export class SupervisionStore {
       }
     }
   }
-  private async scan(): Promise<Scan> {
-    const result: Scan = { frames: new Map(), transactions: [], sequence: 0, hash: null, problems: [], initialized: false, ownership: [], pending: null, bytes: 0, coordinators: [] };
+  private async scanFull(): Promise<Scan> {
+    const result: Scan = { frames: new Map(), transactions: [], sequence: 0, hash: null, problems: [], initialized: false, ownership: [], pending: null, bytes: 0, coordinators: [], prefixDigest: emptyPrefix };
     try {
       let names: string[];
       try { names = await readdir(this.root); }
       catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return result; throw error; }
-      if (names.some(n => !["identity.json", "transactions", "coordinators", "blobs"].includes(n) && !/^identity\.json\.[0-9a-f-]+\.tmp$/.test(n))) fail("HELD", "Unknown supervision root metadata.");
+      if (names.some(n => !["identity.json", "transactions", "coordinators", "blobs", "checkpoint.json"].includes(n) && !/^(?:identity|checkpoint)\.json\.[0-9a-f-]+\.tmp$/.test(n))) fail("HELD", "Unknown supervision root metadata.");
       const identity = IdentitySchema.parse(await readCanonical(join(this.root, "identity.json")));
       if (identity.homeId !== this.homeId) fail("HELD", "Supervision home identity mismatch.");
       result.initialized = true;
@@ -466,15 +553,22 @@ export class SupervisionStore {
       if (blobs.some(n => !/^[0-9a-f]{64}(?:\.[0-9a-f-]+\.tmp)?$/.test(n))) fail("HELD", "Unknown evidence blob metadata.");
       if (files.some(n => !/^\d{12}\.(?:tip|event|publication)\.json(?:\.[0-9a-f-]+\.tmp)?$/.test(n))) fail("HELD", "Unknown transaction metadata.");
       const durable = files.filter(n => n.endsWith(".json"));
-      result.bytes = (await Promise.all(files.map(async n => (await stat(join(this.root, "transactions", n))).size))).reduce((a, b) => a + b, 0);
-      result.bytes += (await Promise.all(blobs.map(async n => (await stat(join(this.root, "blobs", n))).size))).reduce((a, b) => a + b, 0);
+      result.bytes = await storageBytes(join(this.root, "transactions"), files);
+      result.bytes += await storageBytes(join(this.root, "blobs"), blobs);
       const sequences = [...new Set(durable.map(n => Number(n.slice(0, 12))))].sort((a, b) => a - b);
       // Retain independently checked capsules even when an earlier authority record is damaged.
+      // Hash each checked capsule once. Rehashing every saved capsule for every anchor made a
+      // scan quadratic in history size (and repeated gateway reads amplified that cost).
+      // This set lives only in this scan: every read still checks every persisted anchor.
+      const retainedDigests = new Set<string>();
       for (const name of durable.filter(n => /\.(tip|publication)\.json$/.test(n))) {
         try {
           const anchor = verifyHash(AnchorSchema.parse(await readCanonical(join(this.root, "transactions", name))));
           if (anchor.homeId !== this.homeId || name !== `${pad(anchor.sequence)}.${anchor.format.includes("publication") ? "publication" : "tip"}.json`) fail("HELD", "Anchor identity mismatch.");
-          if (!result.ownership.some(saved => digest(saved) === digest(anchor.ownership))) result.ownership.push(anchor.ownership);
+          const retained = ownershipDigest(anchor.ownership);
+          if (!retainedDigests.has(retained)) {
+            retainedDigests.add(retained); result.ownership.push(anchor.ownership);
+          }
         } catch (error) { result.problems.push(`Damaged retained ownership ${name}: ${String(error)}`); }
       }
       result.coordinators = await this.coordinators();
@@ -498,9 +592,235 @@ export class SupervisionStore {
         const marker = verifyHash(AnchorSchema.parse(await readCanonical(this.file(sequence, "publication"))));
         if (digest({ ...marker, format: tip.format, hash: tip.hash }) !== digest(tip)) fail("HELD", "Publication does not match its expected tip.");
         result.frames = next.frames; result.transactions.push(event); result.sequence = sequence; result.hash = event.hash;
+        result.prefixDigest = extendPrefix(result.prefixDigest, event, tip, marker);
       }
+      if (result.sequence > SUPERVISION_INDEX_LIMITS.transactions || Buffer.byteLength(canonical({ frames: [...result.frames], ownership: result.ownership })) > SUPERVISION_INDEX_LIMITS.projectionBytes)
+        fail("HELD", "Pilot index history/projection bound exceeded; retain history for deliberate reconciliation.");
     } catch (error) { result.problems.push(error instanceof Error ? error.message : String(error)); }
     return result;
+  }
+  /** The checkpoint is a derived index, never authority. On each instance's first use the
+   * entire journal is validated before its in-memory projection can be trusted. Unchanged
+   * prefix bytes are thereafter audited explicitly; its anchor is checked on EVERY read.
+   */
+  private async directories(): Promise<string> {
+    const coordinators = join(this.root, "coordinators");
+    return canonical(await Promise.all([this.root, join(this.root, "transactions"), join(this.root, "blobs"), coordinators].map(async path => {
+      const s = await stat(path, { bigint: true });
+      // Windows can report a directory's earlier write time late, with no new write. Coordinator
+      // records are hash-checked on every read; only their durable names need to stay put.
+      if (path === coordinators) return [String(s.dev), String(s.ino), ...(await readdir(path)).filter(n => !n.endsWith(".tmp")).sort()];
+      return [s.dev, s.ino, s.mtimeNs, s.ctimeNs].map(String);
+    })));
+  }
+  private async anchorHash(sequence: number): Promise<string | null> {
+    if (!sequence) return null;
+    await Promise.all(["event", "tip", "publication"].map(suffix => stat(this.file(sequence, suffix))));
+    const event = verifyHash(TransactionSchema.parse(await readCanonical(this.file(sequence, "event"))));
+    const tip = verifyHash(AnchorSchema.parse(await readCanonical(this.file(sequence, "tip"))));
+    const marker = verifyHash(AnchorSchema.parse(await readCanonical(this.file(sequence, "publication"))));
+    if (event.homeId !== this.homeId || event.sequence !== sequence || tip.homeId !== this.homeId || tip.sequence !== sequence ||
+      tip.format !== "firstmate.supervision-tip/1" || tip.transactionHash !== event.hash ||
+      digest({ ...marker, format: tip.format, hash: tip.hash }) !== digest(tip)) fail("HELD", "Checkpoint anchor identity mismatch.");
+    await this.checkBlobs(event.body.mutations);
+    return digest({ event: event.hash, tip: tip.hash, publication: marker.hash });
+  }
+  private async readCheckpoint(): Promise<Checkpoint> {
+    const path = join(this.root, "checkpoint.json");
+    if ((await stat(path)).size > 16 * 1024) fail("HELD", "Checkpoint index exceeds its metadata bound.");
+    const checkpoint = verifyHash(CheckpointSchema.parse(await readCanonical(path)));
+    if (checkpoint.homeId !== this.homeId || checkpoint.sequence > SUPERVISION_INDEX_LIMITS.transactions) fail("HELD", "Checkpoint home/history bound mismatch.");
+    return checkpoint;
+  }
+  private async checkpointFor(snapshot: Scan): Promise<Checkpoint> {
+    return hashed({ format: "firstmate.supervision-checkpoint/1" as const, homeId: this.homeId,
+      sequence: snapshot.sequence, transactionHash: snapshot.hash, prefixDigest: snapshot.prefixDigest,
+      projectionHash: frameDigest(snapshot.frames), anchorHash: await this.anchorHash(snapshot.sequence) });
+  }
+  private async blobIdentities(): Promise<BlobIdentities> {
+    const directory = join(this.root, "blobs"), names = await readdir(directory);
+    if (names.some(n => !/^[0-9a-f]{64}(?:\.[0-9a-f-]+\.tmp)?$/.test(n))) fail("HELD", "Unknown evidence blob metadata.");
+    return new Map(await Promise.all(names.filter(n => !n.endsWith(".tmp")).map(async name => {
+      const s = await stat(join(directory, name), { bigint: true });
+      return [name, [s.ino, s.size, s.mtimeNs].map(String).join(":")] as const;
+    })));
+  }
+  /** A changed blobs directory need not cost a full validation. Every cached blob must keep its
+   * identity (no removal or replacement), and every new one must hash to its own name. Blobs a
+   * tail transaction references are checked again there; unreferenced evidence stays inert.
+   */
+  private async addedBlobs(prior: BlobIdentities): Promise<{ identities: BlobIdentities; bytes: number }> {
+    const identities = await this.blobIdentities();
+    let bytes = 0;
+    for (const [name, identity] of prior) if (identities.get(name) !== identity) fail("HELD", "Evidence blob removed or replaced.");
+    for (const name of identities.keys()) if (!prior.has(name)) {
+      const content = await readFile(join(this.root, "blobs", name));
+      if (rawDigest(content) !== name) fail("HELD", "New evidence blob is not content-addressed.");
+      bytes += content.length;
+    }
+    return { identities, bytes };
+  }
+  private async cache(snapshot: Scan, checkpoint: Checkpoint, directories: string, blobs?: BlobIdentities): Promise<Scan> {
+    // A writer reuses the identities it already holds while the blobs directory is unchanged.
+    const blobsDirectory = (signature: string) => (JSON.parse(signature) as string[][])[2]!.join();
+    blobs ??= this.cached && blobsDirectory(this.cached.directories) === blobsDirectory(directories) ? this.cached.blobs : await this.blobIdentities();
+    const prior = this.cached, reuse = prior && prior.scan.sequence <= snapshot.sequence &&
+      (prior.scan.hash === null || snapshot.transactions[prior.scan.sequence - 1]?.hash === prior.scan.hash);
+    const requests = reuse ? prior.requests : new Map<string, Transaction>();
+    const workflowRequests: CachedScan["workflowRequests"] = reuse ? prior.workflowRequests : new Map();
+    for (const transaction of snapshot.transactions.slice(reuse ? prior.scan.sequence : 0)) {
+      requests.set(transaction.requestId, transaction);
+      for (const mutation of transaction.body.mutations) if (mutation.kind === "workflow") workflowRequests.set(key(mutation.event.plan, mutation.event.requestId),
+        { requestHash: mutation.event.requestHash, eventHash: mutation.event.hash, transaction });
+    }
+    this.cached = { scan: snapshot, checkpoint, directories, blobs, requests, workflowRequests };
+    return snapshot;
+  }
+  private async saveCheckpoint(snapshot: Scan): Promise<void> {
+    if (snapshot.problems.length || !snapshot.initialized) fail("HELD", snapshot.problems.join(" ") || "No validated journal for checkpoint.");
+    const checkpoint = await this.checkpointFor(snapshot), path = join(this.root, "checkpoint.json"), temporary = `${path}.${randomUUID()}.tmp`;
+    try {
+      const file = await open(temporary, "wx", 0o600);
+      try { await file.writeFile(`${canonical(checkpoint)}\n`); await this.boundary("checkpoint:written"); await file.sync(); await this.boundary("checkpoint:synced"); }
+      finally { await file.close(); }
+      await rename(temporary, path); await this.boundary("checkpoint:replaced");
+      await this.cache(snapshot, checkpoint, await this.directories());
+    } finally { await rm(temporary, { force: true }); }
+  }
+  private async checkedFullScan(): Promise<Scan> {
+    this.cached = null;
+    const snapshot = await this.scanFull();
+    if (!snapshot.initialized || snapshot.problems.length) return snapshot;
+    try {
+      const before = await this.directories(), checkpoint = await this.readCheckpoint();
+      if (digest(checkpoint) !== digest(await this.checkpointFor(snapshot)) || before !== await this.directories())
+        fail("HELD", "Checkpoint is stale or mismatches the validated prefix; explicit index recovery required.");
+      return await this.cache(snapshot, checkpoint, before, await this.blobIdentities());
+    } catch (error) {
+      snapshot.problems.push(`Checkpoint validation failed; full history was checked, admissions held until explicit recovery: ${String(error)}`);
+      // Keep independent ownership reservations, but do not expose an unaccepted projection.
+      snapshot.frames = new Map(); return snapshot;
+    }
+  }
+  private async scan(): Promise<Scan> {
+    for (let attempt = 0; ; attempt++) {
+      const cached = this.cached;
+      if (!cached) return this.checkedFullScan();
+      try { return await this.warmScan(cached); }
+      catch (error) {
+        // A write that lands mid-read is retried warm, a few times; anything else, or a writer
+        // that keeps overlapping, gets full validation (retained ownership, exact failure).
+        if (error === changedDuringRead && attempt < 3) continue;
+        return this.checkedFullScan();
+      }
+    }
+  }
+  private async warmScan(cached: CachedScan): Promise<Scan> {
+    const checkpoint = await this.readCheckpoint(), before = await this.directories();
+    const identity = IdentitySchema.parse(await readCanonical(join(this.root, "identity.json")));
+    if (identity.homeId !== this.homeId || checkpoint.anchorHash !== await this.anchorHash(checkpoint.sequence)) fail("HELD", "Checkpoint anchor/digest mismatch.");
+    const coordinator = cached.scan.coordinators.at(-1);
+    if (coordinator && verifyHash(CoordinatorSchema.parse(await readCanonical(join(this.root, "coordinators", `${pad(coordinator.generation)}.json`)))).hash !== coordinator.hash)
+      fail("HELD", "Checkpoint coordinator identity changed.");
+    if (checkpoint.hash === cached.checkpoint.hash && before === cached.directories) return cached.scan;
+    const now = JSON.parse(before) as string[][], prior = JSON.parse(cached.directories) as string[][];
+    const same = (index: number) => now[index]!.join() === prior[index]!.join();
+    if (!same(3)) fail("HELD", "Coordinator metadata changed; validate full history.");
+    // Nearly every writer operation adds evidence: accept checked additions, never a loss.
+    const blobs = same(2) ? { identities: cached.blobs, bytes: 0 } : await this.addedBlobs(cached.blobs);
+    if (checkpoint.hash === cached.checkpoint.hash) {
+      if (!same(0) || !same(1)) fail("HELD", "Journal metadata changed without a checkpoint.");
+      if (before !== await this.directories()) throw changedDuringRead;
+      return await this.cache({ ...cached.scan, bytes: cached.scan.bytes + blobs.bytes }, checkpoint, before, blobs.identities);
+    }
+    // A current writer can advance this reader by at most a bounded tail. Missing/stale
+    // checkpoints and unrelated directory changes go through a full validation below.
+    if (checkpoint.sequence > cached.scan.sequence && checkpoint.sequence - cached.scan.sequence <= SUPERVISION_INDEX_LIMITS.tail) {
+      if (cached.checkpoint.anchorHash !== await this.anchorHash(cached.scan.sequence)) fail("HELD", "Prior checkpoint anchor changed.");
+      const next = { ...cached.scan, frames: new Map(cached.scan.frames), transactions: [...cached.scan.transactions], ownership: [...cached.scan.ownership],
+        bytes: cached.scan.bytes + blobs.bytes };
+      const seen = new Set(next.transactions.map(t => t.requestId));
+      for (let sequence = next.sequence + 1; sequence <= checkpoint.sequence; sequence++) {
+        const event = verifyHash(TransactionSchema.parse(await readCanonical(this.file(sequence, "event"))));
+        const tip = verifyHash(AnchorSchema.parse(await readCanonical(this.file(sequence, "tip"))));
+        const marker = verifyHash(AnchorSchema.parse(await readCanonical(this.file(sequence, "publication"))));
+        if (event.homeId !== this.homeId || event.sequence !== sequence || event.previous !== next.hash || tip.previous !== next.hash ||
+          tip.homeId !== this.homeId || tip.sequence !== sequence || tip.format !== "firstmate.supervision-tip/1" || tip.transactionHash !== event.hash ||
+          tip.requestId !== event.requestId || tip.requestHash !== event.requestHash || tip.generation !== event.generation ||
+          digest(event.body) !== event.requestHash || next.coordinators[event.generation - 1]?.hash !== event.coordinatorHash || seen.has(event.requestId) ||
+          digest({ ...marker, format: tip.format, hash: tip.hash }) !== digest(tip)) fail("HELD", "Checkpoint tail chain/identity mismatch.");
+        await this.checkBlobs(event.body.mutations); checkInboxRequest(event.body.mutations, event.requestId);
+        const applied = this.apply(next.frames, event.body);
+        if (digest(applied.changes) !== digest(event.changes) || frameDigest(applied.frames) !== event.projectionHash ||
+          digest(ownership(applied.frames)) !== digest(tip.ownership)) fail("HELD", "Checkpoint tail projection mismatch.");
+        next.frames = applied.frames; next.transactions.push(event); seen.add(event.requestId);
+        const tipOwnership = ownershipDigest(tip.ownership);
+        if (!next.ownership.some(o => ownershipDigest(o) === tipOwnership)) next.ownership.push(tip.ownership);
+        next.sequence = sequence; next.hash = event.hash; next.prefixDigest = extendPrefix(next.prefixDigest, event, tip, marker);
+        next.bytes += Buffer.byteLength(canonical(event) + canonical(tip) + canonical(marker)) + 3;
+      }
+      // Directory accounting and coordinator changes cannot be guessed from the event tail.
+      if (before !== await this.directories()) throw changedDuringRead;
+      if (digest(checkpoint) !== digest(await this.checkpointFor(next))) fail("HELD", "Checkpoint tail digest mismatch.");
+      return await this.cache(next, checkpoint, before, blobs.identities);
+    }
+    fail("HELD", "Checkpoint is not a bounded advance of the cached prefix.");
+  }
+  /** Explicit read-only audit command. Also runs automatically on startup and every recovery.
+   * Historical corruption holds this instance until a subsequent successful audit/recovery.
+   */
+  async audit(): Promise<SupervisionStatus> {
+    return this.locked(async () => structuredClone(this.status(await this.checkedFullScan())));
+  }
+  /** Rebuild only a derived checkpoint after a full valid history scan. Never reconstruct an
+   * authority record or discard a pending transaction. No receiver/agent effects are involved.
+   */
+  async recoverIndex(observed?: { homeId: string; sequence: number; hash: string | null }): Promise<void> {
+    this.writable();
+    await this.locked(async () => {
+      this.cached = null;
+      const snapshot = await this.scanFull();
+      if (snapshot.problems.length || !snapshot.initialized) fail("HELD", snapshot.problems.join(" ") || "No validated journal for index recovery.");
+      if (observed && (observed.homeId !== this.homeId || observed.sequence !== snapshot.sequence || observed.hash !== snapshot.hash))
+        fail("STALE", "Recovery observation changed under the index repair lock.");
+      const checkpoint = await this.ancestorCheckpoint(snapshot);
+      if (observed && checkpoint && digest(checkpoint) === digest(await this.checkpointFor(snapshot)))
+        fail("STALE", "Checkpoint is already current; inspect before another repair.");
+      await this.saveCheckpoint(snapshot);
+    });
+  }
+  /** Repair may only move a checkpoint forward. A crash between publication and checkpoint
+   * replacement leaves it behind the journal, never ahead or on another prefix, so either of
+   * those is an integrity incident: the checkpoint may be the last witness of lost history.
+   * Checkpoints are replaced atomically and never deleted, so a missing or unreadable one is
+   * only repairable over an empty journal (initialization interrupted before its first index).
+   */
+  private async ancestorCheckpoint(snapshot: Scan): Promise<Checkpoint | null> {
+    let checkpoint: Checkpoint;
+    try { checkpoint = await this.readCheckpoint(); }
+    catch (error) {
+      if (snapshot.sequence === 0) return null;
+      fail("HELD", `Integrity incident: the checkpoint over a nonempty journal is missing or unreadable, so lost history cannot be ruled out; reconcile deliberately, never rebuild: ${String(error)}`);
+    }
+    const at = checkpoint.sequence, transaction = at ? snapshot.transactions[at - 1] : undefined;
+    if (at > snapshot.sequence)
+      fail("HELD", `Integrity incident: the checkpoint records sequence ${at} but the journal ends at ${snapshot.sequence}; published history may be lost. Reconcile deliberately, never rebuild.`);
+    if (checkpoint.transactionHash !== (transaction?.hash ?? null) || checkpoint.projectionHash !== (transaction?.projectionHash ?? frameDigest(new Map())) ||
+      checkpoint.prefixDigest !== await this.prefixAt(snapshot, at) || checkpoint.anchorHash !== await this.anchorHash(at))
+      fail("HELD", `Integrity incident: the checkpoint at sequence ${at} diverges from the validated journal prefix. Reconcile deliberately, never rebuild.`);
+    return checkpoint;
+  }
+  private async prefixAt(snapshot: Scan, sequence: number): Promise<string> {
+    let prefix = emptyPrefix;
+    for (const event of snapshot.transactions.slice(0, sequence)) {
+      const tip = verifyHash(AnchorSchema.parse(await readCanonical(this.file(event.sequence, "tip"))));
+      const marker = verifyHash(AnchorSchema.parse(await readCanonical(this.file(event.sequence, "publication"))));
+      prefix = extendPrefix(prefix, event, tip, marker);
+    }
+    return prefix;
+  }
+  private accepted(snapshot: Scan, requestId: string): Transaction | undefined {
+    return this.cached?.scan === snapshot ? this.cached.requests.get(requestId) : snapshot.transactions.find(t => t.requestId === requestId);
   }
   private async checkBlobs(mutations: SupervisionMutation[]): Promise<void> {
     for (const mutation of mutations) if (mutation.kind === "blob") {
@@ -510,7 +830,7 @@ export class SupervisionStore {
   }
   private receipt(event: Transaction): SupervisionReceipt {
     return { requestId: event.requestId, requestHash: event.requestHash, sequence: event.sequence, hash: event.hash,
-      generation: event.generation, versions: event.changes };
+      generation: event.generation, versions: structuredClone(event.changes) };
   }
   async transact(expectedVersions: SupervisionExpected[], requestId: string, mutations: SupervisionMutation[]): Promise<SupervisionReceipt> {
     SupervisionUuid.parse(requestId);
@@ -519,10 +839,10 @@ export class SupervisionStore {
     if (digest(input) !== digest(body)) fail("CONFLICT", "Submit the complete canonical mutation contract, including workflow defaults.");
     checkInboxRequest(body.mutations, requestId);
     const requestHash = digest(body);
-    return serialized(this.root, async () => {
+    return this.locked(async () => {
       const snapshot = await this.scan();
       if (snapshot.problems.length) fail("HELD", snapshot.problems.join(" "));
-      const replay = snapshot.transactions.find(t => t.requestId === requestId);
+      const replay = this.accepted(snapshot, requestId);
       if (replay) {
         if (replay.requestHash !== requestHash) fail("CONFLICT", "Request ID has different content; retain and inspect the original receipt.");
         return this.receipt(replay); // Before CAS/admission; historical approval is not reauthorized.
@@ -538,18 +858,18 @@ export class SupervisionStore {
   ): Promise<{ receipt: SupervisionReceipt; result: ScopedCommandResult }> {
     SupervisionUuid.parse(requestId); SupervisionHash.parse(inputHash);
     const actor = structuredClone(SupervisionActorSchema.parse(actorInput));
-    return serialized(this.root, async () => {
+    return this.locked(async () => {
       const snapshot = await this.scan();
       if (snapshot.problems.length) fail("HELD", snapshot.problems.join(" "));
-      const replay = snapshot.transactions.find(t => t.requestId === requestId);
+      const replay = this.accepted(snapshot, requestId);
       if (replay) {
         const accepted = replay.body.mutations.find(m => m.kind === "command" && m.value.id === requestId);
         if (accepted?.kind !== "command" || accepted.value.inputHash !== inputHash || digest(accepted.value.actor) !== digest(actor))
           fail("CONFLICT", "Request ID belongs to different command content or provenance.");
-        return { receipt: this.receipt(replay), result: accepted.value.result };
+        return { receipt: this.receipt(replay), result: structuredClone(accepted.value.result) };
       }
       this.writable(); await this.assertCoordinator();
-      const prepared = await prepare(this.status(snapshot));
+      const prepared = await prepare(structuredClone(this.status(snapshot)));
       const result = ScopedCommandResultSchema.parse(prepared.result);
       if (prepared.mutations.some(m => m.kind === "command")) fail("CONFLICT", "Command replay index is store-owned.");
       const body = BodySchema.parse({ actor, expectedVersions: [...prepared.expectedVersions, { kind: "command", id: requestId, version: 0 }],
@@ -563,7 +883,13 @@ export class SupervisionStore {
       this.writable();
       if (!snapshot.initialized) fail("HELD", "Initialize a new fixture store explicitly.");
       const coordinator = await this.assertCoordinator();
+      if (snapshot.sequence >= SUPERVISION_INDEX_LIMITS.admissions && body.mutations.some(m => m.kind === "effect" && !snapshot.frames.has(key("effect", m.value.id))))
+        fail("HELD", "Pilot admission bound reached; reserve the remaining journal headroom for known work and reconciliation.");
       const next = this.apply(snapshot.frames, body);
+      const nextOwnership = ownership(next.frames), nextDigest = ownershipDigest(nextOwnership);
+      const retainedOwnership = snapshot.ownership.some(o => ownershipDigest(o) === nextDigest) ? snapshot.ownership : [...snapshot.ownership, nextOwnership];
+      if (snapshot.sequence >= SUPERVISION_INDEX_LIMITS.transactions || Buffer.byteLength(canonical({ frames: [...next.frames], ownership: retainedOwnership })) > SUPERVISION_INDEX_LIMITS.projectionBytes)
+        fail("HELD", "Pilot history/projection bound reached; stop admissions and retain the journal for audit.");
       const pending = inboxProjection(next.frames).assignments.filter(a => a.primaryEventId === a.id && !terminal(a)).length;
       const oldPending = inboxProjection(snapshot.frames).assignments.filter(a => a.primaryEventId === a.id && !terminal(a)).length;
       if (pending > oldPending && pending > (this.options.maxPendingEvents ?? INBOX_LIMITS.pending)) fail("HELD", "Pending event alarm; ingress baseline has not advanced.");
@@ -572,7 +898,7 @@ export class SupervisionStore {
         sequence: snapshot.sequence + 1, previous: snapshot.hash, generation: coordinator.generation, coordinatorHash: coordinator.hash,
         requestId, requestHash, at: new Date().toISOString(), body, changes: next.changes, projectionHash: frameDigest(next.frames), outbox: [] as never[] });
       const capsule = { homeId: this.homeId, sequence: event.sequence, previous: event.previous, transactionHash: event.hash,
-        requestId, requestHash, generation: event.generation, ownership: ownership(next.frames) };
+        requestId, requestHash, generation: event.generation, ownership: nextOwnership };
       const tip = hashed({ format: "firstmate.supervision-tip/1" as const, ...capsule });
       const marker = hashed({ format: "firstmate.supervision-publication/1" as const, ...capsule });
       const bytes = Buffer.byteLength(canonical(event) + canonical(tip) + canonical(marker)) + 3;
@@ -581,6 +907,8 @@ export class SupervisionStore {
         await this.publish(this.file(event.sequence, "tip"), tip, "tip");
         await this.publish(this.file(event.sequence, "event"), event, "event");
         await this.publish(this.file(event.sequence, "publication"), marker, "publication");
+        await this.saveCheckpoint({ ...snapshot, frames: next.frames, transactions: [...snapshot.transactions, event], sequence: event.sequence,
+          hash: event.hash, prefixDigest: extendPrefix(snapshot.prefixDigest, event, tip, marker), ownership: retainedOwnership, bytes: snapshot.bytes + bytes });
       } catch (error) {
         fail("HELD", `Publication interrupted; reread/reconcile the original request without repeating an effect: ${String(error)}`);
       }
@@ -591,14 +919,17 @@ export class SupervisionStore {
    */
   async recoverPublication(): Promise<SupervisionReceipt | null> {
     this.writable();
-    return serialized(this.root, async () => {
+    return this.locked(async () => {
       await this.assertCoordinator();
-      const snapshot = await this.scan();
+      this.cached = null;
+      const snapshot = await this.scanFull();
       if (snapshot.problems.some(p => p !== "Final transaction awaits publication.")) fail("HELD", snapshot.problems.join(" "));
-      if (!snapshot.pending) return null;
+      await this.ancestorCheckpoint(snapshot);
+      if (!snapshot.pending) { await this.saveCheckpoint(snapshot); return null; }
       const { event, tip } = snapshot.pending;
       const { hash: _hash, ...body } = tip;
       await this.publish(this.file(event.sequence, "publication"), hashed({ ...body, format: "firstmate.supervision-publication/1" }), "publication");
+      await this.saveCheckpoint(await this.scanFull());
       return this.receipt(event);
     });
   }
@@ -606,22 +937,40 @@ export class SupervisionStore {
     this.writable();
     if (bytes.length > 512 * 1024) fail("HELD", "Evidence blob exceeds 512 KiB; use a bounded evidence handle.");
     const copy = Uint8Array.from(bytes), id = rawDigest(copy);
-    return serialized(this.root, async () => {
+    return this.locked(async () => {
       await this.assertCoordinator();
       const snapshot = await this.scan();
       if (snapshot.problems.length) fail("HELD", snapshot.problems.join(" "));
       if (snapshot.bytes + copy.length > (this.options.maxJournalBytes ?? 100 * 1024 * 1024)) fail("HELD", "Evidence storage alarm; retain existing history.");
       const path = join(this.root, "blobs", id);
-      try { await publishBytes(path, copy, stage => this.boundary(`blob:${stage}`)); }
+      let created = false;
+      try { await publishBytes(path, copy, stage => this.boundary(`blob:${stage}`)); created = true; }
       catch (error) {
         if ((error as NodeJS.ErrnoException).code !== "EEXIST") fail("HELD", `Evidence publication failed; no reference committed: ${String(error)}`);
         if (rawDigest(await readFile(path)) !== id) fail("HELD", "Existing evidence blob is corrupt; never overwrite it.");
       }
+      // Account newly published evidence without replaying journal history. The anchor and
+      // derived checkpoint are unchanged; only physical staging/storage accounting advances.
+      const priorBytes = created ? copy.length : 0;
+      await this.cache({ ...snapshot, bytes: snapshot.bytes + priorBytes }, await this.readCheckpoint(), await this.directories());
       return { id, bytes: copy.length };
     });
   }
-  async read(): Promise<SupervisionStatus> {
-    return this.status(await this.scan());
+  /** Concurrent reads in one publication epoch share one validation. reading() still discards,
+   * for every sharer, a result that a writer overlapped, so sharing never serves an older head.
+   */
+  private sharedScan(): Promise<Scan> {
+    if (storeLocks.getStore()?.get(this.root)?.active) return this.scan();
+    const epoch = publicationFor(this.root).epoch;
+    if (this.shared?.epoch === epoch) return this.shared.scan;
+    const entry = { epoch, scan: this.scan() }, clear = () => { if (this.shared === entry) this.shared = null; };
+    this.shared = entry; entry.scan.then(clear, clear);
+    return entry.scan;
+  }
+  /** `settleAfterMs` is for status displays only; see reading(). Decisions keep the default. */
+  async read(options: { settleAfterMs?: number } = {}): Promise<SupervisionStatus> {
+    return this.reading(async () => structuredClone(this.status(await this.sharedScan())),
+      options.settleAfterMs === undefined ? undefined : { afterMs: options.settleAfterMs, committed: status => status.freshness === "current" });
   }
   private status(snapshot: Scan): SupervisionStatus {
     const values = <T>(kind: Frame["kind"]) => [...snapshot.frames.values()].filter(f => f.kind === kind).map(f => f.value as T);
@@ -630,11 +979,14 @@ export class SupervisionStore {
       freshness: snapshot.problems.length ? "held" : snapshot.initialized ? "current" : "uninitialized",
       sequence: snapshot.sequence, hash: snapshot.hash, executable: false, guarantee: "cooperative-storage-only",
       limits: ["No live command transport, sends, session creation or backend migration is enabled.",
+        "Pilot index ceilings: new effects stop at 192 transactions; all writes stop at 256; 8 MiB projection plus retained ownership; 32 transactions per incremental read.",
+        "Warm reads trust the validated checkpoint prefix. Old in-place corruption is detected on startup, recovery or explicit audit; anchors are checked on every read.",
         "Actor provenance and filesystem ownership are cooperative, not authenticated IPC or receiver fencing.",
         "Process-crash qualification only; coordinated loss of journal and all local metadata can hide truncation."],
       problems: snapshot.problems, versions: [...snapshot.frames.values()].map(({ kind, id, version }) => ({ kind, id, version })),
       storage: { bytes: snapshot.bytes, limitBytes: this.options.maxJournalBytes ?? 100 * 1024 * 1024,
-        admissionsHeld: snapshot.problems.length > 0 || snapshot.bytes >= (this.options.maxJournalBytes ?? 100 * 1024 * 1024) },
+        admissionsHeld: snapshot.problems.length > 0 || snapshot.bytes >= (this.options.maxJournalBytes ?? 100 * 1024 * 1024) ||
+          snapshot.sequence >= SUPERVISION_INDEX_LIMITS.admissions },
       scopes: values("scope"), bindings: values("binding"), tasks, attempts: values("attempt"), effects, backends: values("backend"),
       policySources: values("policy-source"), policyRules: values("policy-rule"), policyEvidence: values("policy-evidence"), approvals: values("approval"),
       decisions: values("decision"), outbox: values("outbox"), operationHolds: values("operation-hold"), commands: values("command"),
@@ -652,21 +1004,21 @@ export class SupervisionStore {
   }
   /** Read accepted transaction identity without reauthorizing it or acquiring the coordinator. */
   async requestReceipt(requestId: string): Promise<SupervisionReceipt | null> {
-    const snapshot = await this.scan();
-    if (snapshot.problems.length) fail("HELD", snapshot.problems.join(" "));
-    const transaction = snapshot.transactions.find(t => t.requestId === requestId);
-    return transaction ? this.receipt(transaction) : null;
+    return this.reading(async () => {
+      const snapshot = await this.sharedScan();
+      if (snapshot.problems.length) fail("HELD", snapshot.problems.join(" "));
+      const transaction = this.accepted(snapshot, requestId);
+      return transaction ? this.receipt(transaction) : null;
+    });
   }
   /** Original event/request identity and transaction receipt, independent of later policy changes. */
   async workflowRequest(planId: string, requestId: string): Promise<{ requestHash: string; eventHash: string; receipt: SupervisionReceipt } | null> {
-    const snapshot = await this.scan();
-    if (snapshot.problems.length) fail("HELD", snapshot.problems.join(" "));
-    for (const transaction of snapshot.transactions) for (const mutation of transaction.body.mutations) {
-      if (mutation.kind === "workflow" && mutation.event.plan === planId && mutation.event.requestId === requestId) {
-        return { requestHash: mutation.event.requestHash, eventHash: mutation.event.hash, receipt: this.receipt(transaction) };
-      }
-    }
-    return null;
+    return this.reading(async () => {
+      const snapshot = await this.sharedScan();
+      if (snapshot.problems.length) fail("HELD", snapshot.problems.join(" "));
+      const saved = this.cached?.scan === snapshot ? this.cached.workflowRequests.get(key(planId, requestId)) : null;
+      return saved ? { requestHash: saved.requestHash, eventHash: saved.eventHash, receipt: this.receipt(saved.transaction) } : null;
+    });
   }
   /** Read-only partition answer. S04/S07 must integrate both actual writer paths before activation. */
   async backend(planId: string): Promise<{ backend: "legacy" | "scoped" | null; held: boolean; ownerScopeId: string | null }> {

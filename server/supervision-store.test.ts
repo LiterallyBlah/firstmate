@@ -4,8 +4,16 @@ import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SupervisionStore, type SupervisionMutation } from "./supervision-store";
 import { canonical, digest } from "./submissions";
+import * as submissions from "./submissions";
+import * as filesystem from "node:fs/promises";
 import { workflowHomeIdentity } from "./workflow-ownership";
 import { expected, hash, ids, scope, seed } from "../test/supervision-fixture";
+
+// Keep real filesystem IO; wrap only stat so a regression can unlink one exact fixture file
+// after directory enumeration and before its stat. Node's native ESM namespace is sealed.
+vi.mock(import("node:fs/promises"), async importOriginal => {
+  const actual = await importOriginal(); return { ...actual, stat: vi.fn(actual.stat) as typeof actual.stat };
+});
 
 let home: string, dataRoot: string, store: SupervisionStore;
 const processIdentity = vi.fn(async () => ({ state: "alive" as const, start: "isolated-fixture-process" }));
@@ -23,6 +31,52 @@ async function tree(path: string): Promise<unknown> {
     row.isDirectory() ? await tree(join(path, row.name)) : (await readFile(join(path, row.name))).toString("base64")]));
 }
 describe("scoped transaction authority", () => {
+  it.each(["blobs", "transactions"] as const)("keeps a current read when an inert %s temp is unlinked between listing and stat", async directory => {
+    await commit([{ kind: "scope", value: scope(store.homeId) }]);
+    const before = await store.read(), temp = join(store.root, directory, directory === "blobs" ? `${hash}.${randomUUID()}.tmp` : `000000000099.event.json.${randomUUID()}.tmp`);
+    await writeFile(temp, "inert publication staging bytes");
+    const original = (await vi.importActual<typeof filesystem>("node:fs/promises")).stat, spy = vi.mocked(filesystem.stat); let removed = false;
+    spy.mockImplementation(async (...args) => {
+      if (String(args[0]) === temp) { await rm(temp); removed = true; }
+      return original(...args);
+    });
+    try {
+      // A new instance validates everything, so it lists and sizes the staging file.
+      const after = await new SupervisionStore(dataRoot, home).read();
+      expect(removed).toBe(true); expect(after.freshness).toBe("current"); expect(after).toEqual(before);
+    } finally { spy.mockReset(); spy.mockImplementation(original); }
+  });
+  it("holds if a durable event disappears between listing and stat", async () => {
+    await commit([{ kind: "scope", value: scope(store.homeId) }]);
+    const event = file(1, "event"), original = (await vi.importActual<typeof filesystem>("node:fs/promises")).stat, spy = vi.mocked(filesystem.stat);
+    spy.mockImplementation(async (...args) => { if (String(args[0]) === event) await rm(event); return original(...args); });
+    try { expect((await store.read()).freshness).toBe("held"); } finally { spy.mockReset(); spy.mockImplementation(original); }
+  });
+  it("hashes retained capsules linearly on a cold scan without caching or losing ownership history", async () => {
+    const count = 12, ids: string[] = [];
+    for (let n = 0; n < count; n++) {
+      const id = randomUUID(); ids.push(id);
+      await commit([{ kind: "scope", value: { ...scope(store.homeId), id } }]);
+    }
+    const original = submissions.digest, spy = vi.spyOn(submissions, "digest");
+    let ownershipHashes = 0;
+    spy.mockImplementation(value => {
+      if (value && typeof value === "object" && ["scopes", "tasks", "attempts", "effects", "backends", "workflows"].every(k => k in value)) ownershipHashes++;
+      return original(value);
+    });
+    try {
+      const snapshot = await new SupervisionStore(dataRoot, home).read();
+      expect(snapshot.freshness).toBe("current"); expect(snapshot.sequence).toBe(count);
+      expect(snapshot.retainedOwnership).toHaveLength(count);
+      expect(snapshot.retainedOwnership.map(o => o.scopes).sort((a, b) => a.length - b.length)).toEqual(ids.map((_id, i) => ids.slice(0, i + 1)));
+      // Two retained anchors plus the projection/expected-tip comparison per event. No timing threshold.
+      expect(ownershipHashes).toBe(count * 4);
+      // A later damaged anchor is reread and fails closed, even after a successful cold read.
+      const reader = new SupervisionStore(dataRoot, home); await reader.read();
+      await writeFile(file(count, "publication"), "{damaged");
+      expect((await reader.read()).freshness).toBe("held");
+    } finally { spy.mockRestore(); }
+  });
   it("keeps disabled/uninitialized reads inert and never creates a store on render/read", async () => {
     const absent = new SupervisionStore(join(dataRoot, "absent"), home);
     const before = await tree(dataRoot);

@@ -413,7 +413,9 @@ export class SupervisionGateway {
   /** Exact identity lookup only. A negative or misbound answer never proves anything; nothing is resent. */
   async reconcile(effectId: string): Promise<SupervisionEffect> {
     this.enabled();
-    const status = await this.store.read(), effect = status.effects.find(e => e.id === effectId) ?? refuse("UNKNOWN_OWNER", "Unknown effect.");
+    const status = await this.store.audit();
+    if (status.freshness !== "current") refuse("HELD", "Recovery audit failed; no receiver lookup or effect reconciliation is admitted.");
+    const effect = status.effects.find(e => e.id === effectId) ?? refuse("UNKNOWN_OWNER", "Unknown effect.");
     if (!["dispatching", "uncertain", "accepted"].includes(effect.state)) return effect;
     const capabilities = await this.capabilities();
     let found: string | null = null;

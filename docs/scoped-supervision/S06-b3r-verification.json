@@ -1,0 +1,157 @@
+{
+  "format": "firstmate.s06-verification/3",
+  "sourceCommit": "c82bec30ce34bc47f8d1b8e7d042468677caaa25",
+  "sourceTree": "aa1ed76f82649f77338a5d3ecff39d2add70f983",
+  "previousDeliveredHead": "bae5a99da2c94afaeef94fd7e4e532f55ef637c7",
+  "previousManifest": {
+    "path": "docs/scoped-supervision/S06-b3-review-verification.json",
+    "sha256": "776523bcedc39fb24ca119133f08840894e301c0c43d77a5b238797c9580a1fa"
+  },
+  "sourceFiles": [
+    {
+      "path": "docs/scoped-supervision/S06-b3-review-verification.json",
+      "committedSHA256": "776523bcedc39fb24ca119133f08840894e301c0c43d77a5b238797c9580a1fa",
+      "gitBlob": "c8ac6c79e704135a3a25e4fdce5ec9a63383bdd0"
+    },
+    {
+      "path": "docs/scoped-supervision/pilot-runbook.md",
+      "committedSHA256": "88e932d7b5818be414305ea5639725977581e7f7da4d168ad4ea8e91edf479c2",
+      "gitBlob": "2f7f70e3c0c51651974716165c8b7491eaa26a16"
+    },
+    {
+      "path": "index.server.ts",
+      "committedSHA256": "94b21e6a4ba0b5ab5299af61bb6e121a50340203e97e1edd7371c05f0f884a36",
+      "gitBlob": "c9db6730becac7a3b056e4f371d4c712a51c7f79"
+    },
+    {
+      "path": "server/supervision-lifecycle.test.ts",
+      "committedSHA256": "5d2c2358413f33f75ee343d2aa6a2a041fb4d688c0d89cf01eba5764f562454d",
+      "gitBlob": "df20e6a73f750799685043ecc8a60892cf62519f"
+    },
+    {
+      "path": "server/supervision-lifecycle.ts",
+      "committedSHA256": "edff7a04978d2a73d96f676c1b83d4d546730e00064d0395dafa03b23afc8e30",
+      "gitBlob": "6d14b1742463d905531f5db7b98b6531e64e5667"
+    },
+    {
+      "path": "server/supervision-status-reader.test.ts",
+      "committedSHA256": "7be824fdaf74b042db79e3905bbdcff6c6d73fd0c0577bd5acfad9a371cf5b54",
+      "gitBlob": "aff9619b6b47e91ecffba41b41b91b8a5e09e4b6"
+    },
+    {
+      "path": "server/supervision-status-reader.ts",
+      "committedSHA256": "eac4883341b4a67a2510c23c15b5ae887ead8cb756ec882b6d4bc6c7ccc067a1",
+      "gitBlob": "39a10a324dbf4b8dcb8222ed0efdd692b104e8d9"
+    },
+    {
+      "path": "server/supervision-store.ts",
+      "committedSHA256": "16492c16a4142a79877c35ba67b69b07c2e80e19b2180d5f4452ed137b8aeb58",
+      "gitBlob": "d9ae849c2bdd3550ff83137286a714f99cad1f46"
+    }
+  ],
+  "guarantee": "synthetic-new-plan-cooperative-only",
+  "liveActivated": false,
+  "timeoutIncreasedAfterDiagnosis": false,
+  "runtime": {
+    "node": "v24.18.0",
+    "platform": "win32"
+  },
+  "checks": {
+    "typecheck": {
+      "command": "npm run typecheck",
+      "passed": true
+    },
+    "fullSuite": {
+      "total": 2768,
+      "passed": 2765,
+      "failed": 0,
+      "skipped": 3,
+      "files": 190,
+      "jsonSHA256": "f03adea731a94ddf437f5bd8f9890e8d688134740932e2a255cbec1e816c5a7c",
+      "logSHA256": "5ec7b6a29b0923d879ef55801b76efea84529cbd32085edae55821b3e1cbf4e6"
+    },
+    "statusReader": {
+      "assertions": [
+        {
+          "title": "production status reader reuses one validated store per home at 176 transactions",
+          "status": "passed",
+          "durationMs": 3431.8612
+        }
+      ],
+      "bounds": {
+        "sourceHead": "c82bec30ce34bc47f8d1b8e7d042468677caaa25",
+        "history": 176,
+        "warmReadMs": [
+          5.1547999999997955,
+          5.202800000000025,
+          5.039900000000216,
+          5.18119999999999,
+          5.110599999999977
+        ],
+        "fullScans": 0,
+        "historicalReducerCalls": 0,
+        "newTransitionCalls": 1,
+        "commitMs": 17.770500000000084,
+        "committedBeforePollRelease": true
+      }
+    },
+    "operatorRecovery": {
+      "assertions": [
+        {
+          "title": "restart and effect recovery audit old history before any receiver operation",
+          "status": "passed",
+          "durationMs": 452.59790000000004
+        },
+        {
+          "title": "explicit operator index recovery repairs only a validated stale checkpoint, with no receiver call",
+          "status": "passed",
+          "durationMs": 135.5086
+        }
+      ]
+    }
+  },
+  "review": {
+    "B3-R": "one production read-only store per home; warm polling does not acquire writer lock; overlapping commits retry reads",
+    "N10": "explicit enabled-lifecycle operator recoverIndex with checked head, checkpoint-only hold, full audit and no receiver effects",
+    "unchanged": [
+      "N8",
+      "N9"
+    ]
+  },
+  "evidence": [
+    {
+      "path": "docs/scoped-supervision/s06-b3r-evidence/scoped-metrics.json",
+      "sha256": "b0bcf63ebcf9fda58bdcfc98b5f32f4db786fcd679d4045c4cd6a5e5674d40e1",
+      "bytes": 4168
+    },
+    {
+      "path": "docs/scoped-supervision/s06-b3r-evidence/legacy-metrics.json",
+      "sha256": "984ee1cebe37bcb1f9dec4713fb84f2f5ec016fcd2b9dff17aabd9afd4ed1653",
+      "bytes": 4093
+    },
+    {
+      "path": "docs/scoped-supervision/s06-b3r-evidence/qualification-receipts.json",
+      "sha256": "12e63b5fe75b963ae0f1f071a626a7064fb9877e58fff57a1dcb07dd004c82fc",
+      "bytes": 92328
+    },
+    {
+      "path": "docs/scoped-supervision/s06-b3r-evidence/index-bound-evidence.json",
+      "sha256": "941ae67e645c2c7e0067d2ffb3562e7f7a7ef047f54dbe65c5b3fc47fc7d951b",
+      "bytes": 891
+    },
+    {
+      "path": "docs/scoped-supervision/s06-b3r-evidence/status-reader-bound-evidence.json",
+      "sha256": "33c8c5329c40c412f535f5ab0094801d717ac76e0c2ec81006797ec985cc64a8",
+      "bytes": 366
+    }
+  ],
+  "exclusions": [
+    "live providers/paid usage",
+    "operator attachment/authority",
+    "legacy delivery migration",
+    "occurrence scheduling",
+    "remote effects",
+    "install/routing approval",
+    "unavailable native watch/heartbeat adapters"
+  ]
+}

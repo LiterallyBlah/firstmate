@@ -1,0 +1,271 @@
+{
+  "format": "firstmate.s06-verification/3",
+  "sourceCommit": "3ac17480579f127bfbe635861c597bb15085fdc6",
+  "sourceTree": "5f6fc71cbc0dc858028f0cbf0b8289dafb3dc1a9",
+  "previousDeliveredHead": "032924a9ae3afaa00d839e3cc3cb3a24f2467904",
+  "previousManifest": {
+    "path": "docs/scoped-supervision/S06-b3r-verification.json",
+    "sha256": "7055c500ef9e1a2ac6da67efb1bb153c01eabf63aef2c48e2548b9a7d8bd3227"
+  },
+  "sourceFiles": [
+    {
+      "path": "docs/scoped-supervision/pilot-runbook.md",
+      "committedSHA256": "5ce2ad5b5c2551d7d79e9c81a646b0918e4053f6318b71e42da5d792486eda2c",
+      "gitBlob": "dda47638ea18633e77dabfe608d118b908087197"
+    },
+    {
+      "path": "index.server.ts",
+      "committedSHA256": "b8569d49786cd0b9f016321cd109a9b872ac219d46f6fafc9fab3976c955ea26",
+      "gitBlob": "088d56d79a6f91c9e299345a9cd94cf8a83127ef"
+    },
+    {
+      "path": "server/supervision-index.test.ts",
+      "committedSHA256": "525e0be0fb0b4b4f5fefaf6b6147934a766aaf7badaa5df0f8b7881831273e9d",
+      "gitBlob": "02036c1ddfedecdada857dd2b6957d8e9e5fd939"
+    },
+    {
+      "path": "server/supervision-lifecycle.test.ts",
+      "committedSHA256": "3859d023e9b14fed0bd41ce39a0a112312e29b6ea008acb06a70fe3c6e94814c",
+      "gitBlob": "32375e6c67d76abfca43affe65a568d8edb4b883"
+    },
+    {
+      "path": "server/supervision-status-reader.test.ts",
+      "committedSHA256": "1ab6544fb207838eec03317b54e3f4dec576fe3f876e77bd86e286a10427d9d5",
+      "gitBlob": "d7f1fafefd6fed8c8eb31cb6070d7f53ff12c89c"
+    },
+    {
+      "path": "server/supervision-status-reader.ts",
+      "committedSHA256": "bcb9d1586c61f44e1ae2fb1b7d87d17a04ef6593fea189b8e4f6764252fcb304",
+      "gitBlob": "a1f659d5c11422b2dca3f6f710bb7b717f072ecf"
+    },
+    {
+      "path": "server/supervision-store.test.ts",
+      "committedSHA256": "1d626b7e442bda9cec2f6b475ae825c66f7f767f91ef51c30e7e67ec4c235168",
+      "gitBlob": "1c158226e8acea29c4c773dc3b37fe824ce328d8"
+    },
+    {
+      "path": "server/supervision-store.ts",
+      "committedSHA256": "b9aea408e99ec7f6f67d4b3f0963227de2970e84757ba133a27d5cf9d1ee0e02",
+      "gitBlob": "e42fe609e507df74bee82acdc4a5a804ecb262a6"
+    }
+  ],
+  "guarantee": "synthetic-new-plan-cooperative-only",
+  "liveActivated": false,
+  "timeoutIncreasedAfterDiagnosis": false,
+  "runtime": {
+    "node": "v24.18.0",
+    "platform": "win32"
+  },
+  "checks": {
+    "typecheck": {
+      "command": "npm run typecheck",
+      "passed": true
+    },
+    "fullSuite": {
+      "total": 2776,
+      "passed": 2773,
+      "failed": 0,
+      "skipped": 3,
+      "files": 190,
+      "jsonSHA256": "b753d28f3f6d16220172b023fb6221a9ce6d77d6bce33f98e16d7cbaf0f97e12",
+      "logSHA256": "1d360398728a07fdf5476df0b67d9910353b18a91f78f8a047f92e53bd3e00ae"
+    },
+    "statusReader": {
+      "assertions": [
+        {
+          "title": "production status reader stays warm across real launches (blob writes) at about 176 transactions",
+          "status": "passed",
+          "durationMs": 5346.64
+        },
+        {
+          "title": "production status reader reuses one validated store per home at 176 transactions",
+          "status": "passed",
+          "durationMs": 3530.475699999999
+        },
+        {
+          "title": "a status reader stays warm across new evidence blobs but never accepts a removed or forged one",
+          "status": "passed",
+          "durationMs": 154.9326000000001
+        },
+        {
+          "title": "an overlapped display read settles on its committed head only past its budget; default reads retry",
+          "status": "passed",
+          "durationMs": 137.52040000000125
+        },
+        {
+          "title": "concurrent status reads share one validation",
+          "status": "passed",
+          "durationMs": 39.25720000000001
+        }
+      ],
+      "bounds": {
+        "sourceHead": "3ac17480579f127bfbe635861c597bb15085fdc6",
+        "history": 176,
+        "warmReadMs": [
+          4.526300000001356,
+          4.366700000000492,
+          4.264600000000428,
+          4.3091999999996915,
+          5.0877999999993335
+        ],
+        "fullScans": 0,
+        "historicalReducerCalls": 0,
+        "newTransitionCalls": 1,
+        "commitMs": 17.13040000000001,
+        "committedBeforePollRelease": true,
+        "launchesBetweenPolls": {
+          "history": 176,
+          "firstPollAfterLaunchMs": 60.37950000000001,
+          "pollsDuringLaunch": 3,
+          "maxPollDuringLaunchMs": 471.78439999999955,
+          "fullScans": 0
+        }
+      }
+    },
+    "operatorRecovery": {
+      "assertions": [
+        {
+          "title": "restart and effect recovery audit old history before any receiver operation",
+          "status": "passed",
+          "durationMs": 467.04920000000004
+        },
+        {
+          "title": "explicit operator index recovery repairs only a validated stale checkpoint, with no receiver call",
+          "status": "passed",
+          "durationMs": 143.6458
+        },
+        {
+          "title": "operator index recovery refuses a checkpoint ahead of a journal missing its published final transaction",
+          "status": "passed",
+          "durationMs": 168.9851
+        },
+        {
+          "title": "a concurrent read waits for publication and checkpointing instead of exposing a transient held projection",
+          "status": "passed",
+          "durationMs": 37.73860000000059
+        },
+        {
+          "title": "a detached callback cannot reuse an expired writer lock while a later checkpoint is staged",
+          "status": "passed",
+          "durationMs": 59.03060000000005
+        },
+        {
+          "title": "every read detects a tampered checkpoint event anchor",
+          "status": "passed",
+          "durationMs": 68.33690000000024
+        },
+        {
+          "title": "every read detects a tampered checkpoint tip anchor",
+          "status": "passed",
+          "durationMs": 69.29680000000008
+        },
+        {
+          "title": "every read detects a tampered checkpoint publication anchor",
+          "status": "passed",
+          "durationMs": 70.21869999999944
+        },
+        {
+          "title": "a missing checkpoint validates history but refuses its projection until explicit recovery",
+          "status": "passed",
+          "durationMs": 77.64359999999942
+        },
+        {
+          "title": "a stale checkpoint validates history but refuses its projection until explicit recovery",
+          "status": "passed",
+          "durationMs": 89.77050000000054
+        },
+        {
+          "title": "a digest checkpoint validates history but refuses its projection until explicit recovery",
+          "status": "passed",
+          "durationMs": 98.59679999999935
+        },
+        {
+          "title": "a missing checkpoint over an empty journal (interrupted initialization) is rebuilt",
+          "status": "passed",
+          "durationMs": 25.125899999999092
+        },
+        {
+          "title": "recoverIndex refuses a checkpoint ahead of a journal that lost its final published transaction",
+          "status": "passed",
+          "durationMs": 152.78740000000107
+        },
+        {
+          "title": "recoverPublication refuses a checkpoint ahead of a journal that lost its final published transaction",
+          "status": "passed",
+          "durationMs": 164.8246999999992
+        },
+        {
+          "title": "interruption at checkpoint:written preserves the request and recovers only the index",
+          "status": "passed",
+          "durationMs": 62.72099999999955
+        },
+        {
+          "title": "interruption at checkpoint:synced preserves the request and recovers only the index",
+          "status": "passed",
+          "durationMs": 71.33059999999932
+        },
+        {
+          "title": "interruption at checkpoint:replaced preserves the request and recovers only the index",
+          "status": "passed",
+          "durationMs": 60.842500000000655
+        }
+      ]
+    }
+  },
+  "review": {
+    "B3-R2": "warm reads accept checked content-addressed blob additions, compare coordinators by durable name, retry a warm read a write overlapped, hash retained ownership once; concurrent reads coalesce per publication epoch; display routes may serve their own checkpoint-validated head after 750 ms of overlapping commits",
+    "N10-R": "recoverIndex/recoverPublication repair only a consistent-ancestor checkpoint; ahead, divergent, missing or unreadable over a nonempty journal is a refused integrity incident",
+    "unchanged": [
+      "N1",
+      "N2",
+      "N3",
+      "N4",
+      "N5",
+      "N6",
+      "N7",
+      "N8",
+      "N9"
+    ]
+  },
+  "evidence": [
+    {
+      "path": "docs/scoped-supervision/s06-b3r2-evidence/scoped-metrics.json",
+      "sha256": "0a26f1669e1677499eae045b7fd573240ddc7aab6e21bc243647332d58d03ce7",
+      "bytes": 4168
+    },
+    {
+      "path": "docs/scoped-supervision/s06-b3r2-evidence/legacy-metrics.json",
+      "sha256": "dd33c7a3142a34a86ba6afabdaa10c8489893838afcb06a2dc066b01f5029bd0",
+      "bytes": 4093
+    },
+    {
+      "path": "docs/scoped-supervision/s06-b3r2-evidence/qualification-receipts.json",
+      "sha256": "41889e77e888a418eb4423ac00fb552ab502edeb691f83d3c13bd7ea4e59efe7",
+      "bytes": 92328
+    },
+    {
+      "path": "docs/scoped-supervision/s06-b3r2-evidence/index-bound-evidence.json",
+      "sha256": "c7359246e6a190719475922d5733ab1ef3e51f212b73a73f7bc89101c5bc11d3",
+      "bytes": 891
+    },
+    {
+      "path": "docs/scoped-supervision/s06-b3r2-evidence/status-reader-bound-evidence.json",
+      "sha256": "bc1ab6eb8d809b5e694889726de3ea3405fa4f4d25a737831f8e49f8662fa63b",
+      "bytes": 565
+    },
+    {
+      "path": "docs/scoped-supervision/s06-b3r2-evidence/reviewer-probes.json",
+      "sha256": "f14128c155b537658cf5a3a270fa82e309ec4f9ce6ebce2ac20976d1a4a6872c",
+      "bytes": 2403
+    }
+  ],
+  "exclusions": [
+    "live providers/paid usage",
+    "operator attachment/authority",
+    "legacy delivery migration",
+    "occurrence scheduling",
+    "remote effects",
+    "install/routing approval",
+    "unavailable native watch/heartbeat adapters"
+  ]
+}

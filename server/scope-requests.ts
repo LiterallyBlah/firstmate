@@ -31,7 +31,7 @@ const ScopeInboxCommand = z.discriminatedUnion("op", [
 const ScopeOutboxCommand = z.object({ requestId: SupervisionUuid, scopeId: SupervisionUuid, epoch: z.number().int().positive(),
   scopeVersion: z.number().int().positive(), outboxId: SupervisionUuid, resultRef: z.string().min(1).max(256) }).strict();
 const ScopeReadCommand = z.object({ scopeId: SupervisionUuid, epoch: z.number().int().positive(),
-  page: z.enum(["inbox", "outbox"]), after: z.number().int().nonnegative().default(0) }).strict();
+  page: z.enum(["inbox", "outbox", "audit"]), after: z.number().int().nonnegative().default(0) }).strict();
 export const ScopeRequestSchema = z.object({ id: z.uuid(), actor: z.string().min(1).max(256),
   kind: z.enum(["plan", "continuation", "inbox", "outbox", "read"]), input: z.unknown() }).strict();
 export interface ScopeHandlers {
@@ -46,6 +46,10 @@ export async function handleScopeRequest(request: z.infer<typeof ScopeRequestSch
     const input = ScopeReadCommand.parse(request.input), status = await handlers.store.read();
     const binding = status.bindings.find(b => b.scopeId === input.scopeId);
     if (binding?.agentId !== actor.id || binding.epoch !== input.epoch) throw new SupervisionError("UNKNOWN_OWNER", "Read the current bound scope; this helper never grants the global role.");
+    if (input.page === "audit") {
+      const audit = await handlers.store.audit();
+      return { freshness: audit.freshness, sequence: audit.sequence, hash: audit.hash, problems: audit.problems };
+    }
     if (input.page === "inbox") return supervisionInboxStatus(status, { scopeId: input.scopeId, after: input.after });
     const rows = status.outbox.filter(o => o.ownerScopeId === input.scopeId && o.state === "pending");
     const entries = rows.slice(input.after, input.after + 8);

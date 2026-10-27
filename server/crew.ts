@@ -17,6 +17,7 @@ import { randomUUID } from "node:crypto";
 import type { PluginLifecycleRegistration } from "@getpaseo/plugin/server";
 
 import { CAPTAIN_STEER_MESSAGE_ID_PREFIX, CREW_LABELS } from "../shared/fleet";
+import { SCOPE_LABELS } from "../shared/supervision-effects";
 import { stopAgent } from "./cli";
 import { closingText, fetchLiveAgent } from "./fleet";
 import type { PaseoAgent, PaseoApi } from "./host-types";
@@ -32,6 +33,9 @@ const MAX_RELAYED_CHARS = 4000;
 async function requireCrew(paseo: PaseoApi, agentId: string): Promise<PaseoAgent> {
   const agent = await fetchLiveAgent(paseo, agentId);
   if (agent === null) throw new Error(`Paseo has no live agent ${agentId}.`);
+  if (Object.values(SCOPE_LABELS).some(label => label in agent.labels)) {
+    throw new Error(`${agent.title ?? agentId} belongs to a scoped supervisor; legacy board controls and the steer relay cannot change or forward its work. Use its scope's checked controls.`);
+  }
   if (agent.labels[CREW_LABELS.role] !== CREW_LABELS.crewRole) {
     throw new Error(`${agent.title ?? agentId} is not one of the crew.`);
   }
@@ -180,6 +184,9 @@ export function registerSteerRelay(
     const userMessages = event.timeline.flatMap((item) => (item.type === "user_message" ? [item.text] : []));
     const read = steers.takeRead(event.agent.id, userMessages);
     if (read === null) return;
+    // Refresh labels here too: a pending legacy steer may predate scoped ownership.
+    // Refuse before reading/forwarding the answer or queueing any note to General.
+    await requireCrew(paseo, event.agent.id);
     const captain = read.map((entry) => entry.text);
     const ids = read.flatMap((entry) => (entry.messageId === undefined ? [] : [entry.messageId]));
     const journal = receiptJournal();

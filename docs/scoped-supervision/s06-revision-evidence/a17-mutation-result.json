@@ -1,0 +1,19 @@
+{
+  "format": "firstmate.s06-a17-mutation/1",
+  "sourceCommit": "260d169d4c76b8eb7f23388c718369d3d6aab922",
+  "control": "R06 actual retained-identity reenabling mutation",
+  "reviewerControlSHA256": "144ba1a5f3e6ba68963f7b26d39c260f2814e370c166cb5d4821e15c325f2170",
+  "reviewerTestSHA256": "614799d90de97fc63e9fa8f94aaa7811ec9ddf7946678d487996dd4a8bca920a",
+  "rawLocalResultSHA256": "4b0e5a066919a2c864b110ee263bcc77ea60c97a3efb27f91b49e57c9b212a37",
+  "results": [
+    {
+      "title": "A17.preserve: pilot enable/disable/restart preserves the actual four disabled watch identities, schedules and timer",
+      "status": "failed"
+    },
+    {
+      "title": "R06 A17 mutation control ran and reenables the actual preserved identities",
+      "status": "passed"
+    }
+  ],
+  "interpretation": "The actual-watch mutation passes its control and fails the revised A17.preserve assertion."
+}

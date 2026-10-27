@@ -1,0 +1,100 @@
+{
+  "sourceHead": "3ac17480579f127bfbe635861c597bb15085fdc6",
+  "node": "v24.18.0",
+  "platform": "win32",
+  "note": "R06O addendum-2 probes (reader.probe.ts, recovery.probe.ts) unchanged; settled.probe.ts is reader.probe.ts with the display routes settleAfterMs: 750 in its polling loop.",
+  "reader": {
+    "node": "v24.18.0",
+    "platform": "win32",
+    "coldStartup": {
+      "sequence": 165,
+      "ms": 2250.3
+    },
+    "warmNoWrites": {
+      "ms": [
+        49.7,
+        53.8,
+        49.3,
+        50.4,
+        56.8
+      ],
+      "fullScans": 0
+    },
+    "launchAloneMs": 1817.2,
+    "firstPollAfterLaunch": {
+      "sequence": 176,
+      "ms": 288.8,
+      "fullScans": 0
+    },
+    "launchWithPollerMs": 2755.6,
+    "polling": {
+      "polls": 3,
+      "fullScans": 0,
+      "maxMs": 2523.2,
+      "medianMs": 244.4,
+      "nonCurrent": 0,
+      "monotonic": true,
+      "finalSequence": 187,
+      "lastPolled": 187
+    },
+    "quiescentMatch": true
+  },
+  "readerDisplaySettle": {
+    "node": "v24.18.0",
+    "platform": "win32",
+    "coldStartup": {
+      "sequence": 165,
+      "ms": 2321.9
+    },
+    "warmNoWrites": {
+      "ms": [
+        60.9,
+        62.5,
+        64.1,
+        57,
+        57.3
+      ],
+      "fullScans": 0
+    },
+    "launchAloneMs": 1801.7,
+    "firstPollAfterLaunch": {
+      "sequence": 176,
+      "ms": 293.1,
+      "fullScans": 0
+    },
+    "launchWithPollerMs": 2986.3,
+    "polling": {
+      "polls": 6,
+      "fullScans": 0,
+      "maxMs": 911.3,
+      "medianMs": 837.4,
+      "nonCurrent": 0,
+      "monotonic": true,
+      "finalSequence": 187,
+      "lastPolled": 187
+    },
+    "quiescentMatch": true
+  },
+  "recovery": {
+    "mechanism": {
+      "fullScansAfterPlainTransaction": 0,
+      "fullScansAfterBlobOnly": 0
+    },
+    "afterDeletion": {
+      "checkpointSequence": 5,
+      "journalSequence": 4,
+      "freshness": "held",
+      "problem": "Checkpoint validation failed; full history was checked, admissions held until explicit recovery: Error: Checkpoint is st"
+    },
+    "operatorRecovery": {
+      "accepted": false,
+      "code": "HELD",
+      "message": "Integrity incident: the checkpoint records sequence 5 but the journal ends at 4; published history may be lost. Reconcile deliberately, never rebuild."
+    },
+    "afterRecovery": {
+      "freshness": "held",
+      "sequence": 4,
+      "deletedSequenceWas": 5
+    }
+  }
+}

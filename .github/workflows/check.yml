@@ -53,6 +53,9 @@ jobs:
           FIRSTMATE_RECEIPT_JOURNAL: "1"
           # Bounded observations for named Windows failures (test/ci-diagnostics.ts); inert when unset.
           FIRSTMATE_CI_DIAGNOSTICS: .local/ci-diagnostics
+          # S06 exports metadata-only synthetic routing/baseline evidence for this checkout.
+          FIRSTMATE_PILOT_EVIDENCE: "1"
+          FIRSTMATE_PILOT_SOURCE_HEAD: ${{ github.sha }}
       - run: npm ci --prefix docs/board-list
       - run: npx --prefix docs/board-list playwright install --with-deps chromium
       - run: node docs/needs-you/render.mjs
@@ -68,4 +71,5 @@ jobs:
             .local/s05-ui/results.json
             .local/s01/ci-tests.json
             .local/ci-diagnostics/*.json
+            .local/s06/*.json
           include-hidden-files: true
