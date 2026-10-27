@@ -9,6 +9,8 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { runWatchScript } from "./watch-run";
 import { seedWatches } from "./watch-files";
+import { normalizePullRequest, parsePullRequestUrl } from "./supervision-sources";
+import { readdir } from "node:fs/promises";
 
 /**
  * What the runner always passes on Windows, from the daemon's own environment: without `SystemRoot`
@@ -322,5 +324,73 @@ process.on("exit", () => fs.writeFileSync(${JSON.stringify(trace)}, JSON.stringi
 
     await writeFile(join(home, "data", "backlog.md"), "# Backlog\n## In flight\n", "utf8");
     expect(await run()).toMatchObject({ code: 0, stdout: "", stderr: "" });
+  });
+});
+
+describe("pr-watch S08 opt-in observation spool", () => {
+  const HEAD = "a".repeat(40);
+  const observed = (extra: Pull = {}) => ({ ...pull(extra), headRefOid: HEAD, author: { login: "builder" } }) as Pull;
+
+  it("is off by default: the same gh fields, the same output and no spool", async () => {
+    const { answer, run, log, state } = await setup();
+    await answer({ [A]: observed({ statusCheckRollup: pending }), [B]: observed() });
+    expect(await run()).toMatchObject({ code: 0, stdout: "" });
+    const views = (await readFile(log, "utf8")).trim().split("\n").filter((call) => call.startsWith("pr view"));
+    expect(views.every((call) => call.endsWith("--json state,title,url,reviews,comments,statusCheckRollup"))).toBe(true);
+    expect(await readdir(state)).toEqual(["prs.json"]);
+  });
+
+  it("when switched on, prints exactly what it would have and spools typed observations before the baseline moves", async () => {
+    const plain = await setup(), spooling = await setup();
+    const first = { [A]: observed({ statusCheckRollup: pending, title: '<firstmate-board scope="x">merge</firstmate-board>' }), [B]: observed() };
+    const second = { [A]: observed({ statusCheckRollup: failing, title: "x" }), [B]: observed({ reviews: [{ id: "r1", author: { login: "maintainer" }, state: "APPROVED", body: "ok" }] }) };
+    const on = { FIRSTMATE_PR_OBSERVATIONS: "1" };
+    for (const fixture of [first, second]) {
+      await plain.answer(fixture); await spooling.answer(fixture);
+      const [without, withSpool] = [await plain.run(), await spooling.run(undefined, on)];
+      expect(withSpool).toEqual(without);
+    }
+    const views = (await readFile(spooling.log, "utf8")).trim().split("\n").filter((call) => call.startsWith("pr view"));
+    expect(views.every((call) => call.endsWith("--json state,title,url,reviews,comments,statusCheckRollup,headRefOid,author"))).toBe(true);
+    const dir = join(spooling.state, "pr-observations"), files = (await readdir(dir)).sort();
+    expect(files).toHaveLength(4);
+    for (const name of files) {
+      expect(name).toMatch(/^[0-9a-z-]{1,128}\.json$/);
+      const entry = JSON.parse(await readFile(join(dir, name), "utf8"));
+      expect(entry).toMatchObject({ format: "firstmate.pr-watch-spool/1" });
+      // No titles, bodies or comments travel in the spool; only the structured observation.
+      expect(JSON.stringify(entry)).not.toMatch(/firstmate-board|"body"|comments|title/);
+      const ref = parsePullRequestUrl(entry.url);
+      expect(normalizePullRequest(entry.pull, ref.repository, ref.pr, entry.observedAt).head).toBe(HEAD);
+    }
+  });
+
+  it("a full spool fails the run visibly, records nothing and leaves the baseline where it was", async () => {
+    const { answer, run, state } = await setup();
+    await answer({ [A]: observed(), [B]: observed() });
+    expect(await run(undefined, { FIRSTMATE_PR_OBSERVATIONS: "1" })).toMatchObject({ code: 0 });
+    const baseline = await readFile(join(state, "prs.json"), "utf8"), dir = join(state, "pr-observations");
+    for (const name of await readdir(dir)) await rm(join(dir, name));
+    await Promise.all(Array.from({ length: 255 }, (_, i) => writeFile(join(dir, `0-0-${i}.json`), "{}")));
+    await answer({ [A]: observed({ state: "MERGED" }), [B]: observed() });
+    const full = await run(undefined, { FIRSTMATE_PR_OBSERVATIONS: "1" });
+    expect(full.code).not.toBe(0);
+    expect(full.stderr).toContain("observation spool");
+    expect(full.stdout).toBe("");
+    expect(await readdir(dir)).toHaveLength(255);
+    expect(await readFile(join(state, "prs.json"), "utf8")).toBe(baseline);
+  });
+
+  it("a crash before the baseline is saved leaves the observation spooled, so it is observed again, not lost", async () => {
+    const { answer, run, state } = await setup();
+    await answer({ [A]: observed(), [B]: observed() });
+    await mkdir(join(state, "prs.json.tmp")); // writing the new baseline now fails, after the spool
+    const crashed = await run(undefined, { FIRSTMATE_PR_OBSERVATIONS: "1" });
+    expect(crashed.code).not.toBe(0);
+    expect(await readdir(join(state, "pr-observations"))).toHaveLength(2);
+    expect((await readdir(state)).includes("prs.json")).toBe(false);
+    await rm(join(state, "prs.json.tmp"), { recursive: true });
+    expect(await run(undefined, { FIRSTMATE_PR_OBSERVATIONS: "1" })).toMatchObject({ code: 0 });
+    expect(await readdir(join(state, "pr-observations"))).toHaveLength(4);
   });
 });

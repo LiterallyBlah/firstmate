@@ -1,8 +1,10 @@
 /** Pure S02 projection checks, used at append AND replay by the S01 journal. */
 import type { SupervisionStatus, SupervisionExpected, SupervisionCode } from "../shared/supervision";
 import type { InboxAssignment, InboxEvent, InboxOffer, InboxProjection, InboxSource } from "../shared/supervision-inbox";
-import { INBOX_LIMITS } from "../shared/supervision-inbox";
+import { INBOX_LIMITS, LOCAL_SOURCE_KINDS } from "../shared/supervision-inbox";
+import type { SourceBinding } from "../shared/supervision-sources";
 import { digest } from "./submissions";
+import { pullRequestOwners } from "./supervision-source-state";
 
 export type InboxFrame = { kind: SupervisionExpected["kind"]; id: string; version: number; value: unknown };
 type Fail = (code: SupervisionCode, message: string) => never;
@@ -19,8 +21,14 @@ export function inboxProjection(frames: Map<string, InboxFrame>): InboxProjectio
     mailboxes: values("inbox-mailbox"), offers: values("inbox-offer"), requests: values("inbox-request") };
 }
 /** Historical attempts are deliberately included: reusing a session makes unbound late turns ambiguous. */
-export function eventOwners(event: InboxEvent, tasks: SupervisionStatus["tasks"], attempts: SupervisionStatus["attempts"]) {
+export function eventOwners(event: InboxEvent, tasks: SupervisionStatus["tasks"], attempts: SupervisionStatus["attempts"],
+  bindings: readonly SourceBinding[] = []) {
   const subject = event.envelope.subject;
+  // S08: a pull request subject is owned only through its explicit registry binding, never its agent text.
+  if (subject.pr !== undefined || subject.repositoryId !== undefined) {
+    const owners = pullRequestOwners(subject, tasks, attempts, bindings);
+    return owners.filter(o => (!subject.taskId || subject.taskId === o.task.id) && (!subject.planId || subject.planId === o.task.planId));
+  }
   return attempts.filter(a => a.worker?.hostId.trim().toLowerCase() === event.envelope.source.hostId &&
     a.worker.agentId === subject.agentId && (!subject.attemptId || a.id === subject.attemptId))
     .flatMap(attempt => {
@@ -44,7 +52,9 @@ export function validateInboxChange(kind: string, value: unknown, prior: unknown
   if (kind === "inbox-source") {
     const row = value as InboxSource;
     if ((row.cursor && (row.cursor.epoch !== row.epoch || (row.maxSeq ?? -1) < row.cursor.seq)) ||
-      (row.coverage === "bounded" && row.gaps.length) || (row.kind === "hook" && (row.cursor || row.maxSeq !== null || row.coverage === "bounded"))) fail("HELD", "Source cursor, epoch and claimed coverage disagree.");
+      (row.coverage === "bounded" && row.gaps.length) || (row.kind === "hook" && (row.cursor || row.maxSeq !== null || row.coverage === "bounded")) ||
+      // S08 sources have no exposed cursor: they can never claim a bounded, lossless interval.
+      (["pr", "remote", "board", "watch"].includes(row.kind) && (row.cursor || row.maxSeq !== null || row.coverage === "bounded"))) fail("HELD", "Source cursor, epoch and claimed coverage disagree.");
   }
   if (kind === "inbox-assignment" && prior) {
     const row = value as InboxAssignment, old = prior as InboxAssignment;
@@ -96,9 +106,13 @@ export function validateInbox(frames: Map<string, InboxFrame>, fail: Fail) {
   const values = <T>(kind: string) => [...frames.values()].filter(f => f.kind === kind).map(f => f.value as T);
   const get = (kind: string, id: string) => frames.get(inboxKey(kind, id))?.value;
   const sources = new Set<string>(), consequences = new Map<string, string>(), ordinals = new Set<string>(), inflight = new Set<string>();
+  // Read-only during validation: project the owner registry once, not once per assignment.
+  const registry = { tasks: values<SupervisionStatus["tasks"][number]>("task"), attempts: values<SupervisionStatus["attempts"][number]>("attempt"),
+    bindings: values<SourceBinding>("source-binding") };
   for (const event of inbox.events) {
     const source = event.envelope.source, k = digest([source.kind, source.hostId, source.key, source.epoch]);
-    if (event.id !== event.envelope.eventId || source.hostId !== "local" || sources.has(k)) fail("CONFLICT", "Duplicate or non-local source event identity.");
+    const local = LOCAL_SOURCE_KINDS.includes(source.kind), hostOk = local ? source.hostId === "local" : source.kind === "pr" ? source.hostId === "github.com" : source.hostId !== "local";
+    if (event.id !== event.envelope.eventId || !hostOk || sources.has(k)) fail("CONFLICT", "Duplicate source event identity, or a host that does not match its source kind.");
     sources.add(k);
     const blob = get("blob", event.envelope.payloadRef.slice(5)) as { bytes: number } | undefined;
     if (!/^blob:[0-9a-f]{64}$/.test(event.envelope.payloadRef) || !blob || blob.bytes > INBOX_LIMITS.payloadBytes || Buffer.byteLength(JSON.stringify(event)) > INBOX_LIMITS.payloadBytes) fail("HELD", "Ingress payload must reference committed bounded evidence.");
@@ -120,7 +134,7 @@ export function validateInbox(frames: Map<string, InboxFrame>, fail: Fail) {
     if (row.scopeId) {
       if ((get("scope", row.scopeId) as SupervisionStatus["scopes"][number] | undefined)?.mode !== "scoped") fail("UNKNOWN_OWNER", "Inbox owner is not a registered scoped owner.");
       const boundEvent = row.attemptId ? { ...event, envelope: { ...event.envelope, subject: { ...event.envelope.subject, attemptId: row.attemptId } } } : event;
-      const owners = eventOwners(boundEvent, values("task"), values("attempt"));
+      const owners = eventOwners(boundEvent, registry.tasks, registry.attempts, registry.bindings);
       if (!row.attemptId || (event.envelope.subject.attemptId && event.envelope.subject.attemptId !== row.attemptId) || owners.length !== 1 || owners[0]!.scopeId !== row.scopeId) fail("UNKNOWN_OWNER", "Event assignment requires an exact unambiguous registered attempt.");
     } else if (!["received", "quarantined", "superseded"].includes(row.state) || row.ordinal !== null) fail("UNKNOWN_OWNER", "Unknown ownership stays in triage.");
     if (row.ordinal !== null) {

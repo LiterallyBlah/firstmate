@@ -25,6 +25,7 @@ import { writeTextFile } from "./files";
 import { acceptPolicyInventory, currentPolicyVector, policyRef } from "./supervision-policy";
 import { SUPERVISION_INDEX_LIMITS, SupervisionStore } from "./supervision-store";
 import { hasScopedWorker } from "./supervision-status";
+import { isScopedSourceWorker } from "./supervision-sources";
 import { workflowSnapshot } from "./workflow-board";
 import { watchItem, WatchRunner, type QueuedNote } from "./watches";
 import { LegacyCutoverError, planSubjectHash, type WorkflowPlanStore } from "./workflow-plans";
@@ -534,6 +535,7 @@ it("B5/M1: a running legacy worker holds completion until accounted; afterwards 
   await migrator.barrier(input.migrationId); await migrator.commit(input.migrationId);
   const status = await store.read();
   expect(hasScopedWorker(status, "worker-trial")).toBe(true);
+  expect(isScopedSourceWorker(status, "local", "worker-trial")).toBe(true); // S08 source guard (M1).
   expect(status.attempts[0]!).toMatchObject({ worker: { agentId: "worker-trial", workspaceId: "ws-trial" }, originalNotificationOwner: GENERAL, importedFrom: { legacyAttempt: attempt } });
   expect(await cutoverGate(home).verdict({ source: "burst", id: "crew:worker-trial", payloadHash: "x", agentKey: "worker-trial" }, "send")).toMatchObject({ admit: false, stage: "committed" });
   const final = await migrator.report("scheduler"); // The approve action still awaits its scoped owner; no worker callback remains open.
