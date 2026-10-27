@@ -54,7 +54,7 @@ export const ScopedDecisionSchema = z.object({
 }).strict();
 export const ScopedOutboxSchema = z.object({
   id: SupervisionUuid, version, ownerScopeId: SupervisionUuid, planId: PlanId,
-  kind: z.enum(["plan.command", "decision.answer", "policy.hold"]), causationId: SupervisionUuid,
+  kind: z.enum(["plan.command", "decision.answer", "policy.hold", "legacy.fact"]), causationId: SupervisionUuid,
   subjectHash: SupervisionHash, decisionId: SupervisionUuid.nullable(), at: SupervisionUtc,
   state: z.enum(["pending", "handled"]), handledEpoch: version.nullable(), resultRef: label.nullable(),
 }).strict();

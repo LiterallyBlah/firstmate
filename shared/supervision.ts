@@ -3,6 +3,7 @@ import { z } from "zod";
 import { PlanId, type WorkflowPlan } from "./workflow-plans";
 import type { InboxProjection } from "./supervision-inbox";
 import type { Continuation } from "./supervision-continuation";
+import type { LegacyDeliveryDisposition, MigrationReceipt } from "./supervision-migration";
 import type { AcceptedScopedCommand, OperationHold, PolicyApproval, PolicyEvidence, PolicyRule, PolicySource, ScopedDecision, ScopedOutbox } from "./supervision-policy";
 
 export const SupervisionHash = z.string().length(64).regex(/^[0-9a-f]{64}$/);
@@ -96,14 +97,15 @@ export const SupervisionAttemptSchema = z.object({
   originalNotificationOwner: text().nullable(), notificationStatus: z.enum(["known", "reported", "unknown"]),
   spentAgents: count, spentTurns: count, state: text(), evidenceIds: unique(SupervisionUuid, 256), version: positive,
 }).strict();
-/** No backend switch is implemented in S01. Prepared/held always denies both writers. */
+/** Prepared/held always denies both writers. The only prepared -> active move is S07's committed migration. */
 export const SupervisionBackendSchema = z.object({
   planId: PlanId, ownerScopeId: SupervisionUuid, backend: z.enum(["legacy", "scoped"]),
   state: z.enum(["active", "prepared", "held", "retired"]), sourceHash: SupervisionHash.nullable(), version: positive,
 }).strict();
 export const SupervisionRowKind = z.enum(["scope", "binding", "task", "attempt", "effect", "backend", "workflow", "retirement", "blob",
   "inbox-event", "inbox-assignment", "inbox-source", "inbox-mailbox", "inbox-offer", "inbox-request",
-  "policy-source", "policy-rule", "policy-evidence", "approval", "decision", "outbox", "operation-hold", "command", "continuation"]);
+  "policy-source", "policy-rule", "policy-evidence", "approval", "decision", "outbox", "operation-hold", "command", "continuation",
+  "migration", "delivery-disposition"]);
 export const SupervisionExpectedSchema = z.object({ kind: SupervisionRowKind, id: text(1024), version: count }).strict();
 export const SupervisionActorSchema = z.object({
   kind: z.enum(["captain-ui", "mate-chat", "agent", "system"]), id: text(), source: text(1024),
@@ -143,6 +145,8 @@ export interface SupervisionStatus {
   plans: { scopeId: string; plan: WorkflowPlan }[];
   /** S04 unfinished-goal assessments; absent rows are derived as due, never as finished. */
   continuations: Continuation[];
+  /** S07 cutover receipts and their legacy delivery inventory. Absent on fixtures that predate S07. */
+  migrations?: MigrationReceipt[]; dispositions?: LegacyDeliveryDisposition[];
   retirements: { scopeId: string; plan: string; evidence: string; hash: string }[];
   retainedOwnership: SupervisionOwnership[];
   inbox: InboxProjection;

@@ -132,10 +132,23 @@ the store's append handler. Active/held plans remain browsable with decision and
 an open review form disappears if review ends. The status guard follows request-id replay and
 revision/subject checks, and never runs during ledger replay, preserving previously accepted history.
 
+S07 history import and single-writer cutover (`docs/scoped-supervision/S07.md`) is disabled and
+unwired. `server/supervision-gate.ts` is the one cutover gate for every plugin-owned legacy delivery:
+`queuePlanNotes`, `queueMateNote`, burst queue/extend, `flushMateNotes`, decision-answer send, watch
+enqueue/flush and the watch-runtime note all check it before touching a queue, and every armed send
+persists a claim before the network call and its result before removal. Unarmed it writes nothing.
+`server/supervision-migrate.ts` freezes one plan under the gate and the legacy writer's lock, imports
+its chain byte-for-byte with one disposition per affected delivery, commits transfer mappings before
+compare-by-ID/payload removal, and activates the scoped backend only after barrier and committed
+sidecars. Holds (decision answers, opaque watch rows) never resend; they move only by explicit
+evidence. Legacy `.scoped/<plan>/` sidecars refuse the old writer; a committed scoped backend refuses
+it too. Keep every new legacy delivery path behind this gate.
+
 | File                          | What it owns                                                                              |
 | ----------------------------- | ----------------------------------------------------------------------------------------- |
 | `index.server.ts`             | Wiring — the RPCs, the display settings document, the steer relay hook.                    |
 | `index.client.tsx`            | Wiring — the screen, sidebar item, two panels, settings screen, ⌘K items, `/fm` `/bearings` `/ahoy`. |
+| `shared/supervision-migration.ts`, `server/supervision-gate.ts`, `server/supervision-migrate.ts` | S07: migration/disposition records, the legacy delivery cutover gate, and the disabled per-scope importer. |
 | `shared/fleet.ts`             | Every RPC contract, the card/fleet shapes, the daemon config shape, and `CREW_LABELS`.     |
 | `shared/settings.ts`          | The host settings document: List/Board, column order and folds, the chat's width, the poll interval, card spacing. |
 | `templates/`                  | **Every file the plugin writes into the home**, as Markdown laid out as it lands there, and the parts that go inside them. The first mate's behaviour is `templates/data/charter.md`. |

@@ -16,6 +16,8 @@ import type { ScopedPlanCommand, SupervisionCommands } from "./supervision-comma
 import type { SupervisionActor } from "../shared/supervision";
 import { SupervisionStore } from "./supervision-store";
 import { legacyRoute } from "./supervision-routing";
+import { CutoverRefusal, cutoverGate, legacyWorkflowRoot } from "./supervision-gate";
+import { LegacyCutoverError } from "./workflow-plans";
 
 /** Separate, disabled-by-default cooperative command class. Legacy file requests stay legacy. */
 export function executeScopedWorkflow(commands: SupervisionCommands, input: ScopedPlanCommand, actor: SupervisionActor) {
@@ -24,24 +26,36 @@ export function executeScopedWorkflow(commands: SupervisionCommands, input: Scop
 }
 
 export const WorkflowRequestSchema = z.object({ id: z.uuid(), actor: z.string().min(1), command: WorkflowCommandSchema }).strict();
-export function workflowStore(home: string) { return new WorkflowPlanStore(join(pluginDir(), "workflow-plans", digest(process.platform === "win32" ? resolve(home).toLowerCase() : resolve(home))), home,
+export function workflowStore(home: string) { return new WorkflowPlanStore(legacyWorkflowRoot(home), home,
   command => legacyRoute(new SupervisionStore(pluginDir(), home), command)); }
 export async function authorizeWorkflowActor(home: string, actor: string): Promise<void> {
   const live = await readFirstmateConfig();
   if (!live.mateAgentId || live.mateAgentId !== actor || resolveHome(live) !== home || live.migration || live.mateLaunch) throw new Error("Current first-mate role required.");
 }
+/** Legacy plan-note producer. Insertion passes the S07 cutover gate BEFORE the queue changes, not only
+ * at the later `notified` append: a frozen or migrated plan's actions never reach the global mate.
+ * One plan's refusal never stops the others.
+ */
 export async function queuePlanNotes(home: string): Promise<void> {
-  const store = workflowStore(home);
+  const store = workflowStore(home), gate = cutoverGate(home);
   for (const plan of await store.list()) for (const action of plan.captainEvents ?? []) {
-    if (action.notified) continue;
+    // A cutover owns this plan's actions; skip it quietly rather than refusing it every second.
+    if (action.notified || await store.cutover(plan.definition.id).catch(() => "damaged")) continue;
     const id = `firstmate-plan-${action.id}`;
     const text = await message(TEMPLATES.workflowNote, { action: JSON.stringify({ plan: plan.definition.id, ...action }).replace(/</g, "\\u003c") });
-    await serialized("firstmate.mate.notes", async () => {
-      const config = await readFirstmateConfig();
-      if (resolveHome(config) !== home) throw new Error("Home changed while queuing a plan note.");
-      if (!config.mateNotes.some(n => n.id === id)) await updateFirstmateConfig({ mateNotes: [...config.mateNotes, { id, text }] });
-    });
-    await store.execute({ op: "notified", plan: plan.definition.id, eventId: action.id }, randomUUID(), "plugin:outbox");
+    try {
+      await gate.enqueue({ source: "plan-note", id, payloadHash: digest({ id, text }), plan: plan.definition.id, actionId: action.id }, () =>
+        serialized("firstmate.mate.notes", async () => {
+          const config = await readFirstmateConfig();
+          if (resolveHome(config) !== home) throw new Error("Home changed while queuing a plan note.");
+          if (!config.mateNotes.some(n => n.id === id)) await updateFirstmateConfig({ mateNotes: [...config.mateNotes, { id, text }] });
+        }));
+      await store.execute({ op: "notified", plan: plan.definition.id, eventId: action.id }, randomUUID(), "plugin:outbox");
+    } catch (error) {
+      // The gate (or the legacy writer's own cutover check) owns this plan now; skip only it.
+      if (error instanceof CutoverRefusal || error instanceof LegacyCutoverError) break;
+      throw error;
+    }
   }
 }
 /** Optional transport guard for direct fixture stores; workflowStore already guards all mutations. */

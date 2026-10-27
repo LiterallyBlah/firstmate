@@ -151,6 +151,9 @@ export async function writeTextFile(
 ): Promise<{ path: string; size: number; modifiedMs: number }> {
   const { absolute, relative: rel } = await resolveInHome(home, input.path);
   if (rel === "") throw new Error("The home itself is not a file.");
+  // S07: a scoped plan's Markdown export is a projection of its journal, never an authority to edit.
+  if (/^data\/scoped\/(?!proposals\/)/.test(rel.replace(/\\/g, "/")))
+    throw new Error("This is a scoped plan's projection; the plan's journal is its authority. Save your change under data/scoped/proposals/ as a proposal for its supervisor.");
   return serialized(absolute, async () => {
     await observedWrite({ absolute, path: rel }, originOf(hooks),
       () => stageAndReplace(absolute, input.content, (current) => checkVersion(rel, current, input), hooks), { after: input.content });

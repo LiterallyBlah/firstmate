@@ -21,6 +21,8 @@ import { receiptJournal, recordGeneration, sha256 } from "./receipts";
 import { observedSend, sendWithoutInterrupting } from "./send";
 import { writeUpload } from "./uploads";
 import { serialized } from "./serialize";
+import { cutoverGate, type GateItem } from "./supervision-gate";
+import { digest } from "./submissions";
 import { SUPERVISOR_ROLE } from "../shared/supervision-effects";
 
 export const MATE_TITLE = "First mate";
@@ -309,10 +311,11 @@ export async function queueMateNote(
   receipt?: { source: "steer-relay" | "remote-steer"; relates: readonly string[] },
 ): Promise<void> {
   const id = `firstmate-note-${randomUUID()}`;
-  await serialized("firstmate.mate.notes", async () => {
-    const config = await readFirstmateConfig();
-    await updateFirstmateConfig({ mateNotes: [...config.mateNotes, { id, text }] });
-  });
+  await cutoverGate(resolveHome(await readFirstmateConfig())).enqueue({ source: "mate-note", id, payloadHash: digest({ id, text }), text }, () =>
+    serialized("firstmate.mate.notes", async () => {
+      const config = await readFirstmateConfig();
+      await updateFirstmateConfig({ mateNotes: [...config.mateNotes, { id, text }] });
+    }));
   if (receipt !== undefined) recordNoteQueued(id, receipt.source, text, receipt.relates);
   await flushMateNotes(paseo).catch((error: unknown) => console.error("[firstmate] crew note queued for retry:", error));
 }
@@ -348,7 +351,9 @@ export async function queueBurstNote(
   receipt: { source: "steer-relay" | "remote-steer"; relates: readonly string[] },
   now: () => number = Date.now,
 ): Promise<void> {
-  const queued = await serialized("firstmate.mate.notes", async () => {
+  // A burst for a worker whose plan is frozen or migrated is refused (and accounted) before any merge.
+  const gate = cutoverGate(resolveHome(await readFirstmateConfig()));
+  const queued = await gate.enqueue({ source: "burst", id: `burst:${burst.key}`, payloadHash: digest(burst.part), agentKey: burst.key }, () => serialized("firstmate.mate.notes", async () => {
     const config = await readFirstmateConfig();
     const at = now();
     const open = config.mateNotes.find((note) => note.burst?.key === burst.key && holding(note, at));
@@ -371,7 +376,7 @@ export async function queueBurstNote(
     };
     await updateFirstmateConfig({ mateNotes: [...config.mateNotes, note] });
     return { id: note.id, text: note.text, relates: [...receipt.relates] };
-  });
+  }));
   // A merge records the note again under the same id, with the whole burst's text and relates: the latest wins.
   recordNoteQueued(queued.id, receipt.source, queued.text, queued.relates);
   await flushMateNotes(paseo).catch((error: unknown) => console.error("[firstmate] crew note queued for retry:", error));
@@ -382,7 +387,10 @@ export async function queueBurstNote(
  * from now, so the answer to this steer joins it rather than following it in a note of its own.
  */
 export async function extendBurstNote(key: string, now: () => number = Date.now): Promise<void> {
-  await serialized("firstmate.mate.notes", async () => {
+  const gate = cutoverGate(resolveHome(await readFirstmateConfig()));
+  // An extension changes a queued payload: a frozen scope's burst keeps exactly what its cutover captured.
+  await gate.run(async () => (await gate.verdict({ source: "burst", id: `burst:${key}`, payloadHash: digest(key), agentKey: key }, "enqueue")).admit &&
+    serialized("firstmate.mate.notes", async () => {
     const config = await readFirstmateConfig();
     const at = now();
     const open = config.mateNotes.find((note) => note.burst?.key === key && holding(note, at));
@@ -390,7 +398,16 @@ export async function extendBurstNote(key: string, now: () => number = Date.now)
     const burst = { ...open.burst, holdUntil: holdUntil(open.burst.startedAt, at) };
     if (burst.holdUntil === open.burst.holdUntil) return;
     await updateFirstmateConfig({ mateNotes: config.mateNotes.map((note) => (note.id === open.id ? { ...open, burst } : note)) });
-  });
+  }));
+}
+
+/** What the cutover gate knows of a queued note: its exact identity and persisted payload. */
+export function noteItem(note: MateNote): GateItem {
+  const payloadHash = digest(note);
+  const plan = /^firstmate-plan-([0-9a-f-]{36})$/.exec(note.id);
+  if (plan) return { source: "plan-note", id: note.id, payloadHash, actionId: plan[1]! };
+  if (note.burst) return { source: "burst", id: note.id, payloadHash, agentKey: note.burst.key };
+  return { source: note.id.startsWith("firstmate-watch-runtime-") ? "watch-runtime" : "mate-note", id: note.id, payloadHash, text: note.text };
 }
 
 export function flushMateNotes(paseo: PaseoApi, now: () => number = Date.now): Promise<void> {
@@ -398,15 +415,33 @@ export function flushMateNotes(paseo: PaseoApi, now: () => number = Date.now): P
     const config = await readFirstmateConfig();
     if (config.migration !== null || config.mateLaunch !== null) return;
     // Notes still gathering a burst wait; the 15-second note timer comes back for them.
-    const note = config.mateNotes.find((entry) => !holding(entry, now()));
-    if (note === undefined) return;
+    const ready = config.mateNotes.filter((entry) => !holding(entry, now()));
+    if (ready.length === 0) return;
     const { agent } = await resolveMate(paseo, config);
     if (agent === null || isMidTurn(agent)) return;
+    // The cutover gate admits the first note whose scope still belongs to this first mate, and claims it
+    // durably before the send. A frozen or migrated scope's notes stay put; unrelated notes still go.
+    const gate = cutoverGate(resolveHome(config));
+    const { admitted, claim } = await gate.claim(ready.map(noteItem), agent.id, async (items) => {
+      const latest = await readFirstmateConfig();
+      const present = items.find((item) => latest.mateNotes.some((entry) => entry.id === item.id && digest(entry) === item.payloadHash));
+      return present ? [present] : [];
+    });
+    const note = admitted[0] && config.mateNotes.find((entry) => entry.id === admitted[0]!.id);
+    if (!note) return;
     // One note per idle turn: a second send may replace the first on providers without steer.
-    await sendWithoutInterrupting(paseo, agent.id, note.text, { messageId: note.id }, { channel: "mate-note", actor: "plugin", mateRecipient: true });
+    try {
+      await sendWithoutInterrupting(paseo, agent.id, note.text, { messageId: note.id }, { channel: "mate-note", actor: "plugin", mateRecipient: true });
+    } catch (error) {
+      // No conclusive receipt: never proof the note did not arrive.
+      await gate.settle(claim, "uncertain", String(error));
+      throw error;
+    }
+    await gate.settle(claim, "accepted");
+    // Accepted is recorded before removal; removal compares id and payload, so a changed note stays.
     await serialized("firstmate.mate.notes", async () => {
       const latest = await readFirstmateConfig();
-      await updateFirstmateConfig({ mateNotes: latest.mateNotes.filter((entry) => entry.id !== note.id) });
+      await updateFirstmateConfig({ mateNotes: latest.mateNotes.filter((entry) => !(entry.id === note.id && digest(entry) === digest(note))) });
     });
   });
 }

@@ -26,6 +26,7 @@ import { AcceptedScopedCommandSchema, OperationHoldSchema, PolicyApprovalSchema,
   PolicySourceSchema, ScopedDecisionSchema, ScopedOutboxSchema, ScopedCommandResultSchema,
   type ScopedCommandResult } from "../shared/supervision-policy";
 import { ContinuationSchema, type Continuation } from "../shared/supervision-continuation";
+import { LegacyDeliveryDispositionSchema, MigrationReceiptSchema, type LegacyDeliveryDisposition, type MigrationReceipt } from "../shared/supervision-migration";
 
 const number = z.number().int().min(0).max(Number.MAX_SAFE_INTEGER), positive = number.min(1);
 const BlobSchema = z.object({ id: SupervisionHash, bytes: number }).strict();
@@ -56,8 +57,15 @@ export const SupervisionMutationSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("workflow"), scopeId: SupervisionUuid,
     event: z.custom<z.infer<typeof WorkflowEventSchema>>(value => WorkflowEventSchema.safeParse(value).success) }).strict(),
   z.object({ kind: z.literal("retirement"), scopeId: SupervisionUuid, receipt: RetirementSchema }).strict(),
+  // S07: one checked import of an original legacy chain, byte-exact, beside its migration receipt.
+  z.object({ kind: z.literal("workflow-import"), scopeId: SupervisionUuid, migrationId: SupervisionUuid,
+    events: z.array(z.custom<z.infer<typeof WorkflowEventSchema>>(value => WorkflowEventSchema.safeParse(value).success)).min(1).max(5000) }).strict(),
+  z.object({ kind: z.literal("migration"), value: MigrationReceiptSchema }).strict(),
+  z.object({ kind: z.literal("delivery-disposition"), value: LegacyDeliveryDispositionSchema }).strict(),
 ]);
-export type SupervisionMutation = z.infer<typeof SupervisionMutationSchema>;
+/** Every journal mutation. The S07 import is migrator-only; ordinary callers use `SupervisionMutation`. */
+export type StoreMutation = z.infer<typeof SupervisionMutationSchema>;
+export type SupervisionMutation = Exclude<StoreMutation, { kind: "workflow-import" }>;
 const BodySchema = z.object({ actor: SupervisionActorSchema,
   expectedVersions: z.array(SupervisionExpectedSchema).min(1).max(256), mutations: z.array(SupervisionMutationSchema).min(1).max(256) }).strict();
 const CoordinatorSchema = z.object({ format: z.literal("firstmate.supervision-coordinator/1"), homeId: z.string(),
@@ -127,7 +135,7 @@ export class SupervisionError extends Error {
   constructor(readonly code: SupervisionCode, message: string) { super(message); }
 }
 function fail(code: SupervisionCode, message: string): never { throw new SupervisionError(code, message); }
-function checkInboxRequest(mutations: SupervisionMutation[], requestId: string) {
+function checkInboxRequest(mutations: StoreMutation[], requestId: string) {
   if (mutations.some(m => m.kind === "inbox-request" && m.value.id !== requestId)) fail("CONFLICT", "Inbox replay marker must name its publishing transaction's request ID.");
 }
 const key = (kind: string, id: string) => JSON.stringify([kind, id]);
@@ -157,8 +165,9 @@ async function storageBytes(directory: string, names: string[]): Promise<number>
   return sizes.reduce((sum, size) => sum + size, 0);
 }
 const rawDigest = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
-function mutationTarget(mutation: SupervisionMutation): [Frame["kind"], string] {
+function mutationTarget(mutation: StoreMutation): [Frame["kind"], string] {
   if (mutation.kind === "workflow") return [mutation.kind, mutation.event.plan];
+  if (mutation.kind === "workflow-import") return ["workflow", mutation.events[0]!.plan];
   if (mutation.kind === "retirement") return [mutation.kind, mutation.receipt.plan];
   if (mutation.kind === "binding") return [mutation.kind, mutation.value.scopeId];
   if (mutation.kind === "backend") return [mutation.kind, mutation.value.planId];
@@ -181,6 +190,38 @@ function ownershipDigest(value: z.infer<typeof OwnershipSchema>): string {
   return saved;
 }
 const frameDigest = (frames: Map<string, Frame>) => digest([...frames.entries()].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0));
+
+/** The immutable part of a disposition; the migration's inventory hash binds exactly these. */
+export function dispositionIdentity(d: LegacyDeliveryDisposition) {
+  return { id: d.id, source: d.source, original: d.original, payloadHash: d.payloadHash, resolution: d.resolution,
+    imperative: d.imperative, sourceTip: d.sourceTip, observed: d.observed, delivery: d.delivery, claimId: d.claimId };
+}
+export const inventoryHash = (rows: LegacyDeliveryDisposition[]) => digest(rows.map(dispositionIdentity));
+function checkMigrationChange(next: MigrationReceipt, old: MigrationReceipt | undefined): void {
+  if (!old) { if (next.state !== "prepared" || next.version !== 1) fail("CONFLICT", "A migration starts prepared."); return; }
+  const fixed = (m: MigrationReceipt) => ({ ...m, version: 0, state: null, inventory: null, sidecars: { freeze: m.sidecars.freeze } });
+  const order = ["prepared", "barrier", "committed"];
+  if (digest(fixed(old)) !== digest(fixed(next)) || order.indexOf(next.state) < order.indexOf(old.state) || old.state === "committed" ||
+    (old.state !== "prepared" && digest(old.inventory) !== digest(next.inventory)) || (old.sidecars.prepared && old.sidecars.prepared !== next.sidecars.prepared) ||
+    old.inventory.dispositionIds.some(id => !next.inventory.dispositionIds.includes(id)))
+    fail("HELD", "Migration identity, source, imported index and inventory are immutable; cutover only moves forward.");
+}
+function checkDispositionChange(next: LegacyDeliveryDisposition, old: LegacyDeliveryDisposition | undefined): void {
+  if (!old) { if (next.version !== 1 || next.resolvedBy || next.receipts.ack) fail("CONFLICT", "A disposition starts unresolved and unacknowledged."); return; }
+  const removalOrder = ["pending", "mismatch", "removed", "absent", "drained", "not-queued"];
+  if (digest(dispositionIdentity(old)) !== digest(dispositionIdentity(next)) || old.migrationId !== next.migrationId ||
+    old.scopeId !== next.scopeId || old.planId !== next.planId || digest(old.destination?.consequenceId ?? null) !== digest(next.destination?.consequenceId ?? null) ||
+    (old.destination?.outboxId && old.destination.outboxId !== next.destination?.outboxId) ||
+    (Object.keys(old.receipts) as (keyof typeof old.receipts)[]).some(k => old.receipts[k] !== null && old.receipts[k] !== next.receipts[k]) ||
+    (!["pending", "mismatch"].includes(old.removal.state) && digest(old.removal) !== digest(next.removal)) ||
+    removalOrder.indexOf(next.removal.state) < removalOrder.indexOf(old.removal.state)) fail("HELD", "Disposition identity, delivery history and receipts are retained.");
+  if (old.route !== next.route) {
+    // Only an explicit, evidence-bound resolution moves a hold; a removal mismatch may only become a hold.
+    const resolved = old.route === "hold" && ["drain-legacy", "already-handled"].includes(next.route) && next.resolvedBy?.previousRoute === "hold";
+    const mismatched = next.route === "hold" && next.removal.state === "mismatch";
+    if (!resolved && !mismatched) fail("HELD", "A disposition route changes only by explicit evidence-bound resolution; uncertain imperatives are never replayed.");
+  } else if (digest(old.resolvedBy) !== digest(next.resolvedBy)) fail("HELD", "A resolution is immutable.");
+}
 
 export class SupervisionStore {
   readonly homeId: string;
@@ -332,10 +373,24 @@ export class SupervisionStore {
         if (next.has(key("retirement", id))) fail("HELD", "Retired plan identity and reservations cannot be reused.");
         const old = prior?.value as WorkflowRow | undefined;
         if (old && old.scopeId !== mutation.scopeId) fail("UNSUPPORTED", "Workflow transfer requires a checked migration.");
+        const imported = (old as { migrationId?: string } | undefined)?.migrationId;
+        const migration = imported ? next.get(key("migration", imported))?.value as MigrationReceipt | undefined : undefined;
+        if (migration && migration.state !== "committed") fail("HELD", "This plan is in a partial cutover; neither backend may write until it commits.");
         if (old?.requests.some(r => r.requestId === mutation.event.requestId)) fail("CONFLICT", "Workflow request already committed; use its original transaction receipt.");
         const plan = replaySupervisionWorkflow(old?.plan ?? null, mutation.event, this.homeId);
         value = { scopeId: mutation.scopeId, plan, inventory: mergeOwnership([...(old ? [old.inventory] : []), planOwnership(plan)]),
+          ...(imported ? { migrationId: imported } : {}),
           requests: [...(old?.requests ?? []), { requestId: mutation.event.requestId, requestHash: mutation.event.requestHash, eventHash: mutation.event.hash }] };
+      } else if (mutation.kind === "workflow-import") {
+        if (prior || next.has(key("retirement", id))) fail("HELD", "An imported plan identity must be new to this journal and unretired.");
+        let plan: WorkflowPlan | null = null, inventory: WorkflowOwnership | null = null;
+        for (const event of mutation.events) {
+          if (event.plan !== id) fail("CONFLICT", "One import carries exactly one plan chain.");
+          plan = replaySupervisionWorkflow(plan, event, this.homeId);
+          inventory = mergeOwnership([...(inventory ? [inventory] : []), planOwnership(plan)]);
+        }
+        value = { scopeId: mutation.scopeId, plan, inventory, migrationId: mutation.migrationId,
+          requests: mutation.events.map(e => ({ requestId: e.requestId, requestHash: e.requestHash, eventHash: e.hash })) };
       } else if (mutation.kind === "retirement") {
         const receipt = mutation.receipt, { hash, ...rest } = receipt;
         if (prior || workflowHomeIdentity(receipt.home) !== this.homeId || digest(rest) !== hash) fail("HELD", "Invalid/reused retirement receipt.");
@@ -381,9 +436,17 @@ export class SupervisionStore {
         if (mutation.kind === "backend") {
           if (next.has(key("retirement", id)) && mutation.value.state !== "retired") fail("HELD", "Retired plan backend cannot reactivate.");
           if (old && (old.backend !== mutation.value.backend || old.sourceHash !== mutation.value.sourceHash || old.ownerScopeId !== mutation.value.ownerScopeId)) fail("UNSUPPORTED", "Backend cutover/source replacement requires the S07 protocol.");
-          if (old && ((["prepared", "held", "retired"].includes(String(old.state)) && mutation.value.state === "active") ||
+          // The single forward exception: a migrated backend activates in its own committed cutover transaction.
+          const activating = old?.state === "prepared" && mutation.value.state === "active" && body.mutations.some(m => m.kind === "migration" &&
+            m.value.planId === id && m.value.state === "committed" && (frames.get(key("migration", m.value.id))?.value as MigrationReceipt | undefined)?.state === "barrier");
+          // A migrated backend never returns to its cutover barrier: rollback is forward (hold or higher-epoch transfer).
+          if (old && old.state !== "prepared" && mutation.value.state === "prepared" && (next.get(key("workflow", id))?.value as { migrationId?: string } | undefined)?.migrationId)
+            fail("HELD", "A migrated backend never returns to prepared; forward recovery holds it or transfers at a higher epoch.");
+          if (old && !activating && ((["prepared", "held", "retired"].includes(String(old.state)) && mutation.value.state === "active") ||
             (old.state === "retired" && mutation.value.state !== "retired"))) fail("HELD", "A held backend requires checked forward recovery, not rollback.");
         }
+        if (mutation.kind === "migration") checkMigrationChange(mutation.value, old as MigrationReceipt | undefined);
+        if (mutation.kind === "delivery-disposition") checkDispositionChange(mutation.value, old as LegacyDeliveryDisposition | undefined);
         if (mutation.kind === "blob" && prior) fail("CONFLICT", "Evidence references are immutable.");
         if (["command", "approval"].includes(mutation.kind) && prior) fail("CONFLICT", "Accepted commands and approvals are immutable.");
         if (mutation.kind === "continuation" && old) {
@@ -408,6 +471,7 @@ export class SupervisionStore {
       }
       next.set(k, { kind, id, version, value }); changes.push({ kind, id, version });
     }
+    this.validateMigrations(frames, next, body.mutations);
     this.validateIndexes(next);
     validateInbox(next, fail);
     for (const mutation of body.mutations) if (mutation.kind === "inbox-assignment" && mutation.value.scopeId) {
@@ -433,6 +497,48 @@ export class SupervisionStore {
       }
     }
     return { frames: next, changes };
+  }
+  /** S07 cutover invariants, checked again on every replay: one backend authority per plan. */
+  private validateMigrations(previous: Map<string, Frame>, frames: Map<string, Frame>, mutations: StoreMutation[]): void {
+    const get = (kind: Frame["kind"], id: string) => frames.get(key(kind, id))?.value;
+    for (const mutation of mutations) {
+      if (mutation.kind === "workflow-import") {
+        const row = get("workflow", mutation.events[0]!.plan) as WorkflowRow & { migrationId: string };
+        const migration = get("migration", mutation.migrationId) as MigrationReceipt | undefined;
+        if (!migration || migration.planId !== row.plan.definition.id || migration.scopeId !== mutation.scopeId || migration.state !== "prepared" ||
+          !mutations.some(m => m.kind === "migration" && m.value.id === mutation.migrationId && m.value.version === 1) ||
+          digest(row.requests) !== digest(migration.imported.requests) || row.plan.hash !== migration.source.tip.hash)
+          fail("CONFLICT", "An import commits with its own new prepared migration receipt, request index and source tip.");
+      }
+      if (mutation.kind === "migration") {
+        const m = mutation.value, backend = get("backend", m.planId) as z.infer<typeof SupervisionBackendSchema> | undefined;
+        const row = get("workflow", m.planId) as (WorkflowRow & { migrationId?: string }) | undefined;
+        if (m.homeId !== this.homeId || !backend || backend.backend !== "scoped" || backend.ownerScopeId !== m.scopeId || backend.sourceHash !== m.source.sourceHash ||
+          row?.migrationId !== m.id || digest(m.imported.requests) !== m.imported.indexHash) fail("CONFLICT", "Migration receipt, backend, source and imported index must agree.");
+        if ((m.state === "committed") !== (backend.state === "active") || (m.state !== "committed" && backend.state !== "prepared"))
+          fail("HELD", "The scoped backend activates only with a committed cutover; before that both writers stay held.");
+        const rows = m.inventory.dispositionIds.map(id => get("delivery-disposition", id) as LegacyDeliveryDisposition | undefined);
+        if (rows.some(d => !d || d.migrationId !== m.id || d.planId !== m.planId || d.scopeId !== m.scopeId) ||
+          inventoryHash(rows as LegacyDeliveryDisposition[]) !== m.inventory.hash) fail("CONFLICT", "Delivery inventory hash does not match its dispositions.");
+        if (m.state !== "prepared") {
+          if (!m.sidecars.prepared) fail("HELD", "The barrier follows a verified prepared sidecar.");
+          for (const d of rows as LegacyDeliveryDisposition[]) if (d.route === "hold" || ["pending", "mismatch"].includes(d.removal.state) ||
+            (d.route === "transfer-fact" && !(d.destination?.outboxId && get("outbox", d.destination.outboxId))))
+            fail("HELD", `Delivery ${d.id} is not accounted; the cutover stays held.`);
+        }
+        if (m.state === "committed" && !m.sidecars.committed) fail("HELD", "Activation follows the committed compatibility sidecar.");
+      }
+      if (mutation.kind === "delivery-disposition") {
+        const m = get("migration", mutation.value.migrationId) as MigrationReceipt | undefined;
+        if (!m || !m.inventory.dispositionIds.includes(mutation.value.id)) fail("CONFLICT", "A disposition belongs to its migration inventory.");
+        // After the barrier, only the current owner's receipt for a transferred fact may still be recorded.
+        const before = previous.get(key("delivery-disposition", mutation.value.id))?.value as LegacyDeliveryDisposition | undefined;
+        const beforeMigration = previous.get(key("migration", m.id))?.value as MigrationReceipt | undefined;
+        if (beforeMigration && beforeMigration.state !== "prepared" && (!before || mutation.value.route !== "transfer-fact" ||
+          digest({ ...before, version: 0, receipts: { ...before.receipts, ack: null } }) !== digest({ ...mutation.value, version: 0, receipts: { ...mutation.value.receipts, ack: null } })))
+          fail("HELD", "An accounted inventory only records current-owner receipts.");
+      }
+    }
   }
   private validateIndexes(frames: Map<string, Frame>): void {
     const get = (kind: Frame["kind"], id: string) => frames.get(key(kind, id))?.value;
@@ -672,6 +778,9 @@ export class SupervisionStore {
       requests.set(transaction.requestId, transaction);
       for (const mutation of transaction.body.mutations) if (mutation.kind === "workflow") workflowRequests.set(key(mutation.event.plan, mutation.event.requestId),
         { requestHash: mutation.event.requestHash, eventHash: mutation.event.hash, transaction });
+        // An imported original request replays its original identity under the import's receipt.
+        else if (mutation.kind === "workflow-import") for (const event of mutation.events)
+          workflowRequests.set(key(event.plan, event.requestId), { requestHash: event.requestHash, eventHash: event.hash, transaction });
     }
     this.cached = { scan: snapshot, checkpoint, directories, blobs, requests, workflowRequests };
     return snapshot;
@@ -822,7 +931,7 @@ export class SupervisionStore {
   private accepted(snapshot: Scan, requestId: string): Transaction | undefined {
     return this.cached?.scan === snapshot ? this.cached.requests.get(requestId) : snapshot.transactions.find(t => t.requestId === requestId);
   }
-  private async checkBlobs(mutations: SupervisionMutation[]): Promise<void> {
+  private async checkBlobs(mutations: StoreMutation[]): Promise<void> {
     for (const mutation of mutations) if (mutation.kind === "blob") {
       const bytes = await readFile(join(this.root, "blobs", mutation.value.id));
       if (bytes.length !== mutation.value.bytes || rawDigest(bytes) !== mutation.value.id) fail("HELD", "Referenced evidence blob is missing or corrupt.");
@@ -832,7 +941,7 @@ export class SupervisionStore {
     return { requestId: event.requestId, requestHash: event.requestHash, sequence: event.sequence, hash: event.hash,
       generation: event.generation, versions: structuredClone(event.changes) };
   }
-  async transact(expectedVersions: SupervisionExpected[], requestId: string, mutations: SupervisionMutation[]): Promise<SupervisionReceipt> {
+  async transact(expectedVersions: SupervisionExpected[], requestId: string, mutations: StoreMutation[]): Promise<SupervisionReceipt> {
     SupervisionUuid.parse(requestId);
     const input = { actor: this.actor, expectedVersions, mutations }, body = structuredClone(BodySchema.parse(input));
     // Bind exact canonical submitted data; schema defaults must not silently change request identity.
@@ -991,6 +1100,7 @@ export class SupervisionStore {
       policySources: values("policy-source"), policyRules: values("policy-rule"), policyEvidence: values("policy-evidence"), approvals: values("approval"),
       decisions: values("decision"), outbox: values("outbox"), operationHolds: values("operation-hold"), commands: values("command"),
       continuations: values("continuation"),
+      migrations: values("migration"), dispositions: values("delivery-disposition"),
       uncertainEffectIds: effects.filter(e => ["dispatching", "uncertain"].includes(e.state)).map(e => e.id),
       plans: values<WorkflowRow>("workflow").map(({ scopeId, plan }) => ({ scopeId, plan })),
       retirements: values<{ scopeId: string; receipt: z.infer<typeof RetirementSchema> }>("retirement")
