@@ -1,0 +1,281 @@
+{
+  "format": "firstmate.s10-verification/1",
+  "slice": "S10",
+  "base": {
+    "commit": "3f74bb642ee378af9ed4868f2e89466304d81ab8",
+    "note": "origin/main, the PR #157 (S09) merge"
+  },
+  "sourceCommit": "3e2476cecaacdae7bed71f06737d46684c884dd3",
+  "sourceTree": "71c7b79a424a2c2b3a357c1b13ea59c6570c62f4",
+  "d5": "option 1, durable daily occurrences (data/fm-ss-d5)",
+  "runtime": {
+    "node": "v23.7.0",
+    "platform": "win32",
+    "intlTz": "Europe/London"
+  },
+  "typecheck": {
+    "command": "npx tsc --noEmit",
+    "exit": 0,
+    "output": ""
+  },
+  "s10Suite": {
+    "command": "npx vitest run server/supervision-resources.test.ts server/supervision-jobs.test.ts server/supervision-timers.test.ts",
+    "total": 33,
+    "passed": 33,
+    "failed": 0,
+    "tests": [
+      {
+        "file": "server/supervision-jobs.test.ts",
+        "title": "is disabled by default and writes nothing; without an executor no pass can run",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-jobs.test.ts",
+        "title": "D5 local dates and due instants (pure) reads a daily time in its IANA zone, across both DST transitions",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-jobs.test.ts",
+        "title": "D5 local dates and due instants (pure) refuses an unknown zone rather than reading it as UTC or daemon-local",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-jobs.test.ts",
+        "title": "A17.occurrence: durable daily occurrences under D5 option 1 a duplicate or concurrent tick opens one occurrence; nothing due writes nothing",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-jobs.test.ts",
+        "title": "A17.occurrence: durable daily occurrences under D5 option 1 a restart across the due time catches up once; missed days are one observation, never separate runs",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-jobs.test.ts",
+        "title": "A17.occurrence: durable daily occurrences under D5 option 1 DST repeat and skip each give one occurrence at the right instant",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-jobs.test.ts",
+        "title": "A17.occurrence: durable daily occurrences under D5 option 1 a zone change cannot run the same day twice; the journal refuses two occurrences within twelve hours",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-jobs.test.ts",
+        "title": "A17.occurrence: durable daily occurrences under D5 option 1 per-host resume after an outage: one offline host never stops the others; an unchanged outage is one incident and no repeated wake",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-jobs.test.ts",
+        "title": "A17.occurrence: durable daily occurrences under D5 option 1 an outage mid-pass leaves items uncertain, keeps the reservation and holds the host; the resumed pass never reapplies them",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-jobs.test.ts",
+        "title": "A17.occurrence: durable daily occurrences under D5 option 1 a crashed process's dispatched items become uncertain on restart; nothing is dispatched twice",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-jobs.test.ts",
+        "title": "A17.occurrence: durable daily occurrences under D5 option 1 an unchanged failure keeps its incident without a new wake; a changed one is one new generation",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-jobs.test.ts",
+        "title": "A17.occurrence: durable daily occurrences under D5 option 1 A20: an unknown or spent wake budget holds wakes and raises one budget decision",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-jobs.test.ts",
+        "title": "A17.occurrence: durable daily occurrences under D5 option 1 the pass budget fails a host visibly instead of retrying forever; an incomplete inventory dispatches nothing",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-jobs.test.ts",
+        "title": "A04 in maintenance: shared caches, selectors and retained worktrees a running build defers only its own host's prune; the prune resumes once the build releases",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-jobs.test.ts",
+        "title": "A04 in maintenance: shared caches, selectors and retained worktrees cleanup stays inside its selectors and never touches retained worktrees, volumes or unknown owners",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-jobs.test.ts",
+        "title": "rollout, rollback and the journal's own guards an advisory job cannot run beside a retained or unknown legacy timer; observe mode records its runs",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-jobs.test.ts",
+        "title": "rollout, rollback and the journal's own guards stop is rollback: no new occurrences, and unfinished passes keep their reservations and receipts",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-jobs.test.ts",
+        "title": "rollout, rollback and the journal's own guards new occurrences stop at the S10 ceiling while existing passes still finish",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-jobs.test.ts",
+        "title": "rollout, rollback and the journal's own guards A13.store: a tick interrupted mid-publication recovers to the same single occurrence",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-jobs.test.ts",
+        "title": "rollout, rollback and the journal's own guards the journal refuses a second running pass, a redispatched item and a forged occurrence identity",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-jobs.test.ts",
+        "title": "planTick is pure: no occurrence before activation, and catch-up never reaches past the activation instant",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-resources.test.ts",
+        "title": "is disabled by default and writes nothing",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-resources.test.ts",
+        "title": "A04: a cache prune waits for running builds without blocking unrelated builds, and later builds queue behind it",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-resources.test.ts",
+        "title": "A04/A10: an expired lease with a lost submission keeps the deploy key; the delayed request is stale after proved non-admission",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-resources.test.ts",
+        "title": "unknown effects keep their reservation; finished ones release on matching evidence only",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-resources.test.ts",
+        "title": "the journal refuses incompatible holders, reissued fences and resources the effect does not name",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-resources.test.ts",
+        "title": "new reservations stop at the S10 admission ceiling (160); releases stay possible",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-resources.test.ts",
+        "title": "holding a reservation is never authority: policy vectors citing S10 records are refused",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-timers.test.ts",
+        "title": "A17.preserve: the timer disposition inventory lists every timer with its schedule, zone, owner and disposition, holding the unknown heartbeat",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-timers.test.ts",
+        "title": "A17.preserve: the timer disposition inventory S10 enable, ticks, observations and stop change no timer, configuration, schedule or coverage, and create no replacement",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-timers.test.ts",
+        "title": "A17.preserve: the timer disposition inventory flags a duplicate cleaner and a linked timer missing from a complete inventory",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-timers.test.ts",
+        "title": "archive-inventory readers fail closed retainedWorkspaces reads every page, or nothing",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-timers.test.ts",
+        "title": "archive-inventory readers fail closed nativeSchedules parses the protocol answer and reports any failure as incomplete",
+        "status": "passed"
+      }
+    ]
+  },
+  "fullSuite": {
+    "command": "npx vitest run",
+    "total": 2903,
+    "passed": 2899,
+    "failed": 1,
+    "skipped": 3,
+    "failures": [
+      {
+        "file": "server/launch-tool.test.ts",
+        "title": "blocks issued/unresolved, retains an abandoned plan for deliberate replanning and watches late workers",
+        "cause": "EPERM: operation not permitted, rename of a temp launch record (Windows file lock)"
+      }
+    ],
+    "note": "The one failure is a Windows EPERM rename of a temp launch record in launch-tool.test.ts (code S10 does not touch); it passed on clean rerun and varies between runs. CI is the gate."
+  },
+  "mutationChecks": [
+    {
+      "guard": "next-fence",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "occurrence spacing row check",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "append-only item ledger",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "redispatch filter",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "effect-holder release",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "advisory beside legacy timer",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "unchanged-incident early return",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "shared/exclusive holders",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "FIFO waiting",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "interrupted-pass conversion",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "host-pass release",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "160 ceiling",
+      "result": "a test failed with the guard removed"
+    },
+    {
+      "guard": "policy guard",
+      "result": "a test failed with the guard removed"
+    }
+  ],
+  "sha256": {
+    "shared/supervision-maintenance.ts": "626c09953354d4f9e961b9352620b770530230f2fa24491b07cdedbad30e3662",
+    "server/supervision-maintenance-state.ts": "132a3e215fe14e4c32d7067c25d9e434bb1698dbd08599c3b233380f4198bd9a",
+    "server/supervision-resources.ts": "ee903e89abb486572f0e6ea3b9aa5c656f14f176b25065b0a007fa76be74b3e9",
+    "server/supervision-jobs.ts": "a19cc64d3adbda0a30d5e8e268996c3b647040631992cb35ce3a05ebfa15b24f",
+    "server/archive-inventory.ts": "eca182dd86198263532430c87d4a8b5310fe27111a9772e077deb93886026baf",
+    "server/watch-config.ts": "00faf023b12d70ce921784bd03be8edd96fa1fdc5ec40017cb597d5ac509c519",
+    "server/watch-service.ts": "bb41a2d9671df4db165ba09b7b768db0351d4b59096585b15d4c114fc991d172",
+    "server/supervision-store.ts": "af98bac40e7e05e475d478cef495a2f32b951f074cc930ee7b234bd294a7fbf0",
+    "server/supervision-policy.ts": "dc962c4f68356f9b09c1f6e8ddef16aca8532ed19336d76f28a2d868663efe1e",
+    "shared/supervision.ts": "3f8205d45c447922ce148d24e4ac9923e86c03cfcbbbd23d6d81d5f4b3f9adee",
+    "server/templates.ts": "5d5dd3e9168a76e60322b1579ff621f676bab44f004a5d32d904fa5dc5b04b7a",
+    "templates/messages/maintenance-incident.md": "a6056c1b32f4687684d12551815be58b99af5a6ec2fd47dd79314ccb457dea08",
+    "server/supervision-resources.test.ts": "1fee11cc851c95803fac01cb0c9a6696c4ab41a76973bc65e02966a8d807d94e",
+    "server/supervision-jobs.test.ts": "36f878e0ca3507758f8bb3004702bafb8be6b1c7d6399b73eb575667aed520de",
+    "server/supervision-timers.test.ts": "d53871c7d2d89c6d49d23a06c449e5a9e8acc132a508ab07ad27a640e2b4b391",
+    "docs/scoped-supervision/S10.md": "ac75cf5934e038e0b50ca5682ead2ad2ddf9a9532cb9a45c17030d3286bfb490"
+  }
+}
