@@ -171,6 +171,15 @@ observation, per-host passes with a write-ahead item ledger (interrupted items b
 reapplied), one incident per job/host/kind, and a read-only timer disposition inventory. No executor ships; healthy
 results and unchanged failures wake nobody, and General reads `maintenanceSummary`. Cleanup is bounded by path
 segment and retained-path containment. S10 admissions stop at 160, closures at 192; settlement always continues.
+S11 (`docs/scoped-supervision/S11.md`) follows D6's conservative amendment: U1–U3 are not delivered or assumed.
+`server/supervision-capabilities.ts` keeps the S00 strong rows and refuses every strong capability (`UNSUPPORTED`,
+never a cooperative fallback) unless its flag, an S00-supported version column and a live `StrongQualification` all
+hold; none ships, and `fullAccessConfinement` is always false. `server/supervision-receivers.ts` holds the U1–U3
+adapter shapes, refusing any receiver for a capability not enabled. `server/supervision-cooperative.ts` is a pure
+read: a scope is ready for cooperative rollout only when every named S01/S03/S04/S07/S08/S09/S10 dependency holds
+(no uncertainty, unaccounted callback owner, unfinished cutover, suspect reservation or reached journal band).
+It writes nothing and never claims fleet-wide relief. R10's E1–E3 and realpath (`resolveCleanupAliases`) are fixed in
+`planCleanup`; `executorApproval` also needs installed-version reader evidence and N7/receiver acknowledgements.
 
 | File                          | What it owns                                                                              |
 | ----------------------------- | ----------------------------------------------------------------------------------------- |
@@ -179,6 +188,7 @@ segment and retained-path containment. S10 admissions stop at 160, closures at 1
 | `shared/supervision-migration.ts`, `server/supervision-gate.ts`, `server/supervision-migrate.ts` | S07: migration/disposition records, the legacy delivery cutover gate, and the disabled per-scope importer. |
 | `shared/supervision-projects.ts`, `server/supervision-project-state.ts`, `server/supervision-projects.ts`, `server/supervision-memory.ts` | S09: project/sponsor/intent/dependency/memory/conflict records, their journal row checks, the disabled coordination and memory commands, and the pure portfolio summary. |
 | `shared/supervision-maintenance.ts`, `server/supervision-maintenance-state.ts`, `server/supervision-resources.ts`, `server/supervision-jobs.ts` | S10: reservation/job/occurrence/host-pass/incident records and their journal checks, the disabled arbitration and D5 scheduler, cleanup planning and the timer inventory. |
+| `server/supervision-capabilities.ts`, `server/supervision-receivers.ts`, `server/supervision-cooperative.ts` | S11: the strong-capability gate over the S00 rows and executor-approval conditions, the U1–U3 receiver seams, and cooperative scope readiness. Unwired. |
 | `shared/fleet.ts`             | Every RPC contract, the card/fleet shapes, the daemon config shape, and `CREW_LABELS`.     |
 | `shared/settings.ts`          | The host settings document: List/Board, column order and folds, the chat's width, the poll interval, card spacing. |
 | `templates/`                  | **Every file the plugin writes into the home**, as Markdown laid out as it lands there, and the parts that go inside them. The first mate's behaviour is `templates/data/charter.md`. |

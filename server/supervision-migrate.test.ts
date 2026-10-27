@@ -26,6 +26,7 @@ import { writeTextFile } from "./files";
 import { acceptPolicyInventory, currentPolicyVector, policyRef } from "./supervision-policy";
 import { SUPERVISION_INDEX_LIMITS, SupervisionStore } from "./supervision-store";
 import { hasScopedWorker } from "./supervision-status";
+import { cooperativeReadiness } from "./supervision-cooperative";
 import { isScopedSourceWorker } from "./supervision-sources";
 import { workflowSnapshot } from "./workflow-board";
 import { watchItem, WatchRunner, type QueuedNote } from "./watches";
@@ -99,6 +100,8 @@ function makeMigrator(boundary?: (name: string) => Promise<void>) {
   return new SupervisionMigrator({ home, store, legacy, enabled: true, adapters: legacyAdapters(runner, () => service.read()),
     boundary: async name => { chronology.push(`boundary:${name}`); await boundary?.(name); } });
 }
+/** S11: which of the scope's explicit dependencies still hold it out of cooperative rollout. */
+const unmet = async () => cooperativeReadiness(await store.read(), input.scopeId).dependencies.filter(d => !d.satisfied).map(d => d.id);
 async function notes() { return (await readFirstmateConfig()).mateNotes; }
 async function legacyBytes(plan = "scheduler") {
   const out: Record<string, string> = {};
@@ -209,10 +212,12 @@ it("L1: a notified-but-unhandled action with General busy transfers once; the ol
   const outbox = (await store.read()).outbox.filter(o => o.causationId === action);
   expect(outbox).toHaveLength(1);
   expect((await migrator.report("scheduler")).complete).toBe(false); // Commit alone is not a handled transfer.
+  expect(await unmet()).toEqual(["deliveries"]); // S11: not drained while the transfer awaits its owner.
   await ownerAcknowledges(outbox[0]!.id, [`scheduler:captain:${action}`, `scheduler:changes:${action}`]);
   expect(await migrator.recordAcknowledgements(input.migrationId)).toBe(1);
   const report = await migrator.report("scheduler");
   expect(report.complete).toBe(true);
+  expect(await unmet()).toEqual([]); // S11: reconciled, so cooperative (never strong) rollout may include it.
   expect(report.dispositions.find(x => x.id === d!.id)!.receipts).toMatchObject({ transfer: `outbox:${outbox[0]!.id}`, ack: expect.stringMatching(/^command:.*@epoch:1$/) });
   expect((await store.read()).outbox.filter(o => o.causationId === action)).toHaveLength(1);
 });
@@ -399,6 +404,7 @@ it("L5: mixed/opaque watch output stays with its legacy owner and holds only thi
   expect((await store.read()).dispositions!.find(d => d.id === held[0]!.id)).toMatchObject({ route: "drain-legacy", removal: { state: "drained" }, recipient: GENERAL });
   await migrator.barrier(input.migrationId); await migrator.commit(input.migrationId);
   expect((await migrator.report("scheduler")).migration!.state).toBe("committed");
+  expect(await unmet()).toEqual([]); // S11: the drained watch hold is accounted to its legacy owner.
 });
 
 it.each(["frozen", "prepared", "prepared-sidecar", "barrier", "committed-sidecar"])("A13.store: a crash at %s holds both writers and resumes the same migration", async point => {
@@ -541,6 +547,11 @@ it("B5/M1: a running legacy worker holds completion until accounted; afterwards 
   expect(await cutoverGate(home).verdict({ source: "burst", id: "crew:worker-trial", payloadHash: "x", agentKey: "worker-trial" }, "send")).toMatchObject({ admit: false, stage: "committed" });
   const final = await migrator.report("scheduler"); // The approve action still awaits its scoped owner; no worker callback remains open.
   expect(final.legacyDeliveryPossible).toEqual([expect.stringMatching(/^transfer .* awaits its owner's result$/)]); expect(final.complete).toBe(false);
+  // S11: the imported worker still runs and reports to General; without U2 it is drained or held, never transferred.
+  const readiness = cooperativeReadiness(status, input.scopeId);
+  expect(readiness.dependencies.find(d => d.id === "workers")).toMatchObject({ satisfied: false,
+    reasons: expect.arrayContaining([expect.stringContaining("callback owner is unknown"), expect.stringContaining(`callback still goes to ${GENERAL}`)]) });
+  expect(readiness.ready).toBe(false);
 });
 
 it("release: an aborted cutover restores removed entries exactly, sends nothing itself, and hands the plan back", async () => {
@@ -559,6 +570,7 @@ it("release: an aborted cutover restores removed entries exactly, sends nothing 
   expect(status.migrations![0]).toMatchObject({ state: "aborted", aborted: { actor: `agent:${OWNER}`, restored: [expect.any(String)] } });
   expect(status.backends[0]!.state).toBe("retired"); expect(status.scopes.find(s => s.id === input.scopeId)!.state).toBe("retired");
   expect((await migrator.report("scheduler")).stage).toBe("aborted");
+  expect(await unmet()).toEqual(expect.arrayContaining(["scope", "cutover"])); // S11: a released plan is legacy again, held.
   await legacy.execute({ op: "ack", plan: "scheduler", ids: [`scheduler:captain:${action}`], kind: "handled" }, randomUUID(), GENERAL);
   busy = false; await flushMateNotes(api);
   expect(sent.map(s => s.messageId)).toEqual([original.id]); // The restored informational note, under its own identity.

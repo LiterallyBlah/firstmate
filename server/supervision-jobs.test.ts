@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdir } from "node:fs/promises";
+import { mkdir, symlink } from "node:fs/promises";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SupervisionActor, SupervisionEffect, SupervisionStatus } from "../shared/supervision";
@@ -7,7 +7,8 @@ import { CleanupSelectors, maintenanceSummary, type MaintenanceJob, type Occurre
 import { expected, hash } from "../test/supervision-fixture";
 import { SupervisionError, SupervisionStore, type SupervisionMutation } from "./supervision-store";
 import {
-  addDays, dueInstant, JobInputSchema, localDate, maintenanceIncidentNote, planCleanup, planTick, RetainedPathError, SupervisionJobs, type MaintenanceCandidate, type MaintenanceExecutor,
+  addDays, dueInstant, JobInputSchema, localDate, maintenanceIncidentNote, planCleanup, planTick, resolveCleanupAliases, retainedEntryValid, RetainedPathError,
+  SupervisionJobs, type MaintenanceCandidate, type MaintenanceExecutor,
 } from "./supervision-jobs";
 import { occurrenceHostId, occurrenceId } from "./supervision-maintenance-state";
 import { SupervisionResources } from "./supervision-resources";
@@ -415,6 +416,56 @@ describe("A04 in maintenance: shared caches, selectors and retained worktrees", 
     expect(mini.reason).toMatch(/not absolute/);
     expect(fleet.applied).toEqual([]);
     expect((await store.read()).maintenance!.reservations.filter(r => r.holder.id === mini.id).map(r => r.state)).toEqual(["released"]);
+  });
+
+  it("S11 / R10 E1: a retained filesystem root contains every path on that root", () => {
+    const none = { workspaces: [], volumes: [] };
+    for (const [root, selector, path] of [["/", "/cache", "/cache/x"], ["C:\\", "C:/cache", "C:/cache/x"], ["c:/", "C:/cache", "C:/CACHE/x"]] as const)
+      expect(planCleanup({ id: J, selectors: [{ kind: "path-prefix", value: selector }], retained: [] }, "mini",
+        [{ id: "x", path, owner: "known" }], { ...none, paths: [root] }).selected).toEqual([]);
+    // Another drive's root protects nothing here; over-exclusion stays per root.
+    expect(planCleanup({ id: J, selectors: [{ kind: "path-prefix", value: "C:/cache" }], retained: [] }, "mini",
+      [{ id: "x", path: "C:/cache/x", owner: "known" }], { ...none, paths: ["D:\\"] }).selected.map(s => s.candidate.id)).toEqual(["x"]);
+  });
+
+  // Windows paths written with "|" for "\" so the separators are unmistakable.
+  const win = (s: string) => s.replaceAll("|", "\\");
+  it("S11 / R10 E2: a long-path drive form is canonicalized; device, UNC long paths and mid-path drives refuse the pass", () => {
+    const none = { workspaces: [], volumes: [] };
+    for (const long of [win("||?|C:|cache|sessions|s1"), win("||.|C:|cache|sessions|s1"), "//?/c:/CACHE/sessions/s1"])
+      expect(planCleanup({ id: J, selectors: [{ kind: "path-prefix", value: "C:/cache" }], retained: [] }, "mini",
+        [{ id: "parent", path: "C:/cache/sessions", owner: "known" }, { id: "ok", path: "C:/cache/tmp", owner: "known" }], { ...none, paths: [long] })
+        .selected.map(s => s.candidate.id)).toEqual(["ok"]);
+    for (const bad of [win("||?|UNC|server|share|wt"), win("||?|Volume{0b1c}|wt"), win("||.|pipe|x"), "/x/?/C:/cache", "/mnt/C:/cache"])
+      expect(() => planCleanup({ id: J, selectors: [{ kind: "path-prefix", value: "C:/cache" }], retained: [] }, "mini",
+        [{ id: "ok", path: "C:/cache/tmp", owner: "known" }], { ...none, paths: [bad] })).toThrow(RetainedPathError);
+  });
+
+  it("S11 / R10 E3: path-like retained entries that are not absolute and canonical are refused when the job is defined", async () => {
+    for (const bad of ["~/keep", "~", win("C:cache|keep"), "C:keep", "cache/keep", win("cache|keep"), "./keep", "/cache/../keep", win("||?|UNC|s|x")]) {
+      expect(retainedEntryValid(bad)).toBe(false);
+      await expect(jobs.defineJob(randomUUID(), captain, jobInput({ retained: [bad] }))).rejects.toThrow(/identity, or an absolute canonical path/);
+    }
+    for (const ok of ["vol-keep", "ws-123", "/cache/keep", win("C:|cache|keep"), win("||?|C:|cache|keep")]) expect(retainedEntryValid(ok)).toBe(true);
+  });
+
+  it("S11 / R10 B1-R realpath: symlink and junction aliases are resolved before planning, on real directories", async () => {
+    const root = join(process.env.PASEO_HOME!, `alias-${randomUUID()}`), cache = join(root, "cache"), live = join(cache, "sessions", "s1");
+    await mkdir(live, { recursive: true }); await mkdir(join(cache, "tmp"), { recursive: true }); await mkdir(join(root, "elsewhere"), { recursive: true });
+    // A worktree reported through an alias outside the selector, and a candidate that is an alias leading out of it.
+    await symlink(join(cache, "sessions"), join(root, "link"), "junction");
+    await symlink(join(root, "elsewhere"), join(cache, "escape"), "junction");
+    const selectors = [{ kind: "path-prefix" as const, value: cache.replaceAll("\\", "/") }];
+    const candidates: MaintenanceCandidate[] = [{ id: "sessions", path: join(cache, "sessions"), owner: "known" }, { id: "tmp", path: join(cache, "tmp"), owner: "known" },
+      { id: "escape", path: join(cache, "escape"), owner: "known" }, { id: "gone", path: join(cache, "gone"), owner: "known" }];
+    const retained = { workspaces: [], volumes: [], paths: [join(root, "link", "s1"), join(root, "missing")] };
+    // String comparison alone selects the directory holding the live worktree.
+    expect(planCleanup({ id: J, selectors, retained: [] }, "mini", candidates, retained).selected.map(s => s.candidate.id)).toEqual(["sessions", "tmp", "escape", "gone"]);
+    const resolved = await resolveCleanupAliases(candidates, retained);
+    expect(resolved.unresolved).toBe(1); // "gone" does not exist: dropped, never planned.
+    expect(planCleanup({ id: J, selectors, retained: [] }, "mini", resolved.candidates, resolved.retained).selected.map(s => s.candidate.id)).toEqual(["tmp"]);
+    // A retained path that cannot be resolved for any reason but absence refuses the pass.
+    await expect(resolveCleanupAliases(candidates, retained, async () => { throw Object.assign(new Error("EACCES"), { code: "EACCES" }); })).rejects.toThrow(RetainedPathError);
   });
 
   it("cleanup stays inside its selectors and never touches retained worktrees, volumes or unknown owners", async () => {

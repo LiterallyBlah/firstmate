@@ -1,0 +1,322 @@
+{
+  "format": "firstmate.s11-verification/1",
+  "slice": "S11",
+  "base": {
+    "commit": "d37c28f4bf2c97c859c652b6ad56c6dd7872860f",
+    "note": "origin/main, the PR #158 (S10) merge"
+  },
+  "d6": "option 2, conservative rollout amendment (data/fm-ss-d6): U1-U3 not delivered or assumed; strong capabilities refused",
+  "r10Conditions": {
+    "realpath": "code: resolveCleanupAliases",
+    "E1": "code: root containment",
+    "E2": "code: long-path canonicalisation/refusal",
+    "E3": "code: JobInputSchema.retained refine",
+    "liveReaders": "evidence: docs/scoped-supervision/s11-readers/result.json (Paseo 0.13.0, both readers complete)",
+    "N7": "kept at the advisory-activation gate (executorApproval acknowledgement)"
+  },
+  "journalBands": "S11 writes no journal rows; readiness reports S08 128, S10 160, S04/S09 192 from the owning constants",
+  "runtime": {
+    "node": "v23.7.0",
+    "platform": "win32",
+    "paseoInstalled": "0.13.0",
+    "coreAutocrlf": true
+  },
+  "typecheck": {
+    "command": "npx tsc --noEmit",
+    "exit": 0,
+    "output": ""
+  },
+  "s11Suites": {
+    "command": "npx vitest run server/supervision-capabilities.test.ts server/supervision-cooperative.test.ts server/supervision-jobs.test.ts server/supervision-migrate.test.ts server/supervision-resources.test.ts server/supervision-timers.test.ts shared/supervision.test.ts",
+    "total": 290,
+    "passed": 290,
+    "failed": 0,
+    "s11Tests": [
+      {
+        "file": "server/supervision-capabilities.test.ts",
+        "title": "S00 probes are kept, not re-derived holds the strong rows equal to the frozen S00 capability table",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-capabilities.test.ts",
+        "title": "S00 probes are kept, not re-derived maps only the versions S00 inspected to a column",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-capabilities.test.ts",
+        "title": "A18: each strong capability is explicitly supported or refused is cooperative and off by default, with its limits stated and no confinement claim",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-capabilities.test.ts",
+        "title": "A18: each strong capability is explicitly supported or refused refuses every requested capability on 0.11, 0.12 and installed 0.13: S00 unsupported and no qualified contract",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-capabilities.test.ts",
+        "title": "A18: each strong capability is explicitly supported or refused never borrows a newer document: an unknown or uninspected version refuses even with a qualification",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-capabilities.test.ts",
+        "title": "A18: each strong capability is explicitly supported or refused a qualification alone does not enable a capability S00 marks unsupported at that version",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-capabilities.test.ts",
+        "title": "A18: each strong capability is explicitly supported or refused rejects synthetic or incomplete evidence, and reports malformed records and unknown flags",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-capabilities.test.ts",
+        "title": "A18: each strong capability is explicitly supported or refused a later delivery enables a capability only with its flag, an S00-supported column and a covering live qualification",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-capabilities.test.ts",
+        "title": "A18: each strong capability is explicitly supported or refused claims failover/takeover only with every U1/U2 capability, and never full-access confinement",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-capabilities.test.ts",
+        "title": "U1–U3 receiver seams refuse what is not delivered binds nothing and refuses any supplied receiver whose capability is not enabled",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-capabilities.test.ts",
+        "title": "U1–U3 receiver seams refuse what is not delivered reads a U1 receipt strictly: a delayed old fence is STALE, a malformed or foreign answer is uncertain",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-capabilities.test.ts",
+        "title": "R10 round-3 executor-approval conditions lists realpath, E1–E3, the live readers, N7 and the receiver limit",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-capabilities.test.ts",
+        "title": "R10 round-3 executor-approval conditions refuses approval by default; code conditions are met, evidence and the gate's acknowledgements are not",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-capabilities.test.ts",
+        "title": "R10 round-3 executor-approval conditions needs reader evidence for the installed version, both readers complete, and N7 kept at the advisory gate",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-cooperative.test.ts",
+        "title": "cooperativeReadiness: explicit dependencies of a drained cooperative scope a reconciled scope is ready, cooperative only, with its limits; it never claims fleet-wide relief",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-cooperative.test.ts",
+        "title": "cooperativeReadiness: explicit dependencies of a drained cooperative scope A10/A05: an uncertain or dispatching effect holds only its own scope, and keeps its reservation",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-cooperative.test.ts",
+        "title": "cooperativeReadiness: explicit dependencies of a drained cooperative scope A14: an unknown native callback owner holds, without re-prompting or transfer",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-cooperative.test.ts",
+        "title": "cooperativeReadiness: explicit dependencies of a drained cooperative scope A10: an unresolved node (an uncertain launch) holds its scope; a running scoped node does not",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-cooperative.test.ts",
+        "title": "cooperativeReadiness: explicit dependencies of a drained cooperative scope A04: a suspect reservation (lease expired, no terminal evidence) holds; granted and released do not",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-cooperative.test.ts",
+        "title": "cooperativeReadiness: explicit dependencies of a drained cooperative scope S09: a held cross-plan dependency resolution holds; an exact resolution does not",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-cooperative.test.ts",
+        "title": "cooperativeReadiness: explicit dependencies of a drained cooperative scope S08: a board message with no recorded or an unknown outcome holds",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-cooperative.test.ts",
+        "title": "cooperativeReadiness: explicit dependencies of a drained cooperative scope A05: a stopped scope (operation hold) and a suspect or prepared supervisor are held, not taken over",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-cooperative.test.ts",
+        "title": "cooperativeReadiness: explicit dependencies of a drained cooperative scope a legacy, held, transferring or unknown scope is not ready",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-cooperative.test.ts",
+        "title": "cooperativeReadiness: explicit dependencies of a drained cooperative scope S07: a prepared or barrier migration and an unaccounted delivery hold",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-cooperative.test.ts",
+        "title": "cooperativeReadiness: explicit dependencies of a drained cooperative scope journal bands: a held journal or a reached band (128, 160, 192) is a lower bound and not ready",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-cooperative.test.ts",
+        "title": "cooperativeReadiness: explicit dependencies of a drained cooperative scope the read writes nothing: the journal is unchanged",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-jobs.test.ts",
+        "title": "A04 in maintenance: shared caches, selectors and retained worktrees S11 / R10 E1: a retained filesystem root contains every path on that root",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-jobs.test.ts",
+        "title": "A04 in maintenance: shared caches, selectors and retained worktrees S11 / R10 E2: a long-path drive form is canonicalized; device, UNC long paths and mid-path drives refuse the pass",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-jobs.test.ts",
+        "title": "A04 in maintenance: shared caches, selectors and retained worktrees S11 / R10 E3: path-like retained entries that are not absolute and canonical are refused when the job is defined",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-jobs.test.ts",
+        "title": "A04 in maintenance: shared caches, selectors and retained worktrees S11 / R10 B1-R realpath: symlink and junction aliases are resolved before planning, on real directories",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-migrate.test.ts",
+        "title": "L1: a notified-but-unhandled action with General busy transfers once; the old entry goes only after its mapping",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-migrate.test.ts",
+        "title": "L5: mixed/opaque watch output stays with its legacy owner and holds only this transfer until explicitly drained",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-migrate.test.ts",
+        "title": "B5/M1: a running legacy worker holds completion until accounted; afterwards scoped guards recognize it",
+        "status": "passed"
+      },
+      {
+        "file": "server/supervision-migrate.test.ts",
+        "title": "release: an aborted cutover restores removed entries exactly, sends nothing itself, and hands the plan back",
+        "status": "passed"
+      }
+    ]
+  },
+  "fullSuite": {
+    "command": "npx vitest run",
+    "files": 199,
+    "passed": 2942,
+    "skipped": 3,
+    "failed": 3,
+    "failures": [
+      "server/launch-tool.test.ts remote scout (Windows EPERM flake)",
+      "server/supervision-status-reader.test.ts 176-transaction warm read (load timing)",
+      "test/supervision-r02.test.ts quarantine retries (5 s timeout under load)"
+    ],
+    "rerun": {
+      "command": "npx vitest run server/launch-tool.test.ts server/supervision-status-reader.test.ts test/supervision-r02.test.ts",
+      "passed": 105,
+      "failed": 0
+    },
+    "note": "None of the three files is touched by S11; all pass on rerun. CI is the authoritative run."
+  },
+  "mutations": {
+    "script": ".local/s11-mut/mutate.cjs and mutate2.cjs (development only, not shipped)",
+    "distinctGuards": 38,
+    "caught": 37,
+    "lines": [
+      "caught E1 root containment",
+      "caught E2 strip long-path prefix",
+      "not caught: E2 refuse UNC/device long path (redundant; see notes)",
+      "caught E2 mid-path drive segment",
+      "caught E3 definition refine",
+      "caught E3 tilde",
+      "caught realpath candidate names",
+      "caught realpath retained resolved name",
+      "caught realpath non-ENOENT refuses",
+      "caught requireStrong refusal",
+      "caught S00 row check",
+      "caught uninspected version",
+      "caught qualification version max (test added; missed on the first run)",
+      "caught qualification needs bypass analysis",
+      "caught qualification live only",
+      "caught failover needs all U1/U2",
+      "caught executor evidence version",
+      "caught executor N7 gate",
+      "caught bind refuses disabled receiver",
+      "caught foreign admission uncertain",
+      "caught stale fence STALE",
+      "caught readiness transfer awaits ack",
+      "caught readiness unresolved hold",
+      "caught readiness removal pending",
+      "caught readiness effects",
+      "caught readiness unknown callback owner",
+      "caught readiness imported live worker",
+      "caught readiness unresolved node (test added; missed on the first run)",
+      "caught readiness bands",
+      "caught readiness freshness",
+      "caught readiness scope legacy",
+      "caught readiness binding",
+      "caught readiness cutover prepared",
+      "caught readiness cutover aborted",
+      "caught readiness suspect reservation",
+      "caught readiness held dependency",
+      "caught readiness board sends",
+      "caught readiness operation holds"
+    ],
+    "notes": [
+      "E2 UNC/device throw: removing it still refuses every tested form through the ? segment or not-absolute rule, so no test can distinguish it.",
+      "Two guards missed on the first run (qualification version max, readiness unresolved node) received tests and are now caught."
+    ]
+  },
+  "liveReaders": {
+    "script": "docs/scoped-supervision/s11-readers/run.mjs",
+    "result": "docs/scoped-supervision/s11-readers/result.json",
+    "resultSha256": "ca196767dab04aa15618849e02cc997886db24e056cb32bff738d4682e870ac3",
+    "limit": "Empty history listing (no session was created); multi-page pagination and the missing workspaceId/cwd refusal remain fixture-only. Windows only."
+  },
+  "files": {
+    "server/supervision-capabilities.ts": {
+      "sha256": "054ee610cf67a1351c96b270e8255f921fa3c1a39b646df6762cf600b764b753",
+      "gitBlob": "bafdda6829641965510dad6cd81c6493e8b8c892"
+    },
+    "server/supervision-receivers.ts": {
+      "sha256": "0cba88d19870a85b0903ff230f7d0732ec746145e99edd985ccc06792db1e3f2",
+      "gitBlob": "ec860108a8756968ea5fc97190bf02d293352a20"
+    },
+    "server/supervision-cooperative.ts": {
+      "sha256": "13064b4dedf2d4783f6c1723cfda39be9bd1129002df7fb621ef5acdb549133a",
+      "gitBlob": "7cf6070023f718819434761fe9c83d86393ffe0a"
+    },
+    "server/supervision-jobs.ts": {
+      "sha256": "575d49847a50c13e4025af1005f5f6fd1eb3f7a66465b586679d2d6a35520377",
+      "gitBlob": "2b77d817f4a4bfb6bfa15c655eabb1c73a3a8d2f"
+    },
+    "server/supervision-capabilities.test.ts": {
+      "sha256": "f3e3995a318049bbccadc46660d034fff0e2701b06642b33a0822565784b2716",
+      "gitBlob": "5481faed8a70db00bea50540f3e140e08af05632"
+    },
+    "server/supervision-cooperative.test.ts": {
+      "sha256": "36573c431600e0478ce5365c3d2b7455380fc7e4ccf66d7691466d2fbb3847e9",
+      "gitBlob": "1ec542d517c8373f4c3bae30997bce6dff4d5afd"
+    },
+    "server/supervision-jobs.test.ts": {
+      "sha256": "7e44d36dd8e678fc1ef89c66df842e1de83828a8ed3d6d724b2c5d811216fe54",
+      "gitBlob": "58a9750ea8a2142cd836c0a87882731d34a5e6e7"
+    },
+    "server/supervision-migrate.test.ts": {
+      "sha256": "8bdd95b32861d680340f5016fd7369ec6c6f6101a264c601f156b21c12c804b1",
+      "gitBlob": "f0b3d8e0c16355e720fa689f22126919b6ca8bee"
+    },
+    "docs/scoped-supervision/s11-readers/run.mjs": {
+      "sha256": "01cec59b7f39a1b9531a559036c2a0823746f150921fae03bbd714ecc4094847",
+      "gitBlob": "c6ad23b10f3c8b0a1bcce344e8cc484037c8bf00"
+    },
+    "docs/scoped-supervision/s11-readers/result.json": {
+      "sha256": "ca196767dab04aa15618849e02cc997886db24e056cb32bff738d4682e870ac3",
+      "gitBlob": "9c40363703d081b984beeed62ce9985c571587b8"
+    }
+  }
+}
