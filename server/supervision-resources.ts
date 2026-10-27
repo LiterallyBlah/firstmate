@@ -88,6 +88,9 @@ export function promotion(status: SupervisionStatus, row: ResourceReservation, l
 const Evidence = z.array(z.object({ ref: z.string().min(1).max(1024), digest: SupervisionHash }).strict()).max(32);
 export const EffectReserveSchema = z.object({ effectId: SupervisionUuid, class: ResourceClass, keys: z.array(ResourceKey).min(1).max(32),
   priority: z.number().int().min(1).max(9), leaseMs: z.number().int().min(1000).max(7 * 24 * 3600 * 1000).nullable() }).strict();
+/** One lease length for reserve, promote and renew: 1 s to 7 days, or none. A zero or negative lease is refused, so a
+ * bound owner cannot cycle renew and expire. */
+export const LeaseMs = z.number().int().min(1000).max(7 * 24 * 3600 * 1000);
 export const ReleaseSchema = z.object({ reservationId: SupervisionUuid, expectedVersion: z.number().int().positive(),
   kind: z.enum(["succeeded", "failed", "not-admitted", "withdrawn"]), evidence: Evidence }).strict();
 
@@ -126,7 +129,8 @@ export class SupervisionResources {
     return (await this.read()).reservations.find(r => r.id === id)!;
   }
   /** Grant a queued reservation once it is first in line and every key is free. */
-  async promote(requestId: string, actor: SupervisionActor, raw: { reservationId: string; leaseMs: number | null }) {
+  async promote(requestId: string, actor: SupervisionActor, input: { reservationId: string; leaseMs: number | null }) {
+    const raw = z.object({ reservationId: SupervisionUuid, leaseMs: LeaseMs.nullable() }).strict().parse(input);
     await this.command(requestId, { op: "promote", raw }, actor, "admission", (status, a) => {
       maintenanceAdmission(status);
       const row = maintenanceRows(status).reservations.find(r => r.id === raw.reservationId);
@@ -153,7 +157,8 @@ export class SupervisionResources {
     });
   }
   /** A suspect holder seen alive again keeps its fences. */
-  async renew(requestId: string, actor: SupervisionActor, raw: { reservationId: string; leaseMs: number }) {
+  async renew(requestId: string, actor: SupervisionActor, input: { reservationId: string; leaseMs: number }) {
+    const raw = z.object({ reservationId: SupervisionUuid, leaseMs: LeaseMs }).strict().parse(input);
     return this.command(requestId, { op: "renew", raw }, actor, "closure", (status, a) => {
       const row = maintenanceRows(status).reservations.find(r => r.id === raw.reservationId);
       if (!row || !active(row)) refuse("CONFLICT", "Only a held reservation is renewed.");

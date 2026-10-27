@@ -152,9 +152,13 @@ const HOST_STATES = ["pending", "running", "deferred", "offline", "completed", "
 export function maintenanceSummary(status: SupervisionStatus, starvationAfter = 32): MaintenanceSummary {
   const rows = status.maintenance ?? emptyMaintenanceRows();
   const open = rows.incidents.filter(i => i.state === "open");
+  // Past the admission ceiling, waiting states and new outages are no longer written (the relabel tier), so stored
+  // coverage can look fresher than it is. Say so, and read every count as a lower bound (as S08 does at 128).
+  const exhausted = status.sequence >= MAINTENANCE_ADMISSION_CEILING;
   return {
     format: "firstmate.maintenance/1", homeId: status.homeId, sequence: status.sequence, freshness: status.freshness,
-    lowerBound: status.freshness !== "current", problems: [...status.problems], enforcement: "advisory",
+    lowerBound: status.freshness !== "current" || exhausted, enforcement: "advisory",
+    problems: [...status.problems, ...(exhausted ? [`Maintenance observation budget exhausted (journal sequence ${status.sequence} of ${MAINTENANCE_ADMISSION_CEILING}): waiting states and new outages are no longer recorded, so host coverage may be stale.`] : [])],
     jobs: rows.jobs.map(job => {
       const latest = rows.occurrences.filter(o => o.jobId === job.id).sort((a, b) => a.dueAt.localeCompare(b.dueAt)).at(-1);
       const hosts = Object.fromEntries(HOST_STATES.map(s => [s, 0])) as MaintenanceSummary["jobs"][number]["hosts"];

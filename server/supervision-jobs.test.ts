@@ -7,7 +7,7 @@ import { CleanupSelectors, maintenanceSummary, type MaintenanceJob, type Occurre
 import { expected, hash } from "../test/supervision-fixture";
 import { SupervisionError, SupervisionStore, type SupervisionMutation } from "./supervision-store";
 import {
-  addDays, dueInstant, JobInputSchema, localDate, maintenanceIncidentNote, planCleanup, planTick, SupervisionJobs, type MaintenanceCandidate, type MaintenanceExecutor,
+  addDays, dueInstant, JobInputSchema, localDate, maintenanceIncidentNote, planCleanup, planTick, RetainedPathError, SupervisionJobs, type MaintenanceCandidate, type MaintenanceExecutor,
 } from "./supervision-jobs";
 import { occurrenceHostId, occurrenceId } from "./supervision-maintenance-state";
 import { SupervisionResources } from "./supervision-resources";
@@ -383,6 +383,40 @@ describe("A04 in maintenance: shared caches, selectors and retained worktrees", 
     expect((await host("2026-10-27", "mini")).items).toEqual([]);
   });
 
+  it("R10 B1-R (Q1/Q2): retained paths are canonicalized and compared case-insensitively; an unclean one defers the pass", async () => {
+    const none = { workspaces: [], volumes: [] };
+    // Q1, the reviewer's Windows probe: a lower-case selector and candidate, the live worktree as Paseo reports it.
+    const q1 = planCleanup({ id: J, selectors: [{ kind: "path-prefix", value: "c:/users/micha/.paseo/worktrees" }], retained: [] }, "mini",
+      [{ id: "parent", path: "c:/users/micha/.paseo/worktrees/23z5sbxl", owner: "known" }, { id: "other", path: "c:/users/micha/.paseo/worktrees/old", owner: "known" }],
+      { ...none, paths: ["C:\\Users\\micha\\.paseo\\worktrees\\23z5sbxl\\fm-ss-r10"] });
+    expect(q1.selected.map(s => s.candidate.id)).toEqual(["other"]);
+    // And the other way round: an upper-case candidate around a lower-case retained path.
+    expect(planCleanup({ id: J, selectors: [{ kind: "path-prefix", value: "C:/Users/micha/.paseo/worktrees" }], retained: [] }, "mini",
+      [{ id: "parent", path: "C:/Users/micha/.paseo/worktrees/23z5sbxl", owner: "known" }],
+      { ...none, paths: ["c:/users/micha/.paseo/worktrees/23z5sbxl/fm-ss-r10"] }).selected).toEqual([]);
+    // Q2: dot segments and doubled separators in a retained path still protect its parent.
+    for (const retainedPath of ["/cache/./sessions/s1", "/cache//sessions/s1", "/CACHE/Sessions/S1/"])
+      expect(planCleanup({ id: J, selectors: [{ kind: "path-prefix", value: "/cache" }], retained: [] }, "mini",
+        [{ id: "parent", path: "/cache/sessions", owner: "known" }, { id: "ok", path: "/cache/tmp", owner: "known" }], { ...none, paths: [retainedPath] })
+        .selected.map(s => s.candidate.id)).toEqual(["ok"]);
+    // A retained entry in the job definition is canonicalized the same way.
+    expect(planCleanup({ id: J, selectors: [{ kind: "path-prefix", value: "/cache" }], retained: ["\\CACHE\\Keep"] }, "mini",
+      [{ id: "keep-child", path: "/cache/keep/x", owner: "known" }], { ...none, paths: [] }).selected).toEqual([]);
+    // A retained path that cannot be canonicalized refuses the whole plan...
+    for (const bad of ["relative/worktree", "/cache/../cache/sessions"])
+      expect(() => planCleanup({ id: J, selectors: [{ kind: "path-prefix", value: "/cache" }], retained: [] }, "mini",
+        [{ id: "ok", path: "/cache/tmp", owner: "known" }], { ...none, paths: [bad] })).toThrow(RetainedPathError);
+    // ...and the pass defers with nothing dispatched, releasing the reservation it took.
+    await activate();
+    fleet.retainedPaths = ["worktrees/relative"];
+    await jobs.drive("2026-10-27T07:15:30Z");
+    const mini = await host("2026-10-27", "mini");
+    expect(mini).toMatchObject({ state: "deferred", items: [] });
+    expect(mini.reason).toMatch(/not absolute/);
+    expect(fleet.applied).toEqual([]);
+    expect((await store.read()).maintenance!.reservations.filter(r => r.holder.id === mini.id).map(r => r.state)).toEqual(["released"]);
+  });
+
   it("cleanup stays inside its selectors and never touches retained worktrees, volumes or unknown owners", async () => {
     await activate();
     const candidates: MaintenanceCandidate[] = [
@@ -543,6 +577,45 @@ describe("rollout, rollback and the journal's own guards", () => {
     expect((await jobs.drive("2026-10-28T09:00:00Z")).runs.find(r => r.hostId === "mini")!.state).toBe("refused");
     expect((await store.read()).sequence).toBe(before);
     spy.mockRestore();
+  });
+
+  it("R10 N9: dispatch is a closure (refused at 192 even after its pass started below it); observe is a closure in an observe-mode job", async () => {
+    await activate();
+    await jobs.tick("2026-10-27T07:15:30Z");
+    const original = store.transactCommand.bind(store);
+    let at: number | null = null;
+    const spy = vi.spyOn(store, "transactCommand").mockImplementation((requestId, inputHash, actor, prepare) =>
+      original(requestId, inputHash, actor, status => prepare(at === null ? status : { ...status, sequence: at })));
+    const inventory = fleet.inventory.bind(fleet);
+    fleet.inventory = async h => { at = 192; return inventory(h); }; // the journal fills while the pass lists its host
+    expect(await code(jobs.runHost(occurrenceId(J, NY, "2026-10-27"), "mini"))).toBe("HELD");
+    expect((await host("2026-10-27", "mini")).items).toEqual([]);
+    expect(fleet.calls).toBe(0);
+    spy.mockRestore();
+  });
+
+  it("R10 N9: an observe-mode observation is refused at 192 and recorded between 160 and 192", async () => {
+    await activate("2026-10-26T12:00:00Z", { mode: "observe" });
+    await jobs.tick("2026-10-27T07:15:30Z");
+    const occ = occurrenceId(J, NY, "2026-10-27"), original = store.transactCommand.bind(store);
+    let at = 192;
+    const spy = vi.spyOn(store, "transactCommand").mockImplementation((requestId, inputHash, actor, prepare) =>
+      original(requestId, inputHash, actor, status => prepare({ ...status, sequence: at })));
+    expect(await code(jobs.observe(randomUUID(), supervisor, { occurrenceId: occ, hostId: "mini", outcome: "completed", detail: "ran", resultDigest: hash }))).toBe("HELD");
+    at = 175;
+    expect(await code(jobs.observe(randomUUID(), supervisor, { occurrenceId: occ, hostId: "mini", outcome: "completed", detail: "ran", resultDigest: hash }))).toBe("committed");
+    spy.mockRestore();
+    expect((await host("2026-10-27", "mini")).state).toBe("completed");
+  });
+
+  it("R10 N8: past 160 the summary says the maintenance observation budget is exhausted and reads as a lower bound", async () => {
+    await activate();
+    await jobs.tick("2026-10-27T07:15:30Z");
+    const status = await store.read();
+    expect(maintenanceSummary(status)).toMatchObject({ lowerBound: false, problems: [] });
+    const late = maintenanceSummary({ ...status, sequence: 160 });
+    expect(late.lowerBound).toBe(true);
+    expect(late.problems).toEqual([expect.stringMatching(/^Maintenance observation budget exhausted \(journal sequence 160 of 160\): waiting states and new outages are no longer recorded/)]);
   });
 
   it("R10 N3: observe mode writes once per state per host, however often the digest changes", async () => {

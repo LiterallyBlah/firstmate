@@ -85,17 +85,33 @@ export interface RetainedSet { workspaces: readonly string[]; volumes: readonly 
 export function itemKey(jobId: string, hostId: string, candidate: Pick<MaintenanceCandidate, "id" | "path">) { return digest(["firstmate.maintenance-item/1", jobId, hostId, candidate.id, candidate.path]); }
 const within = (child: string, parent: string) => child === parent || child.startsWith(`${parent}/`);
 const overlaps = (a: string, b: string) => within(a, b) || within(b, a);
-/** Select cleanup items. A candidate is selected only when its absolute path lies strictly below a path-prefix selector
- * (never the selector root), its cache label matches a cache-prefix selector by whole segments when any is given, it
- * neither equals, contains nor lies under any retained path, and its owner is known. Retained paths are the executor's
- * worktree paths, path-shaped `retained` entries, and the paths of candidates tagged with a retained identity.
- * Path comparison is by segment and case-sensitive. A candidate listed twice is one item. */
+/** Retained paths come verbatim from other tools (Paseo's session `cwd`, captain-typed entries), so they are
+ * canonicalized: `\` read as `/`, duplicate separators and `.` segments dropped, and compared case-insensitively.
+ * Over-excluding is safe. A retained path that is relative or has a `..` segment cannot be canonicalized without the
+ * filesystem, and the whole pass is refused (`RetainedPathError`) instead of planning around it. Symlink and junction
+ * aliases are invisible to string comparison: resolving them (realpath) is an S11 executor-approval requirement. */
+export class RetainedPathError extends Error {}
+function retainedKey(raw: string): string {
+  const path = raw.replaceAll("\\", "/"), drive = /^[A-Za-z]:\//.test(path) ? path.slice(0, 2) : null;
+  if (!drive && !path.startsWith("/")) throw new RetainedPathError(`Retained path ${JSON.stringify(raw)} is not absolute; nothing is planned on this host.`);
+  const segments = path.slice(drive ? 3 : 1).split("/").filter(s => s !== "" && s !== ".");
+  if (segments.includes("..")) throw new RetainedPathError(`Retained path ${JSON.stringify(raw)} has a .. segment; nothing is planned on this host.`);
+  return `${drive ?? ""}/${segments.join("/")}`.toLowerCase();
+}
+const looksLikePath = (v: string) => /^([A-Za-z]:)?[\\/]/.test(v);
+/** Select cleanup items. A candidate is selected only when its absolute, segment-valid path lies strictly below a
+ * path-prefix selector (never the selector root; compared exactly, which can only narrow selection), its cache label
+ * matches a cache-prefix selector by whole segments when any is given, it neither equals, contains nor lies under any
+ * retained path (canonicalized and compared case-insensitively), and its owner is known. Retained paths are the
+ * executor's worktree paths, path-shaped `retained` entries, and the paths of candidates tagged with a retained
+ * identity. A candidate listed twice is one item. Throws `RetainedPathError` when a retained path cannot be
+ * canonicalized; the pass then defers with nothing dispatched. */
 export function planCleanup(job: Pick<MaintenanceJob, "id" | "selectors" | "retained">, hostId: string, candidates: readonly MaintenanceCandidate[], retained: RetainedSet) {
   const ids = new Set([...retained.workspaces, ...retained.volumes, ...job.retained]);
   const roots = job.selectors.flatMap(s => s.kind === "path-prefix" ? [normalPath(s.value)] : []);
   const labels = job.selectors.flatMap(s => s.kind === "cache-prefix" ? [s.value.replace(/\/+$/, "")] : []);
   const tagged = (c: MaintenanceCandidate) => [c.workspaceId, c.volumeId, c.id, c.path].some(v => v && ids.has(v));
-  const keep = [...retained.paths, ...job.retained, ...candidates.filter(tagged).map(c => c.path)].map(normalPath).filter(absolutePath);
+  const keep = [...retained.paths, ...job.retained.filter(looksLikePath), ...candidates.filter(tagged).map(c => c.path)].map(retainedKey);
   const selected: { key: string; candidate: MaintenanceCandidate }[] = [], seen = new Set<string>();
   let excluded = 0, triage = 0;
   for (const c of candidates) {
@@ -105,7 +121,7 @@ export function planCleanup(job: Pick<MaintenanceJob, "id" | "selectors" | "reta
     const path = normalPath(c.path);
     const inside = absolutePath(path) && pathSegmentsValid(c.path) && roots.some(r => path !== r && within(path, r));
     const labelled = !labels.length || (c.cache !== undefined && cacheLabelValid(c.cache) && labels.some(l => within(c.cache!, l)));
-    if (!inside || !labelled || tagged(c) || keep.some(k => overlaps(path, k))) { excluded++; continue; }
+    if (!inside || !labelled || tagged(c) || keep.some(k => overlaps(path.toLowerCase(), k))) { excluded++; continue; }
     if (c.owner !== "known") { triage++; continue; }
     selected.push({ key, candidate: c });
   }
@@ -117,7 +133,8 @@ export interface MaintenanceExecutor {
   probe(hostId: string): Promise<"online" | "offline">;
   /** Throws when the listing is incomplete; a partial listing is never used. */
   inventory(hostId: string): Promise<MaintenanceCandidate[]>;
-  /** Complete retained sets (e.g. `retainedWorkspaces()` from archive-inventory). Throws when incomplete. */
+  /** Complete retained sets (e.g. `retainedWorkspaces()` from archive-inventory). Throws when incomplete. An executor
+   * qualified for shared effects (S11) must also resolve symlink and junction aliases (realpath) of every path. */
   retained(hostId: string): Promise<RetainedSet>;
   apply(hostId: string, items: { key: string; candidate: MaintenanceCandidate }[], fences: { key: string; fence: number }[]): Promise<{ key: string; outcome: "done" | "failed" }[]>;
 }

@@ -190,3 +190,22 @@ it("R10 N4: lease expiry uses this process's clock and needs the holder's bound 
   expect(await code(resources.expire(randomUUID(), owner(P)))).toBe("committed");
   expect((await resources.read()).reservations[0]!.state).toBe("suspect");
 });
+
+it("R10 N11: promote and renew take the same bounded lease as reserve", async () => {
+  const a = effect(81, P, ["deploy:mini:web"]), b = effect(82, Q, ["deploy:mini:web"]);
+  await put([{ kind: "effect", value: a }, { kind: "effect", value: b }]);
+  const held = await resources.reserveForEffect(randomUUID(), owner(P), { effectId: a.id, class: "deploy", keys: ["deploy:mini:web"], priority: 5, leaseMs: 60_000 });
+  const waiting = await resources.reserveForEffect(randomUUID(), owner(Q), { effectId: b.id, class: "deploy", keys: ["deploy:mini:web"], priority: 5, leaseMs: null });
+  for (const leaseMs of [0, -1, 999, 8 * 24 * 3600 * 1000, 1.5])
+    await expect(resources.renew(randomUUID(), owner(P), { reservationId: held.id, leaseMs })).rejects.toThrow();
+  const renewed = await resources.renew(randomUUID(), owner(P), { reservationId: held.id, leaseMs: 120_000 });
+  void renewed;
+  await setEffect(a, "succeeded");
+  const current = (await resources.read()).reservations.find(r => r.id === held.id)!;
+  await resources.release(randomUUID(), owner(P), { reservationId: held.id, expectedVersion: current.version, kind: "succeeded", evidence: [] });
+  // The deploy key is free now, so only the lease bound refuses these.
+  for (const leaseMs of [0, -60_000, 999])
+    await expect(resources.promote(randomUUID(), owner(Q), { reservationId: waiting.id, leaseMs })).rejects.toThrow();
+  expect((await resources.read()).reservations.find(r => r.id === waiting.id)!.state).toBe("queued");
+  expect((await resources.promote(randomUUID(), owner(Q), { reservationId: waiting.id, leaseMs: 60_000 })).state).toBe("granted");
+});
