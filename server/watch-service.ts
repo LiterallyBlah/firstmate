@@ -38,6 +38,22 @@ import { message, TEMPLATES } from "./templates";
 import { processWatchRequests } from "./watch-requests";
 import { cutoverGate } from "./supervision-gate";
 import { digest } from "./submissions";
+import { timerInventory, type TimerInventory } from "./supervision-jobs";
+import type { MaintenanceJob } from "../shared/supervision-maintenance";
+import type { NativeTimerInventory } from "./archive-inventory";
+
+/**
+ * S10 timer disposition inventory: the home's script watches, managed watches, the config's off switches, native
+ * schedules/heartbeats when supplied, and the plugin's own clocks. Reads files only; nothing is created, toggled,
+ * seeded or replaced. Native schedules are not read here: an absent native listing keeps the inventory incomplete.
+ */
+export async function readTimerInventory(home: string, config: FirstmateConfig, store: WatchConfigStore,
+  native: NativeTimerInventory = { complete: false, reason: "Native schedule inventory was not read." },
+  jobs: readonly MaintenanceJob[] = []): Promise<TimerInventory> {
+  const [scripts, saved, configFingerprint] = await Promise.all([listWatches(home), store.read(), store.fingerprint()]);
+  return timerInventory({ scripts: scripts.map((s) => ({ name: s.name, scheduleText: s.scheduleText, invalid: s.invalid })),
+    disabledWatches: config.disabledWatches, managed: saved.watches, native, mateAgentId: config.mateAgentId.trim(), jobs, configFingerprint });
+}
 
 /**
  * Sends to the first mate only when Paseo says it is not mid-turn, asked afresh every time, under a
@@ -72,6 +88,8 @@ export interface WatchService {
   options: () => Promise<Awaited<ReturnType<typeof inspectionChoices>> & { boardReview: ManagedWatch }>;
   summaries: () => Promise<WatchSummary[]>;
   history: (name: string) => ReturnType<WatchInspections["history"]>;
+  /** Read-only S10 timer inventory; unwired (no RPC). */
+  timerInventory: (native?: NativeTimerInventory, jobs?: readonly MaintenanceJob[]) => Promise<TimerInventory>;
   stop: () => void;
 }
 
@@ -210,6 +228,10 @@ export function startWatches(
       name: "board-review", schedule: "*/10 * * * *", enabled: true, prompt: await message(TEMPLATES.boardReviewBrief), ...BOARD_REVIEW_ROUTING,
     } }),
     history: (name) => inspections.history(name),
+    async timerInventory(native, jobs) {
+      const config = await readConfig();
+      return readTimerInventory(resolveHome(config), config, store, native, jobs);
+    },
     async summaries() {
       const saved = await store.read();
       const scripts = await runner.summaries();
