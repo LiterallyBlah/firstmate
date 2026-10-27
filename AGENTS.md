@@ -132,6 +132,22 @@ the store's append handler. Active/held plans remain browsable with decision and
 an open review form disappears if review ends. The status guard follows request-id replay and
 revision/subject checks, and never runs during ledger replay, preserving previously accepted history.
 
+S07 history import and single-writer cutover (`docs/scoped-supervision/S07.md`) is disabled and
+unwired. `server/supervision-gate.ts` is the one cutover gate for every plugin-owned legacy delivery:
+`queuePlanNotes`, `queueMateNote`, burst queue/extend, `flushMateNotes`, decision-answer send, watch
+enqueue/flush and the watch-runtime note all check it before touching a queue, and every armed send
+persists a claim before the network call and its result before removal. Unarmed it writes nothing.
+`server/supervision-migrate.ts` freezes one plan under the gate and the legacy writer's lock, imports
+its chain byte-for-byte with one disposition per affected delivery, commits transfer mappings before
+compare-by-ID/payload removal, and activates the scoped backend only after barrier and committed
+sidecars. Holds (decision answers, opaque watch rows, live worker callbacks, crashed claims) never
+resend; they move only by explicit evidence, answer holds by the captain. Anything new for a frozen plan
+is re-inventoried as a hold, never a terminal stray. A capacity preflight runs before the freeze, a
+fresh Needs-you ledger is required, and `abort` releases a prepared cutover back to legacy, restoring
+archived entries exactly. Commit imports attempt rows (`importedFrom`) so scoped worker guards see
+migrated workers. Legacy `.scoped/<plan>/` sidecars refuse the old writer; a committed scoped backend
+refuses it too. Keep every new legacy delivery path (including crew actions and item discussions)
+behind this gate.
 S08 (`docs/scoped-supervision/S08.md`) adds disabled source adapters in `server/supervision-sources.ts`:
 versioned PR head/check/review observations with explicit `source-binding` owners and reread-before-admission
 readiness, remote catalog fingerprints (inferred, never complete coverage) and persisted scoped `board-submission`
@@ -145,6 +161,7 @@ S08 writes stop at journal sequence 128, reserving the rest for effects and reco
 | ----------------------------- | ----------------------------------------------------------------------------------------- |
 | `index.server.ts`             | Wiring — the RPCs, the display settings document, the steer relay hook.                    |
 | `index.client.tsx`            | Wiring — the screen, sidebar item, two panels, settings screen, ⌘K items, `/fm` `/bearings` `/ahoy`. |
+| `shared/supervision-migration.ts`, `server/supervision-gate.ts`, `server/supervision-migrate.ts` | S07: migration/disposition records, the legacy delivery cutover gate, and the disabled per-scope importer. |
 | `shared/fleet.ts`             | Every RPC contract, the card/fleet shapes, the daemon config shape, and `CREW_LABELS`.     |
 | `shared/settings.ts`          | The host settings document: List/Board, column order and folds, the chat's width, the poll interval, card spacing. |
 | `templates/`                  | **Every file the plugin writes into the home**, as Markdown laid out as it lands there, and the parts that go inside them. The first mate's behaviour is `templates/data/charter.md`. |

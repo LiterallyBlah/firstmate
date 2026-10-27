@@ -154,7 +154,10 @@ prefix digest and anchor equal the values recomputed at its sequence. A crash be
 and checkpoint replacement only ever leaves it behind. A checkpoint ahead of the journal (for
 example, a deleted published transaction) or on a divergent prefix is reported as an integrity
 incident and refused: it may be the last witness of lost history and needs deliberate
-reconciliation, never a rebuild. Checkpoints are replaced atomically and never deleted, so a missing
+reconciliation, never a rebuild. **Deliberate reconciliation is owned by the main first mate
+(FirstMate), who stops admissions, preserves a copy of the whole supervision directory, reports the
+incident with its exact sequences and hashes, and asks the captain how to proceed.** No repair tool
+exists or is to be improvised; restoring a backup follows the external-effect reconciliation rule. Checkpoints are replaced atomically and never deleted, so a missing
 or unreadable one is likewise refused over a nonempty journal; only an empty journal (initialization
 interrupted before its first index) is rebuilt. **Builder's judgement call, for review:** refusing a
 missing checkpoint means a lost index has no automatic repair. The alternative, rebuilding it, would
@@ -174,9 +177,18 @@ original request receipt replays. Checkpoint writes use synced staging plus atom
 missing result is not proof an effect failed. These are process-crash/cooperative guarantees, not
 authenticated immutable storage or disk-loss protection.
 
+**Admission preflight (R06O):**
+- **No pre-checkpoint store.** Confirm the target home has no supervision store created before checkpoints existed (S01–S05, the f94c338 era). For each `<plugin-data>/firstmate/supervision/*/`, refuse only if `transactions/` is non-empty and there is no `checkpoint.json` beside it. A freshly initialized store has `checkpoint.json` beside an empty `transactions/`, and that is valid. Production has never initialized one, so the expected result is "absent".
+- **Exactly one installed build.** Run `paseo plugin ls --json` and confirm the one daemon lists exactly one FirstMate plugin, at the reviewed build. An older build, or one without the S07 cutover gate (an S08-only build, for example), does not read the gate or its sidecars and must not be installed alongside it.
+- **S07 cutover headroom.** A cutover's capacity check is taken at the freeze and again at its barrier. The store reserves one transaction per open cutover for its release, so pilot writes after a freeze cannot use it up. If the barrier reports too little headroom, release the cutover (`abort`); do not retry it. See `S07.md`.
+
 Before a live trial, qualify at most two local chains under these history/state limits. Record every
 warm read and checked launch duration. The proposed admission stop limits are **2 seconds for any
-warm read** and **10 seconds for any launch**; stop new admissions on a miss and retain the trace.
+warm read on a display/status route** (Inbox, Needs-you and scope status, which may settle after
+750 ms) and **10 seconds for any launch**; stop new admissions on a miss and retain the trace.
+Newest-head reads (crew-seen, the inbox replay and request lookups, writer-side reads) deliberately
+wait out overlapping commits. Record them separately and bound them by the 10-second launch rule, not
+the 2-second display rule (R06O N12).
 Filesystem/provider stalls can exceed them: these are measured stop rules, not hard real-time
 completion guarantees. The source-bound synthetic timing samples live in `index-bound-evidence.json`;
 they do not qualify a live adapter or establish provider latency. A longer workload needs a separate

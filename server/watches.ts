@@ -36,6 +36,8 @@ import { dirname, join } from "node:path";
 import type { WatchResult, WatchSummary } from "../shared/fleet";
 import { watchRouting, type ManagedWatch } from "../shared/watch-routing";
 import { serialized } from "./serialize";
+import { digest } from "./submissions";
+import type { CutoverGate, GateItem } from "./supervision-gate";
 import { TEMPLATES, message } from "./templates";
 import { BUILT_IN_WATCHES, builtInStates, listWatches, seedWatches, type WatchFile } from "./watch-files";
 import { runWatchScript, type RunResult } from "./watch-run";
@@ -102,6 +104,8 @@ export interface WatchRunnerOptions {
   /** Persist isolated-session inputs before removing them from the script's delivery path. */
   routeNote?: (note: QueuedNote) => Promise<boolean>;
   canRun?: (name: string) => Promise<boolean>;
+  /** S07 cutover gate for enqueue and send admission, with the configured recipient; none while unhomed. */
+  gate?: () => Promise<{ gate: CutoverGate; recipient: string } | null>;
   /** The runner's own file, `watches.json`. */
   stateFile: string;
   /** Where each script's `FIRSTMATE_WATCH_STATE` directory goes. */
@@ -291,7 +295,7 @@ export class WatchRunner {
         signal: this.aborter.signal,
       });
       if (this.aborter.signal.aborted) return;
-      await this.record(watch.name, stamp(at), result);
+      await this.gated(() => this.record(watch.name, stamp(at), result));
     } finally {
       this.running.delete(watch.name);
     }
@@ -337,7 +341,7 @@ export class WatchRunner {
 
   /** Current-session prompt watches use the existing execution queue, with no second result notification. */
   async enqueuePrompt(name: string, text: string, at: Date): Promise<void> {
-    return serialized(`${this.options.stateFile}.prompts`, async () => {
+    return serialized(`${this.options.stateFile}.prompts`, () => this.gated(async () => {
       const state = await this.load();
       const ran = stamp(at);
       const previous = state.watches[name];
@@ -345,7 +349,37 @@ export class WatchRunner {
       this.enqueue(state, { name, ran, kind: "output", text });
       state.watches[name] = { ...BLANK, lastRunAt: ran, lastResult: "queued", lastOutput: text, lastOutputAt: ran };
       await this.persist();
-    });
+    }));
+  }
+
+  /** Queue enqueues run inside the cutover gate, so a freeze's inventory either includes them or follows them. */
+  private async gated<T>(work: () => Promise<T>): Promise<T> {
+    const entry = await this.options.gate?.();
+    return entry ? entry.gate.run(work) : work();
+  }
+
+  /** The persisted queue, for a cutover inventory. Watch rows have no ids; their exact fields identify them. */
+  async queued(): Promise<QueuedNote[]> { return structuredClone((await this.load()).queue); }
+
+  /** Puts back an entry a released cutover archived, exactly, unless one with its identity is already queued. */
+  async restoreQueued(entry: QueuedNote): Promise<"restored" | "present"> {
+    const state = await this.load();
+    if (state.queue.some((note) => watchItem(note).id === watchItem(entry).id)) return "present";
+    state.queue.push(structuredClone(entry));
+    await this.persist();
+    return "restored";
+  }
+
+  /** Compare-by-identity/payload removal for a published cutover disposition. Never sends anything. */
+  async removeQueued(id: string, payloadHash: string): Promise<"removed" | "absent" | "mismatch"> {
+    const state = await this.load();
+    const same = state.queue.filter((note) => watchItem(note).id === id);
+    if (same.length === 0) return "absent";
+    const exact = same.find((note) => watchItem(note).payloadHash === payloadHash);
+    if (!exact) return "mismatch";
+    state.queue = state.queue.filter((note) => note !== exact);
+    await this.persist();
+    return "removed";
   }
 
   async promptSummary(watch: ManagedWatch): Promise<WatchSummary> {
@@ -400,16 +434,33 @@ export class WatchRunner {
     if (this.aborter.signal.aborted) return;
     const state = await this.load();
     if (state.queue.length === 0 && state.dropped === 0) return;
-    const batch = [...state.queue];
+    let batch = [...state.queue];
     const dropped = state.dropped;
+    // Send admission: the gate leaves a frozen scope's opaque entries queued with their legacy owner,
+    // and claims the rest durably before the send. Unrelated output still flows.
+    const entry = await this.options.gate?.();
+    let claim: string | null = null;
+    if (entry) {
+      const admission = await entry.gate.claim(batch.map(watchItem), entry.recipient, async (items) =>
+        items.filter((item) => state.queue.some((queued) => watchItem(queued).id === item.id && watchItem(queued).payloadHash === item.payloadHash)));
+      batch = batch.filter((queued) => admission.admitted.some((item) => item.id === watchItem(queued).id && item.payloadHash === watchItem(queued).payloadHash));
+      claim = admission.claim;
+      if (batch.length === 0 && (dropped === 0 || admission.refused.length > 0)) {
+        await entry.gate.settle(claim, "failed", "Nothing admitted to send.");
+        return;
+      }
+    }
     const note = await fitWatchNote(batch, dropped);
     let outcome: DeliveryOutcome;
     try {
       outcome = await this.options.deliver(note.text);
     } catch (error) {
+      await entry?.gate.settle(claim, "uncertain", String(error));
       console.error("[firstmate] could not send the watches' output to the first mate:", error);
       return;
     }
+    // "wait" is decided before any send: a definite non-admission.
+    await entry?.gate.settle(claim, outcome === "sent" ? "accepted" : "failed", note.cut.length ? `cut: ${note.cut.map((q) => watchItem(q).id).join(", ")}` : "");
     if (outcome !== "sent") return;
     // What was cut to fit is gone too: counted in this message's tag, not tried again.
     state.queue = state.queue.filter((queued) => !batch.includes(queued));
@@ -477,6 +528,11 @@ export class WatchRunner {
       console.error(`[firstmate] could not save ${path}:`, error);
     });
   }
+}
+
+/** A watch queue row as the cutover gate sees it: no invented id, its exact persisted fields instead. */
+export function watchItem(note: QueuedNote): GateItem {
+  return { source: "watch", id: `${note.name}@${note.ran}#${note.kind}`, payloadHash: digest(note), text: `${note.name} ${note.text}` };
 }
 
 /**

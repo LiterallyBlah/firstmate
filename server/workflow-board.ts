@@ -9,6 +9,7 @@ import { compactWorkflowBearings } from "../shared/workflow-plan-summary";
 import { workflowNodeOwnsCard } from "../shared/workflow-identity";
 import { dependenciesMet, planSubjectHash, planBacklogLine, backlogSection, samePlanItem } from "./workflow-plans";
 import { workflowStore } from "./workflow-service";
+import { cutoverGate, cutoverProblems } from "./supervision-gate";
 import { digest } from "./submissions";
 import { parseBacklog } from "./backlog";
 import { resolveInHome } from "./files";
@@ -32,9 +33,16 @@ function decisionDueAt(plan: WorkflowPlan, node: WorkflowPlan["definition"]["nod
 export const workflowHomeId = (home: string) => digest(process.platform === "win32" ? resolve(home).toLowerCase() : resolve(home));
 export async function workflowSnapshot(home: string): Promise<WorkflowSnapshot> {
   let read: { plans: WorkflowPlan[]; problems: string[]; warnings?: string[]; quarantined?: QuarantinedWorkflow[] };
-  try { read = await workflowStore(home).read(); } catch (e) { read = { plans: [], problems: [`Plans unavailable: ${String(e)}`] }; }
-  // The browser retains all history; due actions below still exclude finished plans.
-  const allPlans = read.plans, plans = allPlans, now: PlanNeed[] = [], comingUp: PlanNeed[] = [];
+  const store = workflowStore(home);
+  try { read = await store.read(); } catch (e) { read = { plans: [], problems: [`Plans unavailable: ${String(e)}`] }; }
+  // S07: damaged cutover records and held cutovers are visible, with their owner, wherever plan problems are.
+  const cutover = await cutoverProblems(cutoverGate(home));
+  read = { ...read, problems: [...read.problems, ...cutover.problems], warnings: [...(read.warnings ?? []), ...cutover.warnings] };
+  // The browser retains all history; due actions below still exclude finished plans. A plan in an S07
+  // cutover is no longer the legacy mate's: its retained history still resolves dependencies only.
+  const allPlans = read.plans, held = new Set<string>();
+  for (const plan of allPlans) if (await store.cutover(plan.definition.id).catch(() => "damaged")) held.add(plan.definition.id);
+  const plans = allPlans.filter(p => !held.has(p.definition.id)), now: PlanNeed[] = [], comingUp: PlanNeed[] = [];
   const unavailableDependencies = quarantinedDependencyIds(read.quarantined ?? []);
   for (const plan of plans) {
     if (plan.status === "abandoned" || planFinished(plan)) continue;

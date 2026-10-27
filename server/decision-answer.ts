@@ -15,6 +15,8 @@ import { message, TEMPLATES } from "./templates";
 import { serialized } from "./serialize";
 import type { SupervisionActor } from "../shared/supervision";
 import type { ScopedAnswer, SupervisionCommands } from "./supervision-commands";
+import { readFirstmateConfig, resolveHome } from "./config";
+import { cutoverGate } from "./supervision-gate";
 
 /** Distinct opt-in backend: commit the answer fact/outbox; no askMate transport or automatic resend. */
 export function answerScopedDecision(commands: SupervisionCommands, input: ScopedAnswer, actor: SupervisionActor) {
@@ -52,14 +54,16 @@ export async function answerDecision(
         throw new Error("This submission id belongs to another answer.");
       return { outcome: prior.submission.outcome, snapshot };
     }
-    let reserved = false;
+    let reserved = false, claim: string | null = null;
+    const gate = cutoverGate(resolveHome(await readFirstmateConfig()));
     const outgoing = {
       text: "",
       messageId: `firstmate-answer-${input.submissionId}`,
     };
     try {
-      await askMate(paseo, outgoing, async () => {
-        // askMate holds the same lifecycle lock as config/home/role changes here.
+      await askMate(paseo, outgoing, async (recipient) => gate.run(async () => {
+        // askMate holds the same lifecycle lock as config/home/role changes here. The S07 cutover gate
+        // is checked before the reservation, and the reservation is the durable in-flight claim.
         snapshot = await service.read();
         const request = snapshot.requests.find(
           (entry) => entry.id === input.requestId,
@@ -108,6 +112,12 @@ export async function answerDecision(
           }),
           answer: input.text,
         });
+        const item = { source: "decision" as const, id: input.submissionId, payloadHash: hash, task: { taskId: request.source.taskId, host: request.source.hostId || null } };
+        const verdict = await gate.verdict(item, "send");
+        if (!verdict.admit) {
+          await gate.refusal(item, verdict.reason);
+          throw new Error(verdict.stage === "committed" ? `${verdict.reason} Answer it from Plans instead.` : verdict.reason);
+        }
         snapshot = await service.mutate(target, {
           kind: "answer",
           submissionId: input.submissionId,
@@ -116,11 +126,15 @@ export async function answerDecision(
           onlyNew: true,
         });
         reserved = true;
-      });
+        // Inside the gate lock only for the claim; the send itself happens after it is released.
+        claim = (await gate.claimHeld([item], recipient)).claim;
+      }));
     } catch (error) {
       if (!reserved) throw error; // A definite pre-delivery refusal leaves the draft retryable.
+      await gate.settle(claim, "uncertain", String(error)).catch(() => undefined);
       return { outcome: "uncertain" as const, snapshot: await service.read() };
     }
+    await gate.settle(claim, "accepted").catch((error: unknown) => console.error("[firstmate] decision delivery receipt:", error));
     // A source edit or lost commit after acceptance must never turn into a second send.
     try {
       snapshot = await service.mutate(target, {

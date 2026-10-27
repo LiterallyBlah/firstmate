@@ -20,6 +20,9 @@ export async function legacyRoute(supervision: SupervisionStore, command: Workfl
   if (!plan) return;
   const status = await supervision.read();
   if (status.freshness === "uninitialized") return;
+  // S07: a released (aborted) cutover handed the plan back; its retired scoped rows are history, not an owner.
+  const released = new Set((status.migrations ?? []).filter(m => m.state === "aborted").map(m => m.planId));
+  if (released.has(plan) && !status.backends.some(b => b.planId === plan && b.state !== "retired")) return;
   const candidates = taskTargets(command), tasks = [...status.tasks, ...status.retainedOwnership.flatMap(o => o.tasks)];
   if (status.backends.some(b => b.planId === plan) || status.retainedOwnership.some(o => o.workflows.some(w => w.plan === plan)) ||
     candidates.some(c => tasks.some(t => t.nodeId === c.node && (!c.host || t.hostId.trim().toLowerCase() === c.host))))
@@ -30,8 +33,12 @@ export async function scopeRoute(legacy: WorkflowPlanStore, plan: string, comman
   if (read.unavailable) throw new Error("The legacy plan store is unavailable; a scoped command cannot prove its target is not legacy.");
   const candidates = command ? taskTargets(command) : [];
   const held = read.quarantined.flatMap(q => q.inventory.scopes);
-  const live = read.plans.flatMap(p => [...p.definition.nodes, ...(p.removed ?? []).map(r => r.node)]).flatMap(n => n.kind === "run" ? [{ node: n.id, host: n.launch.host.trim().toLowerCase() }] : []);
-  if (read.plans.some(p => p.definition.id === plan) || read.quarantined.some(q => q.plan === plan) ||
+  // S07: a committed cutover moved authority to the scoped backend; its retained legacy bytes are history only.
+  const migrated = new Set<string>();
+  for (const p of read.plans) if (await legacy.cutover(p.definition.id) === "committed") migrated.add(p.definition.id);
+  const plans = read.plans.filter(p => !migrated.has(p.definition.id));
+  const live = plans.flatMap(p => [...p.definition.nodes, ...(p.removed ?? []).map(r => r.node)]).flatMap(n => n.kind === "run" ? [{ node: n.id, host: n.launch.host.trim().toLowerCase() }] : []);
+  if (plans.some(p => p.definition.id === plan) || read.quarantined.some(q => q.plan === plan) ||
     candidates.some(c => [...held, ...live].some(t => t.node === c.node && (!c.host || !t.host || t.host === c.host))))
     throw new Error(`Plan ${plan} or its task belongs to the legacy first mate; the scope helper cannot change it.`);
 }

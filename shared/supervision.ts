@@ -3,6 +3,7 @@ import { z } from "zod";
 import { PlanId, type WorkflowPlan } from "./workflow-plans";
 import type { InboxProjection } from "./supervision-inbox";
 import type { Continuation } from "./supervision-continuation";
+import type { LegacyDeliveryDisposition, MigrationReceipt } from "./supervision-migration";
 import type { BoardSubmission, SourceBinding } from "./supervision-sources";
 import type { AcceptedScopedCommand, OperationHold, PolicyApproval, PolicyEvidence, PolicyRule, PolicySource, ScopedDecision, ScopedOutbox } from "./supervision-policy";
 
@@ -96,8 +97,11 @@ export const SupervisionAttemptSchema = z.object({
   worker: z.object({ hostId: text(), agentId: text(), workspaceId: text() }).strict().nullable(),
   originalNotificationOwner: text().nullable(), notificationStatus: z.enum(["known", "reported", "unknown"]),
   spentAgents: count, spentTurns: count, state: text(), evidenceIds: unique(SupervisionUuid, 256), version: positive,
+  /** S07 v1 extension: an attempt imported from legacy history at cutover commit. It names no gateway launch
+   * effect (`launchEffectId` is a reserved identity only); its spend and worker identity are the legacy record's. */
+  importedFrom: z.object({ migrationId: SupervisionUuid, legacyAttempt: text(64), node: PlanId }).strict().optional(),
 }).strict();
-/** No backend switch is implemented in S01. Prepared/held always denies both writers. */
+/** Prepared/held always denies both writers. The only prepared -> active move is S07's committed migration. */
 export const SupervisionBackendSchema = z.object({
   planId: PlanId, ownerScopeId: SupervisionUuid, backend: z.enum(["legacy", "scoped"]),
   state: z.enum(["active", "prepared", "held", "retired"]), sourceHash: SupervisionHash.nullable(), version: positive,
@@ -105,6 +109,7 @@ export const SupervisionBackendSchema = z.object({
 export const SupervisionRowKind = z.enum(["scope", "binding", "task", "attempt", "effect", "backend", "workflow", "retirement", "blob",
   "inbox-event", "inbox-assignment", "inbox-source", "inbox-mailbox", "inbox-offer", "inbox-request",
   "policy-source", "policy-rule", "policy-evidence", "approval", "decision", "outbox", "operation-hold", "command", "continuation",
+  "migration", "delivery-disposition",
   "source-binding", "board-submission"]);
 export const SupervisionExpectedSchema = z.object({ kind: SupervisionRowKind, id: text(1024), version: count }).strict();
 export const SupervisionActorSchema = z.object({
@@ -145,6 +150,8 @@ export interface SupervisionStatus {
   plans: { scopeId: string; plan: WorkflowPlan }[];
   /** S04 unfinished-goal assessments; absent rows are derived as due, never as finished. */
   continuations: Continuation[];
+  /** S07 cutover receipts and their legacy delivery inventory. Absent on fixtures that predate S07. */
+  migrations?: MigrationReceipt[]; dispositions?: LegacyDeliveryDisposition[];
   retirements: { scopeId: string; plan: string; evidence: string; hash: string }[];
   retainedOwnership: SupervisionOwnership[];
   inbox: InboxProjection;

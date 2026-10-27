@@ -8,6 +8,7 @@ import { PlanId, PlanLaunchSchema, PlanDefinitionSchema, PlanPostureSourceSchema
 import { readPlanPosture } from "./workflow-posture";
 import { digest, publish } from "./submissions";
 import { serialized } from "./serialize";
+import { CutoverGate } from "./supervision-gate";
 import { resolveInHome } from "./files";
 import { parseBacklog } from "./backlog";
 import { observeNeedsYou } from "./needs-you-detect";
@@ -291,6 +292,8 @@ function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
 }
 export { reduce as replayWorkflowEvent };
 
+/** The legacy writer refuses a plan whose S07 cutover has frozen or committed. */
+export class LegacyCutoverError extends Error {}
 export class WorkflowPlanStore {
   private static cache = new Map<string, { identity: string; plan: WorkflowPlan | null }>();
   constructor(readonly root: string, readonly home: string, private readonly route?: (command: WorkflowCommand) => Promise<void>) {}
@@ -298,6 +301,16 @@ export class WorkflowPlanStore {
   private tips(id: string) { return join(this.root, ".tips", PlanId.parse(id)); }
   private published(id: string) { return join(this.root, ".published", PlanId.parse(id)); }
   private retired(id: string) { return join(this.root, ".retired", PlanId.parse(id)); }
+  /** S07 compatibility sidecar stage for a plan, read without any lock. Legacy history stays byte-identical. */
+  async cutover(id: string): Promise<"freeze" | "prepared" | "committed" | null> {
+    const gate = new CutoverGate(this.home, this.root);
+    // A released cutover (aborted) hands the plan back to this writer.
+    if (await gate.sidecar(id, "aborted")) return null;
+    const stage = (await gate.sidecar(id, "committed") ?? await gate.sidecar(id, "prepared") ?? await gate.sidecar(id, "freeze"))?.stage ?? null;
+    return stage === "aborted" ? null : stage;
+  }
+  /** The legacy writer's own serialization boundary, shared with the S07 freeze. */
+  locked<T>(work: () => Promise<T>): Promise<T> { return serialized(resolve(this.root), work); }
   private async names(directory: string): Promise<string[]> {
     try { return (await readdir(directory)).sort(); } catch (e) { if (["ENOENT", "ENOTDIR"].includes((e as NodeJS.ErrnoException).code ?? "")) return []; throw e; }
   }
@@ -487,13 +500,15 @@ export class WorkflowPlanStore {
     const plans: WorkflowPlan[] = [], problems: string[] = [], warnings: string[] = [], quarantined: QuarantinedWorkflow[] = [];
     const ids = new Set<string>(), reserved = [".tips", ".published", ".retired"];
     const consider = (name: string) => { if (PlanId.safeParse(name).success) ids.add(name); else warnings.push(`Ignored non-plan entry: ${name}.`); };
-    for (const entry of entries) if (!reserved.includes(entry.name)) consider(entry.name);
+    for (const entry of entries) if (!reserved.includes(entry.name) && entry.name !== ".scoped") consider(entry.name);
     for (const directory of reserved) {
       try { for (const id of await readdir(join(this.root, directory))) consider(id); } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") return { plans, problems: [String(e)], warnings, quarantined, unavailable: true }; }
     }
     for (const id of ids) {
       try {
         const plan = await this.get(id);
+        const stage = plan ? await this.cutover(id) : null;
+        if (stage) warnings.push(`Plan ${id} ${stage === "committed" ? "now belongs to its scoped supervisor" : "is held in a scoped cutover"}; its legacy history is read-only.`);
         if (plan) plans.push(plan);
         else {
           const recovered = await this.recoveries(id);
@@ -533,6 +548,10 @@ export class WorkflowPlanStore {
       return observeNeedsYou(await readFile((await resolveInHome(this.home, "data/backlog.md")).absolute, "utf8"), catalog);
     }
     return serialized(resolve(this.root), async () => {
+      const target = command.op === "retire" ? command.plan : command.op === "draft" || command.op === "revise" ? command.definition.id : command.op === "implicit" ? command.launch.id : command.plan;
+      // Inside the writer's lock: a freeze either sees this mutation committed or this mutation sees the freeze.
+      const stage = await this.cutover(target);
+      if (stage) throw new LegacyCutoverError(`Plan ${target} ${stage === "committed" ? "now belongs to its scoped supervisor" : "is held in a scoped cutover"}; the legacy writer cannot change it.`);
       if (this.route) await this.route(command);
       if (command.op === "retire") return this.retire(command, requestId, by);
       const id = command.op === "draft" || command.op === "revise" ? command.definition.id : command.op === "implicit" ? command.launch.id : command.plan;
@@ -689,6 +708,8 @@ export class WorkflowPlanStore {
     let backlog = ""; try { backlog = await readFile((await resolveInHome(this.home, "data/backlog.md")).absolute, "utf8"); } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e; }
     const items = parseBacklog(backlog);
     for (const plan of plans) {
+      // A frozen or migrated plan belongs to its cutover or its scoped owner, never the legacy agenda.
+      if (await this.cutover(plan.definition.id).catch(() => "damaged")) continue;
       const add = (kind: AgendaItem["kind"], priority: number, key: string, text: string, node?: string, extra = {}) => {
         const id = `${plan.definition.id}:${key}`;
         if (kind === "tell" ? plan.told.includes(id) : plan.handled.includes(id)) return;

@@ -36,6 +36,8 @@ import { listWatches } from "./watch-files";
 import { parseSchedule, isDue } from "./watch-schedule";
 import { message, TEMPLATES } from "./templates";
 import { processWatchRequests } from "./watch-requests";
+import { cutoverGate } from "./supervision-gate";
+import { digest } from "./submissions";
 
 /**
  * Sends to the first mate only when Paseo says it is not mid-turn, asked afresh every time, under a
@@ -108,6 +110,10 @@ export function startWatches(
       if (routing.executionSession === "current") return false;
       await inspections.queueInput(note.name, note.text, routing, note); return true;
     },
+    async gate() {
+      const config = await readConfig();
+      return config.home === "" && config.mateAgentId === "" ? null : { gate: cutoverGate(resolveHome(config)), recipient: config.mateAgentId.trim() || "unassigned" };
+    },
     stateFile: join(pluginDir(), "watches.json"),
     scriptStateRoot: join(pluginDir(), "watch-state"),
   });
@@ -158,12 +164,13 @@ export function startWatches(
         // Never enter the non-reentrant lifecycle gate before queuing/flushing it.
         const id = `firstmate-watch-runtime-${createHash("sha256").update(reason).digest("hex")}`;
         const text = await watchNote([{ name: "watch-runtime", ran: new Date().toISOString(), kind: "failed", reason, text: reason }], 0);
-        const queued = await serialized("firstmate.mate.notes", async () => {
-          const config = await readConfig();
-          if (config.mateNotes.some((note) => note.id === id)) return false;
-          await updateFirstmateConfig({ mateNotes: [...config.mateNotes, { id, text }] });
-          return true;
-        });
+        const queued = await cutoverGate(resolveHome(await readConfig())).enqueue({ source: "watch-runtime", id, payloadHash: digest({ id, text }), text },
+          () => serialized("firstmate.mate.notes", async () => {
+            const config = await readConfig();
+            if (config.mateNotes.some((note) => note.id === id)) return false;
+            await updateFirstmateConfig({ mateNotes: [...config.mateNotes, { id, text }] });
+            return true;
+          }));
         if (queued) recordNoteQueued(id, "watch-runtime", text);
         lastFault = reason;
         await flushMateNotes(paseo);
