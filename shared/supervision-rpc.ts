@@ -12,7 +12,9 @@ export const SupervisionInboxStatusSchema = z.object({ format: z.literal("firstm
   scopeId: SupervisionUuid.nullable(), sequence: count, hash: SupervisionHash.nullable(), freshness: z.enum(["uninitialized", "current", "held"]),
   pageKind: z.enum(["events", "sources", "offers"]),
   observedAt: SupervisionUtc, offersEnabled: z.literal(false), deliverySupported: z.literal(false),
-  problems: z.array(z.string()), counts: z.object({ pending: count, triage: count, quarantined: count, acknowledgedUnhandled: count, uncertainOffers: count, sourcesWithGaps: count, lowerBound: z.boolean() }).strict(),
+  problems: z.array(z.string()), counts: z.object({ pending: count, triage: count, quarantined: count, acknowledgedUnhandled: count, uncertainOffers: count, sourcesWithGaps: count, lowerBound: z.boolean(),
+    /** S08: captain board messages whose send outcome is not known (reserved and unsettled, or uncertain). */
+    unknownBoardSends: count.optional() }).strict(),
   oldestPendingAt: SupervisionUtc.nullable(), oldestPendingAgeMs: count.nullable(), admissionsHeld: z.boolean(),
   watermark: count.nullable(), nextAfter: count.nullable(), hasMore: z.boolean(),
   sources: z.array(InboxSourceSchema), offers: z.array(InboxOfferSchema),

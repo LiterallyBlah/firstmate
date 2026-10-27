@@ -101,3 +101,16 @@ describe("remote crew actions", () => {
     expect(text).not.toContain("<!--");
   });
 });
+
+describe("S08 scoped remote mutation", () => {
+  it("a guard refusal stops steer, interrupt and end before any remote request; logs stay readable", async () => {
+    const { remotes, calls } = gateway(() => "log");
+    const guard = async () => { throw new Error("remote mutation stays disabled"); };
+    await expect(steerRemoteCrew(remotes, "srv_light", "w1", "go", guard)).rejects.toThrow("stays disabled");
+    await expect(interruptRemoteCrew(remotes, "srv_light", "w1", guard)).rejects.toThrow("stays disabled");
+    await expect(exitRemoteCrew(remotes, "srv_light", "w1", guard)).rejects.toThrow("stays disabled");
+    expect(calls).toEqual([]);
+    await remoteCrewLogs(remotes, "srv_light", "w1");
+    expect(calls).toHaveLength(1);
+  });
+});

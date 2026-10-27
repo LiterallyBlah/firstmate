@@ -3,6 +3,7 @@ import { z } from "zod";
 import { PlanId, type WorkflowPlan } from "./workflow-plans";
 import type { InboxProjection } from "./supervision-inbox";
 import type { Continuation } from "./supervision-continuation";
+import type { BoardSubmission, SourceBinding } from "./supervision-sources";
 import type { AcceptedScopedCommand, OperationHold, PolicyApproval, PolicyEvidence, PolicyRule, PolicySource, ScopedDecision, ScopedOutbox } from "./supervision-policy";
 
 export const SupervisionHash = z.string().length(64).regex(/^[0-9a-f]{64}$/);
@@ -103,7 +104,8 @@ export const SupervisionBackendSchema = z.object({
 }).strict();
 export const SupervisionRowKind = z.enum(["scope", "binding", "task", "attempt", "effect", "backend", "workflow", "retirement", "blob",
   "inbox-event", "inbox-assignment", "inbox-source", "inbox-mailbox", "inbox-offer", "inbox-request",
-  "policy-source", "policy-rule", "policy-evidence", "approval", "decision", "outbox", "operation-hold", "command", "continuation"]);
+  "policy-source", "policy-rule", "policy-evidence", "approval", "decision", "outbox", "operation-hold", "command", "continuation",
+  "source-binding", "board-submission"]);
 export const SupervisionExpectedSchema = z.object({ kind: SupervisionRowKind, id: text(1024), version: count }).strict();
 export const SupervisionActorSchema = z.object({
   kind: z.enum(["captain-ui", "mate-chat", "agent", "system"]), id: text(), source: text(1024),
@@ -146,5 +148,7 @@ export interface SupervisionStatus {
   retirements: { scopeId: string; plan: string; evidence: string; hash: string }[];
   retainedOwnership: SupervisionOwnership[];
   inbox: InboxProjection;
+  /** S08 source joins: explicit pull request owners and persisted board submissions. */
+  sources: { bindings: SourceBinding[]; submissions: BoardSubmission[] };
   index: { schema: 1; sequence: number; hash: string | null; taskOwners: Record<string, string>; effectKeys: Record<string, string> };
 }

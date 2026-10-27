@@ -132,6 +132,15 @@ the store's append handler. Active/held plans remain browsable with decision and
 an open review form disappears if review ends. The status guard follows request-id replay and
 revision/subject checks, and never runs during ledger replay, preserving previously accepted history.
 
+S08 (`docs/scoped-supervision/S08.md`) adds disabled source adapters in `server/supervision-sources.ts`:
+versioned PR head/check/review observations with explicit `source-binding` owners and reread-before-admission
+readiness, remote catalog fingerprints (inferred, never complete coverage) and persisted scoped `board-submission`
+steers correlated by clientMessageId. Only refusal guards are wired: scoped workers' item discussions and remote
+mutations are refused. pr-watch's typed spool is opt-in (`FIRSTMATE_PR_OBSERVATIONS=1`); default output is unchanged.
+Dedupe is per source against its latest observation, and every content change in a stream is a new transition.
+A full spool fails the run without moving the baseline. Board correlation pages the typed timeline and records gaps.
+S08 writes stop at journal sequence 128, reserving the rest for effects and reconciliation.
+
 | File                          | What it owns                                                                              |
 | ----------------------------- | ----------------------------------------------------------------------------------------- |
 | `index.server.ts`             | Wiring — the RPCs, the display settings document, the steer relay hook.                    |
@@ -152,6 +161,7 @@ revision/subject checks, and never runs during ledger replay, preserving previou
 | `server/remotes.ts`, `shared/remotes.ts` | Saved remote hosts: the daemon-side connections, the minute poll, the helper's request queue. |
 | `server/mate.ts`              | Launching, adopting and releasing the first mate; carrying the captain's words to it.      |
 | `server/crew.ts`              | Steer, interrupt, end, relaunch one crewmate; the relay that tells the first mate about a steer. |
+| `server/supervision-sources.ts`, `server/supervision-source-state.ts`, `shared/supervision-sources.ts` | S08 PR/remote/board observation adapters and their journal row checks. Unwired; see `docs/scoped-supervision/S08.md`. |
 | `server/crew-seen.ts`         | Clears a crewmate's "finished" flag once a later first-mate turn has completed.            |
 | `server/watches.ts`           | The watch runner: the minute timer, runs, the queue, `<firstmate-watch>` notes, `watches.json`. |
 | `server/watch-service.ts`     | The runner wired to Paseo: the kept Paseo handle, delivery to the first mate, the on/off switch. |

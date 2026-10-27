@@ -26,6 +26,8 @@ import { AcceptedScopedCommandSchema, OperationHoldSchema, PolicyApprovalSchema,
   PolicySourceSchema, ScopedDecisionSchema, ScopedOutboxSchema, ScopedCommandResultSchema,
   type ScopedCommandResult } from "../shared/supervision-policy";
 import { ContinuationSchema, type Continuation } from "../shared/supervision-continuation";
+import { BoardSubmissionSchema, SourceBindingSchema } from "../shared/supervision-sources";
+import { validateSourceChange, validateSourceRows } from "./supervision-source-state";
 
 const number = z.number().int().min(0).max(Number.MAX_SAFE_INTEGER), positive = number.min(1);
 const BlobSchema = z.object({ id: SupervisionHash, bytes: number }).strict();
@@ -39,6 +41,8 @@ export const SupervisionMutationSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("operation-hold"), value: OperationHoldSchema }).strict(),
   z.object({ kind: z.literal("command"), value: AcceptedScopedCommandSchema }).strict(),
   z.object({ kind: z.literal("continuation"), value: ContinuationSchema }).strict(),
+  z.object({ kind: z.literal("source-binding"), value: SourceBindingSchema }).strict(),
+  z.object({ kind: z.literal("board-submission"), value: BoardSubmissionSchema }).strict(),
   z.object({ kind: z.literal("scope"), value: SupervisionScopeSchema }).strict(),
   z.object({ kind: z.literal("binding"), value: SupervisionBindingSchema }).strict(),
   z.object({ kind: z.literal("task"), value: SupervisionTaskSchema }).strict(),
@@ -347,6 +351,7 @@ export class SupervisionStore {
         if ("version" in mutation.value && mutation.value.version !== version) fail("STALE", "New row version must increment once.");
         const old = prior?.value as Record<string, unknown> | undefined;
         validateInboxChange(mutation.kind, mutation.value, old, next, fail);
+        validateSourceChange(mutation.kind, mutation.value, old, next, fail);
         if (mutation.kind === "scope") {
           if (mutation.value.homeId !== this.homeId) fail("CONFLICT", "Scope belongs to another lexical home.");
           if (old && (old.kind !== mutation.value.kind || old.mode !== mutation.value.mode || (old.state === "retired" && mutation.value.state !== "retired"))) fail("HELD", "Scope identity/mode or retirement cannot be reset.");
@@ -410,12 +415,14 @@ export class SupervisionStore {
     }
     this.validateIndexes(next);
     validateInbox(next, fail);
+    validateSourceRows(next, fail);
     for (const mutation of body.mutations) if (mutation.kind === "inbox-assignment" && mutation.value.scopeId) {
       const prior = frames.get(key("inbox-assignment", mutation.value.id))?.value as z.infer<typeof InboxAssignmentSchema> | undefined;
       if (prior && !prior.scopeId) {
         const event = next.get(key("inbox-event", mutation.value.id))!.value as z.infer<typeof InboxEventSchema>;
         const projection = (kind: Frame["kind"]) => [...next.values()].filter(f => f.kind === kind).map(f => f.value);
-        const owners = eventOwners(event, projection("task") as SupervisionStatus["tasks"], projection("attempt") as SupervisionStatus["attempts"]);
+        const owners = eventOwners(event, projection("task") as SupervisionStatus["tasks"], projection("attempt") as SupervisionStatus["attempts"],
+          projection("source-binding") as SupervisionStatus["sources"]["bindings"]);
         if (owners.length !== 1 || owners[0]!.attempt.id !== mutation.value.attemptId) fail("UNKNOWN_OWNER", "Triage resolution became ambiguous before publication.");
       }
     }
@@ -997,6 +1004,7 @@ export class SupervisionStore {
         .map(({ scopeId, receipt }) => ({ scopeId, plan: receipt.plan, evidence: receipt.evidence, hash: receipt.hash })),
       retainedOwnership: snapshot.ownership,
       inbox: inboxProjection(snapshot.frames),
+      sources: { bindings: values("source-binding"), submissions: values("board-submission") },
       index: { schema: 1, sequence: snapshot.sequence, hash: snapshot.hash,
         taskOwners: Object.fromEntries(tasks.map(t => [JSON.stringify([t.hostId.trim().toLowerCase(), t.projectId, t.nodeId]), t.ownerScopeId])),
         effectKeys: Object.fromEntries(effects.map(e => [e.logicalKey, e.id])) },

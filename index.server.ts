@@ -29,6 +29,7 @@ import { pageReceiptTimeline } from "./shared/receipts";
 import { ReportCache, loadFleet, readAgentTools } from "./server/fleet";
 import { SupervisionStatusReader } from "./server/supervision-status-reader";
 import { supervisionInboxStatus, hasScopedWorker } from "./server/supervision-status";
+import { isScopedSourceWorker, refuseScopedRemoteMutation } from "./server/supervision-sources";
 import { readSupervisionInbox } from "./shared/supervision-rpc";
 import { registerScopeRpcs } from "./server/scope-rpc";
 import { withScopedNeedsYou } from "./server/needs-you-service";
@@ -81,6 +82,7 @@ import {
   toggleWatch,
   writeConfig,
 } from "./shared/fleet";
+import type { FleetCard } from "./shared/fleet";
 import { findHomeFiles, listHomeFiles, readHomeFile, writeHomeFile } from "./shared/files";
 import { startWatches } from "./server/watch-service";
 import { createWatch, configureWatch, watchOptions, watchHistory } from "./shared/watch-routing";
@@ -229,6 +231,23 @@ export default function contribute(server: PluginServerContext) {
     return changeItemTag(await requireHome(fleet.home), findTagItem(fleet.cards, key), tag, present, { origin: () => newAction("item-tag.edit", "captain") });
   });
 
+  // S08 refusal guards only: a positively registered scoped worker is refused on legacy board paths.
+  // No scoped adapter, source poll or journal writer is started here.
+  const scopedCard = async (card: FleetCard) => {
+    const status = await readSupervision(undefined, true);
+    if (card.agent) return isScopedSourceWorker(status, "local", card.agent.id);
+    return card.remote?.serverId != null && card.remote.worker != null && isScopedSourceWorker(status, card.remote.serverId, card.remote.worker.id);
+  };
+  const remoteGuard = async (serverId: string, agentId: string) => {
+    let status: Awaited<ReturnType<typeof readSupervision>>;
+    try { status = await readSupervision(undefined, true); }
+    catch (error) {
+      // The journal is not authoritative for legacy remote crew; an unreadable journal must not stop the captain ending one.
+      console.error("[firstmate] supervision status unavailable for the remote scoped-worker guard:", error);
+      return;
+    }
+    refuseScopedRemoteMutation(status, serverId, agentId);
+  };
   server.handle(readItemThread, async ({ key }) => readThread(await requireHome(resolveHome(await readFirstmateConfig())), key));
   server.handle(sendItemThread, async (input, { paseo }) => {
     const config = await readFirstmateConfig();
@@ -237,7 +256,7 @@ export default function contribute(server: PluginServerContext) {
       (text, messageId, beforeSend) => askMate(paseo, { text, messageId }, async (agentId) => {
         if (resolveHome(await readFirstmateConfig()) !== fleet.home) throw new Error("The first mate's home changed. Reopen the discussion.");
         await beforeSend(agentId);
-      }));
+      }), scopedCard);
   });
 
   server.handle(launchMateRpc, (input, { paseo }) => launchMate(paseo, input));
@@ -282,7 +301,7 @@ export default function contribute(server: PluginServerContext) {
     const receipt = receiptJournal()?.beginSend({ channel: "remote-steer", actor: "captain", recipient: `${serverId}/${agentId}`, text: text.trim(), carried: false });
     let sent: Awaited<ReturnType<typeof steerRemoteCrew>>;
     try {
-      sent = await steerRemoteCrew(remotes, serverId, agentId, text);
+      sent = await steerRemoteCrew(remotes, serverId, agentId, text, remoteGuard);
     } catch (error) {
       receipt?.settle("failed", error);
       throw error;
@@ -306,11 +325,11 @@ export default function contribute(server: PluginServerContext) {
     return {};
   });
   server.handle(interruptRemoteCrewRpc, async ({ serverId, agentId }) => {
-    await interruptRemoteCrew(remotes, serverId, agentId);
+    await interruptRemoteCrew(remotes, serverId, agentId, remoteGuard);
     return {};
   });
   server.handle(exitRemoteCrewRpc, async ({ serverId, agentId }) => {
-    await exitRemoteCrew(remotes, serverId, agentId);
+    await exitRemoteCrew(remotes, serverId, agentId, remoteGuard);
     return {};
   });
   server.handle(remoteCrewLogsRpc, ({ serverId, agentId }) => remoteCrewLogs(remotes, serverId, agentId));
