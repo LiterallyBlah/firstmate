@@ -26,6 +26,9 @@ async function fixture() {
   const path = (n: number, suffix = "event") => join(store.root, "transactions", `${String(n).padStart(12, "0")}.${suffix}.json`);
   return { store, advance, home, data, path, fault: (name: string) => { fault = name; } };
 }
+// The bound under test is the spies' zero scanFull/apply counts, not wall time. Building 176 durable transactions takes
+// ~4 s locally on Windows; a loaded hosted Windows runner (two heavy store files on its two workers, plus its random
+// ~10-14 s pauses) took over 20 s on b4adc1c2 with no code slowdown (503e0c35 and b4adc1c2 time alike on one machine).
 it.each([11, 176])("warm reads at %i transactions replay no historical reducers or full scans", async history => {
   const f = await fixture(); for (let n = 0; n < history; n++) await f.advance();
   const scan = vi.spyOn(f.store as any, "scanFull"), apply = vi.spyOn(f.store as any, "apply");
@@ -35,7 +38,7 @@ it.each([11, 176])("warm reads at %i transactions replay no historical reducers 
   bounds.push({ history, readMs, fullScans: scan.mock.calls.length, historicalReducerCalls: apply.mock.calls.length });
   const status = await f.store.read(); status.scopes[0]!.state = "retired";
   expect((await f.store.read()).scopes[0]!.state).not.toBe("retired");
-});
+}, 60_000);
 it("launch work stays bounded after 176 transactions instead of replaying the prefix for each step", async () => {
   const f = await s04Fixture(), owner = await f.addScope(1, "indexed", ["indexed-build", "indexed-next"]);
   await f.draft(owner, [{ id: "indexed-build" }, { id: "indexed-next" }]);
