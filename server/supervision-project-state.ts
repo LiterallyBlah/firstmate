@@ -29,6 +29,7 @@ export function validateProjectChange(kind: string, value: unknown, prior: unkno
   if (kind === "project") {
     const row = value as ProjectRecord, old = prior as ProjectRecord | undefined;
     if (old && (old.scopeId !== row.scopeId || normalizedName(old.name) !== normalizedName(row.name))) fail("CONFLICT", "A project keeps its scope and name; a different project is a new admission.");
+    if (old?.owner && (!row.owner || old.owner.hostId !== row.owner.hostId || old.owner.directory !== row.owner.directory)) fail("CONFLICT", "Canonical project host/directory ownership is retained.");
   }
   if (kind === "plan-sponsor") {
     const row = value as PlanSponsor, old = prior as PlanSponsor | undefined;

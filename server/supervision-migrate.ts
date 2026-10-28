@@ -90,6 +90,7 @@ export interface MigrationInput {
   prerequisites: MigrationReceipt["prerequisites"];
 }
 export interface MigratorOptions {
+  actor?: SupervisionActor;
   home: string; store: SupervisionStore; legacy: WorkflowPlanStore; adapters: LegacyDeliveryAdapters;
   /** Off unless a separately approved activation turns it on. */
   enabled?: boolean;
@@ -98,6 +99,12 @@ export interface MigratorOptions {
   boundary?: (name: string) => Promise<void>;
 }
 export interface Capacity { sequence: number; transactionsNeeded: number; ceiling: number; preparedMutations: number; commitMutations: number; ok: boolean; problem: string | null }
+function migrationCeiling(status: SupervisionStatus) {
+  return status.storage.capacity ? status.sequence + Math.max(0, Math.floor((status.storage.limitBytes - status.storage.bytes - status.storage.capacity.reserveBytes) / 65536)) : SUPERVISION_INDEX_LIMITS.transactions;
+}
+function migrationRoom(status: SupervisionStatus, transactions: number) {
+  return status.storage.capacity ? status.storage.bytes + transactions * 65536 <= status.storage.limitBytes : status.sequence + transactions <= SUPERVISION_INDEX_LIMITS.transactions;
+}
 interface Snapshot {
   plan: WorkflowPlan; events: Event[]; files: { name: string; sha256: string }[]; sourceHash: string; tokens: CutoverTokens;
   dispositions: LegacyDeliveryDisposition[]; receipt: MigrationReceipt; problems: string[]; prepared: StoreMutation[]; capacity: Capacity;
@@ -200,11 +207,11 @@ export class SupervisionMigrator {
       launches, inventory: { hash: inventoryHash(dispositions), dispositionIds: dispositions.map(d => d.id) },
       projectionPreimage: { backlog: await preimage("data/backlog.md"), itemTags: await preimage(ITEM_TAGS_FILE) },
       sidecars: { freeze: digest({ migrationId: input.migrationId, sourceHash, inventory: inventoryHash(dispositions) }), prepared: null, committed: null },
-      capacity: { sequenceAtFreeze: status.sequence, transactionsNeeded: needed, ceiling: SUPERVISION_INDEX_LIMITS.transactions,
+      capacity: { sequenceAtFreeze: status.sequence, transactionsNeeded: needed, ceiling: migrationCeiling(status),
         preparedMutations: 0, commitMutations: 3 + importedAttempts.length }, aborted: null });
     const prepared = this.preparedMutations(input, plan, events, receipt, dispositions);
     receipt.capacity.preparedMutations = prepared.length;
-    const capacity: Capacity = { sequence: status.sequence, transactionsNeeded: needed, ceiling: SUPERVISION_INDEX_LIMITS.transactions,
+    const capacity: Capacity = { sequence: status.sequence, transactionsNeeded: needed, ceiling: migrationCeiling(status),
       preparedMutations: prepared.length, commitMutations: receipt.capacity.commitMutations, ok: true, problem: null };
     // Preflight: the prepared body against every row rule, index and ceiling, plus the rest of the run's budget.
     try {
@@ -371,7 +378,7 @@ export class SupervisionMigrator {
     });
   }
   private scopedTransaction(requestId: string, status: SupervisionStatus, mutations: StoreMutation[]) {
-    return this.options.store.transact(this.expected(status, mutations), requestId, mutations);
+    return this.options.store.transact(this.expected(status, mutations), requestId, mutations, this.options.actor);
   }
   private migration(status: SupervisionStatus, id: string) {
     const m = status.migrations?.find(r => r.id === id);
@@ -445,7 +452,7 @@ export class SupervisionMigrator {
       if (!added.length) return [];
       const all = [...rows, ...added];
       if (all.length > MIGRATION_LIMITS.dispositions) fail("HELD", "The cutover's delivery cap is reached; release it (abort) and drain the old owner first.");
-      if (status.sequence + 1 + migrationCost(added) - 3 - MIGRATION_LIMITS.reinventoryReserve > SUPERVISION_INDEX_LIMITS.transactions - MIGRATION_LIMITS.abortReserve)
+      if (!migrationRoom(status, 1 + migrationCost(added) - 3 - MIGRATION_LIMITS.reinventoryReserve + MIGRATION_LIMITS.abortReserve))
         fail("HELD", "Not enough journal headroom to account for the new deliveries; release the cutover (abort).");
       const ordered = m.inventory.dispositionIds.map(id => all.find(d => d.id === id)!).concat(added);
       await this.scopedTransaction(migrationUuid(migrationId, "reinventory", added.map(d => d.id)), status, [
@@ -610,7 +617,7 @@ export class SupervisionMigrator {
     if (unaccounted.length) fail("HELD", `Unaccounted legacy deliveries (resolve each hold with evidence, or release the cutover): ${unaccounted.map(d => `${d.source}:${d.id} (${d.route}, ${d.removal.state})`).join(", ")}.`);
     // Live claims block even when a disposition names them. Other unresolved claims still need a hold or evidence.
     // Re-verified here, not only at the freeze: the barrier, the commit and the release reserve must still fit.
-    if (status.sequence + transactionsNeeded + MIGRATION_LIMITS.abortReserve > SUPERVISION_INDEX_LIMITS.transactions)
+    if (!migrationRoom(status, transactionsNeeded + MIGRATION_LIMITS.abortReserve))
       fail("HELD", `Journal headroom fell below what the barrier and commit need (sequence ${status.sequence}); release the cutover (abort) with the reserved transaction.`);
     const open = claims.filter(c => !c.result && !rows.some(d => d.claimId === c.claim.id) && c.claim.items.some(i => CutoverGate.classify(claimItem(i), target)));
     if (open.length) fail("HELD", `Legacy send claims are unaccounted: ${open.map(c => c.claim.id).join(", ")}.`);

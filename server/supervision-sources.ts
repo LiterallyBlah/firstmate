@@ -7,6 +7,7 @@
  * status lines and other source prose are quoted evidence; they never choose an owner or an outcome.
  */
 import { execFile } from "node:child_process";
+import { capacityHeld } from "../shared/supervision-capacity";
 import { createHash, randomUUID } from "node:crypto";
 import { lstat, readdir, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
@@ -61,7 +62,7 @@ export class SupervisionSources {
    * writes (256). Transactions from the ceiling up stay reserved for gateway effects and reconciliation. */
   budget(s: SupervisionStatus, exempt = false) {
     const ceiling = this.options.observationCeiling ?? SOURCE_LIMITS.observationCeiling;
-    if (!exempt && s.sequence >= ceiling) throw new SupervisionError("HELD",
+    if (!exempt && (this.options.observationCeiling !== undefined ? s.sequence >= ceiling : capacityHeld(s, "sources", ceiling))) throw new SupervisionError("HELD",
       `Source observation budget reached (journal sequence ${s.sequence} of ${ceiling}); the rest of the journal is reserved for effects and reconciliation.`);
   }
 

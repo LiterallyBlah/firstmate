@@ -26,3 +26,14 @@ it("the live-shaped adapter creates an unprompted, parentless reserved superviso
   refresh.mockRejectedValueOnce(new Error("connection lost"));
   await expect(receiver.findAgent(id)).rejects.toThrow("connection lost");
 });
+
+it("project creation is refused by the Attach receiver unless explicitly enabled, and remains unprompted and independent", async () => {
+  const id = randomUUID(), create = vi.fn(async (_input: unknown) => ({ id })), api = { workspaces: { ref: () => ({ agents: { create } }) } } as unknown as PaseoApi;
+  const intent = { agentId: id, workspaceId: "independent-project", cwd: "C:/project-mate", profile: { provider: "codex/test", modeId: "full-access", thinkingOptionId: "xhigh" },
+    title: "Project mate", labels: { "firstmate.role": "project-mate" } };
+  await expect(new SupervisionUiReceiver(api, process.env.PASEO_HOME!).createAgent(intent)).rejects.toMatchObject({ code: "UNSUPPORTED" });
+  expect(create).not.toHaveBeenCalled();
+  await new SupervisionUiReceiver(api, process.env.PASEO_HOME!, { projectMates: true }).createAgent(intent);
+  expect(create).toHaveBeenCalledWith({ agentId: id, idempotencyKey: id, config: { provider: "codex/test", modeId: "full-access", thinkingOptionId: "xhigh" }, title: "Project mate", labels: { "firstmate.role": "project-mate" } });
+  expect(create.mock.calls[0]![0]).not.toHaveProperty("prompt"); expect(create.mock.calls[0]![0]).not.toHaveProperty("parent");
+});

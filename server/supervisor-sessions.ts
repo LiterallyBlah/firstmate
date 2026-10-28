@@ -21,6 +21,8 @@ export interface SupervisorOptions {
   limits: GatewayLimits;
   /** The configured global first mate, read fresh. A scope binding can never be that identity. */
   globalMateId: () => Promise<string | null>;
+  /** Integration admission guard, checked inside the final reservation transaction. */
+  reserveCheck?: (status: SupervisionStatus) => Promise<void> | void;
 }
 /** Cumulative reservation accounting. A supervisor session/turn is spent when it is reserved; neither
  * cancellation, definite failure nor uncertainty decreases it. `uncertain` is shown separately.
@@ -107,6 +109,7 @@ export class SupervisorSessions {
     const opening = await this.store.putBlob(Buffer.from(input.opening, "utf8")), profileBlob = await this.store.putBlob(Buffer.from(canonical(profile), "utf8"));
     if (profileBlob.id !== digest(profile)) refuse("CONFLICT", "Profile encoding mismatch.");
     return this.store.transactCommand(input.requestId, inputHash, actor, async status => {
+      await this.options.reserveCheck?.(status);
       const scope = status.scopes.find(s => s.id === input.scopeId), old = status.bindings.find(b => b.scopeId === input.scopeId);
       if (!scope || !["plan", "project"].includes(scope.kind) || scope.mode !== "scoped") refuse("UNKNOWN_OWNER", "Exact scoped plan or project discussion owner required.");
       if (scope.version !== input.scopeVersion) refuse("STALE", "Scope version changed.");
@@ -165,7 +168,7 @@ export class SupervisorSessions {
     if (effects.create?.state !== "succeeded" || !workspace || effects.workspace?.receiverKey !== binding.workspaceIntent)
       refuse("HELD", "Supervisor creation is not confirmed for this intent; verification waits.");
     const problem = verifyObservation(await this.receiver.findAgent(binding.agentId), { agentId: binding.agentId, workspace,
-      profile: await this.gateway.profile(binding.profileDigest), labels: supervisorLabels(scopeId, epoch) });
+      profile: await this.gateway.profile(binding.profileDigest), labels: supervisorLabels(scopeId, epoch, status.scopes.find(s => s.id === scopeId)?.kind) });
     if (problem) refuse("HELD", `${problem} No opening was sent.`);
     // No scope authority may leak into the global role: a supervisor is always a home guest.
     if ((await this.options.globalMateId()) === binding.agentId) refuse("CONFLICT", "The global first mate cannot also be a scope supervisor.");

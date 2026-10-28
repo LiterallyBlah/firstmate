@@ -2,7 +2,10 @@
  * Memory is the project's context. It is never a policy source, grant, approval or evidence input (`checkPolicy`
  * refuses any memory reference), so accepting or changing it cannot authorize an effect. Nothing here wakes a scope.
  */
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
+import { stat, readFile } from "node:fs/promises";
+import { resolveInHome } from "./files";
+import { capacityHeld } from "../shared/supervision-capacity";
 import { z } from "zod";
 import { SupervisionActorSchema, SupervisionHash, SupervisionUuid, type SupervisionActor, type SupervisionStatus } from "../shared/supervision";
 import { emptyProjectRows, MemoryKey, type MemoryProposal, type ProjectMemory } from "../shared/supervision-projects";
@@ -34,7 +37,7 @@ export class SupervisionMemory {
     if (bytes.length > MEMORY_TEXT_LIMIT) refuse("HELD", "Memory text is over its 16 KiB bound.");
     const blob = await this.store.putBlob(bytes);
     await this.store.transactCommand(requestId, digest({ op: "memory.propose", input }), actor, async status => {
-      if (status.freshness !== "current" || status.sequence >= SUPERVISION_INDEX_LIMITS.admissions) refuse("HELD", "Memory proposals wait while the journal is held or past its admission bound.");
+      if (status.freshness !== "current" || capacityHeld(status, "admissions", SUPERVISION_INDEX_LIMITS.admissions)) refuse("HELD", "Memory proposals wait while the journal is held or past its admission bound.");
       const project = rowsOf(status).projects.find(p => p.id === input.projectId);
       if (!project) refuse("UNKNOWN_OWNER", "Memory belongs to an admitted project.");
       if (project.state !== "admitted") refuse("HELD", `Admissions for ${project.name} are stopped; existing memory and proposals are retained.`);
@@ -69,7 +72,7 @@ export class SupervisionMemory {
         decision: { actor, at: this.options.now?.() ?? new Date().toISOString() } };
       const mutations: SupervisionMutation[] = [{ kind: "memory-proposal", value: decided }];
       if (input.decision === "accept") {
-        if (project.state !== "admitted" || status.sequence >= SUPERVISION_INDEX_LIMITS.admissions) refuse("HELD", "Memory acceptance waits while project admissions are stopped or the journal is past its admission bound.");
+        if (project.state !== "admitted" || capacityHeld(status, "admissions", SUPERVISION_INDEX_LIMITS.admissions)) refuse("HELD", "Memory acceptance waits while project admissions are stopped or the journal is past its admission bound.");
         const id = memoryId(project.id, proposal.key), current = versionOf(status, "project-memory", id);
         if (current !== input.memoryVersion || current !== proposal.expectedVersion) refuse("STALE", "The memory entry changed since this proposal was written; propose again against the current text.");
         const entry: ProjectMemory = { id, version: current + 1, scopeId: project.scopeId, projectId: project.id, key: proposal.key,
@@ -87,4 +90,41 @@ export function projectMemory(status: SupervisionStatus, projectId: string) {
   const rows = rowsOf(status);
   return { entries: rows.memory.filter(m => m.projectId === projectId).sort((a, b) => a.key.localeCompare(b.key)),
     pending: rows.memoryProposals.filter(p => p.projectId === projectId && p.state === "proposed") };
+}
+
+/** Accepted text only, with a shared snapshot cap. These words carry authority=none. */
+export async function readProjectContext(store: SupervisionStore, projectId: string) {
+  const status = await store.read();
+  if (status.freshness !== "current") refuse("HELD", "Project context requires a current, verified journal.");
+  const project = rowsOf(status).projects.find(p => p.id === projectId);
+  if (!project) refuse("UNKNOWN_OWNER", "The project is not admitted.");
+  const entries = projectMemory(status, projectId).entries;
+  if (entries.length > 32) refuse("HELD", "Project context exceeds its 32-entry snapshot bound.");
+  let remaining = 128 * 1024;
+  const conventions = [];
+  if (project.owner) for (const path of ["AGENTS.md", "README.md"]) {
+    try {
+      const { absolute } = await resolveInHome(project.owner.directory, path), before = await stat(absolute);
+      if (!before.isFile() || before.size > Math.min(64 * 1024, remaining)) refuse("HELD", "Project conventions exceed the bounded context snapshot.");
+      const content = await readFile(absolute), after = await stat(absolute), text = content.toString("utf8");
+      if (content.length !== before.size || before.size !== after.size || before.mtimeMs !== after.mtimeMs || text.includes("\0") || !Buffer.from(text).equals(content))
+        refuse("HELD", "Project conventions changed during reading or are not UTF-8 text.");
+      remaining -= content.length;
+      conventions.push({ path, digest: createHash("sha256").update(content).digest("hex"), text, authority: "none" as const });
+    } catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
+  }
+  const memory = [];
+  for (const entry of entries) {
+    const bytes = await store.readBlob(entry.textDigest, Math.min(MEMORY_TEXT_LIMIT, remaining));
+    remaining -= bytes.length;
+    const text = Buffer.from(bytes).toString("utf8");
+    if (text.includes("\0") || !Buffer.from(text).equals(Buffer.from(bytes))) refuse("HELD", "Project memory must be valid UTF-8 text.");
+    memory.push({ key: entry.key, version: entry.version, digest: entry.textDigest, text, authority: "none" as const });
+  }
+  const current = await store.read();
+  // Independent projects may publish while these confined files/blobs are read. Pin this
+  // project's complete owner row and accepted memory, without borrowing a global quiet period.
+  if (current.freshness !== "current" || digest(rowsOf(current).projects.find(p => p.id === projectId) ?? null) !== digest(project) ||
+    digest(projectMemory(current, projectId).entries) !== digest(entries)) refuse("STALE", "Project context changed during the snapshot read.");
+  return { projectId, scopeId: project.scopeId, name: project.name, aliases: project.aliases, conventions, memory, authority: "none" as const };
 }

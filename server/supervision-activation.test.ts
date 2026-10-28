@@ -7,6 +7,7 @@ import { SyntheticReceiver } from "../test/synthetic-receiver";
 import { AttachSupervisorInputSchema, ResumeSupervisorInputSchema, MigrationCommandSchema, type AttachSupervisorInput, type MigrationCommand } from "../shared/supervision-activation";
 import { SupervisionActivation, registerSupervisionActivation } from "./supervision-activation";
 import { SupervisionStore } from "./supervision-store";
+import { SupervisionRuntime } from "./supervision-runtime";
 import { pluginDir } from "./data-dir";
 import { updateFirstmateConfig } from "./config";
 import { workflowStore } from "./workflow-service";
@@ -14,6 +15,7 @@ import { legacyAdapters, SupervisionMigrator } from "./supervision-migrate";
 import { NeedsYouService, readConfiguredDecisionHome } from "./needs-you-service";
 import { workflowHomeIdentity } from "./workflow-ownership";
 import type { PaseoApi } from "./host-types";
+import { askMate } from "./mate";
 vi.setConfig({ testTimeout: 30000 });
 const root = process.env.PASEO_HOME!;
 let home: string, activation: SupervisionActivation, receiver: SyntheticReceiver, ledger: NeedsYouService, clock: number;
@@ -38,6 +40,21 @@ afterEach(async () => { await activation?.stop(); await ledger?.stop(); });
 function make(enabled?: boolean) { return new SupervisionActivation(pluginDir(), { ...(enabled === undefined ? {} : { enabled }),
   adapters: () => legacyAdapters(null, () => ledger.read()), receiver: () => receiver }); }
 const api = {} as PaseoApi;
+it("the shared runtime supports production migration and the existing Attach beyond the pilot history ceiling", async () => {
+  const runtime = new SupervisionRuntime(pluginDir());
+  try {
+    await runtime.mutate(home, async store => {
+      await store.enableLongLived();
+      for (let n = 0; n < 260; n++) await store.transactCommand(randomUUID(), "a".repeat(64), { kind: "system", id: "load", source: "isolated-multi-service-fixture" },
+        async () => ({ expectedVersions: [], mutations: [], result: { planId: null, planHash: null, decisionId: null, outboxId: null } }));
+    });
+    activation = new SupervisionActivation(pluginDir(), { enabled: true, runtime, adapters: () => legacyAdapters(null, () => ledger.read()), receiver: () => receiver });
+    await cutover(); const input = await attachment();
+    const next = await activation.attach(input, api);
+    expect(next.plans[0]).toMatchObject({ binding: "active", opening: "succeeded" });
+    expect((await runtime.read(home)).sequence).toBeGreaterThan(260);
+  } finally { await activation.stop(); await runtime.stop(); }
+}, 120000);
 async function cutover() {
   await activation.migrate(prepare);
   await activation.migrate({ op: "reconcile", homeId: prepare.homeId, migrationId: prepare.migrationId });
@@ -104,6 +121,47 @@ it("audit survives an unknown opening; retry does not resend or spend another se
   expect(receiver.calls.filter(c => c.op === "send")).toHaveLength(1);
   const status = await new SupervisionStore(pluginDir(), home).read();
   expect(status.effects.filter(e => e.operation === "agent.create")).toHaveLength(1);
+});
+it("Attach native provisioning leaves General's conversation queue available", async () => {
+  await cutover(); const input = await attachment();
+  let release!: () => void, entered!: () => void;
+  const gate = new Promise<void>(done => { release = done; }), ready = new Promise<void>(done => { entered = done; });
+  const original = receiver.openWorkspace.bind(receiver);
+  vi.spyOn(receiver, "openWorkspace").mockImplementationOnce(async intent => { entered(); await gate; return original(intent); });
+  const attaching = activation.attach(input, api);
+  let captain: Promise<unknown> | undefined;
+  try {
+    await ready;
+    const send = vi.fn(async () => {});
+    captain = askMate({ agents: { ref: () => ({ refresh: async () => ({ agent: { id: "general", archivedAt: null, status: "idle" } }), send }) } } as unknown as PaseoApi,
+      { text: "captain request during Attach" });
+    await vi.waitFor(() => expect(send).toHaveBeenCalledTimes(1), { timeout: 2000 });
+  } finally { release(); await Promise.all([attaching, captain]); }
+  expect((await activation.read()).plans[0]).toMatchObject({ binding: "active", opening: "succeeded" });
+});
+it("Attach rechecks General ownership after receiver IO and resumes only the original reserved identity", async () => {
+  await cutover(); const input = await attachment(), original = receiver.openWorkspace.bind(receiver);
+  vi.spyOn(receiver, "openWorkspace").mockImplementationOnce(async intent => {
+    const workspace = await original(intent); await updateFirstmateConfig({ mateAgentId: "new-general" }); return workspace;
+  });
+  await expect(activation.attach(input, api)).rejects.toMatchObject({ code: "STALE" });
+  expect(receiver.calls.map(c => c.op)).toEqual(["openWorkspace"]);
+  await updateFirstmateConfig({ mateAgentId: "general" });
+  await activation.attach({ homeId: input.homeId, requestId: input.requestId, resume: true }, api);
+  expect(receiver.agents.size).toBe(1); expect([...receiver.agents.keys()]).toEqual([input.supervisorId]);
+  expect(receiver.calls.map(c => c.op)).toEqual(["openWorkspace", "createAgent", "send"]);
+});
+it("Attach refuses a General change during capability lookup before reserving any identity or spend", async () => {
+  await cutover(); const input = await attachment(), original = receiver.capabilities.bind(receiver);
+  vi.spyOn(receiver, "capabilities").mockImplementationOnce(async () => {
+    await updateFirstmateConfig({ mateAgentId: "new-general" }); return original();
+  });
+  await expect(activation.attach(input, api)).rejects.toMatchObject({ code: "STALE" });
+  const held = await new SupervisionStore(pluginDir(), home).read();
+  expect(held.bindings).toEqual([]); expect(held.effects).toEqual([]); expect(receiver.calls).toEqual([]);
+  await updateFirstmateConfig({ mateAgentId: "general" });
+  await activation.attach(input, api);
+  expect([...receiver.agents.keys()]).toEqual([input.supervisorId]); expect(receiver.sends).toHaveLength(1);
 });
 it("abort uses S07 restoration and cleanup releases the coordinator for a later plugin instance", async () => {
   await activation.migrate(prepare);

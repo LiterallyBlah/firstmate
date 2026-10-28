@@ -9,7 +9,6 @@ import { readFirstmateConfig, resolveHome } from "./config";
 import { oneAtATime, requireNoMigration } from "./mate";
 import { serialized } from "./serialize";
 import { SupervisionStore } from "./supervision-store";
-import { SupervisionStatusReader } from "./supervision-status-reader";
 import { SupervisionMigrator, type LegacyDeliveryAdapters } from "./supervision-migrate";
 import { workflowStore } from "./workflow-service";
 import { SupervisionCommands } from "./supervision-commands";
@@ -19,6 +18,8 @@ import { workflowHomeIdentity } from "./workflow-ownership";
 import { SupervisionUiReceiver } from "./supervision-ui-receiver";
 import type { PaseoApi } from "./host-types";
 import { cooperativeReadiness } from "./supervision-cooperative";
+import { SupervisionRuntime } from "./supervision-runtime";
+import { checkGeneralHeadroom, withScopeAdmission } from "./supervision-headroom";
 const UI_CALL: SupervisionActor = { kind: "plugin-ui-unverified", id: "unauthenticated-plugin-call", source: "client UI (unverified)" };
 
 export function proposedSupervisor(scopeId: string) {
@@ -52,6 +53,8 @@ export function activationSnapshot(status: SupervisionStatus, enabled: boolean):
   });
 }
 export interface ActivationOptions {
+  runtime?: SupervisionRuntime;
+  headroom?: { slots: number; reserved: number };
   /** One switch, sampled at plugin start; absent/anything except exactly 1 is off. */
   enabled?: boolean;
   adapters(home: string): LegacyDeliveryAdapters;
@@ -59,44 +62,37 @@ export interface ActivationOptions {
   receiver?: (paseo: PaseoApi) => GatewayReceiver;
 }
 export class SupervisionActivation {
-  private readonly writers = new Map<string, SupervisionStore>();
-  private readonly reader: SupervisionStatusReader;
+  private readonly runtime: SupervisionRuntime;
   private readonly lock: string;
+  private readonly attachLock: string;
   private closed = false;
   constructor(private readonly root: string, private readonly options: ActivationOptions) {
-    this.reader = new SupervisionStatusReader(root); this.lock = `firstmate.activation:${root}`;
+    this.runtime = options.runtime ?? new SupervisionRuntime(root); this.lock = `firstmate.activation:${root}`;
+    this.attachLock = `firstmate.supervisor-attach:${root}`;
   }
   private config() { return (this.options.config ?? readFirstmateConfig)(); }
+  private async checkedConfig(homeId: string, generalId?: string) {
+    if (!this.options.enabled || this.closed) refuse("UNSUPPORTED", "Scoped activation is disabled. No store or session was created.");
+    const config = await this.config(); requireNoMigration(config);
+    const home = resolveHome(config);
+    if (homeId !== workflowHomeIdentity(home) || generalId !== undefined && config.mateAgentId !== generalId)
+      refuse("STALE", "Home or General ownership changed. Refresh before acting.");
+    return { home, config };
+  }
   async read() {
     const home = resolveHome(await this.config()), id = workflowHomeIdentity(home);
-    return activationSnapshot(await (this.writers.get(id)?.read() ?? this.reader.read(home)), !!this.options.enabled);
+    return activationSnapshot(await this.runtime.read(home), !!this.options.enabled);
   }
   private mutate<T>(homeId: string, run: (home: string, store: SupervisionStore) => Promise<T>, recoverIndex = false) {
     // Same lock order as legacy delivery: lifecycle -> gate/queue/store. Cleanup waits for all writes.
     return oneAtATime(() => serialized(this.lock, async () => {
-      if (!this.options.enabled || this.closed) refuse("UNSUPPORTED", "Scoped activation is disabled. No store or session was created.");
-      const config = await this.config(); requireNoMigration(config);
-      const home = resolveHome(config), id = workflowHomeIdentity(home);
-      if (homeId !== id) refuse("STALE", "Home changed. Refresh before acting.");
-      let store = this.writers.get(id);
-      const acquired = !!store;
-      store ??= new SupervisionStore(this.root, home, { writable: true, actor: UI_CALL });
-      if (!acquired) await store.initialize();
-      if (recoverIndex) {
-        const observed = await store.read();
-        // Only explicit recovery reaches this derived repair. The diagnostic selects the operation;
-        // recoverIndex independently validates the published journal AND its ancestor checkpoint.
-        // Do this before coordinator acquisition, which correctly refuses a stale checkpoint.
-        if (observed.problems.some(p => p.startsWith("Checkpoint validation failed;")))
-          await store.recoverIndex({ homeId: observed.homeId, sequence: observed.sequence, hash: observed.hash });
-      }
-      if (!acquired) { await store.acquireCoordinator(); this.writers.set(id, store); }
-      return run(home, store);
+      const { home } = await this.checkedConfig(homeId);
+      return this.runtime.mutate(home, store => run(home, store), recoverIndex);
     }));
   }
   async migrate(input: MigrationCommand) {
     return this.mutate(input.homeId, async (home, store) => {
-      const migrator = new SupervisionMigrator({ home, store, legacy: workflowStore(home), adapters: this.options.adapters(home), enabled: true });
+      const migrator = new SupervisionMigrator({ home, store, legacy: workflowStore(home), adapters: this.options.adapters(home), enabled: true, actor: UI_CALL });
       switch (input.op) {
         case "prepare": await migrator.arm(); await migrator.prepare(input); break;
         case "reconcile": await migrator.reconcile(input.migrationId); break;
@@ -111,45 +107,58 @@ export class SupervisionActivation {
     }, input.op === "resume" || input.op === "abort");
   }
   async attach(input: AttachSupervisorInput | ResumeSupervisorInput, paseo: PaseoApi) {
-    return this.mutate(input.homeId, async (home, store) => {
-      const receiver = this.options.receiver?.(paseo) ?? new SupervisionUiReceiver(paseo, this.root);
-      const commands = new SupervisionCommands(store, home, { enabled: true });
-      const gateway = new SupervisionGateway(store, commands, home, receiver, { enabled: true });
-      const sessions = new SupervisorSessions(store, gateway, receiver, { enabled: true, unverifiedUiAttach: true,
-        limits: { supervisorSessions: 1, supervisorTurns: 1 }, globalMateId: async () => (await this.config()).mateAgentId || null });
-      // Explicit app retry can finish an exact pending publication, but never reconstruct lost history.
-      await store.recoverPublication();
-      if (!("resume" in input)) await sessions.attachFromUnverifiedUi({ requestId: input.requestId, scopeId: input.scopeId, scopeVersion: input.scopeVersion,
-        planId: input.plan, planHash: input.planHash, supervisorId: input.supervisorId, profile: input.profile, opening: input.opening });
-      // Only this accepted request's three supervisor effects. Never launch workers or replay an uncertain send.
-      const status = await store.read(), accepted = status.commands.find(c => c.id === input.requestId), audit = accepted?.result.attachmentAudit;
-      if (!audit || accepted?.actor.kind !== "plugin-ui-unverified") refuse("HELD", "Attachment audit is missing; nothing is dispatched.");
-      const create = status.effects.find(e => e.requestId === input.requestId && e.attemptId === null && e.operation === "agent.create");
-      const binding = status.bindings.find(b => b.scopeId === create?.scopeId);
-      if (!binding || binding.agentId !== audit.supervisor || binding.epoch !== create?.epoch ||
-        !status.plans.some(p => p.scopeId === binding.scopeId && p.plan.definition.id === audit.plan))
-        refuse("STALE", "Attachment no longer owns this binding.");
-      const effects = activationEffects(status, binding.scopeId, binding.epoch);
-      if ([effects.workspace, effects.create, effects.send].some(e => !e || e.requestId !== input.requestId))
-        refuse("HELD", "Attachment effects do not match the accepted request.");
-      for (const effect of [effects.workspace, effects.create]) {
-        if (!effect || effect.requestId !== input.requestId) refuse("HELD", "Attachment effects do not match the accepted request.");
-        if (effect.state === "succeeded") continue;
-        const next = ["dispatching", "uncertain", "accepted"].includes(effect.state)
-          ? await gateway.reconcile(effect.id) : await gateway.dispatch(effect.id);
-        if (next.state !== "succeeded") return activationSnapshot(await store.read(), true);
-      }
-      if (binding.state === "prepared") await sessions.verify(binding.scopeId, binding.epoch);
-      if (!effects.send || effects.send.requestId !== input.requestId) refuse("HELD", "Opening is not this attachment's reserved effect.");
-      if (effects.send.state === "reserved") await gateway.dispatch(effects.send.id);
-      return activationSnapshot(await store.read(), true);
-    }, true);
+    // Neither this queue nor capacity/receiver IO may be awaited under General's lifecycle lock.
+    // Migration retains the legacy lifecycle -> gate ordering; it never waits for this Attach queue.
+    return serialized(this.attachLock, async () => {
+      const { home, config } = await this.checkedConfig(input.homeId);
+      return this.runtime.mutate(home, async store => {
+        const checkOwner = async () => { await this.checkedConfig(input.homeId, config.mateAgentId); };
+        const receiver = this.options.receiver?.(paseo) ?? new SupervisionUiReceiver(paseo, this.root);
+        const commands = new SupervisionCommands(store, home, { enabled: true });
+        const gateway = new SupervisionGateway(store, commands, home, receiver, { enabled: true, admissionCheck: checkOwner });
+        const sessions = new SupervisorSessions(store, gateway, receiver, { enabled: true, unverifiedUiAttach: true,
+          limits: { supervisorSessions: 1, supervisorTurns: 1 }, reserveCheck: checkOwner,
+          globalMateId: async () => (await this.checkedConfig(input.homeId, config.mateAgentId)).config.mateAgentId || null });
+        // Explicit app retry can finish an exact pending publication, but never reconstruct lost history.
+        await store.recoverPublication();
+        if (!("resume" in input)) {
+          await withScopeAdmission(input.homeId, async () => {
+            if (this.options.headroom && !(await store.read()).commands.some(c => c.id === input.requestId))
+              await checkGeneralHeadroom(await store.read(), receiver, this.options.headroom.slots, this.options.headroom.reserved);
+            await sessions.attachFromUnverifiedUi({ requestId: input.requestId, scopeId: input.scopeId, scopeVersion: input.scopeVersion,
+              planId: input.plan, planHash: input.planHash, supervisorId: input.supervisorId, profile: input.profile, opening: input.opening });
+          });
+        }
+        // Only this accepted request's three supervisor effects. Never launch workers or replay an uncertain send.
+        const status = await store.read(), accepted = status.commands.find(c => c.id === input.requestId), audit = accepted?.result.attachmentAudit;
+        if (!audit || accepted?.actor.kind !== "plugin-ui-unverified") refuse("HELD", "Attachment audit is missing; nothing is dispatched.");
+        const create = status.effects.find(e => e.requestId === input.requestId && e.attemptId === null && e.operation === "agent.create");
+        const binding = status.bindings.find(b => b.scopeId === create?.scopeId);
+        if (!binding || binding.agentId !== audit.supervisor || binding.epoch !== create?.epoch ||
+          !status.plans.some(p => p.scopeId === binding.scopeId && p.plan.definition.id === audit.plan))
+          refuse("STALE", "Attachment no longer owns this binding.");
+        const effects = activationEffects(status, binding.scopeId, binding.epoch);
+        if ([effects.workspace, effects.create, effects.send].some(e => !e || e.requestId !== input.requestId))
+          refuse("HELD", "Attachment effects do not match the accepted request.");
+        for (const effect of [effects.workspace, effects.create]) {
+          if (!effect || effect.requestId !== input.requestId) refuse("HELD", "Attachment effects do not match the accepted request.");
+          if (effect.state === "succeeded") continue;
+          const next = ["dispatching", "uncertain", "accepted"].includes(effect.state)
+            ? await gateway.reconcile(effect.id) : await gateway.dispatch(effect.id);
+          if (next.state !== "succeeded") return activationSnapshot(await store.read(), true);
+        }
+        if (binding.state === "prepared") await sessions.verify(binding.scopeId, binding.epoch);
+        if (!effects.send || effects.send.requestId !== input.requestId) refuse("HELD", "Opening is not this attachment's reserved effect.");
+        if (effects.send.state === "reserved") await gateway.dispatch(effects.send.id);
+        return activationSnapshot(await store.read(), true);
+      }, true);
+    });
   }
   async stop() {
-    await serialized(this.lock, async () => {
-      this.closed = true;
-      for (const store of this.writers.values()) await store.releaseCoordinator();
-      this.writers.clear();
+    await serialized(this.lock, async () => { this.closed = true; });
+    // Drain independently so a migration never acquires General's lock then waits for native Attach IO.
+    await serialized(this.attachLock, async () => {
+      if (!this.options.runtime) await this.runtime.stop();
     });
   }
 }

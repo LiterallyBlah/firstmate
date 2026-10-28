@@ -96,6 +96,8 @@ export interface GatewayOptions {
   /** Defaults off. Fixture-only enablement; no env flag, RPC or runtime wiring exists. */
   enabled?: boolean;
   now?: () => number;
+  /** Additional owning-service preconditions, rechecked inside the final claim transaction. */
+  admissionCheck?: (status: SupervisionStatus, effect: SupervisionEffect) => Promise<void>;
 }
 export interface StartedAttempt { attemptId: string | null; effects: { workspace: string; create: string; send: string } | null }
 type Call = { run: () => Promise<string>; after?: (status: SupervisionStatus) => SupervisionMutation[] };
@@ -247,6 +249,7 @@ export class SupervisionGateway {
     if (!scope || !binding || binding.epoch !== effect.epoch || ["retired", "suspect"].includes(binding.state)) refuse("STALE", "The effect's owner epoch is no longer current.");
     if (binding.hostId.trim().toLowerCase() !== "local") refuse("UNSUPPORTED", "S04 has no remote receiver adapter.");
     const supervisor = effect.attemptId === null, stopping = operation === "agent.interrupt" || operation === "agent.archive";
+    if (!stopping) await this.options.admissionCheck?.(status, effect);
     if (!supervisor && binding.purpose === "discussion") refuse("HELD", "Discussion-only sessions cannot dispatch worker effects.");
     const activation = supervisor && (operation === "workspace.open" || operation === "agent.create");
     if (activation ? scope.state !== "transferring" || binding.state !== "prepared" : scope.state !== "active" || binding.state !== "active")
@@ -329,7 +332,7 @@ export class SupervisionGateway {
       const intent = status.effects.find(e => e.scopeId === binding.scopeId && e.epoch === binding.epoch && e.attemptId === null &&
         e.operation === "workspace.open" && e.receiverKey !== null && e.receiverKey === binding.workspaceIntent);
       expected = { agentId: binding.agentId, workspaceId: binding.workspaceId, workspace: workspaceReceipt(intent),
-        profile: await this.profile(binding.profileDigest), labels: supervisorLabels(binding.scopeId, binding.epoch) };
+        profile: await this.profile(binding.profileDigest), labels: supervisorLabels(binding.scopeId, binding.epoch, status.scopes.find(s => s.id === binding.scopeId)?.kind) };
     } else {
       const attempt = status.attempts.find(a => a.id === effect.attemptId)!, task = status.tasks.find(t => t.id === attempt.taskId)!, launch = launchFor(status, task);
       const ids = effectsFor(status, attempt.id);
@@ -564,10 +567,10 @@ function workerCreate(status: SupervisionStatus, effect: SupervisionEffect, work
 }
 function supervisorCreate(effect: SupervisionEffect, workspace: WorkspaceReceipt, profile: AgentProfile, kind: string) {
   return { agentId: effect.receiverKey!, workspaceId: workspace.workspaceId, cwd: workspace.directory, profile,
-    title: `${kind === "project" ? "Project discussion" : "Plan supervisor"} ${effect.scopeId.slice(0, 8)}`, labels: supervisorLabels(effect.scopeId, effect.epoch) };
+    title: `${kind === "project" ? "Project mate" : "Plan supervisor"} ${effect.scopeId.slice(0, 8)}`, labels: supervisorLabels(effect.scopeId, effect.epoch, kind) };
 }
-export function supervisorLabels(scopeId: string, epoch: number): Record<string, string> {
-  return { [CREW_LABELS.role]: SUPERVISOR_ROLE, [SCOPE_LABELS.scope]: scopeId, [SCOPE_LABELS.epoch]: String(epoch) };
+export function supervisorLabels(scopeId: string, epoch: number, kind?: string): Record<string, string> {
+  return { [CREW_LABELS.role]: kind === "project" ? "project-mate" : SUPERVISOR_ROLE, [SCOPE_LABELS.scope]: scopeId, [SCOPE_LABELS.epoch]: String(epoch) };
 }
 function promoteAttempt(status: SupervisionStatus, attemptId: string, state: string): SupervisionMutation[] {
   const attempt = status.attempts.find(a => a.id === attemptId)!;

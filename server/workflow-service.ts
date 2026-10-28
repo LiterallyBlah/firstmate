@@ -93,7 +93,7 @@ export async function processWorkflowRequests(home: string, store: WorkflowPlanS
     }
   });
 }
-export function startWorkflowService() {
+export function startWorkflowService(afterTick?: () => Promise<void>) {
   let pending: Promise<void> | undefined;
   const timer = setInterval(() => {
     if (pending) return;
@@ -102,7 +102,8 @@ export function startWorkflowService() {
       if (config.migration || config.mateLaunch || !(await isHomeReady(home))) return;
       await processWorkflowRequests(home, workflowStore(home), actor => authorizeWorkflowActor(home, actor));
       await queuePlanNotes(home);
-    }).catch(e => console.error("[firstmate] workflow queue:", e)).finally(() => { pending = undefined; });
+    }).catch(e => console.error("[firstmate] workflow queue:", e))
+      .then(() => afterTick?.()).catch(e => console.error("[firstmate] project queue:", e)).finally(() => { pending = undefined; });
   }, 1000);
   return async () => { clearInterval(timer); await pending; };
 }

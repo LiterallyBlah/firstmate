@@ -2,6 +2,7 @@
  * Every write is a checked journal transaction; reads are pure projections of the stored status.
  */
 import { z } from "zod";
+import { capacityHeld } from "../shared/supervision-capacity";
 import { SupervisionActorSchema, SupervisionUuid, SupervisionVersionRefSchema, type SupervisionActor, type SupervisionExpected, type SupervisionStatus } from "../shared/supervision";
 import { PlanId, type WorkflowPlan } from "../shared/workflow-plans";
 import { PilotOperation } from "../shared/supervision-policy";
@@ -13,6 +14,7 @@ import { digest } from "./submissions";
 import { SupervisionError, SUPERVISION_INDEX_LIMITS, type SupervisionMutation, type SupervisionStore } from "./supervision-store";
 import { conflictId, dependencyResolutionId, intentId, projectRowId, taskKey } from "./supervision-project-state";
 import { policyRef, projectGrantConflicts, sameVector, type PolicyTarget } from "./supervision-policy";
+import type { PolicySource } from "../shared/supervision-policy";
 
 type Code = "STALE" | "HELD" | "UNKNOWN_OWNER" | "UNSUPPORTED" | "CONFLICT";
 function refuse(code: Code, message: string): never { throw new SupervisionError(code, message); }
@@ -32,7 +34,7 @@ export function boundTo(status: SupervisionStatus, actor: SupervisionActor, scop
 /** S09 records are coordination admissions: they stop where new effects stop, leaving the tail for reconciliation. */
 function admissionRoom(status: SupervisionStatus): void {
   if (status.freshness !== "current") refuse("HELD", "The supervision journal is not current; coordination records wait for reconciliation.");
-  if (status.sequence >= SUPERVISION_INDEX_LIMITS.admissions) refuse("HELD", `Coordination admissions stop at journal sequence ${SUPERVISION_INDEX_LIMITS.admissions}; the rest is reserved for reconciliation.`);
+  if (capacityHeld(status, "admissions", SUPERVISION_INDEX_LIMITS.admissions)) refuse("HELD", "Coordination admissions are under pressure; the rest is reserved for reconciliation.");
 }
 export function generalScope(status: SupervisionStatus): string {
   const general = status.scopes.filter(s => s.kind === "general" && s.state !== "retired");
@@ -85,7 +87,7 @@ function authorizeGrantRecorder(status: SupervisionStatus, actor: SupervisionAct
 export type IntentOutcome = { outcome: "claimed" | "duplicate"; intentId: string } | { outcome: "conflict"; intentId: string; conflictId: string | null };
 
 export class SupervisionProjects {
-  constructor(readonly store: SupervisionStore, private readonly options: { enabled?: boolean; now?: () => string } = {}) {}
+  constructor(readonly store: SupervisionStore, private readonly options: { enabled?: boolean; now?: () => string; sourceCheck?: (source: PolicySource) => Promise<void> } = {}) {}
   private now() { return this.options.now?.() ?? new Date().toISOString(); }
   private enabled() { if (!this.options.enabled) refuse("UNSUPPORTED", "S09 project coordination is disabled."); }
   private async command(requestId: string, input: unknown, actorInput: SupervisionActor,
@@ -103,7 +105,7 @@ export class SupervisionProjects {
    */
   recordProject(requestId: string, actor: SupervisionActor, raw: z.input<typeof ProjectInputSchema>) {
     const input = ProjectInputSchema.parse(raw);
-    return this.command(requestId, { op: "project", input }, actor, (status, a) => {
+    return this.command(requestId, { op: "project", input }, actor, async (status, a) => {
       if (!reviewedActor(a)) refuse("UNSUPPORTED", "Project admission and allocation are the captain's, recorded through the UI or chat.");
       const old = rowsOf(status).projects.find(p => p.id === input.projectId);
       if (versionOf(status, "project", input.projectId) !== input.expectedVersion) refuse("STALE", "The project record changed; reread it.");
@@ -115,9 +117,10 @@ export class SupervisionProjects {
           const source = status.policySources.find(s => s.id === ref.id);
           if (ref.kind !== "policy-source" || !source || !sameVector([ref], [policyRef("policy-source", source)]) || status.policySources.some(s => s.supersedes.includes(ref.id)))
             refuse("STALE", "Project admission must rest on current, unsuperseded reviewed policy sources.");
+          await this.options.sourceCheck?.(source);
         }
       }
-      const value: ProjectRecord = { id: input.projectId, version: input.expectedVersion + 1, scopeId: input.scopeId, name: input.name.trim(),
+      const value: ProjectRecord = { ...(old?.owner ? { owner: old.owner } : {}), id: input.projectId, version: input.expectedVersion + 1, scopeId: input.scopeId, name: input.name.trim(),
         aliases: [...new Set(input.aliases.map(x => x.trim()))].filter(x => normalizedName(x) !== normalizedName(input.name)), state: input.state,
         budget: input.budget, sourceVector: input.state === "stopped" && old ? old.sourceVector : input.sourceVector, provenance: a };
       if (old && digest({ ...old, version: 0, provenance: null }) === digest({ ...value, version: 0, provenance: null })) refuse("CONFLICT", "The project record is unchanged.");
@@ -348,7 +351,7 @@ export const projectStopHoldId = (projectId: string, scopeId: string) => project
  * Re-admission releases exactly the holds this project's stop wrote; another project's stop keeps its own.
  */
 export function projectStopMutations(status: SupervisionStatus, next: ProjectRecord, old: ProjectRecord | undefined): SupervisionMutation[] {
-  const scopes = status.scopes.filter(s => s.kind === "plan" && s.state !== "retired" && s.projectIds.includes(next.id));
+  const scopes = status.scopes.filter(s => ["plan", "project"].includes(s.kind) && s.state !== "retired" && s.projectIds.includes(next.id));
   const out: SupervisionMutation[] = [];
   if (next.state === "stopped" && old?.state !== "stopped") {
     for (const scope of scopes) {

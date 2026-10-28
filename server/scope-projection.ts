@@ -14,8 +14,13 @@ export function scopeSnapshot(status: SupervisionStatus, generalId: string | nul
   for (const rule of status.policyRules) for (const [id, name] of Object.entries(rule.selector.projectNames)) {
     if (names.has(id)) names.get(id)!.add(name);
   }
+  for (const project of status.projects?.projects ?? []) {
+    names.set(project.id, new Set([project.name]));
+  }
   // Ambiguous human names are retained as separate candidates; no arbitrary winner.
   const projects = [...names].flatMap(([id, labels]) => [...(labels.size ? labels : [id])].map(name => ({ id, name })));
+  for (const project of status.projects?.projects ?? []) for (const name of project.aliases)
+    if (!projects.some(p => p.id === project.id && p.name === name)) projects.push({ id: project.id, name });
   const scoped = status.scopes.filter(s => s.kind !== "general").map(scope => {
     const binding = status.bindings.find(b => b.scopeId === scope.id), ownGoals = goals.filter(g => g.scopeId === scope.id || scope.kind === "project" && g.projectIds.some(p => scope.projectIds.includes(p)));
     const plan = status.plans.find(p => p.scopeId === scope.id)?.plan;
@@ -29,7 +34,8 @@ export function scopeSnapshot(status: SupervisionStatus, generalId: string | nul
     const failure = effects.filter(e => e.state === "failed").at(-1);
     const taskIds = new Set(status.tasks.filter(t => ownedScopeIds.has(t.ownerScopeId)).map(t => t.id));
     const workerIds = status.attempts.filter(a => taskIds.has(a.taskId) && a.worker).map(a => a.worker!.agentId);
-    return { id: scope.id, title, aliases: [...new Set([...(plan ? [plan.definition.id] : []), ...(label.length === 1 ? label : [])])], kind: scope.kind, planId: plan?.definition.id ?? null, discussionOnly: binding?.purpose === "discussion",
+    const admitted = status.projects?.projects.find(p => p.scopeId === scope.id);
+    return { id: scope.id, title, aliases: [...new Set([...(plan ? [plan.definition.id] : []), ...(label.length === 1 ? label : []), ...(admitted?.aliases ?? [])])], kind: scope.kind, planId: plan?.definition.id ?? null, discussionOnly: binding?.purpose === "discussion",
       target: { homeId: status.homeId, scopeId: scope.id, scopeVersion: scope.version, epoch: binding?.epoch ?? 0, agentId: binding?.agentId ?? null },
       hostId: binding?.hostId ?? null, workspaceId: binding?.workspaceId ?? null, state: scope.state, session, observedAt: observation?.at ?? null, goals: ownGoals, coverage: coverage(workerIds),
       lastEffectFailure: failure ? { id: failure.id, operation: failure.operation, reason: failure.receiptRef } : null,

@@ -229,14 +229,20 @@ describe("WatchRunner", () => {
     mate.state = "busy";
     await instance.tick(MINUTE);
 
-    // A newer turn is already running when the old one's end is heard: nothing is sent into it.
-    instance.flushAfterTurn([10, 30, 80]);
-    await new Promise((resolve) => setTimeout(resolve, 50));
-    expect(sent).toEqual([]);
-    mate.state = "idle";
-    await new Promise((resolve) => setTimeout(resolve, 80));
-    expect(sent).toHaveLength(1);
-    instance.stop();
+    // Drive retry deadlines separately from filesystem completion: a short real sleep
+    // could assert before flush's durable queue write, then race teardown on a loaded runner.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      // A newer turn is already running when the old one's end is heard: nothing is sent into it.
+      instance.flushAfterTurn([10, 30, 80]);
+      await vi.advanceTimersByTimeAsync(50); await instance.flush();
+      expect(sent).toEqual([]);
+      mate.state = "idle";
+      await vi.advanceTimersByTimeAsync(80); await instance.flush();
+      expect(sent).toHaveLength(1);
+    } finally {
+      instance.stop(); await instance.flush(); vi.useRealTimers();
+    }
   });
 
   it("shows output still waiting after a later run printed nothing", async () => {

@@ -53,6 +53,7 @@ export const TEMPLATES = {
   decisionAnswer: "messages/decision-answer.md",
   itemDiscuss: "messages/item-discuss.md",
   scopeDiscuss: "messages/scope-discuss.md",
+  projectMateOpening: "messages/project-mate-opening.md",
   itemGraduate: "messages/item-graduate.md",
   itemWorkDiscussion: "messages/item-work-discussion.md",
   relaunch: "messages/relaunch.md",
@@ -75,6 +76,8 @@ export const TEMPLATES = {
   roleHelper: "tools/role.mjs",
   launchHelper: "tools/launch.mjs",
   workflowHelper: "tools/workflow.mjs",
+  projectHelper: "tools/projects.mjs",
+  projectGuide: "data/project-mates.md",
   /** S04 scope helper: registered, deliberately not seeded into homes until activation. */
   scopeHelper: "tools/scope.mjs",
   backlogLint: "data/backlog-lint.js",

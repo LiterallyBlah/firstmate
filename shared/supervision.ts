@@ -145,7 +145,8 @@ export interface SupervisionStatus {
   /** S01 has no admissions/effect adapter, even in a writable fixture store. */
   executable: false; guarantee: "cooperative-storage-only";
   limits: readonly string[]; problems: string[];
-  storage: { bytes: number; limitBytes: number; admissionsHeld: boolean };
+  storage: { bytes: number; limitBytes: number; admissionsHeld: boolean;
+    capacity?: { mode: "paged"; pageSize: number; reserveBytes: number; held: ("sources" | "maintenance" | "admissions")[] } };
   versions: SupervisionExpected[]; scopes: SupervisionScope[]; bindings: SupervisionBinding[];
   tasks: SupervisionTask[]; attempts: SupervisionAttempt[]; effects: SupervisionEffect[]; backends: SupervisionBackend[];
   uncertainEffectIds: string[];
