@@ -6,7 +6,7 @@ import { SupervisionStatusReader } from "./supervision-status-reader";
 import { SupervisionStore } from "./supervision-store";
 import { expected, scope } from "../test/supervision-fixture";
 import { s04Fixture } from "../test/supervision-s04-fixture";
-let bounds: { sourceHead: string | undefined; history: number; warmReadMs: number[]; fullScans: number;
+let bounds: { sourceHead: string | undefined; history: number; historySeedMs: number; warmReadMs: number[]; fullScans: number;
   historicalReducerCalls: number; newTransitionCalls: number; commitMs: number; committedBeforePollRelease: boolean } | null = null;
 let warm: { history: number; firstPollAfterLaunchMs: number; pollsDuringLaunch: number; maxPollDuringLaunchMs: number; fullScans: number } | null = null;
 afterAll(async () => {
@@ -61,13 +61,16 @@ it("production status reader stays warm across real launches (blob writes) at ab
   warm = { history: writer.sequence, firstPollAfterLaunchMs: firstPollMs, pollsDuringLaunch: polls.length,
     maxPollDuringLaunchMs: Math.max(...polls.map(p => p.ms)), fullScans: full.mock.calls.length };
 }, 120000);
+// Includes 176 durable setup writes. Match the adjacent index history fixtures' budget on loaded Windows runners;
+// zero historical scans/reducers and the explicit three-second writer bound remain the performance checks.
 it("production status reader reuses one validated store per home at 176 transactions", async () => {
   const f = await s04Fixture(), stores: SupervisionStore[] = [];
-  let version = 0;
+  let version = 0; const seedStart = performance.now();
   for (let n = 0; n < 176; n++) {
     const mutation = [{ kind: "scope" as const, value: { ...scope(f.store.homeId), version: version + 1 } }];
     await f.store.transact(expected(mutation, version), randomUUID(), mutation); version++;
   }
+  const historySeedMs = performance.now() - seedStart;
   const reader = new SupervisionStatusReader(join(f.home, "store"), (root, home) => {
     const store = new SupervisionStore(root, home); stores.push(store); return store;
   });
@@ -107,7 +110,7 @@ it("production status reader reuses one validated store per home at 176 transact
   expect(await polling).toMatchObject({ freshness: "current", sequence: 177 });
   expect(scan).not.toHaveBeenCalled();
   expect(apply).toHaveBeenCalledTimes(1); // Only the newly committed tail transition.
-  bounds = { sourceHead: process.env.FIRSTMATE_PILOT_SOURCE_HEAD, history: 176, warmReadMs,
+  bounds = { sourceHead: process.env.FIRSTMATE_PILOT_SOURCE_HEAD, history: 176, historySeedMs, warmReadMs,
     fullScans: scan.mock.calls.length, historicalReducerCalls, newTransitionCalls: apply.mock.calls.length,
     commitMs, committedBeforePollRelease: true };
-}, 20000);
+}, 60000);
