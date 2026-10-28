@@ -40,8 +40,8 @@ export async function workflowSnapshot(home: string): Promise<WorkflowSnapshot> 
   read = { ...read, problems: [...read.problems, ...cutover.problems], warnings: [...(read.warnings ?? []), ...cutover.warnings] };
   // The browser retains all history; due actions below still exclude finished plans. A plan in an S07
   // cutover is no longer the legacy mate's: its retained history still resolves dependencies only.
-  const allPlans = read.plans, held = new Set<string>();
-  for (const plan of allPlans) if (await store.cutover(plan.definition.id).catch(() => "damaged")) held.add(plan.definition.id);
+  const allPlans = read.plans, held = new Set<string>(), folders = await store.cutoverFolders();
+  for (const plan of allPlans) if (await store.cutover(plan.definition.id, folders).catch(() => "damaged")) held.add(plan.definition.id);
   const plans = allPlans.filter(p => !held.has(p.definition.id)), now: PlanNeed[] = [], comingUp: PlanNeed[] = [];
   const unavailableDependencies = quarantinedDependencyIds(read.quarantined ?? []);
   for (const plan of plans) {

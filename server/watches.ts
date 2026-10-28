@@ -295,37 +295,42 @@ export class WatchRunner {
         signal: this.aborter.signal,
       });
       if (this.aborter.signal.aborted) return;
-      await this.gated(() => this.record(watch.name, stamp(at), result));
+      await this.record(watch.name, stamp(at), result);
     } finally {
       this.running.delete(watch.name);
     }
   }
 
+  /**
+   * Routing happens before, and outside, the cutover gate (R12O N1): `routeNote` can take the inspection lock, which
+   * leads to the lifecycle lock, whose holders take the gate. Only the watch queue's insert and persist run under the
+   * gate, so a freeze's inventory either includes them or follows them. One watch never records two runs at once
+   * (`running`), so the note decided from the state read before the gate still matches the state written under it.
+   */
   private async record(name: string, ran: string, result: RunResult): Promise<void> {
-    const state = await this.load();
-    const previous = state.watches[name] ?? BLANK;
     const reason = failureReason(result, this.timeoutMs);
-    if (reason !== null) {
-      const stderr = tail(result.stderr, MAX_ERROR_CHARS);
-      if (!previous.failing) {
-        const note: QueuedNote = { name, ran, kind: "failed", reason, text: stderr };
-        if (!(await this.options.routeNote?.(note))) this.enqueue(state, note);
-      }
-      state.watches[name] = {
-        ...previous,
-        lastRunAt: ran,
-        lastResult: "failed",
-        lastError: stderr === "" ? reason : `${reason}\n${stderr}`,
-        failing: true,
-      };
-    } else {
-      const output = result.stdout.trim();
-      if (output === "") {
+    const stderr = tail(result.stderr, MAX_ERROR_CHARS);
+    const output = result.stdout.trim();
+    const text = reason === null && output !== "" ? clip(output, MAX_OUTPUT_CHARS, result.truncated) : null;
+    const note: QueuedNote | null = reason !== null
+      ? ((await this.load()).watches[name] ?? BLANK).failing ? null : { name, ran, kind: "failed", reason, text: stderr }
+      : text === null ? null : { name, ran, kind: "output", text };
+    const routed = note !== null && !!(await this.options.routeNote?.(note));
+    await this.gated(async () => {
+      const state = await this.load();
+      const previous = state.watches[name] ?? BLANK;
+      if (note !== null && !routed) this.enqueue(state, note);
+      if (reason !== null) {
+        state.watches[name] = {
+          ...previous,
+          lastRunAt: ran,
+          lastResult: "failed",
+          lastError: stderr === "" ? reason : `${reason}\n${stderr}`,
+          failing: true,
+        };
+      } else if (text === null) {
         state.watches[name] = { ...previous, lastRunAt: ran, lastResult: "silent", lastError: null, failing: false };
       } else {
-        const text = clip(output, MAX_OUTPUT_CHARS, result.truncated);
-        const note: QueuedNote = { name, ran, kind: "output", text };
-        if (!(await this.options.routeNote?.(note))) this.enqueue(state, note);
         state.watches[name] = {
           lastRunAt: ran,
           lastResult: "queued",
@@ -335,8 +340,8 @@ export class WatchRunner {
           failing: false,
         };
       }
-    }
-    await this.persist();
+      await this.persist();
+    });
   }
 
   /** Current-session prompt watches use the existing execution queue, with no second result notification. */

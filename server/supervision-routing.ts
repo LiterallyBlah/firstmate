@@ -34,8 +34,8 @@ export async function scopeRoute(legacy: WorkflowPlanStore, plan: string, comman
   const candidates = command ? taskTargets(command) : [];
   const held = read.quarantined.flatMap(q => q.inventory.scopes);
   // S07: a committed cutover moved authority to the scoped backend; its retained legacy bytes are history only.
-  const migrated = new Set<string>();
-  for (const p of read.plans) if (await legacy.cutover(p.definition.id) === "committed") migrated.add(p.definition.id);
+  const migrated = new Set<string>(), folders = await legacy.cutoverFolders();
+  for (const p of read.plans) if (await legacy.cutover(p.definition.id, folders) === "committed") migrated.add(p.definition.id);
   const plans = read.plans.filter(p => !migrated.has(p.definition.id));
   const live = plans.flatMap(p => [...p.definition.nodes, ...(p.removed ?? []).map(r => r.node)]).flatMap(n => n.kind === "run" ? [{ node: n.id, host: n.launch.host.trim().toLowerCase() }] : []);
   if (plans.some(p => p.definition.id === plan) || read.quarantined.some(q => q.plan === plan) ||

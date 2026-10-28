@@ -301,8 +301,16 @@ export class WorkflowPlanStore {
   private tips(id: string) { return join(this.root, ".tips", PlanId.parse(id)); }
   private published(id: string) { return join(this.root, ".published", PlanId.parse(id)); }
   private retired(id: string) { return join(this.root, ".retired", PlanId.parse(id)); }
-  /** S07 compatibility sidecar stage for a plan, read without any lock. Legacy history stays byte-identical. */
-  async cutover(id: string): Promise<"freeze" | "prepared" | "committed" | null> {
+  /** Plans with an S07 sidecar folder, from one listing of `.scoped/` (R12O N3). A caller checking many plans passes it
+   * to `cutover`, so a plan without a folder costs no reads. `null` when the listing fails: every plan is then read. */
+  async cutoverFolders(): Promise<ReadonlySet<string> | null> {
+    try { return new Set(await readdir(join(this.root, ".scoped"))); }
+    catch (e) { return ["ENOENT", "ENOTDIR"].includes((e as NodeJS.ErrnoException).code ?? "") ? new Set() : null; }
+  }
+  /** S07 compatibility sidecar stage for a plan, read without any lock. Legacy history stays byte-identical.
+   * `folders` (from `cutoverFolders`) skips plans with no sidecar folder; the writer's own check never passes it. */
+  async cutover(id: string, folders?: ReadonlySet<string> | null): Promise<"freeze" | "prepared" | "committed" | null> {
+    if (folders && !folders.has(id)) return null;
     const gate = new CutoverGate(this.home, this.root);
     // A released cutover (aborted) hands the plan back to this writer.
     if (await gate.sidecar(id, "aborted")) return null;
@@ -504,10 +512,11 @@ export class WorkflowPlanStore {
     for (const directory of reserved) {
       try { for (const id of await readdir(join(this.root, directory))) consider(id); } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") return { plans, problems: [String(e)], warnings, quarantined, unavailable: true }; }
     }
+    const folders = await this.cutoverFolders();
     for (const id of ids) {
       try {
         const plan = await this.get(id);
-        const stage = plan ? await this.cutover(id) : null;
+        const stage = plan ? await this.cutover(id, folders) : null;
         if (stage) warnings.push(`Plan ${id} ${stage === "committed" ? "now belongs to its scoped supervisor" : "is held in a scoped cutover"}; its legacy history is read-only.`);
         if (plan) plans.push(plan);
         else {
@@ -706,10 +715,10 @@ export class WorkflowPlanStore {
       ...warnings.map((text, n): AgendaItem => ({ id: `plan-warning:${n}`, kind: "books", priority: 6, plan: "unavailable", text })),
     ];
     let backlog = ""; try { backlog = await readFile((await resolveInHome(this.home, "data/backlog.md")).absolute, "utf8"); } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e; }
-    const items = parseBacklog(backlog);
+    const items = parseBacklog(backlog), folders = await this.cutoverFolders();
     for (const plan of plans) {
       // A frozen or migrated plan belongs to its cutover or its scoped owner, never the legacy agenda.
-      if (await this.cutover(plan.definition.id).catch(() => "damaged")) continue;
+      if (await this.cutover(plan.definition.id, folders).catch(() => "damaged")) continue;
       const add = (kind: AgendaItem["kind"], priority: number, key: string, text: string, node?: string, extra = {}) => {
         const id = `${plan.definition.id}:${key}`;
         if (kind === "tell" ? plan.told.includes(id) : plan.handled.includes(id)) return;

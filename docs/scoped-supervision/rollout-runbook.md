@@ -58,7 +58,7 @@ Lifecycle covers General's own launch, compaction and handover.
 | S4 | Burst extend (`mate.ts:389-392`) | `burst.holdUntil` | Routine | Verdict under lock; **a refusal writes no `refusal()` record** | Gap: unaccounted refusal (finding F3) |
 | S5 | Watch batch (`watches.ts:444-463`, minute tick and turn-end retries) | `watches.json` queue | Routine | **Full at send**; **enqueue is lock-only**, never refuses (`watches.ts:356-358`) | Mixed/opaque output stays with its legacy owner (S07) |
 | S6 | Watch-runtime fault note (`watch-service.ts:183-191`) | `config.mateNotes` | Routine | **Enqueue** | Drainable |
-| S7 | **Inspection result to General** (`watch-inspections.ts:321`, 15 s `tickPrompts`) | `watch-inspections/inspection-runs.json` | Routine | **None**: the module never imports the gate; `GateSource` has no inspection kind | **Undrainable as built (F1)** |
+| S7 | **Inspection result to General** (`watch-inspections.ts:321`, polled by the 15 s `tickPrompts`) | `watch-inspections/inspection-runs.json` | Routine, but only for watches routed to an isolated session. Dormant live: none is routed and no inspection runs | **None**: the module never imports the gate; `GateSource` has no inspection kind | **Undrainable as built (F1)** |
 | S8 | Inspector prompts (`watch-inspections.ts:215, 258`) | same | Routine, to the inspector agent | **None** | Not General traffic; inspector is never crew |
 | S9 | Decision answer (`decision-answer.ts:116-137`) | Needs-you ledger | Captain-initiated, plan-scoped | **Full** (`claimHeld`) | Drainable (L4) |
 | S10 | Item discussion (`item-threads.ts:95-97`) | `data/item-threads/` | Captain-initiated | **Verdict**, outside the gate lock, no claim | Gap: a freeze can land between check and send (F2) |
@@ -67,6 +67,13 @@ Lifecycle covers General's own launch, compaction and handover.
 | S13 | Opening, compact, handover (`mate.ts:176, 251`; `migration.ts:252`) | config | Lifecycle | None | Out of drain scope |
 | S14 | Local steer, interrupt, end (`crew.ts:130-148`) | in-memory steers | Captain → worker | **Verdict** | Gap (F2); S08 also refuses scoped workers |
 | S15 | Remote steer, interrupt, end (`remote-crew.ts:64, 71, 79`) | none | Captain → remote worker | **None** (S08 `remoteGuard` only); the remote burst note is enqueued after the words are sent | Gap (F1) |
+
+General-originated actions are not plugin deliveries, but they reach workers too (R12O N4):
+
+| # | Path | Class | S07 gate | Drain status |
+|---|---|---|---|---|
+| S16 | Remote helper pump (`remotes.ts:427`, 1 s): runs the first mate's `tools/remote.mjs` requests (send, run, archive …) against remote hosts | General → remote worker | **None**, and no S08 guard | Only the charter keeps it off scoped workers (cooperative). Classify explicitly before any drain claim |
+| S17 | General's native Paseo MCP calls (`send_agent_prompt`, `archive_agent`, `create_agent` …) | General → local worker | **None**: the daemon executes them, so no plugin path exists | Only the charter keeps them off scoped workers (cooperative; U1 would enforce it) |
 
 The gate is skipped entirely when `config.home` and `config.mateAgentId` are both empty (`watch-service.ts:133`).
 That case has no first mate, so no recipient.
@@ -235,6 +242,20 @@ captain would see:
 - **F1 (blocks drain).** Inspection results (`watch-inspections.ts:321`) and remote steer/interrupt/end
   (`remote-crew.ts:64, 71, 79`) reach General or workers without the S07 gate. AGENTS.md requires every legacy
   delivery, including crew actions and item discussions, to be gated.
+  - The inspection path is polled every 15 s, but it carries traffic only for a script or managed watch routed
+    to an isolated session. In the live configuration it is dormant: `board-review` is disabled, no script is
+    routed and no inspection runs.
+  - S16/S17 (the remote helper pump and General's native calls) are General-originated. They are listed so that
+    nothing is implicit. Under the conservative D6 option, only the charter keeps them off scoped workers.
+- **F6 (fixed in S12, R12O N1).** S07 had wrapped the watch runner's recording of a finished run, including
+  `routeNote`, in the cutover gate lock. Once a script watch is routed to an isolated session, this formed a lock
+  cycle: gate → inspection lock → lifecycle lock → gate. That deadlocks the plugin until restart. Routing now
+  happens before and outside the gate, and only the queue insert and persist stay gated
+  (`watch-lock-order.test.ts`, driven through a real `WatchRunner` tick; it hangs before the fix).
+- **F7 (fixed in S12, R12O N3).** Plan reads, the agenda, the board snapshot, the scope route and the 1 s
+  plan-note tick list `.scoped/` once, instead of reading four sidecar files per plan (about 344 failed reads a
+  second on the live store, under the lifecycle lock). The writer's own check is unchanged
+  (`workflow-cutover-batch.test.ts`).
 - **F2 (blocks drain).** Item discussion, relaunch and local steer/interrupt/end check the verdict but write no
   claim. Item discussion checks outside the gate lock. A freeze between check and send leaves no in-flight
   evidence for the migrator.
