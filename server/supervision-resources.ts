@@ -3,6 +3,7 @@
  * Advisory only: a human, native tool or full-access session can bypass it, and no receiver here checks a fence.
  */
 import { z } from "zod";
+import { capacityHeld } from "../shared/supervision-capacity";
 import { SupervisionActorSchema, SupervisionHash, SupervisionUtc, SupervisionUuid, type SupervisionActor, type SupervisionStatus } from "../shared/supervision";
 import {
   compatible, emptyMaintenanceRows, MAINTENANCE_ADMISSION_CEILING, ResourceClass, ResourceKey, type MaintenanceRows, type ResourceReservation,
@@ -20,7 +21,7 @@ const reviewedActor = (actor: SupervisionActor) => actor.kind === "captain-ui" |
 /** New S10 rows are admissions: they stop below S04's effect band. Releases and other closures stay exempt and bounded. */
 export function maintenanceAdmission(status: SupervisionStatus): void {
   if (status.freshness !== "current") refuse("HELD", "The supervision journal is not current; maintenance admissions wait for reconciliation.");
-  if (status.sequence >= MAINTENANCE_ADMISSION_CEILING)
+  if (capacityHeld(status, "maintenance", MAINTENANCE_ADMISSION_CEILING))
     refuse("HELD", `Maintenance admissions stop at journal sequence ${MAINTENANCE_ADMISSION_CEILING}; the rest is reserved for effects and reconciliation.`);
 }
 /** How far into the shared 256-transaction journal an S10 write may go.
@@ -34,8 +35,8 @@ export function maintenanceAdmission(status: SupervisionStatus): void {
 export type Step = "admission" | "relabel" | "closure" | "settlement";
 export function stepRoom(status: SupervisionStatus, step: Step): "write" | "skip" {
   if (step === "admission") { maintenanceAdmission(status); return "write"; }
-  if (step === "relabel") return status.sequence >= MAINTENANCE_ADMISSION_CEILING ? "skip" : "write";
-  if (step === "closure" && status.sequence >= SUPERVISION_INDEX_LIMITS.admissions)
+  if (step === "relabel") return capacityHeld(status, "maintenance", MAINTENANCE_ADMISSION_CEILING) ? "skip" : "write";
+  if (step === "closure" && capacityHeld(status, "admissions", SUPERVISION_INDEX_LIMITS.admissions))
     refuse("HELD", `Maintenance closures stop at journal sequence ${SUPERVISION_INDEX_LIMITS.admissions}; only settlement, release and reconciliation continue.`);
   return "write";
 }

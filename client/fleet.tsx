@@ -81,6 +81,7 @@ import { useTaskLayout } from "./task-layout";
 import { taskPresentation } from "./task-presentation";
 import { WorkflowSurface, PlansControl, useWorkflowPlans, WORKFLOW_QUERY_KEY } from "./workflow-plans";
 import { SupervisionActivationBoard } from "./supervision-activation";
+import { ProjectOwnershipBoard } from "./project-ownership";
 import { WorkflowPlansView } from "./workflow-plan-browser";
 import { workflowOwnsCard } from "../shared/workflow-identity";
 import { workflowTaskTarget } from "./workflow-task-navigation";
@@ -124,6 +125,7 @@ export function FleetSurface(props: FleetSurfaceProps) {
   return (
     <WorkflowSurface key={key} theme={props.theme} hostId={props.host?.id} view={props.view} shell={props.shell} params={props.params}><DecisionSurface shell={props.shell} view={props.view} key={key} theme={props.theme} compact={props.layout.compact} params={props.params ?? {}}>
       <SupervisionActivationBoard theme={props.theme} compact={props.layout.compact} />
+      {(!props.view || props.view === "plans") ? <ProjectOwnershipBoard theme={props.theme} compact={props.layout.compact} navigation={props.navigation} hostId={props.host?.id ?? "local"} /> : null}
       <FleetViewBody {...props} stateKey={key} />
     </DecisionSurface></WorkflowSurface>
   );

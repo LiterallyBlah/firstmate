@@ -206,7 +206,7 @@ it.each(["event:linked", "publication:linked"])("B2-R1: direct production abort 
 });
 it("B2-R1: an attachment's published audit/effects recover from the journal after restart without another reservation", async () => {
   await cutover(); const request = await attachment();
-  const writers = (activation as unknown as { writers: Map<string, SupervisionStore> }).writers;
+  const writers = (activation as unknown as { runtime: { writers: Map<string, SupervisionStore> } }).runtime.writers;
   const writer = [...writers.values()][0]!; let crashed = false;
   // Inject only the real file-publication boundary; every adapter and store operation stays production.
   const boundary = vi.spyOn(writer as unknown as { boundary(name: string): Promise<void> }, "boundary").mockImplementation(async name => {

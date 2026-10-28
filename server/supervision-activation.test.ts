@@ -7,6 +7,7 @@ import { SyntheticReceiver } from "../test/synthetic-receiver";
 import { AttachSupervisorInputSchema, ResumeSupervisorInputSchema, MigrationCommandSchema, type AttachSupervisorInput, type MigrationCommand } from "../shared/supervision-activation";
 import { SupervisionActivation, registerSupervisionActivation } from "./supervision-activation";
 import { SupervisionStore } from "./supervision-store";
+import { SupervisionRuntime } from "./supervision-runtime";
 import { pluginDir } from "./data-dir";
 import { updateFirstmateConfig } from "./config";
 import { workflowStore } from "./workflow-service";
@@ -38,6 +39,21 @@ afterEach(async () => { await activation?.stop(); await ledger?.stop(); });
 function make(enabled?: boolean) { return new SupervisionActivation(pluginDir(), { ...(enabled === undefined ? {} : { enabled }),
   adapters: () => legacyAdapters(null, () => ledger.read()), receiver: () => receiver }); }
 const api = {} as PaseoApi;
+it("the shared runtime supports production migration and the existing Attach beyond the pilot history ceiling", async () => {
+  const runtime = new SupervisionRuntime(pluginDir());
+  try {
+    await runtime.mutate(home, async store => {
+      await store.enableLongLived();
+      for (let n = 0; n < 260; n++) await store.transactCommand(randomUUID(), "a".repeat(64), { kind: "system", id: "load", source: "isolated-multi-service-fixture" },
+        async () => ({ expectedVersions: [], mutations: [], result: { planId: null, planHash: null, decisionId: null, outboxId: null } }));
+    });
+    activation = new SupervisionActivation(pluginDir(), { enabled: true, runtime, adapters: () => legacyAdapters(null, () => ledger.read()), receiver: () => receiver });
+    await cutover(); const input = await attachment();
+    const next = await activation.attach(input, api);
+    expect(next.plans[0]).toMatchObject({ binding: "active", opening: "succeeded" });
+    expect((await runtime.read(home)).sequence).toBeGreaterThan(260);
+  } finally { await activation.stop(); await runtime.stop(); }
+}, 120000);
 async function cutover() {
   await activation.migrate(prepare);
   await activation.migrate({ op: "reconcile", homeId: prepare.homeId, migrationId: prepare.migrationId });

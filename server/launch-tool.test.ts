@@ -351,12 +351,12 @@ describe("record checks", () => {
       await execute("git", ["-C", cwd, "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "--allow-empty", "-m", "New base"]);
       await execute("git", ["-C", cwd, "checkout", "fm/task"]);
     }
-    await save(); const result = await record(); expect(result.state).toBe("recorded"); expect(result.checks[check]).toBe("fail"); expect(result.problems).toContain(check);
+    await save(); const result = await record(); expect(result.state, JSON.stringify(result)).toBe("recorded"); expect(result.checks[check]).toBe("fail"); expect(result.problems).toContain(check);
     expect(result.backlog.line).toContain(`(agent: ${workerId})`);
   });
   it.each(["Provider", "Model", "Mode", "Thinking"])("records %s differences as informational", async field => {
     await prepare(); await addWorker(); state.agents[0].detail[field] = "changed"; await save();
-    const result = await record(); expect(result.ok).toBe(true); expect(result.checks.settings).toBe("settings-differ"); expect(result.problems).toEqual([]);
+    const result = await record(); expect(result.ok, JSON.stringify(result)).toBe(true); expect(result.checks.settings).toBe("settings-differ"); expect(result.problems).toEqual([]);
   });
   it("reports unreadable Git data as unknown", async () => {
     await prepare(); await addWorker(); state.workspaces[0].cwd = home; state.agents[0].detail.Cwd = home; await save();

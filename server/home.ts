@@ -120,6 +120,10 @@ export async function prepareHome(home: string, config: FirstmateConfig, origin:
   }));
   await homeWrite(home, TEMPLATES.launchHelper, origin, await renderLaunchTool(home));
   await homeWrite(home, TEMPLATES.workflowHelper, origin, await readTemplate(TEMPLATES.workflowHelper));
+  if (process.env.FIRSTMATE_PROJECT_MATES === "1") {
+    await homeWrite(home, TEMPLATES.projectHelper, origin, await readTemplate(TEMPLATES.projectHelper));
+    await homeWrite(home, TEMPLATES.projectGuide, origin, await readTemplate(TEMPLATES.projectGuide));
+  }
   await homeWrite(home, TEMPLATES.backlogLint, origin, await readTemplate(TEMPLATES.backlogLint));
   await homeWrite(home, TEMPLATES.workflowGuide, origin, await readTemplate(TEMPLATES.workflowGuide));
   await homeWrite(home, TEMPLATES.recallHelper, origin, await readTemplate(TEMPLATES.recallHelper));

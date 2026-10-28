@@ -2,6 +2,7 @@
  * Project memory is context only: no record in this file is ever an authority input (see supervision-policy).
  */
 import { z } from "zod";
+import { AgentProfileSchema } from "./supervision-effects";
 import { PlanId } from "./workflow-plans";
 import { SupervisionActorSchema, SupervisionHash, SupervisionUtc, SupervisionUuid, SupervisionVersionRefSchema, type SupervisionStatus } from "./supervision";
 
@@ -22,6 +23,9 @@ export const ProjectRecordSchema = z.object({
   budget: z.object({ agents: count, turns: count }).strict().nullable(),
   /** The reviewed policy sources this admission rests on (D4 import). Admission grants no operation by itself. */
   sourceVector: z.array(SupervisionVersionRefSchema).min(1).max(64), provenance: reviewed,
+  /** Build A: immutable canonical registry ownership and explicit cumulative session caps. Context is never a grant. */
+  owner: z.object({ hostId: text(), directory: text(1024), registryDigest: SupervisionHash, generalAgentId: text(),
+    profile: AgentProfileSchema, limits: z.object({ supervisorSessions: count.min(1), supervisorTurns: count.min(1) }).strict() }).strict().optional(),
 }).strict();
 /** One sponsor per plan scope, with an all-or-none per-project budget claim. No automatic borrowing. */
 export const PlanSponsorSchema = z.object({

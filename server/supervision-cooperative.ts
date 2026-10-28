@@ -7,6 +7,7 @@
  * A ready scope is cooperative, nothing more (`COOPERATIVE_LIMITS`): no isolation, failover or takeover claim.
  */
 import type { SupervisionStatus } from "../shared/supervision";
+import { capacityHeld } from "../shared/supervision-capacity";
 import { MAINTENANCE_ADMISSION_CEILING, unsettled } from "../shared/supervision-maintenance";
 import { SOURCE_LIMITS } from "../shared/supervision-sources";
 import { COOPERATIVE_LIMITS } from "./supervision-capabilities";
@@ -39,12 +40,13 @@ export function cooperativeReadiness(status: SupervisionStatus, scopeId: string)
   const tasks = status.tasks.filter(t => t.ownerScopeId === scopeId), taskIds = new Set(tasks.map(t => t.id));
   const attempts = status.attempts.filter(a => taskIds.has(a.taskId));
   const migrations = (status.migrations ?? []).filter(m => m.scopeId === scopeId);
-  const reached = JOURNAL_BANDS.filter(b => status.sequence >= b.ceiling);
+  const reached = JOURNAL_BANDS.filter((b, i) => capacityHeld(status, (["sources", "maintenance", "admissions"] as const)[i]!, b.ceiling));
 
   const journal = dep("journal", "S01", [
     ...(status.freshness !== "current" ? [`The journal is ${status.freshness}; nothing can be shown drained.`] : []),
     ...(status.freshness === "current" && status.storage.admissionsHeld ? ["Journal admissions are held (storage or admission ceiling); new work cannot be admitted."] : []),
-    ...reached.map(b => `Journal sequence ${status.sequence} reached ${b.slice}'s band at ${b.ceiling}: ${b.stops} stopped, so observations may be stale.`),
+    ...reached.map(b => status.storage.capacity ? `Journal storage pressure reached ${b.slice}'s reserve band: ${b.stops} stopped, so observations may be stale.` :
+      `Journal sequence ${status.sequence} reached ${b.slice}'s band at ${b.ceiling}: ${b.stops} stopped, so observations may be stale.`),
   ]);
   const scopeDep = dep("scope", "S03", !scope ? ["The scope is not registered."] : [
     ...(scope.mode !== "scoped" ? ["The scope is still legacy."] : []),

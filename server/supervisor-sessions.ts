@@ -165,7 +165,7 @@ export class SupervisorSessions {
     if (effects.create?.state !== "succeeded" || !workspace || effects.workspace?.receiverKey !== binding.workspaceIntent)
       refuse("HELD", "Supervisor creation is not confirmed for this intent; verification waits.");
     const problem = verifyObservation(await this.receiver.findAgent(binding.agentId), { agentId: binding.agentId, workspace,
-      profile: await this.gateway.profile(binding.profileDigest), labels: supervisorLabels(scopeId, epoch) });
+      profile: await this.gateway.profile(binding.profileDigest), labels: supervisorLabels(scopeId, epoch, status.scopes.find(s => s.id === scopeId)?.kind) });
     if (problem) refuse("HELD", `${problem} No opening was sent.`);
     // No scope authority may leak into the global role: a supervisor is always a home guest.
     if ((await this.options.globalMateId()) === binding.agentId) refuse("CONFLICT", "The global first mate cannot also be a scope supervisor.");

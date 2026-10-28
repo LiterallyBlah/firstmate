@@ -27,8 +27,9 @@ import { pluginDir } from "./server/data-dir";
 import { join } from "node:path";
 import { pageReceiptTimeline } from "./shared/receipts";
 import { ReportCache, loadFleet, readAgentTools } from "./server/fleet";
-import { SupervisionStatusReader } from "./server/supervision-status-reader";
 import { SupervisionActivation, registerSupervisionActivation } from "./server/supervision-activation";
+import { SupervisionRuntime } from "./server/supervision-runtime";
+import { ProjectRuntime, registerProjectRuntime } from "./server/project-runtime";
 import { legacyAdapters } from "./server/supervision-migrate";
 import { supervisionInboxStatus, hasScopedWorker } from "./server/supervision-status";
 import { isScopedSourceWorker, refuseScopedRemoteMutation } from "./server/supervision-sources";
@@ -110,13 +111,12 @@ import {
 
 export default function contribute(server: PluginServerContext) {
   // Read-only S02 surface. No initialize/coordinator, ingress attachment, offer runner or activation flag.
-  const supervisionReader = new SupervisionStatusReader(pluginDir());
+  const supervisionRuntime = new SupervisionRuntime(pluginDir());
   // Display routes may serve an earlier committed head after 750 ms of overlapping writes;
   // crew-seen decides whether to clear attention, so it always waits for the newest head.
   const readSupervision = async (home?: string, newest = false) =>
-    supervisionReader.read(home ?? resolveHome(await readFirstmateConfig()), newest ? {} : { settleAfterMs: 750 });
+    supervisionRuntime.read(home ?? resolveHome(await readFirstmateConfig()), newest ? {} : { settleAfterMs: 750 });
   server.handle(readSupervisionInbox, async input => supervisionInboxStatus(await readSupervision(), input));
-  const stopWorkflows = startWorkflowService();
   server.handle(ensureSharedTerminalRpc, ({ workspaceId }, { paseo }) => ensureSharedTerminal(paseo, workspaceId));
   const updates = new UpdateService();
   server.handle(checkUpdate, () => updates.check());
@@ -144,10 +144,16 @@ export default function contribute(server: PluginServerContext) {
     catalog: () => remotes.read(),
   });
   const activation = new SupervisionActivation(pluginDir(), {
+    runtime: supervisionRuntime,
+    ...(process.env.FIRSTMATE_PROJECT_MATES === "1" ? { headroom: { slots: Number(process.env.FIRSTMATE_PROJECT_SLOTS ?? 4), reserved: Number(process.env.FIRSTMATE_GENERAL_HEADROOM ?? 1) } } : {}),
     enabled: process.env.FIRSTMATE_SCOPED_ACTIVATION === "1",
     adapters: () => legacyAdapters(watches.runner, () => decisions.read()),
   });
   registerSupervisionActivation(server, activation);
+  const projects = new ProjectRuntime(supervisionRuntime, { enabled: process.env.FIRSTMATE_PROJECT_MATES === "1",
+    ...(process.env.FIRSTMATE_PROJECT_MATES === "1" ? { slots: Number(process.env.FIRSTMATE_PROJECT_SLOTS ?? 4), generalHeadroom: Number(process.env.FIRSTMATE_GENERAL_HEADROOM ?? 1) } : {}) });
+  registerProjectRuntime(server, projects);
+  const stopWorkflows = startWorkflowService(() => projects.processRequests());
   const readCombinedNeeds = async (given?: Awaited<ReturnType<typeof decisions.read>>) => {
     const snapshot = given ?? await decisions.read();
     const config = await readFirstmateConfig(), home = resolveHome(config);
@@ -413,6 +419,7 @@ export default function contribute(server: PluginServerContext) {
     unregisterReceipts();
     unregisterAttention();
     await activation.stop();
+    await supervisionRuntime.stop();
     watches.stop();
     remotes.stop();
     await decisions.stop();

@@ -1,5 +1,11 @@
 # Scoped supervision activation
 
+Build A adds separately default-off project ownership via `FIRSTMATE_PROJECT_MATES=1`. Home/Plans
+show a read-only registry census and legacy/scoped plan associations; only explicit project provisioning
+creates an independent persistent session. Admission, memory, cumulative caps and the shared paged runtime
+are documented in [Build A's contract and acceptance mapping](docs/scoped-supervision/build-a.md).
+This does not add a second plan Attach path or enable ongoing plan execution.
+
 Activation is off unless the daemon environment contains exactly
 `FIRSTMATE_SCOPED_ACTIVATION=1`. Installing or viewing the plugin does not initialize a journal,
 acquire a coordinator, arm the delivery gate, migrate a plan or create a session. The switch enables
