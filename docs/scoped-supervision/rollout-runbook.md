@@ -296,5 +296,5 @@ Follow-up local qualification (Windows, Node 24.22.1): typecheck passed; full CI
 passed 203 files / 3,011 tests with 3 skips and no failures, with the CI journal/diagnostic/pilot flags.
 All five CI render commands passed: `docs/needs-you/render.mjs`, `docs/scoped-supervision/s05-ui/render.mjs`,
 `docs/attention-deck/render.mjs`, `docs/fm-ui-polish/render.mjs` and `docs/decision-ux-lists/render.mjs`.
-Artifacts remain in ignored `.local/`. Hosted Actions billing is disabled; these are local checks, with no
-Ubuntu or live daemon/provider qualification. No install, reload, arm, migrate or attach was performed.
+Artifacts remain in ignored `.local/`. These local checks qualify Windows only; hosted checks are tracked
+separately on the PR. No live daemon/provider qualification, install, reload, arm, migrate or attach was performed.
