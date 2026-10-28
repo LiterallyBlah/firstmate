@@ -184,10 +184,18 @@ These procedures apply once activation exists. **Nothing here is authorised by t
 **Rollback binary rule (new finding F4).**
 
 - The S07 sidecar refusal exists only in builds that contain S07. The currently installed `9ed5dd84` predates
-  S06–S11 and would write a plan that a committed cutover owns: a dual writer.
-- Rule: once any `.scoped/` sidecar or `armed.json` exists in the live plan store, roll back only to a build that
-  contains S07 (`c01b272` or later), never to `9ed5dd84`.
-- Before any arming, rollback to `9ed5dd84` stays safe, because this head writes no new legacy-store construct.
+  S06–S11. It would write a plan that a committed cutover owns (a dual writer). It also reads no supervision
+  state, so it has none of the scoped-worker refusals: board controls, steer relay, item discussion and remote
+  guards (R12-5).
+- **Trigger:** any of the following exists:
+  - an initialised supervision journal (`plugin-data/firstmate/supervision/`);
+  - any worker carrying a `firstmate.scope` label;
+  - any `.scoped/` sidecar or `armed.json` in the live plan store.
+- **Target, after the trigger:** roll back only to a build that contains S07 **and parses every journal row kind
+  present**. In practice that is the build that wrote them, or a later one. `c01b272` (S07) cannot parse the
+  S09/S10 kinds (`project` … `maintenance-incident`). A journal holding them would read `held`, and crew-seen
+  would stop clearing attention for every crewmate. Never roll back to `9ed5dd84`.
+- Before the trigger, rollback to `9ed5dd84` stays safe, because this head writes no new legacy-store construct.
 
 **Plugin rollback (installation only, nothing armed).** Reinstall the retained previous directory source with
 the same remove/install lifecycle used for the 2026-10-26 install. Plugin data persists across remove/install.
@@ -197,7 +205,32 @@ remote reconnect and the actual maintenance cadence. Record a `firstmate.supervi
 with `mode: live` and `clock: monotonic`, with captain samples. Compare against the legacy route. Report
 denominators and exclusions. Unknown cost stays unknown.
 
-## 5. Findings
+## 5. Installing this head over the live `9ed5dd84`: what visibly changes
+
+The install is inert: nothing scoped activates. The exact install and rollback steps are in the S12 report. A
+captain would see:
+
+1. **A charter Compare notice.** The live `data/charter.md` is edited, and the plugin charter gains one
+   paragraph on `firstmate.scope` workers. The install writes `data/charter.new.md` and shows Compare/Done.
+   `AGENTS.md` is unchanged until the captain merges.
+2. **`watches/pr-watch` is rewritten**, because it is an untouched built-in (fingerprint `2bfa5831…` →
+   `9d23562f…`). The schedule and default output are the same; it adds only the opt-in typed spool.
+3. **Plan notes in the chat fold more widely (R12-6).**
+   - Every generated plan-action note (`firstmate-plan-<uuid>`) folds to one line, with a ` · <plan id>`
+     suffix, for example "Plan approved · scheduler".
+   - Transfer and resume notes now fold as well ("Plan owner transferred", "Plan resumed").
+   - An action the client does not recognise folds as **"Plan updated"** instead of showing in full.
+4. **The steer relay, board steer, interrupt, end, relaunch and item discussion refuse workers labelled
+   `firstmate.scope`.** None exist live. A worker archived, or whose re-check fails, between its turn ending and
+   the relay is still relayed to the first mate as before (R12-3).
+5. **The plugin is absent for about 20 s during remove and install.** The `plugin-settings/firstmate/` folder
+   (`display.json` and `task-layout.json`, including Detailed columns) must be backed up and restored. In-memory
+   board steers still awaiting an answer are lost on any reload.
+6. **Trivial, irrelevant to the live home today (R12-6):**
+   - Files view saves under `data/scoped/` outside `proposals/` are refused. The folder does not exist.
+   - Agents labelled `plan-supervisor` are not offered for adoption.
+
+## 6. Findings
 
 - **F1 (blocks drain).** Inspection results (`watch-inspections.ts:321`) and remote steer/interrupt/end
   (`remote-crew.ts:64, 71, 79`) reach General or workers without the S07 gate. AGENTS.md requires every legacy
@@ -207,7 +240,7 @@ denominators and exclusions. Unknown cost stays unknown.
   evidence for the migrator.
 - **F3 (low).** The watch enqueue `gated()` takes only the lock and never refuses, contrary to AGENTS.md's "watch
   enqueue … check it". The S4 burst-extend refusal writes no `refusal()` record.
-- **F4 (rollback).** The rollback-binary rule above.
+- **F4 (rollback).** The rollback-binary rule above, with its trigger and target widened per R12-5.
 - **F5 (record).** `data/fm-ss-d6/decision.md` does not record the option 2 choice.
 
 These are integration fixes for separate approved tasks. S12 changed none of them.

@@ -31,12 +31,16 @@ import { TEMPLATES, message } from "./templates";
 /** The most of a crewmate's answer relayed to the first mate; the same cap Paseo's own notification uses. */
 const MAX_RELAYED_CHARS = 4000;
 
+/** A deliberate refusal: the worker belongs to a scoped owner, or to a frozen or migrated plan. Distinct from a lookup
+ * that failed or found the worker archived, which the steer relay must not treat as a reason to drop the captain's words. */
+export class ScopedCrewRefusal extends Error {}
+
 /** Refuses anything that is not a live crewmate, so the board cannot be pointed at an arbitrary agent. */
 async function requireCrew(paseo: PaseoApi, agentId: string, stop = false): Promise<PaseoAgent> {
   const agent = await fetchLiveAgent(paseo, agentId);
   if (agent === null) throw new Error(`Paseo has no live agent ${agentId}.`);
   if (Object.values(SCOPE_LABELS).some(label => label in agent.labels)) {
-    throw new Error(`${agent.title ?? agentId} belongs to a scoped supervisor; legacy board controls and the steer relay cannot change or forward its work. Use its scope's checked controls.`);
+    throw new ScopedCrewRefusal(`${agent.title ?? agentId} belongs to a scoped supervisor; legacy board controls and the steer relay cannot change or forward its work. Use its scope's checked controls.`);
   }
   if (agent.labels[CREW_LABELS.role] !== CREW_LABELS.crewRole) {
     throw new Error(`${agent.title ?? agentId} is not one of the crew.`);
@@ -47,7 +51,7 @@ async function requireCrew(paseo: PaseoApi, agentId: string, stop = false): Prom
   // Stopping is the safe direction: an unreadable record that cannot name its workers never blocks Interrupt or End.
   const targets = (await gate.targets()).filter(t => !stop || !t.damaged || t.tokens !== null);
   const verdict = await gate.verdict(item, "send", targets);
-  if (!verdict.admit) { await gate.refusal(item, verdict.reason); throw new Error(`${agent.title ?? agentId}: ${verdict.reason}`); }
+  if (!verdict.admit) { await gate.refusal(item, verdict.reason); throw new ScopedCrewRefusal(`${agent.title ?? agentId}: ${verdict.reason}`); }
   return agent;
 }
 
@@ -207,8 +211,15 @@ export function registerSteerRelay(
     const read = steers.takeRead(event.agent.id, userMessages);
     if (read === null) return;
     // Refresh labels here too: a pending legacy steer may predate scoped ownership.
-    // Refuse before reading/forwarding the answer or queueing any note to General.
-    await requireCrew(paseo, event.agent.id);
+    // Refuse before reading/forwarding the answer or queueing any note to General. Only a deliberate scoped or cutover
+    // refusal withholds the relay, and it throws, so it is never silent (R12-3). A worker archived since its turn ended,
+    // or a lookup that failed, is relayed as before: the captain's words are never dropped for want of a re-check.
+    try {
+      await requireCrew(paseo, event.agent.id);
+    } catch (error) {
+      if (error instanceof ScopedCrewRefusal) throw error;
+      console.error(`[firstmate] could not re-check ${event.agent.id} before relaying the captain's words; relaying them as before:`, error);
+    }
     const captain = read.map((entry) => entry.text);
     const ids = read.flatMap((entry) => (entry.messageId === undefined ? [] : [entry.messageId]));
     const journal = receiptJournal();
