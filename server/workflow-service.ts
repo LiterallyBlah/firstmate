@@ -37,10 +37,11 @@ export async function authorizeWorkflowActor(home: string, actor: string): Promi
  * One plan's refusal never stops the others.
  */
 export async function queuePlanNotes(home: string): Promise<void> {
-  const store = workflowStore(home), gate = cutoverGate(home);
-  for (const plan of await store.list()) for (const action of plan.captainEvents ?? []) {
-    // A cutover owns this plan's actions; skip it quietly rather than refusing it every second.
-    if (action.notified || await store.cutover(plan.definition.id).catch(() => "damaged")) continue;
+  const store = workflowStore(home), gate = cutoverGate(home), plans = await store.list(), folders = await store.cutoverFolders();
+  for (const plan of plans) for (const action of plan.captainEvents ?? []) {
+    // A cutover owns this plan's actions; skip it quietly rather than refusing it every second. The gate's own
+    // enqueue check below still reads the sidecars, so the batched listing never admits a frozen plan's note.
+    if (action.notified || await store.cutover(plan.definition.id, folders).catch(() => "damaged")) continue;
     const id = `firstmate-plan-${action.id}`;
     const text = await message(TEMPLATES.workflowNote, { action: JSON.stringify({ plan: plan.definition.id, ...action }).replace(/</g, "\\u003c") });
     try {

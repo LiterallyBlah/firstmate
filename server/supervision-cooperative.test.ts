@@ -114,6 +114,16 @@ describe("cooperativeReadiness: explicit dependencies of a drained cooperative s
     // Another epoch's succeeded opening does not count for the current one.
     expect(unmet(status(() => {}, [opening(SCOPE, 2), ...others]))).toEqual(["binding"]);
   });
+  it("R11 R3-N2: a replacement (epoch 2) is held while only epoch 1's opening has succeeded", () => {
+    const others = [1, 2].map(e => opening(OTHER, e));
+    const replaced = (openings: object[]) => cooperativeReadiness(status(x => { x.bindings = [bound(SCOPE, { epoch: 2 }), bound(OTHER)] as never; }, [...openings, ...others]), SCOPE);
+    const r = replaced([opening(SCOPE, 1)]);
+    expect(r.ready).toBe(false);
+    expect(r.dependencies.find(d => d.id === "binding")!.reasons).toEqual(["Supervisor epoch 2 has not been sent its opening."]);
+    expect(replaced([opening(SCOPE, 1), opening(SCOPE, 2, "reserved")]).dependencies.find(d => d.id === "binding")!.reasons)
+      .toEqual([expect.stringMatching(/epoch 2 has not been sent its opening \(reserved\)/)]);
+    expect(replaced([opening(SCOPE, 1), opening(SCOPE, 2)]).ready).toBe(true);
+  });
   it("R11 N1/N9: a non-active backend without a migration row, and starting, planned-with-worker or unaccounted imported attempts hold", () => {
     for (const [backend, state] of [["scoped", "prepared"], ["scoped", "held"], ["legacy", "active"]])
       expect(unmet(status(x => { x.backends = [{ planId: "scheduler", ownerScopeId: SCOPE, backend, state, sourceHash: null, version: 1 } as never]; }))).toEqual(["cutover"]);

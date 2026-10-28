@@ -223,6 +223,9 @@ it("L1: a notified-but-unhandled action with General busy transfers once; the ol
   // S11 / R11 B2: reconciled, but this helper writes its binding directly, without an activation opening, so the
   // owner is not current. The real attach path (L5) is what makes a cut-over scope ready.
   expect(await unmet()).toEqual(["binding"]);
+  // R11 R3-N3: and for exactly that reason, so another binding fault cannot hide behind the same id.
+  expect(cooperativeReadiness(await store.read(), input.scopeId).dependencies.find(x => x.id === "binding")!.reasons)
+    .toEqual(["Supervisor epoch 1 has not been sent its opening."]);
   expect(report.dispositions.find(x => x.id === d!.id)!.receipts).toMatchObject({ transfer: `outbox:${outbox[0]!.id}`, ack: expect.stringMatching(/^command:.*@epoch:1$/) });
   expect((await store.read()).outbox.filter(o => o.causationId === action)).toHaveLength(1);
 });
