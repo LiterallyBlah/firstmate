@@ -136,7 +136,7 @@ export function useSettings(contract) {
     setRevision((r) => r + 1);
     return true;
   }, []);
-  return { status: "ready", values, revision, save, saveError: null };
+  return { status: "ready", values, revision, save, saveError: null, reload: async () => {} };
 }
 const paseo = {
   agents: {
