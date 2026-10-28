@@ -3,8 +3,9 @@ import { randomUUID } from "node:crypto";
 import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { createPaseoApi } from "@getpaseo/client";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, expect, it, vi } from "vitest";
 import { workflowFixture } from "../test/workflow-fixture";
+import { WARMUP_TIMEOUT_MS, warmWindowsIdentityProbe } from "../test/supervision-warmup";
 import type { AttachSupervisorInput, MigrationCommand } from "../shared/supervision-activation";
 import { SupervisionActivation } from "./supervision-activation";
 import { SupervisionStore } from "./supervision-store";
@@ -55,6 +56,10 @@ function nativeDaemon() {
     loseCreate: () => { loseCreate = true; }, visible: (value: boolean) => { visible = value; } };
 }
 let native: ReturnType<typeof nativeDaemon>;
+// As in the crash suite, pay the cold Windows host startup before the real, unchanged 5 s probes.
+beforeAll(async () => {
+  if (process.platform === "win32") await warmWindowsIdentityProbe();
+}, WARMUP_TIMEOUT_MS + 10000);
 beforeEach(async () => {
   process.env.PASEO_HOME = join(root, randomUUID()); home = join(process.env.PASEO_HOME, "home");
   await mkdir(join(home, "data"), { recursive: true });
