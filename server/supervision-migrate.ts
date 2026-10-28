@@ -34,7 +34,7 @@ import { digest, publish } from "./submissions";
 import { CutoverGate, cutoverGate, itemFingerprint, liveClaims, mentions, type Claim, type ClaimResult, type CutoverTarget, type GateItem } from "./supervision-gate";
 import { inventoryHash, SUPERVISION_INDEX_LIMITS, SupervisionError, type StoreMutation, type SupervisionStore } from "./supervision-store";
 import { replaySupervisionWorkflow } from "./supervision-workflows";
-import { watchItem, type QueuedNote, type WatchRunner } from "./watches";
+import { watchItem, watchOwner, type QueuedNote, type WatchRunner } from "./watches";
 import { mergeOwnership, planOwnership, type WorkflowOwnership } from "./workflow-ownership";
 import { WorkflowEventSchema, type WorkflowPlanStore } from "./workflow-plans";
 
@@ -150,7 +150,7 @@ export class SupervisionMigrator {
   }
 
   /** Exact legacy bytes, chain, parity, delivery inventory and capacity. Pure read; caller holds locks for a freeze. */
-  private async snapshot(input: MigrationInput, frozenAt: string, status: SupervisionStatus): Promise<Snapshot> {
+  private async snapshot(input: MigrationInput, frozenAt: string, status: SupervisionStatus, recoveringFreeze?: CutoverSidecar): Promise<Snapshot> {
     const { legacy } = this.options, problems: string[] = [];
     const read = await legacy.read();
     if (read.unavailable) fail("HELD", "The legacy plan store is unavailable; nothing can be imported.");
@@ -184,7 +184,7 @@ export class SupervisionMigrator {
         launches.push({ node: node.id, file: name, state: String(record.state ?? "unknown"), attempt: record.workflow?.attempt ?? null });
       }
     }
-    const dispositions = await this.inventory(input, plan, tokens, tip, attempts, launches);
+    const dispositions = await this.inventory(input, plan, tokens, tip, attempts, launches, recoveringFreeze);
     let inventory: WorkflowOwnership | null = null, step: WorkflowPlan | null = null;
     for (const event of events) { step = replaySupervisionWorkflow(step, event, this.options.store.homeId); inventory = mergeOwnership([...(inventory ? [inventory] : []), planOwnership(step)]); }
     const requests = events.map(e => ({ requestId: e.requestId, requestHash: e.requestHash, eventHash: e.hash }));
@@ -231,7 +231,7 @@ export class SupervisionMigrator {
    * handled keys; `notified`, queue presence and transport acceptance are only delivery history.
    */
   private async inventory(input: MigrationInput, plan: WorkflowPlan, tokens: CutoverTokens, tip: { sequence: number; hash: string },
-    attempts: { node: string; attempt: string; state: PlanNodeState }[], launches: MigrationReceipt["launches"]): Promise<LegacyDeliveryDisposition[]> {
+    attempts: { node: string; attempt: string; state: PlanNodeState }[], launches: MigrationReceipt["launches"], recoveringFreeze?: CutoverSidecar): Promise<LegacyDeliveryDisposition[]> {
     const { adapters } = this.options, gate = this.gate;
     const config = await adapters.config(), queue = await adapters.watchQueue(), decisions = await adapters.decisions();
     // Decision answers are imperative. Without a current ledger for this home there is no proof none was sent.
@@ -249,7 +249,7 @@ export class SupervisionMigrator {
       if (!row.result && liveClaims().has(row.claim.id)) fail("HELD", `A legacy send (${id}) is in flight; account for it before freezing ${input.plan}.`);
       return { state: row.result?.outcome === "accepted" ? "accepted" : "uncertain", claim: row };
     };
-    const rows: LegacyDeliveryDisposition[] = [];
+    const rows: LegacyDeliveryDisposition[] = [], protectedWatches = new Set<string>();
     const fact = (key: string) => ({ scopeId: input.scopeId, consequenceId: migrationUuid(input.plan, "legacy-fact", key), outboxId: null });
     for (const action of plan.captainEvents ?? []) {
       const keys = [`${plan.definition.id}:captain:${action.id}`, ...(action.action === "changes" ? [`${plan.definition.id}:changes:${action.id}`] : [])];
@@ -276,7 +276,10 @@ export class SupervisionMigrator {
     for (const entry of queue) {
       const item = watchItem(entry);
       if (!mentions(item.text!, tokens).length) continue;
-      rows.push(this.watchHold(input, entry, tokens, tip, owner, claimed(item.id, item.payloadHash), preexisting.has(itemFingerprint(item))));
+      const row = this.watchHold(input, entry, tokens, tip, owner, claimed(item.id, item.payloadHash), preexisting.has(itemFingerprint(item)));
+      rows.push(row);
+      if (entry.ownership?.owner === watchOwner(gate) && entry.hold?.plan === input.plan && entry.hold.stage === "freeze" && !entry.delivery)
+        protectedWatches.add(row.id);
     }
     for (const request of decisions.requests) {
       const host = request.source.hostId || null;
@@ -310,6 +313,19 @@ export class SupervisionMigrator {
     for (const row of claims.filter(c => (!c.result || c.result.outcome === "uncertain") && !rows.some(r => r.claimId === c.claim.id))) {
       const target = this.target(input.plan, tokens);
       if (row.claim.items.some(i => CutoverGate.classify(claimItem(i), target))) rows.push(this.claimHold(input, row.claim, tokens, tip, owner));
+    }
+    if (recoveringFreeze) {
+      // The queue appends under the gate and cannot evict a frozen row. Try its bounded watch prefixes,
+      // retaining every non-watch disposition. A flush can mark ORIGINAL rows held too: a hold alone
+      // never proves lateness. Only an exact match to the frozen, full inventory hash accepts a prefix.
+      // Everything after that proven prefix stays queued and is re-inventoried as holds after prepare.
+      let prefix = rows;
+      if (inventoryHash(prefix) === recoveringFreeze.inventoryHash) return prefix;
+      for (const row of rows.filter(d => d.source === "watch-queue").reverse()) {
+        if (!protectedWatches.has(row.id)) break;
+        prefix = prefix.filter(d => d.id !== row.id);
+        if (inventoryHash(prefix) === recoveringFreeze.inventoryHash) return prefix;
+      }
     }
     return rows;
   }
@@ -541,7 +557,8 @@ export class SupervisionMigrator {
       const claims = await this.gate.claims(), freeze = (await this.gate.sidecar(m.planId, "freeze"))!;
       this.assertNoLiveClaims(claims, this.target(m.planId, freeze.tokens), status.dispositions!.filter(row => row.migrationId === migrationId));
       if (d.source === "decision-submission" && actor.kind !== "captain-ui") fail("UNKNOWN_OWNER", "An answer hold is the captain's to resolve: the old owner cannot attest its own handling.");
-      if (!["captain-ui", "mate-chat", "agent"].includes(actor.kind)) fail("UNKNOWN_OWNER", "Name the first mate or the captain as the resolving owner.");
+      // App migration controls are cooperative and explicitly unverified. Answer holds above still require captain-ui.
+      if (!["captain-ui", "mate-chat", "agent", "plugin-ui-unverified"].includes(actor.kind)) fail("UNKNOWN_OWNER", "Name the first mate or the captain as the resolving owner.");
       if (route === "drain-legacy" && !["watch-queue", "decision-submission", "worker-callback", "send-claim"].includes(d.source)) fail("UNSUPPORTED", "This delivery cannot drain with its legacy owner.");
       const native = d.source === "send-claim" && route === "drain-legacy" ? claims.find(c => c.claim.id === d.claimId) : null;
       if (d.source === "send-claim" && route === "drain-legacy" && (!native?.result || native.result.outcome === "uncertain"))
@@ -657,7 +674,7 @@ export class SupervisionMigrator {
    */
   async abort(migrationId: string, reason: string, actor: SupervisionActor): Promise<MigrationReceipt> {
     this.enabled();
-    if (!reason.trim() || !["captain-ui", "mate-chat", "agent"].includes(actor.kind)) fail("UNKNOWN_OWNER", "A release names the main first mate or the captain and a reason.");
+    if (!reason.trim() || !["captain-ui", "mate-chat", "agent", "plugin-ui-unverified"].includes(actor.kind)) fail("UNKNOWN_OWNER", "A release names the main first mate or the captain and a reason.");
     let status = await this.options.store.read(), m = this.migration(status, migrationId);
     if (m.state === "committed" || await this.gate.sidecar(m.planId, "committed")) fail("HELD", "The cutover has committed; recovery is forward (hold, or transfer at a higher epoch).");
     if (m.state !== "aborted") {
@@ -706,10 +723,11 @@ export class SupervisionMigrator {
   async resume(input: MigrationInput): Promise<MigrationReceipt> {
     this.enabled();
     const freeze = await this.gate.sidecar(input.plan, "freeze");
-    if (!freeze || freeze.migrationId !== input.migrationId) fail("UNKNOWN_OWNER", "No freeze for this migration.");
+    if (!freeze || freeze.migrationId !== input.migrationId || freeze.scopeId !== input.scopeId || freeze.homeId !== this.options.store.homeId)
+      fail("UNKNOWN_OWNER", "No matching freeze for this migration and scope.");
     let status = await this.options.store.read();
     if (!status.migrations?.some(m => m.id === input.migrationId)) {
-      const snap = await this.gate.run(() => this.options.legacy.locked(() => this.snapshot(input, freeze.at, status)));
+      const snap = await this.gate.run(() => this.options.legacy.locked(() => this.snapshot(input, freeze.at, status, freeze)));
       if (snap.sourceHash !== freeze.sourceHash || snap.receipt.inventory.hash !== freeze.inventoryHash || snap.problems.length)
         fail("HELD", "Source or delivery inventory changed since the freeze; reinspect it. Both writers stay held until it is released.");
       await this.commitPrepared(input, snap);
@@ -718,6 +736,7 @@ export class SupervisionMigrator {
     const m = this.migration(status, input.migrationId);
     if (m.state === "aborted") return await this.gate.sidecar(input.plan, "aborted") ? m : this.finishRelease(m);
     if (m.state === "prepared" && !await this.gate.sidecar(input.plan, "prepared")) await this.publishPrepared(input.plan, (await this.options.store.requestReceipt(input.migrationId))!.hash);
+    if (m.state === "prepared") await this.reinventory(input.migrationId);
     if (m.state === "barrier" && await this.gate.sidecar(input.plan, "committed")) return this.commit(input.migrationId);
     return this.migration(await this.options.store.read(), input.migrationId);
   }

@@ -28,6 +28,8 @@ import { join } from "node:path";
 import { pageReceiptTimeline } from "./shared/receipts";
 import { ReportCache, loadFleet, readAgentTools } from "./server/fleet";
 import { SupervisionStatusReader } from "./server/supervision-status-reader";
+import { SupervisionActivation, registerSupervisionActivation } from "./server/supervision-activation";
+import { legacyAdapters } from "./server/supervision-migrate";
 import { supervisionInboxStatus, hasScopedWorker } from "./server/supervision-status";
 import { isScopedSourceWorker, refuseScopedRemoteMutation } from "./server/supervision-sources";
 import { readSupervisionInbox } from "./shared/supervision-rpc";
@@ -141,6 +143,11 @@ export default function contribute(server: PluginServerContext) {
     home: readConfiguredDecisionHome,
     catalog: () => remotes.read(),
   });
+  const activation = new SupervisionActivation(pluginDir(), {
+    enabled: process.env.FIRSTMATE_SCOPED_ACTIVATION === "1",
+    adapters: () => legacyAdapters(watches.runner, () => decisions.read()),
+  });
+  registerSupervisionActivation(server, activation);
   const readCombinedNeeds = async (given?: Awaited<ReturnType<typeof decisions.read>>) => {
     const snapshot = given ?? await decisions.read();
     const config = await readFirstmateConfig(), home = resolveHome(config);
@@ -157,7 +164,8 @@ export default function contribute(server: PluginServerContext) {
   registerScopeRpcs(server, { read: async () => {
     const config = await readFirstmateConfig(), home = resolveHome(config);
     return { home, generalId: config.mateAgentId || null, status: await readSupervision(home) };
-  }, readNeeds: () => readCombinedNeeds(), uiEnabled: false, executionEnabled: false });
+  }, readNeeds: () => readCombinedNeeds(), uiEnabled: false, executionEnabled: false,
+    activationEnabled: process.env.FIRSTMATE_SCOPED_ACTIVATION === "1" });
   server.handle(readWorkflowPlans, async () => workflowSnapshot(resolveHome(await readFirstmateConfig())));
   server.handle(actOnWorkflowPlan, async ({ homeId, requestId, command }, { paseo }) => {
     await oneAtATime(async () => {
@@ -404,6 +412,7 @@ export default function contribute(server: PluginServerContext) {
     unregisterCrewSeen();
     unregisterReceipts();
     unregisterAttention();
+    await activation.stop();
     watches.stop();
     remotes.stop();
     await decisions.stop();

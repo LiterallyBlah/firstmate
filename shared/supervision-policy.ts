@@ -65,6 +65,10 @@ export const OperationHoldSchema = z.object({
 }).strict();
 export const ScopedCommandResultSchema = z.object({
   planId: PlanId.nullable(), planHash: SupervisionHash.nullable(), decisionId: SupervisionUuid.nullable(), outboxId: SupervisionUuid.nullable(),
+  /** UI convention only. Kept in the immutable accepted command, never authentication evidence. */
+  attachmentAudit: z.object({ at: SupervisionUtc, plan: PlanId, supervisor: SupervisionUuid,
+    source: z.literal("client UI (unverified)"), authorization: z.literal("by convention, not verified"),
+  }).strict().optional(),
   /** Only an explicit handled command can introduce these checked causal links. No replay defaults. */
   handling: z.object({ scopeId: SupervisionUuid, epoch: version,
     outboxes: z.array(z.object({ outboxId: SupervisionUuid, decisionId: SupervisionUuid.nullable(), causationId: SupervisionUuid }).strict()).min(1).max(100),

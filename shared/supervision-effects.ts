@@ -16,7 +16,8 @@ export const RELEASE_OPERATIONS = ["merge", "deploy", "discard", "publish", "rel
 export const ReceiverCapabilitiesSchema = z.object({
   version: z.literal(1),
   receiver: z.string().min(1).max(256),
-  qualification: z.literal("synthetic-fixture"),
+  /** Cooperative SDK support is not a strong qualification or a U1–U3 receiver. */
+  qualification: z.enum(["synthetic-fixture", "cooperative-paseo"]),
   /** creationLifecycle: a caller-selected agent ID is honoured exactly, unprompted. */
   selectedAgentIds: z.boolean(),
   /** Exact lookup of that reserved agent ID after a lost reply. */

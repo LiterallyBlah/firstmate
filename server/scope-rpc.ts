@@ -11,10 +11,12 @@ import { SupervisionError } from "./supervision-store";
 import { withScopedNeedsYou } from "./needs-you-service";
 import type { ScopeDiscussions } from "./scope-discussion";
 import type { SupervisionCommands } from "./supervision-commands";
+import { activationSnapshot } from "./supervision-activation";
 export interface ScopeRpcDependencies {
   read(): Promise<{ home: string; generalId: string | null; status: SupervisionStatus }>;
   readNeeds(): Promise<NeedsYouSnapshot>;
   uiEnabled?: boolean; executionEnabled?: boolean;
+  activationEnabled?: boolean;
   discussions?: ScopeDiscussions; commands?: SupervisionCommands;
 }
 export function registerScopeRpcs(server: Pick<PluginServerContext, "handle">, deps: ScopeRpcDependencies) {
@@ -24,7 +26,8 @@ export function registerScopeRpcs(server: Pick<PluginServerContext, "handle">, d
   };
   server.handle(readScopes, async () => {
     const { status, generalId } = await deps.read();
-    return scopeSnapshot(status, generalId, { uiEnabled: deps.uiEnabled ?? false, executionEnabled: deps.executionEnabled ?? false });
+    return { ...scopeSnapshot(status, generalId, { uiEnabled: deps.uiEnabled ?? false, executionEnabled: deps.executionEnabled ?? false }),
+      activation: activationSnapshot(status, !!deps.activationEnabled) };
   });
   server.handle(readScopeConversation, async input => {
     const { home, status } = await deps.read();

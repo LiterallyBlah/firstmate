@@ -15,6 +15,8 @@ import {
 
 export interface SupervisorOptions {
   enabled?: boolean;
+  /** Captain-approved UI convention. RPC transport has no caller identity; this is NOT authorization. */
+  unverifiedUiAttach?: boolean;
   /** Fixture-supplied caps; the durable policy source for them is an integration item. */
   limits: GatewayLimits;
   /** The configured global first mate, read fresh. A scope binding can never be that identity. */
@@ -71,6 +73,14 @@ export class SupervisorSessions {
     if (actor.kind !== "captain-ui") refuse("UNSUPPORTED", "Attaching a supervisor to a cut-over scope is an explicit captain action.");
     return this.reserve(input, actor, "attach", null);
   }
+  /** Production's dedicated button calls this seam. Never manufacture a captain-ui actor from an RPC.
+   * No tool, request-file or CLI adapter calls it. Direct RPC callers cannot be authenticated by Paseo. */
+  async attachFromUnverifiedUi(input: { requestId: string; scopeId: string; scopeVersion: number; profile: AgentProfile; opening: string;
+    planId: string; planHash: string; supervisorId: string }) {
+    this.enabled();
+    if (!this.options.unverifiedUiAttach) refuse("UNSUPPORTED", "Unverified UI attachment is disabled.");
+    return this.reserve(input, { kind: "plugin-ui-unverified", id: "unauthenticated-plugin-call", source: "client UI (unverified)" }, "attach-ui-unverified", null);
+  }
   /** Manual replacement only after the exact old supervisor is shown stopped; a lease or timeout proves nothing. */
   async prepareReplacement(input: { requestId: string; scopeId: string; scopeVersion: number; expectedEpoch: number; profile: AgentProfile; opening: string }, actor: SupervisionActor) {
     this.enabled();
@@ -84,8 +94,9 @@ export class SupervisorSessions {
     if (old?.id !== binding.agentId || (!old.archivedAt && old.status !== "closed")) refuse("HELD", "The previous full-access supervisor is not shown stopped under its exact identity; no automatic takeover.");
     return this.reserve(input, actor, "replace", binding);
   }
-  private async reserve(input: { requestId: string; scopeId: string; scopeVersion: number; expectedEpoch?: number; profile: AgentProfile; opening: string; purpose?: "discussion" | "work" },
-    actor: SupervisionActor, mode: "activate" | "attach" | "replace", checked: SupervisionBinding | null) {
+  private async reserve(input: { requestId: string; scopeId: string; scopeVersion: number; expectedEpoch?: number; profile: AgentProfile; opening: string; purpose?: "discussion" | "work";
+    planId?: string; planHash?: string; supervisorId?: string },
+    actor: SupervisionActor, mode: "activate" | "attach" | "attach-ui-unverified" | "replace", checked: SupervisionBinding | null) {
     this.enabled();
     const inputHash = digest({ supervisor: mode, input });
     if (mode !== "replace" && await this.accepted(input.requestId)) return this.replay(input.requestId, inputHash, actor);
@@ -99,10 +110,10 @@ export class SupervisorSessions {
       const scope = status.scopes.find(s => s.id === input.scopeId), old = status.bindings.find(b => b.scopeId === input.scopeId);
       if (!scope || !["plan", "project"].includes(scope.kind) || scope.mode !== "scoped") refuse("UNKNOWN_OWNER", "Exact scoped plan or project discussion owner required.");
       if (scope.version !== input.scopeVersion) refuse("STALE", "Scope version changed.");
-      if (mode === "activate" ? scope.state !== "dormant" || old : mode === "attach" ? scope.state !== "active" || old || !cutOver(status, scope.id)
+      if (mode === "activate" ? scope.state !== "dormant" || old : mode === "attach" || mode === "attach-ui-unverified" ? scope.state !== "active" || old || !cutOver(status, scope.id)
         : scope.state !== "transferring" || !old || old.epoch !== input.expectedEpoch || !["suspect", "retired"].includes(old.state))
         refuse("HELD", mode === "activate" ? "Only a dormant scope without a binding is activated here."
-          : mode === "attach" ? "Only a scope S07 has cut over (committed, active, no binding and no migration in progress) is attached here."
+          : mode === "attach" || mode === "attach-ui-unverified" ? "Only a scope S07 has cut over (committed, active, no binding and no migration in progress) is attached here."
           : "Replacement needs the held previous epoch.");
       // The observed-stopped identity must still be the binding being replaced.
       if (mode === "replace" && digest(old) !== digest(checked)) refuse("STALE", "The held binding changed after its quiescence was observed.");
@@ -114,6 +125,9 @@ export class SupervisorSessions {
         effectLogicalKey({ scopeId: scope.id, subject: `epoch:${epoch}`, operation, causation: "scope.activate", objectiveRevision: 0 });
       const ids = { workspace: stableId("effect", key("workspace.open")), create: stableId("effect", key("agent.create")), send: stableId("effect", key("agent.send")) };
       const agentId = stableId("agent", ids.create), intent = supervisorWorkspaceIntent(scope.id, epoch, ids.workspace);
+      const attachedPlan = status.plans.find(p => p.scopeId === scope.id)?.plan;
+      if (mode === "attach-ui-unverified" && (!attachedPlan || attachedPlan.definition.id !== input.planId || attachedPlan.hash !== input.planHash || agentId !== input.supervisorId))
+        refuse("STALE", "The displayed plan or reserved supervisor changed. Refresh before attaching.");
       // Explicit intent; the verified workspace ID is unknown (null) until its own effect succeeds and verify binds it.
       const binding: SupervisionBinding = { scopeId: scope.id, epoch, hostId: "local", agentId, workspaceId: null, workspaceIntent: intent.key,
         profileDigest: profileBlob.id, state: "prepared", checkpointHash: opening.id, acknowledgedSeq: old?.acknowledgedSeq ?? 0, heartbeatDue: null,
@@ -130,7 +144,13 @@ export class SupervisorSessions {
         { kind: "scope", value: { ...scope, state: "transferring", version: scope.version + 1 } }, { kind: "binding", value: binding },
         ...effects.map(value => ({ kind: "effect" as const, value })), ...blobs.map(value => ({ kind: "blob" as const, value })),
       ];
-      return { expectedVersions: expectedFor(status, mutations), mutations, result: NO_RESULT };
+      const plan = status.plans.find(p => p.scopeId === scope.id)?.plan;
+      if (mode === "attach-ui-unverified" && !plan) refuse("UNKNOWN_OWNER", "Attachment requires the imported plan.");
+      return { expectedVersions: expectedFor(status, mutations), mutations, result: mode === "attach-ui-unverified" ? {
+        ...NO_RESULT, planId: plan!.definition.id, planHash: plan!.hash,
+        attachmentAudit: { at: new Date().toISOString(), plan: plan!.definition.id, supervisor: agentId,
+          source: "client UI (unverified)" as const, authorization: "by convention, not verified" as const },
+      } : NO_RESULT };
     });
   }
 
