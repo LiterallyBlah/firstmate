@@ -162,12 +162,12 @@ it.each(["prompt", "script"])("F3 watch %s enqueue admits unrelated output under
     expect(await r.queued()).toHaveLength(1);
   } finally { r.stop(); }
 });
-it.each(["prompt", "script"])("F3 watch %s enqueue refuses frozen output before queue mutation", async kind => {
+it.each(["prompt", "script"])("F3 watch %s enqueue holds frozen output in the queue before delivery", async kind => {
   await gate.arm([]); await freeze(); const r = runner();
   try {
     await expect(kind === "prompt" ? r.enqueuePrompt("probe", "scheduler needs attention", new Date())
       : r.runOne(home, { name: "probe", path: join(home, "probe") } as never)).rejects.toThrow(/cutover/);
-    expect(await r.queued()).toEqual([]); await refused();
+    expect(await r.queued()).toEqual([expect.objectContaining({ text: "scheduler needs attention", hold: expect.objectContaining({ plan: "scheduler" }) })]); await refused();
     expect((await r.held()).map(record => record.note.text)).toEqual(["scheduler needs attention"]);
   } finally { r.stop(); }
 });
@@ -189,7 +189,7 @@ it("R1 stateful watch output survives refusal, reload and abort after its baseli
   let r = create(); const watch = { name: "probe", path: join(home, "probe") } as never;
   try {
     await expect(r.runOne(home, watch)).rejects.toThrow(/cutover/);
-    expect(await r.queued()).toEqual([]); await r.flush(); expect(sent).toEqual([]);
+    expect(await r.queued()).toHaveLength(1); await r.flush(); expect(sent).toEqual([]);
     r.stop(); r = create(); // The producer baseline has advanced; only durable retention can recover this output.
     const { hash: _hash, ...frozen } = (await gate.sidecar("scheduler", "freeze"))!;
     await gate.run(() => gate.publishSidecar({ ...frozen, stage: "aborted" }));
@@ -201,7 +201,7 @@ it("R1 stateful watch output survives refusal, reload and abort after its baseli
 it("R1 held payloads survive queue pressure and message fitting until each is sent", async () => {
   await gate.arm([]); const sent: string[] = [];
   const r = runner("scheduler needs attention", async text => { sent.push(text); return "sent"; });
-  // An ordinary queue may trim/cut rows. Refused producer evidence must have a separate lifetime.
+  // Ordinary overflow can drop ordinary rows, but a queued hold must survive every later admission.
   try {
     for (let i = 0; i < 20; i++) await r.enqueuePrompt(`ordinary-${i}`, "healthy", new Date());
     await freeze();
@@ -209,9 +209,7 @@ it("R1 held payloads survive queue pressure and message fitting until each is se
     expect(await r.held()).toHaveLength(3); expect(await r.queued()).toHaveLength(20);
     const { hash: _hash, ...frozen } = (await gate.sidecar("scheduler", "freeze"))!;
     await gate.run(() => gate.publishSidecar({ ...frozen, stage: "aborted" }));
-    await r.flush(); expect(await r.held()).toHaveLength(3); // Full ordinary queue drained first.
-    await r.flush(); expect(await r.held()).toHaveLength(2); // Only one large block fits in the actual message.
-    for (let i = 0; i < 3; i++) await r.flush();
+    for (let i = 0; i < 20; i++) await r.flush(); // Every admitted occurrence gets an ordered turn.
     expect(await r.held()).toEqual([]);
     for (let i = 0; i < 3; i++) expect(sent.join("\n")).toContain(`HELD_${i}`);
   } finally { r.stop(); }
@@ -222,7 +220,7 @@ it("R1 commit alone cannot release retained watch output", async () => {
     await expect(r.enqueuePrompt("probe", "scheduler needs attention", new Date())).rejects.toThrow(/retained durably/);
     const { hash: _hash, ...frozen } = (await gate.sidecar("scheduler", "freeze"))!;
     await gate.run(() => gate.publishSidecar({ ...frozen, stage: "committed" }));
-    await r.flush(); expect(await r.queued()).toEqual([]); expect(await r.held()).toHaveLength(1);
+    await r.flush(); expect(await r.queued()).toHaveLength(1); expect(await r.held()).toHaveLength(1);
     expect(await r.pendingDelivery("probe")).toBe(true);
   } finally { r.stop(); }
 });

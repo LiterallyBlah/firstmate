@@ -234,19 +234,27 @@ export class CutoverGate {
     }
   }
   /** Record the send's outcome before its queue entry is removed. `failed` is only a definite non-send. */
-  async settle(claim: string | null, outcome: ClaimResult["outcome"], detail = ""): Promise<void> {
+  async settle(claim: string | null, outcome: ClaimResult["outcome"], detail = "", retainForQueue = false): Promise<void> {
     if (!claim) return;
     await this.run(async () => {
       try { await this.write(join("claims", `${claim}.result.json`), { format: "firstmate.delivery-claim-result/1", id: claim, at: new Date().toISOString(), outcome, detail: detail.slice(0, 2000) } satisfies ClaimResult); }
       finally { live.delete(claim); }
       // Pure first-mate traffic that names no plan, worker, task or migration is not evidence any
       // cutover needs. Everything that could be is retained with its result.
-      const saved = await this.readClaim(claim);
-      if (saved && saved.claim.items.every(i => i.source !== "inspection" && !i.plan && !i.actionId && !i.agentKey && !i.task && !i.mentions.length && !i.id.startsWith("firstmate-plan-"))) {
-        await rm(join(this.directory, "claims", `${claim}.json`), { force: true });
-        await rm(join(this.directory, "claims", `${claim}.result.json`), { force: true });
-      }
+      if (!retainForQueue) await this.pruneHeld(claim);
     });
+  }
+  /** Queue senders keep the receipt until queue publication succeeds. Never prune an unknown outcome. */
+  async prune(claim: string | null): Promise<void> {
+    if (claim) await this.run(() => this.pruneHeld(claim));
+  }
+  private async pruneHeld(claim: string): Promise<void> {
+    const saved = await this.readClaim(claim);
+    if (saved?.result && saved.result.outcome !== "uncertain" && !live.has(claim) &&
+      saved.claim.items.every(i => i.source !== "inspection" && !i.plan && !i.actionId && !i.agentKey && !i.task && !i.mentions.length && !i.id.startsWith("firstmate-plan-"))) {
+      await rm(join(this.directory, "claims", `${claim}.json`), { force: true });
+      await rm(join(this.directory, "claims", `${claim}.result.json`), { force: true });
+    }
   }
   async readClaim(id: string): Promise<{ claim: Claim; result: ClaimResult | null } | null> {
     const read = async (name: string) => { try { return JSON.parse(await readFile(join(this.directory, "claims", name), "utf8")) as unknown; } catch (e) { if ((e as NodeJS.ErrnoException).code === "ENOENT") return null; throw e; } };

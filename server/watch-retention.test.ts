@@ -9,7 +9,7 @@ import type { PaseoApi } from "./host-types";
 import { releaseMate } from "./mate";
 import { cutoverGate, type CutoverGate } from "./supervision-gate";
 import { deliverToMate } from "./watch-service";
-import { MAX_HELD_WATCHES, MAX_QUEUED, WatchRunner, type WatchRunnerOptions } from "./watches";
+import { MAX_QUEUED, watchItem, WatchRunner, type WatchRunnerOptions } from "./watches";
 
 async function freeze(gate: CutoverGate, plan = "scheduler") {
   await gate.arm([]);
@@ -84,7 +84,7 @@ it("RR5 recovery delivers sequential occurrences in occurrence order", async () 
   try {
     await freeze(f.gate);
     for (let i = 0; i < 8; i++) await expect(runner.enqueuePrompt(`probe-${i}`, `scheduler OCCURRENCE_${i}`, at(i))).rejects.toThrow(/retained durably/);
-    await abort(f.gate); await runner.flush();
+    await abort(f.gate); for (let i = 0; i < 8; i++) await runner.flush();
     expect([...f.sends.map(s => s.text).join("\n").matchAll(/OCCURRENCE_(\d)/g)].map(m => Number(m[1]))).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
   } finally { runner.stop(); }
 });
@@ -135,7 +135,7 @@ it("RR3 bare restored rows from the previous reader are rebound before any forei
     await freeze(f.gate); await expect(runner.enqueuePrompt("probe", "scheduler OWNED", at(0))).rejects.toThrow(/retained durably/);
     await abort(f.gate); f.waiting = true; await runner.flush(); runner.stop();
     const path = join(f.root, "watches.json"), state = JSON.parse(await readFile(path, "utf8"));
-    delete state.queue[0].retained; await writeFile(path, JSON.stringify(state));
+    delete state.queue[0].hold; await writeFile(path, JSON.stringify(state)); // Owner/occurrence identity stays on the ordinary row.
     await releaseMate(); await updateFirstmateConfig({ home: f.homeB }); await updateFirstmateConfig({ mateAgentId: "mate-B" });
     runner = f.create(); f.waiting = false; await runner.flush(); expect(f.sends).toEqual([]);
     await releaseMate(); await updateFirstmateConfig({ home: f.homeA }); await updateFirstmateConfig({ mateAgentId: "mate-A" });
@@ -143,15 +143,18 @@ it("RR3 bare restored rows from the previous reader are rebound before any forei
   } finally { runner.stop(); }
 });
 
-it("RR3 malformed queued ownership fails closed rather than becoming an ordinary note", async () => {
+it.each(["owner", "payload"])("RR3 malformed queued %s fails closed rather than becoming an ordinary note", async field => {
   const f = await fixture(); let runner = f.create();
   try {
     await freeze(f.gate); await expect(runner.enqueuePrompt("probe", "scheduler OWNED", at(0))).rejects.toThrow(/retained durably/);
     await abort(f.gate); f.waiting = true; await runner.flush(); runner.stop();
     const path = join(f.root, "watches.json"), state = JSON.parse(await readFile(path, "utf8"));
-    state.queue[0].retained.owner = "0".repeat(64); await writeFile(path, JSON.stringify(state));
+    if (field === "owner") state.queue[0].ownership.owner = "0".repeat(64);
+    else state.queue[0].text = null;
+    await writeFile(path, JSON.stringify(state));
     runner = f.create(); f.waiting = false;
-    await expect(runner.flush()).rejects.toThrow(/provenance/); expect(f.sends).toEqual([]); expect(await runner.held()).toHaveLength(1);
+    await expect(runner.flush()).rejects.toThrow(/provenance/); expect(f.sends).toEqual([]);
+    expect(JSON.parse(await readFile(path, "utf8")).queue).toHaveLength(1);
   } finally { runner.stop(); }
 });
 
@@ -160,14 +163,15 @@ it("RR4 retention capacity stops prompt growth and scripts before baseline advan
   const runner = f.create({ run: async () => { produced++; return { code: 0, timedOut: false, stdout: "scheduler baseline advanced", stderr: "", truncated: false, spawnError: null }; } });
   try {
     await freeze(f.gate);
-    for (let i = 0; i < MAX_HELD_WATCHES; i++) await expect(runner.enqueuePrompt("probe", `scheduler COMMAND_${i}`, at(i))).rejects.toThrow(/retained durably/);
-    for (let i = 0; i < 8; i++) await expect(runner.enqueuePrompt("probe", "scheduler OVER_CAP", at(MAX_HELD_WATCHES, i * 7))).rejects.toThrow(/retention capacity/);
+    for (let i = 0; i < MAX_QUEUED; i++) await expect(runner.enqueuePrompt("probe", `scheduler COMMAND_${i}`, at(i))).rejects.toThrow(/retained durably/);
+    for (let i = 0; i < 8; i++) await expect(runner.enqueuePrompt("probe", "scheduler OVER_CAP", at(MAX_QUEUED, i * 7))).rejects.toThrow(/retention capacity/);
     await expect(runner.runOne(f.homeA, { name: "stateful", path: "unused" } as never, at(30))).rejects.toThrow(/retention capacity/);
-    expect(produced).toBe(0); expect(await runner.held()).toHaveLength(MAX_HELD_WATCHES); expect(await runner.queued()).toEqual([]);
+    expect(produced).toBe(0); expect(await runner.held()).toHaveLength(MAX_QUEUED); expect(await runner.queued()).toHaveLength(MAX_QUEUED);
+    await expect(readdir(join(f.root, "watches.json.held"))).rejects.toMatchObject({ code: "ENOENT" });
     const refusals = await Promise.all((await readdir(join(f.gate.directory, "refusals"))).map(name => readFile(join(f.gate.directory, "refusals", name), "utf8").then(JSON.parse)));
     expect(refusals.filter(row => row.item.id === "retention-capacity:probe")).toHaveLength(1);
     expect(refusals.filter(row => row.item.id === "retention-capacity:stateful")).toHaveLength(1);
-    await abort(f.gate); await runner.flush(); expect(await runner.held()).toEqual([]);
+    await abort(f.gate); for (let i = 0; i < MAX_QUEUED; i++) await runner.flush(); expect(await runner.held()).toEqual([]);
     await runner.runOne(f.homeA, { name: "stateful", path: "unused" } as never, at(31)); expect(produced).toBe(1);
   } finally { runner.stop(); }
 });
@@ -176,14 +180,14 @@ it("RR4 concurrent script producers reserve capacity before advancing their base
   const f = await fixture(); let produced = 0, release!: () => void;
   const native = new Promise<void>(r => { release = r; });
   const started = signal();
-  const runner = f.create({ run: async () => { produced++; if (produced === MAX_HELD_WATCHES) started.open(); await native; return { code: 0, timedOut: false, stdout: "scheduler observed", stderr: "", truncated: false, spawnError: null }; } });
+  const runner = f.create({ run: async () => { produced++; if (produced === MAX_QUEUED) started.open(); await native; return { code: 0, timedOut: false, stdout: "scheduler observed", stderr: "", truncated: false, spawnError: null }; } });
   await freeze(f.gate);
-  const work = Promise.allSettled(Array.from({ length: MAX_HELD_WATCHES }, (_, i) => runner.runOne(f.homeA, { name: `probe-${i}`, path: "unused" } as never, at(i))));
+  const work = Promise.allSettled(Array.from({ length: MAX_QUEUED }, (_, i) => runner.runOne(f.homeA, { name: `probe-${i}`, path: "unused" } as never, at(i))));
   try {
     await started.promise;
     await expect(runner.runOne(f.homeA, { name: "overflow", path: "unused" } as never, at(30))).rejects.toThrow(/retention capacity/);
-    expect(produced).toBe(MAX_HELD_WATCHES); release(); await work;
-    expect(await runner.held()).toHaveLength(MAX_HELD_WATCHES);
+    expect(produced).toBe(MAX_QUEUED); release(); await work;
+    expect(await runner.held()).toHaveLength(MAX_QUEUED);
   } finally { release(); await work; runner.stop(); }
 });
 
@@ -201,7 +205,7 @@ it("RR4 unarmed producers retain their existing concurrency and bounded normal q
   const native = new Promise<void>(r => { release = r; });
   const started = signal();
   const runner = f.create({ run: async () => { produced++; if (produced === count) started.open(); await native; return { code: 0, timedOut: false, stdout: "ordinary observation", stderr: "", truncated: false, spawnError: null }; } });
-  const count = MAX_HELD_WATCHES + 5;
+  const count = MAX_QUEUED + 5;
   const work = Promise.allSettled(Array.from({ length: count }, (_, i) => runner.runOne(f.homeA, { name: `probe-${i}`, path: "unused" } as never, at(i))));
   try {
     await started.promise; release();
@@ -216,10 +220,10 @@ it("RR4 a full foreign namespace does not throttle an unarmed home's stateful pr
   const runner = f.create({ run: async () => { produced++; return { code: 0, timedOut: false, stdout: "ordinary observation", stderr: "", truncated: false, spawnError: null }; } });
   try {
     await freeze(f.gate);
-    for (let i = 0; i < MAX_HELD_WATCHES; i++) await expect(runner.enqueuePrompt("probe", "scheduler OBSERVED", at(i))).rejects.toThrow(/retained durably/);
+    for (let i = 0; i < MAX_QUEUED; i++) await expect(runner.enqueuePrompt("probe", "scheduler OBSERVED", at(i))).rejects.toThrow(/retained durably/);
     await releaseMate(); await updateFirstmateConfig({ home: f.homeB }); await updateFirstmateConfig({ mateAgentId: "mate-B" });
     await runner.runOne(f.homeB, { name: "probe", path: "unused" } as never, at(30));
-    expect(produced).toBe(1); expect(await runner.held()).toHaveLength(MAX_HELD_WATCHES);
+    expect(produced).toBe(1); expect(await runner.held()).toHaveLength(MAX_QUEUED);
     await expect(readdir(cutoverGate(f.homeB).directory)).rejects.toMatchObject({ code: "ENOENT" });
   } finally { runner.stop(); }
 });
@@ -229,7 +233,7 @@ it("RR4 observations already in flight when arming survive the admission cap wit
   const native = new Promise<void>(r => { release = r; });
   const started = signal();
   const runner = f.create({ run: async () => { produced++; if (produced === count) started.open(); await native; return { code: 0, timedOut: false, stdout: "scheduler observed", stderr: "", truncated: false, spawnError: null }; } });
-  const count = MAX_HELD_WATCHES + 1;
+  const count = MAX_QUEUED + 1;
   const work = Promise.allSettled(Array.from({ length: count }, (_, i) => runner.runOne(f.homeA, { name: `probe-${i}`, path: "unused" } as never, at(i))));
   try {
     await started.promise; await freeze(f.gate); release(); await work;
@@ -249,7 +253,7 @@ it("RR4 a script with held output pauses until delivery and a delivered prompt o
     await expect(runner.runOne(f.homeA, { name: "stateful", path: "unused" } as never, at(0))).rejects.toThrow(/retained durably/);
     await runner.runOne(f.homeA, { name: "stateful", path: "unused" } as never, at(1)); expect(produced).toBe(1);
     await expect(runner.enqueuePrompt("prompt", "scheduler RUN_ONCE", at(0))).rejects.toThrow(/retained durably/);
-    await abort(f.gate); await runner.flush();
+    await abort(f.gate); await runner.flush(); await runner.flush();
     await runner.enqueuePrompt("prompt", "scheduler RUN_ONCE", at(0, 45)); await runner.flush();
     expect(f.sends.map(s => s.text).join("\n").split("RUN_ONCE")).toHaveLength(2);
     await runner.runOne(f.homeA, { name: "stateful", path: "unused" } as never, at(2)); expect(produced).toBe(2);
@@ -282,7 +286,7 @@ it.each(["small", "large"])("RR6 %s retained send claims and settles exactly the
   f.beforeDelivery = async () => {
     const pending = (await f.gate.claims()).filter(row => !row.result);
     expect(pending).toHaveLength(1);
-    expect(receiptNames(pending[0]!.claim.items)).toEqual(size === "large" ? ["probe-0"] : ["probe-0", "probe-1", "probe-2"]);
+    expect(receiptNames(pending[0]!.claim.items)).toEqual(["probe-0"]);
   };
   let runner = f.create();
   try {
@@ -292,8 +296,8 @@ it.each(["small", "large"])("RR6 %s retained send claims and settles exactly the
     const accepted = (await f.gate.claims()).filter(row => row.result?.outcome === "accepted");
     expect(accepted).toHaveLength(1);
     expect(receiptNames(accepted[0]!.claim.items)).toEqual(deliveredNames(f.sends[0]!.text));
-    expect(await runner.held()).toHaveLength(size === "large" ? 2 : 0);
-    expect(await runner.queued()).toHaveLength(size === "large" ? 2 : 0);
+    expect(await runner.held()).toHaveLength(2);
+    expect(await runner.queued()).toHaveLength(2);
     // Deferred occurrences have no result until a later native message actually includes them.
     f.beforeDelivery = async () => {};
     for (let i = 0; i < 2; i++) { runner.stop(); runner = f.create(); await runner.flush(); }
@@ -322,14 +326,12 @@ it.each(["wait", "uncertain"] as const)("RR6 a partial retained %s result never 
 it("RR6 ordinary rows cut to fit are counted as dropped without an accepted delivery receipt", async () => {
   const f = await fixture(), runner = f.create();
   try {
-    await keepReceipts(f.gate);
+    // Default unarmed batches retain their existing newest-fit/drop behavior.
     for (let i = 0; i < 3; i++) await runner.enqueuePrompt(`probe-${i}`, `harbor ${"x".repeat(15980)}`, at(i));
     await runner.flush();
     expect(deliveredNames(f.sends[0]!.text)).toEqual(["probe-2"]);
     expect(f.sends[0]!.text).toContain('<firstmate-watch-dropped count="2"/>');
-    const claims = await f.gate.claims(); expect(claims).toHaveLength(1);
-    expect(receiptNames(claims[0]!.claim.items)).toEqual(["probe-2"]);
-    expect(claims[0]!.result?.outcome).toBe("accepted"); expect(await runner.queued()).toEqual([]);
+    expect(await f.gate.claims()).toEqual([]); expect(await runner.queued()).toEqual([]);
   } finally { runner.stop(); }
 });
 
@@ -346,8 +348,10 @@ it.each([{ blocked: 1, ready: false }, { blocked: MAX_QUEUED, ready: false }, { 
       expect(f.sends.map(send => send.text).join("\n")).toContain("READY_AFTER_ABORT");
       expect(f.sends.map(send => send.text).join("\n")).not.toContain("WAIT_FOR_RECONCILIATION");
       if (ready) expect(f.sends[0]!.text).toContain("UNRELATED_READY");
-      expect((await runner.queued()).map(note => note.name)).toEqual(Array.from({ length: blocked }, (_, i) => `harbor-${i}`));
-      expect(await runner.held()).toEqual([]);
+      const remaining = blocked === MAX_QUEUED ? MAX_QUEUED - 1 : blocked;
+      const start = blocked === MAX_QUEUED ? 1 : 0;
+      expect((await runner.queued()).map(note => note.name)).toEqual(Array.from({ length: remaining }, (_, i) => `harbor-${i + start}`));
+      expect((await runner.held()).map(row => row.note.name)).toEqual(Array.from({ length: remaining }, (_, i) => `harbor-${i + start}`));
       expect((await f.gate.claims()).flatMap(row => row.claim.items)).toEqual([]); // Refused rows were never claimed.
     } finally { runner.stop(); }
   });
@@ -367,21 +371,47 @@ it("RR7 a frozen retained prefix cannot block a later admitted occurrence", asyn
   } finally { runner.stop(); }
 });
 
-it("RR7 restored evidence does not consume ordinary queue capacity", async () => {
+it("RR7 held rows share ordinary queue capacity and survive ordinary overflow", async () => {
   const f = await fixture(), runner = f.create();
   try {
     for (let i = 0; i < MAX_QUEUED; i++) await runner.enqueuePrompt(`harbor-${i}`, "harbor HELD_ORDINARY", at(i));
     await freeze(f.gate, "harbor"); await freeze(f.gate);
     await expect(runner.enqueuePrompt("released", "scheduler READY_AFTER_ABORT", at(30))).rejects.toThrow(/retained durably/);
     await abort(f.gate); f.waiting = true; await runner.flush();
-    expect(await runner.queued()).toHaveLength(MAX_QUEUED + 1);
-    await runner.enqueuePrompt("ordinary-new", "UNRELATED_READY", at(31));
+    expect(await runner.queued()).toHaveLength(MAX_QUEUED);
+    await expect(runner.enqueuePrompt("ordinary-new", "UNRELATED_READY", at(31))).rejects.toThrow(/capacity/);
     const queue = await runner.queued();
-    expect(queue.filter(note => !note.retained)).toHaveLength(MAX_QUEUED);
-    expect(queue.filter(note => note.retained)).toHaveLength(1);
-    expect(queue[0]!.name).toBe("harbor-1"); // Exactly the usual one oldest ordinary row is dropped.
-    f.waiting = false; await runner.flush(); await runner.flush();
+    expect(queue.filter(note => note.hold)).toHaveLength(MAX_QUEUED);
+    expect(queue[0]!.name).toBe("harbor-1"); // Once admission refuses a row, overflow cannot evict it.
+    f.waiting = false; await runner.flush();
+    await runner.enqueuePrompt("ordinary-new", "UNRELATED_READY", at(31)); await runner.flush();
     expect(f.sends.map(send => send.text).join("\n")).toContain("READY_AFTER_ABORT");
     expect((await runner.queued()).map(note => note.name)).toEqual(Array.from({ length: MAX_QUEUED - 1 }, (_, i) => `harbor-${i + 1}`));
+  } finally { runner.stop(); }
+});
+
+it("RR4 archive restoration shares the queue cap without discarding protected output", async () => {
+  const f = await fixture(), runner = f.create(), archive = f.create({ stateFile: join(f.root, "archived-queue.json") });
+  try {
+    await freeze(f.gate);
+    for (let i = 0; i < MAX_QUEUED; i++) await expect(runner.enqueuePrompt(`held-${i}`, "scheduler HELD", at(i))).rejects.toThrow(/retained durably/);
+    await expect(archive.enqueuePrompt("archived", "scheduler ARCHIVED", at(30))).rejects.toThrow(/retained durably/);
+    const saved = (await archive.queued())[0]!;
+    await expect(runner.restoreQueued(saved)).rejects.toThrow(/capacity/);
+    expect(await runner.queued()).toHaveLength(MAX_QUEUED); expect(await archive.queued()).toEqual([saved]);
+    const first = watchItem((await runner.queued())[0]!);
+    await runner.removeQueued(first.id, first.payloadHash); // An explicit reconciliation frees one slot.
+    expect(await runner.restoreQueued(saved)).toBe("restored"); expect(await runner.queued()).toHaveLength(MAX_QUEUED);
+    expect((await runner.queued()).at(-1)).toEqual(saved);
+  } finally { runner.stop(); archive.stop(); }
+});
+
+it("RR3 legacy spool evidence fails closed for explicit reconciliation", async () => {
+  const f = await fixture(), runner = f.create();
+  try {
+    const directory = join(f.root, "watches.json.held"); await mkdir(directory);
+    const evidence = join(directory, "legacy.json"); await writeFile(evidence, '{"output":"DO_NOT_LOSE"}');
+    await expect(runner.flush()).rejects.toThrow(/Legacy watch spool.*reconciliation/);
+    expect(await readFile(evidence, "utf8")).toContain("DO_NOT_LOSE"); expect(f.sends).toEqual([]);
   } finally { runner.stop(); }
 });

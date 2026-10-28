@@ -635,6 +635,17 @@ it("exports a separate scoped projection bound to its preimage; backlog bytes an
   await writeTextFile(home, { path: "data/scoped/proposals/scheduler.md", content: "Proposal", expectedModifiedMs: null, force: true });
 });
 
+it("RR8 migration never lends another payload the accepted receipt of the same watch ID", async () => {
+  await migrator.arm();
+  const gate = cutoverGate(home), original: QueuedNote = { name: "pr-watch", ran: "2026-10-27T10:01:00Z", kind: "output", text: "scheduler ORIGINAL" };
+  const admitted = await gate.claim([watchItem(original)], GENERAL);
+  await gate.settle(admitted.claim, "accepted", "", true);
+  await runner.restoreQueued({ ...original, text: "scheduler CHANGED_PAYLOAD" });
+  await migrator.prepare(input);
+  const held = (await store.read()).dispositions!.find(row => row.source === "watch-queue")!;
+  expect(held).toMatchObject({ delivery: "queued", claimId: null, route: "hold", payloadHash: watchItem({ ...original, text: "scheduler CHANGED_PAYLOAD" }).payloadHash });
+});
+
 it("B1: refused watch enqueue is accounted; a noncompliant late insert still becomes a resolvable hold", async () => {
   await migrator.arm(); await migrator.prepare(input);
   await expect(runner.enqueuePrompt("pr-watch", "PR 12 on branch fm/scheduler: checks red.", new Date("2026-10-27T10:01:00Z"))).rejects.toThrow(/cutover/);
@@ -645,12 +656,16 @@ it("B1: refused watch enqueue is accounted; a noncompliant late insert still bec
   await runner.enqueuePrompt("storage", "Nightly build cache pruned; disk healthy.", new Date("2026-10-27T10:01:00Z"));
   await runner.flush();
   expect(sent.map(s => s.text).join("\n")).toContain("disk healthy"); // A generic step name alone is not the plan.
-  expect((await runner.queued()).map(q => q.name)).toEqual(["pr-watch"]);
+  expect((await runner.queued()).map(q => q.name)).toEqual(["pr-watch", "pr-watch"]);
   await expect(migrator.barrier(input.migrationId)).rejects.toThrow(/resolve each hold/);
-  const late = (await store.read()).dispositions!.find(d => d.source === "watch-queue")!;
-  expect(late).toMatchObject({ route: "hold", reason: expect.stringContaining("after the freeze") });
-  await migrator.resolveHold(input.migrationId, late.id, "drain-legacy", { ref: "first mate: General may read it", digest: "e".repeat(64) }, owner);
-  await runner.flush();
+  const late = (await store.read()).dispositions!.filter(d => d.source === "watch-queue");
+  expect(late).toHaveLength(1); // Both physical copies have one immutable occurrence identity.
+  for (const row of late) {
+    expect(row).toMatchObject({ route: "hold", reason: expect.stringContaining("after the freeze") });
+    await migrator.resolveHold(input.migrationId, row.id, "drain-legacy", { ref: "first mate: General may read it", digest: "e".repeat(64) }, owner);
+  }
+  const beforeDrain = sent.length; await runner.flush(); await runner.flush();
+  expect(sent).toHaveLength(beforeDrain + 1); // The noncompliant copy cannot create a second native attempt.
   expect(sent.at(-1)!.text).toContain("PR 12");
   await migrator.reconcile(input.migrationId); await migrator.barrier(input.migrationId); await migrator.commit(input.migrationId);
   expect((await migrator.report("scheduler")).complete).toBe(true);

@@ -78,7 +78,7 @@ export async function deliverToMate(
       if (agent.id !== expected.recipient || current.migration !== null || current.mateLaunch !== null ||
         watchOwner(cutoverGate(resolveHome(current))) !== expected.owner || current.mateAgentId.trim() !== expected.recipient) return "wait";
     }
-    await sendWithoutInterrupting(paseo, agent.id, text, { messageId: `${WATCH_MESSAGE_ID_PREFIX}${randomUUID()}` },
+    await sendWithoutInterrupting(paseo, agent.id, text, { messageId: expected?.messageId ?? `${WATCH_MESSAGE_ID_PREFIX}${randomUUID()}` },
       { channel: "watch-flush", actor: "plugin", mateRecipient: true });
     return "sent";
   });

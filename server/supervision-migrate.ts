@@ -242,9 +242,9 @@ export class SupervisionMigrator {
     const claims = await gate.claims(), armed = await gate.armed(), preexisting = new Set(armed?.preexisting ?? []);
     this.assertNoLiveClaims(claims, this.target(input.plan, tokens));
     const owner = config.mateAgentId.trim() || null;
-    const latest = (id: string) => [...claims].reverse().find(c => c.claim.items.some(i => i.id === id) && c.result?.outcome !== "failed");
-    const claimed = (id: string): { state: LegacyDeliveryDisposition["delivery"] | null; claim: { claim: Claim; result: ClaimResult | null } | undefined } => {
-      const row = latest(id);
+    const latest = (id: string, payloadHash?: string) => [...claims].reverse().find(c => c.claim.items.some(i => i.id === id && (!payloadHash || i.payloadHash === payloadHash)) && c.result?.outcome !== "failed");
+    const claimed = (id: string, payloadHash?: string): { state: LegacyDeliveryDisposition["delivery"] | null; claim: { claim: Claim; result: ClaimResult | null } | undefined } => {
+      const row = latest(id, payloadHash);
       if (!row) return { state: null, claim: undefined };
       if (!row.result && liveClaims().has(row.claim.id)) fail("HELD", `A legacy send (${id}) is in flight; account for it before freezing ${input.plan}.`);
       return { state: row.result?.outcome === "accepted" ? "accepted" : "uncertain", claim: row };
@@ -276,7 +276,7 @@ export class SupervisionMigrator {
     for (const entry of queue) {
       const item = watchItem(entry);
       if (!mentions(item.text!, tokens).length) continue;
-      rows.push(this.watchHold(input, entry, tokens, tip, owner, claimed(item.id), preexisting.has(itemFingerprint(item))));
+      rows.push(this.watchHold(input, entry, tokens, tip, owner, claimed(item.id, item.payloadHash), preexisting.has(itemFingerprint(item))));
     }
     for (const request of decisions.requests) {
       const host = request.source.hostId || null;

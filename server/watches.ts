@@ -30,14 +30,15 @@
  * watch has already moved past nor forgets that a failure was reported.
  */
 import { randomUUID } from "node:crypto";
-import { mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { z } from "zod";
 
 import type { WatchResult, WatchSummary } from "../shared/fleet";
+import { WATCH_MESSAGE_ID_PREFIX } from "../shared/fleet";
 import { watchRouting, type ManagedWatch } from "../shared/watch-routing";
 import { serialized } from "./serialize";
-import { digest, publish } from "./submissions";
+import { digest } from "./submissions";
 import { CutoverRefusal, itemFingerprint, type CutoverGate, type GateItem } from "./supervision-gate";
 import { TEMPLATES, message } from "./templates";
 import { BUILT_IN_WATCHES, builtInStates, listWatches, seedWatches, type WatchFile } from "./watch-files";
@@ -49,10 +50,8 @@ export const WATCH_TIMEOUT_MS = 2 * 60 * 1000;
 export const MAX_OUTPUT_CHARS = 16000;
 /** The most of a failed run's stderr sent, from its end. */
 export const MAX_ERROR_CHARS = 1500;
-/** Ordinary outputs waiting for the first mate; restored evidence has its own spool-backed capacity. */
+/** Pending outputs per home. Held and in-flight rows share this capacity and cannot be evicted. */
 export const MAX_QUEUED = 20;
-/** Per namespace, admissions stop here; already running producers retain their observations. */
-export const MAX_HELD_WATCHES = 20;
 /**
  * The most one catch-up message may hold, tags and all. Past it the oldest blocks go whole — never one
  * cut in the middle — and are counted in the dropped tag; the newest block always goes.
@@ -85,24 +84,28 @@ export interface QueuedNote {
   text: string;
   /** For a failure, what went wrong. */
   reason?: string;
-  /** Recovered evidence retains its namespace and exact spool identity through persistence and delivery. */
-  retained?: { owner: string; fingerprint: string };
+  /** Immutable home/occurrence identity, shared by every ordinary and held row. */
+  ownership?: { owner: string; id: string; occurrence?: string };
+  /** A refusal changes admission, never the queue or lifetime of the output. */
+  hold?: { plan: string; stage: string; reason: string };
+  /** Write-ahead reservation: unknown outcomes never enter automatic admission again. */
+  delivery?: { state: "uncertain" | "accepted"; recipient: string; messageId: string; claim: string | null };
 }
 
-const RetainedOwnerSchema = z.object({ owner: z.string().regex(/^[0-9a-f]{64}$/), fingerprint: z.string().regex(/^[0-9a-f]{64}$/) }).strict();
-const HeldWatchSchema = z.object({ format: z.literal("firstmate.held-watch/1"), fingerprint: z.string().regex(/^[0-9a-f]{64}$/),
-  owner: z.string().regex(/^[0-9a-f]{64}$/),
-  occurrence: z.string().optional(),
-  plan: z.string().regex(/^[a-z0-9][a-z0-9-]*$/), stage: z.string(), reason: z.string(),
-  note: z.object({ name: z.string(), ran: z.string().refine(value => Number.isFinite(Date.parse(value)), "Invalid occurrence time"), kind: z.enum(["output", "failed"]), text: z.string(), reason: z.string().optional() }).strict()
-    .transform(({ reason, ...note }): QueuedNote => ({ ...note, ...(reason === undefined ? {} : { reason }) })) }).strict();
-export type HeldWatch = z.infer<typeof HeldWatchSchema>;
+const OwnershipSchema = z.object({ owner: z.string().regex(/^[0-9a-f]{64}$/), id: z.string(), occurrence: z.string().optional() }).strict();
+const HoldSchema = z.object({ plan: z.string().regex(/^[a-z0-9][a-z0-9-]*$/), stage: z.string(), reason: z.string() }).strict();
+const DeliverySchema = z.object({ state: z.enum(["uncertain", "accepted"]), recipient: z.string(), messageId: z.string(), claim: z.string().nullable() }).strict();
 export const watchOwner = (gate: CutoverGate) => digest(process.platform === "win32" ? gate.root.toLowerCase() : gate.root);
-const bareNote = ({ retained: _retained, ...note }: QueuedNote): QueuedNote => note;
-const heldFingerprint = (owner: string, note: QueuedNote) => digest({ owner, item: itemFingerprint(watchItem(bareNote(note))) });
+const bareNote = ({ ownership: _ownership, hold: _hold, delivery: _delivery, ...note }: QueuedNote): QueuedNote => note;
+function watchMessageId(note: QueuedNote, owner: string, occurrence?: string): string {
+  const identity = bareNote(note);
+  if (occurrence) identity.ran = occurrence; // Timer retries within a due minute keep one identity.
+  const hash = digest({ owner, note: identity }).slice(0, 32);
+  return `${WATCH_MESSAGE_ID_PREFIX}${hash.slice(0, 8)}-${hash.slice(8, 12)}-${hash.slice(12, 16)}-${hash.slice(16, 20)}-${hash.slice(20)}`;
+}
 const occurrenceOrder = (a: { ran: string; key: string }, b: { ran: string; key: string }) =>
   Date.parse(a.ran) - Date.parse(b.ran) || a.key.localeCompare(b.key);
-export interface WatchDelivery { owner: string; recipient: string }
+export interface WatchDelivery { owner: string; recipient: string; messageId?: string }
 
 interface RunnerState {
   watches: Record<string, WatchRecord>;
@@ -301,14 +304,15 @@ export class WatchRunner {
       if (this.options.canRun && !(await this.options.canRun(watch.name))) return;
       const entry = await this.options.gate?.();
       producerGate = entry?.gate;
-      const reserve = () => serialized(`${this.options.stateFile}.retention`, async () => {
-        const held = await this.held();
-        const owner = producerGate ? watchOwner(producerGate) : null, owned = held.filter(record => record.owner === owner);
-        if (owned.some(record => record.note.name === watch.name)) return false;
-        // With no retained evidence or armed gate, preserve the legacy producer behavior.
-        const guarding = owned.length > 0 || !!(producerGate && (await producerGate.armed() || (await producerGate.targets()).length));
+      const reserve = () => serialized(`${this.options.stateFile}.queue`, async () => {
+        await this.refresh();
+        const state = await this.load(), owner = producerGate ? watchOwner(producerGate) : null;
+        const pending = state.queue.filter(note => !note.ownership || note.ownership.owner === owner);
+        if (pending.some(note => note.name === watch.name && (note.hold || note.delivery))) return false;
+        const guarding = pending.some(note => note.hold || note.delivery) ||
+          !!(producerGate && (await producerGate.armed() || (await producerGate.targets()).length));
         const reserved = [...this.producing.values()].filter(value => value === owner).length;
-        if (guarding && owned.length + reserved >= MAX_HELD_WATCHES) await this.capacityRefusal(producerGate, watch.name);
+        if (guarding && pending.length + reserved >= MAX_QUEUED) await this.capacityRefusal(producerGate, watch.name);
         this.producing.set(watch.name, owner); return true;
       });
       if (!(await (producerGate ? producerGate.run(reserve) : reserve()))) return;
@@ -355,7 +359,7 @@ export class WatchRunner {
     await this.gated(async gate => {
       const state = await this.load();
       const previous = state.watches[name] ?? BLANK;
-      if (note !== null && !routed) await this.enqueue(state, note, gate, undefined, true);
+      const refusal = note !== null && !routed ? await this.enqueue(state, note, gate, undefined, true) : undefined;
       if (reason !== null) {
         state.watches[name] = {
           ...previous,
@@ -376,7 +380,8 @@ export class WatchRunner {
           failing: false,
         };
       }
-      await this.persist();
+      await this.persist(!!gate);
+      if (refusal) throw refusal;
     }, producerGate);
   }
 
@@ -386,98 +391,71 @@ export class WatchRunner {
       const state = await this.load();
       const ran = stamp(at);
       const occurrence = `${name}@${ran.slice(0, 16)}`;
-      const held = gate ? (await this.held()).find(record => record.owner === watchOwner(gate) &&
-        (record.occurrence === occurrence || (!record.occurrence && record.note.name === name && record.note.ran.slice(0, 16) === ran.slice(0, 16)))) : undefined;
-      if (held) throw this.heldRefusal(held);
+      const owner = gate ? watchOwner(gate) : undefined;
+      const existing = state.queue.find(note => note.ownership?.owner === owner &&
+        (note.ownership?.occurrence === occurrence || (note.name === name && note.ran.slice(0, 16) === ran.slice(0, 16))));
+      if (existing?.hold) throw this.heldRefusal(existing);
       const previous = state.watches[name];
-      if (previous?.lastRunAt?.slice(0, 16) === ran.slice(0, 16) || state.queue.some((note) => note.name === name)) return;
-      await this.enqueue(state, { name, ran, kind: "output", text }, gate, occurrence);
+      if (previous?.lastRunAt?.slice(0, 16) === ran.slice(0, 16) || state.queue.some(note => note.name === name && !note.hold && note.ownership?.owner === owner)) return;
+      const refusal = await this.enqueue(state, { name, ran, kind: "output", text }, gate, occurrence);
       state.watches[name] = { ...BLANK, lastRunAt: ran, lastResult: "queued", lastOutput: text, lastOutputAt: ran };
-      await this.persist();
+      await this.persist(!!gate);
+      if (refusal) throw refusal;
     }));
   }
 
   /** Queue enqueues run inside the cutover gate, so a freeze's inventory either includes them or follows them. */
   private async gated<T>(work: (gate?: CutoverGate) => Promise<T>, captured?: CutoverGate): Promise<T> {
-    if (captured) return captured.run(() => work(captured));
+    const mutate = (gate?: CutoverGate) => serialized(`${this.options.stateFile}.queue`, async () => {
+      await this.refresh(); return work(gate);
+    });
+    if (captured) return captured.run(() => mutate(captured));
     const entry = await this.options.gate?.();
-    return entry ? entry.gate.run(() => work(entry.gate)) : work();
+    return entry ? entry.gate.run(() => mutate(entry.gate)) : mutate();
   }
 
-  /** The persisted queue, for a cutover inventory. Watch rows have no ids; their exact fields identify them. */
-  async queued(): Promise<QueuedNote[]> { return structuredClone((await this.load()).queue); }
-
-  /** Refused producer evidence is separate from the bounded normal queue and is never trimmed. */
-  private heldDirectory(): string { return `${this.options.stateFile}.held`; }
-  async held(): Promise<HeldWatch[]> {
-    let names: string[];
-    try { names = await readdir(this.heldDirectory()); }
-    catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return []; throw error; }
-    const records: HeldWatch[] = [];
-    for (const name of names.filter(n => /^[0-9a-f]{64}\.json$/.test(n)).sort()) {
-      let text: string;
-      try { text = await readFile(join(this.heldDirectory(), name), "utf8"); }
-      catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") continue; throw error; }
-      const record = HeldWatchSchema.parse(JSON.parse(text));
-      if (name !== `${record.fingerprint}.json` || record.fingerprint !== heldFingerprint(record.owner, record.note))
-        throw new Error(`Held watch evidence ${name} does not match its payload.`);
-      records.push(record);
-    }
-    return records.sort((a, b) => occurrenceOrder({ ran: a.note.ran, key: a.fingerprint }, { ran: b.note.ran, key: b.fingerprint }));
+  /** The persisted queue, including protected rows, for the cutover's source-ID/payload inventory. */
+  async queued(): Promise<QueuedNote[]> {
+    return serialized(`${this.options.stateFile}.queue`, async () => {
+      await this.refresh(); return structuredClone((await this.load()).queue);
+    });
   }
 
-  /** Only a checked release/abort lets a hold re-enter the queue. Commit is not release permission.
-   * Keep the spool copy until the exact note is actually sent, even if queue pressure or fitting cuts it. */
-  private async restoreReleasedHeld(): Promise<void> {
-    const held = await this.held();
-    if (!held.length) return;
-    const entry = await this.options.gate?.();
-    const restore = async () => {
-      const state = await this.load(); let changed = false;
-      // Upgrade known bare copies without hiding a late insertion from S07's disposition inventory.
-      // No new frozen entry is inserted here; an existing one still needs its explicit send permission.
-      state.queue = state.queue.map(note => {
-        if (note.retained) return note;
-        const matches = held.filter(record => heldFingerprint(record.owner, note) === record.fingerprint);
-        if (matches.length === 0) return note;
-        if (matches.length !== 1) throw new Error("Ambiguous retained watch provenance; reconcile the matching spool records explicitly.");
-        const record = matches[0]!;
-        changed = true; return { ...note, retained: { owner: record.owner, fingerprint: record.fingerprint } };
-      });
-      for (const record of held) {
-        // These are copies of already bounded, durable evidence, not new ordinary admissions.
-        // A full ordinary queue (possibly frozen by another plan) must not block their recovery.
-        if (!entry || record.owner !== watchOwner(entry.gate)) continue;
-        if (!await entry.gate.sidecar(record.plan, "aborted")) continue;
-        const item = watchItem(record.note);
-        if (!(await entry.gate.verdict(item, "enqueue")).admit) continue;
-        if (state.queue.some(note => note.retained?.owner === record.owner && note.retained.fingerprint === record.fingerprint)) continue;
-        state.queue.push({ ...record.note, retained: { owner: record.owner, fingerprint: record.fingerprint } }); changed = true;
-      }
-      if (changed) await this.persist(true);
-    };
-    if (entry) await entry.gate.run(restore); else await restore();
+  /** Read-only held projection of the ordinary queue; there is no secondary delivery store. */
+  async held() {
+    return (await this.queued()).filter(note => note.hold).map(note => ({
+      ...note.hold!, owner: note.ownership!.owner, note: bareNote(note), occurrence: note.ownership?.occurrence,
+    })).sort((a, b) => occurrenceOrder({ ran: a.note.ran, key: a.note.name }, { ran: b.note.ran, key: b.note.name }));
   }
 
   /** Puts back an entry a released cutover archived, exactly, unless one with its identity is already queued. */
   async restoreQueued(entry: QueuedNote): Promise<"restored" | "present"> {
-    const state = await this.load();
-    if (state.queue.some((note) => watchItem(note).id === watchItem(entry).id)) return "present";
-    state.queue.push(structuredClone(entry));
-    await this.persist();
-    return "restored";
+    return serialized(`${this.options.stateFile}.queue`, async () => {
+      await this.refresh();
+      const state = await this.load(), item = watchItem(entry);
+      if (state.queue.some(note => itemFingerprint(watchItem(note)) === itemFingerprint(item))) return "present";
+      if (state.queue.some(note => watchItem(note).id === item.id)) throw new Error("Archived watch identity has a different queued payload; reconcile it explicitly.");
+      const current = await this.options.gate?.();
+      await this.makeRoom(state, entry.ownership?.owner ?? (current ? watchOwner(current.gate) : undefined), entry.name);
+      state.queue.push(structuredClone(entry));
+      await this.persist(true);
+      return "restored";
+    });
   }
 
   /** Compare-by-identity/payload removal for a published cutover disposition. Never sends anything. */
   async removeQueued(id: string, payloadHash: string): Promise<"removed" | "absent" | "mismatch"> {
-    const state = await this.load();
-    const same = state.queue.filter((note) => watchItem(note).id === id);
-    if (same.length === 0) return "absent";
-    const exact = same.find((note) => watchItem(note).payloadHash === payloadHash);
-    if (!exact) return "mismatch";
-    state.queue = state.queue.filter((note) => note !== exact);
-    await this.persist();
-    return "removed";
+    return serialized(`${this.options.stateFile}.queue`, async () => {
+      await this.refresh();
+      const state = await this.load();
+      const same = state.queue.filter((note) => watchItem(note).id === id);
+      if (same.length === 0) return "absent";
+      const exact = same.find((note) => watchItem(note).payloadHash === payloadHash);
+      if (!exact) return "mismatch";
+      state.queue = state.queue.filter((note) => note !== exact);
+      await this.persist(true);
+      return "removed";
+    });
   }
 
   async promptSummary(watch: ManagedWatch): Promise<WatchSummary> {
@@ -489,56 +467,57 @@ export class WatchRunner {
 
   /** A route edit must not start an inspector while the same watch's earlier current-session note waits. */
   async pendingDelivery(name: string): Promise<boolean> {
-    return (await this.load()).queue.some((note) => note.name === name) || (await this.held()).some(record => record.note.name === name);
+    return (await this.queued()).some(note => note.name === name);
   }
 
-  private heldRefusal(record: HeldWatch): CutoverRefusal {
-    return new CutoverRefusal(record.plan, record.stage, `${record.reason} Output retained durably in ${this.heldDirectory()}.`);
+  private heldRefusal(note: QueuedNote): CutoverRefusal {
+    return new CutoverRefusal(note.hold!.plan, note.hold!.stage, `${note.hold!.reason} Output retained durably in the watch queue, held for reconciliation.`);
   }
 
   private async recordCapacity(gate: CutoverGate | undefined, name: string): Promise<string> {
-    const reason = `Watch retention capacity (${MAX_HELD_WATCHES}) reached; further production of ${name} is paused. Reconcile retained output before retrying.`;
-    if (gate) await gate.refusal({ source: "watch", id: `retention-capacity:${name}`, payloadHash: digest({ owner: watchOwner(gate), name, limit: MAX_HELD_WATCHES }) }, reason);
+    const reason = `Watch retention capacity (${MAX_QUEUED}) reached; further production of ${name} is paused. Reconcile queued output before retrying.`;
+    if (gate) await gate.refusal({ source: "watch", id: `retention-capacity:${name}`, payloadHash: digest({ owner: watchOwner(gate), name, limit: MAX_QUEUED }) }, reason);
     return reason;
   }
 
   private async capacityRefusal(gate: CutoverGate | undefined, name: string): Promise<never> {
-    const reason = await this.recordCapacity(gate, name);
-    throw new CutoverRefusal("watch-retention", "capacity", reason);
+    throw new CutoverRefusal("watch-retention", "capacity", await this.recordCapacity(gate, name));
   }
 
-  private async enqueue(state: RunnerState, note: QueuedNote, gate?: CutoverGate, occurrence?: string, produced = false): Promise<void> {
+  private async enqueue(state: RunnerState, note: QueuedNote, gate?: CutoverGate, occurrence?: string, produced = false): Promise<CutoverRefusal | undefined> {
+    const owner = gate ? watchOwner(gate) : undefined;
+    if (owner) note.ownership = { owner, id: watchMessageId(note, owner, occurrence), ...(occurrence ? { occurrence } : {}) };
+    const overflow = await this.makeRoom(state, owner, note.name, gate, produced);
+    state.queue.push(note);
     if (gate) {
-      const item = watchItem(note), verdict = await gate.verdict(item, "enqueue");
+      let verdict: Awaited<ReturnType<CutoverGate["verdict"]>>;
+      try { verdict = await gate.verdict(watchItem(note), "enqueue"); }
+      catch (error) {
+        note.hold = { plan: "watch-admission", stage: "unreadable", reason: `Admission could not be read: ${describe(error)}. Reconcile this output explicitly.` };
+        await this.persist(true); throw error;
+      }
       if (!verdict.admit) {
-        return serialized(`${this.options.stateFile}.retention`, async () => {
-          const owner = watchOwner(gate), fingerprint = heldFingerprint(owner, note), path = join(this.heldDirectory(), `${fingerprint}.json`);
-          const held = await this.held();
-          const existing = held.find(record => record.fingerprint === fingerprint || (occurrence && record.owner === owner && record.occurrence === occurrence));
-          if (existing) throw this.heldRefusal(existing);
-          if (!produced && held.filter(record => record.owner === owner).length + [...this.producing.values()].filter(value => value === owner).length >= MAX_HELD_WATCHES)
-            await this.capacityRefusal(gate, note.name);
-          // A script already advanced its baseline. Its reserved/in-flight observation must survive even
-          // if a cutover was armed after it started; capacity stops subsequent producer admissions.
-          const record: HeldWatch = { format: "firstmate.held-watch/1", fingerprint, owner, note,
-            ...(occurrence ? { occurrence } : {}), plan: verdict.plan, stage: verdict.stage, reason: verdict.reason };
-          await mkdir(this.heldDirectory(), { recursive: true });
-          try { await publish(path, record); }
-          catch (error) {
-            if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
-            if (!(await this.held()).some(record => record.fingerprint === fingerprint)) throw error;
-          }
-          if (produced && held.filter(record => record.owner === owner).length >= MAX_HELD_WATCHES) await this.recordCapacity(gate, note.name);
-          await gate.refusal(item, verdict.reason);
-          throw this.heldRefusal(record);
-        });
+        note.hold = { plan: verdict.plan, stage: verdict.stage, reason: verdict.reason };
+        await this.persist(true); // The output is authoritative; diagnostics cannot precede its durability.
+        await gate.refusal(watchItem(note), verdict.reason);
       }
     }
-    state.queue.push(note);
-    while (state.queue.filter(queued => !queued.retained).length > MAX_QUEUED) {
-      const oldest = state.queue.findIndex(queued => !queued.retained);
-      state.queue.splice(oldest, 1); state.dropped += 1;
+    if (overflow) { await this.persist(true); await this.recordCapacity(gate, note.name); }
+    return note.hold ? this.heldRefusal(note) : undefined;
+  }
+
+  private async makeRoom(state: RunnerState, owner: string | undefined, name: string, gate?: CutoverGate, produced = false): Promise<boolean> {
+    const sameHome = (queued: QueuedNote) => !queued.ownership || queued.ownership.owner === owner;
+    while (state.queue.filter(sameHome).length >= MAX_QUEUED) {
+      const oldest = state.queue.findIndex(queued => sameHome(queued) && !queued.hold && !queued.delivery);
+      if (oldest < 0) {
+        if (!produced) await this.capacityRefusal(gate, name);
+        // Finite producers already running before arming may have advanced their baselines.
+        return true;
+      }
+      state.queue.splice(oldest, 1); state.dropped++;
     }
+    return false;
   }
 
   /**
@@ -571,81 +550,132 @@ export class WatchRunner {
 
   private async flushOnce(): Promise<void> {
     if (this.aborter.signal.aborted) return;
-    await this.restoreReleasedHeld();
-    const state = await this.load();
-    if (state.queue.length === 0 && state.dropped === 0) return;
-    const entry = await this.options.gate?.();
-    const held = await this.held();
-    // Consider both kinds before choosing a batch: a refused ordinary scope cannot starve ready
-    // retained traffic. Foreign or unproven retained copies never become delivery candidates.
-    const candidates = state.queue.filter(note => !note.retained || (entry && note.retained.owner === watchOwner(entry.gate) &&
-      held.some(record => record.owner === note.retained?.owner && record.fingerprint === note.retained?.fingerprint)));
-    const dropped = state.dropped;
-    type Batch = { retained: boolean; note: Awaited<ReturnType<typeof fitWatchNote>> };
-    const selection: { batch?: Batch } = {};
-    const select = async (items: GateItem[]): Promise<GateItem[]> => {
-      const admitted = new Set(items.map(itemFingerprint));
-      const ready = candidates.filter(queued => state.queue.includes(queued) && admitted.has(itemFingerprint(watchItem(queued))));
-      const ordinary = ready.filter(queued => !queued.retained);
-      const retained = ordinary.length === 0;
-      const batch = ordinary.length ? ordinary : ready.sort((a, b) =>
-        occurrenceOrder({ ran: a.ran, key: a.retained!.fingerprint }, { ran: b.ran, key: b.retained!.fingerprint }));
-      // A drop-only notice can flow without consuming foreign or refused entries.
-      if (!batch.length && (!dropped || candidates.length > 0)) return [];
-      const note = retained && batch.length ? await this.fitRetained(batch, dropped) : await fitWatchNote(batch, dropped);
-      selection.batch = { retained: retained && batch.length > 0, note };
-      // Fitting is part of confirmation under the gate lock. Only actual native-message rows get
-      // a claim/result; deferred retained rows and ordinary cut rows must never inherit acceptance.
-      return note.sent.map(watchItem);
-    };
+    const entry = await this.options.gate?.(), state = await this.load();
     let claim: string | null = null;
-    if (entry) {
-      const admission = await entry.gate.claim(candidates.map(watchItem), entry.recipient, select);
-      claim = admission.claim;
-    } else await select(candidates.map(watchItem));
-    if (!selection.batch) return;
-    const { note, retained: retainedBatch } = selection.batch;
+    const completed: string[] = [];
+    let selected: { note: Awaited<ReturnType<typeof fitWatchNote>>; messageId: string; dropped: number } | undefined;
+    const prepare = () => serialized(`${this.options.stateFile}.queue`, async () => {
+      await this.refresh();
+      // All queue entries use the same write-ahead reservation and S07 result.
+      let reconciled = false;
+      const owner = entry ? watchOwner(entry.gate) : undefined;
+      const sameOccurrence = (a: QueuedNote, b: QueuedNote) => (a.ownership?.owner ?? owner) === (b.ownership?.owner ?? owner) &&
+        itemFingerprint(watchItem(a)) === itemFingerprint(watchItem(b));
+      // A noncompliant old writer may have copied the same occurrence without its reservation.
+      // That copy inherits uncertainty, never permission for a new native attempt.
+      for (const pending of state.queue.filter(note => note.delivery)) for (const queued of state.queue) {
+        if (!queued.delivery && sameOccurrence(pending, queued)) {
+          queued.delivery = { ...pending.delivery! };
+          if (!queued.ownership && pending.ownership) queued.ownership = { ...pending.ownership };
+          if (!queued.hold && pending.hold) queued.hold = { ...pending.hold };
+          reconciled = true;
+        }
+      }
+      for (const queued of [...state.queue]) {
+        if (!queued.delivery || (queued.ownership && queued.ownership.owner !== (entry && watchOwner(entry.gate)))) continue;
+        const receipt = entry && queued.delivery.claim ? await entry.gate.readClaim(queued.delivery.claim) : null;
+        const exact = receipt?.claim.recipient === queued.delivery.recipient &&
+          receipt.claim.items.some(item => itemFingerprint(item) === itemFingerprint(watchItem(queued)));
+        const outcome = exact ? receipt!.result?.outcome : undefined;
+        if (queued.delivery.state === "accepted" || outcome === "accepted") {
+          if (queued.delivery.claim) completed.push(queued.delivery.claim);
+          state.queue = state.queue.filter(note => note !== queued);
+          this.markDelivered(state, queued); reconciled = true;
+        } else if (outcome === "failed") {
+          if (queued.delivery.claim) completed.push(queued.delivery.claim);
+          delete queued.delivery; reconciled = true;
+        }
+        // Missing, crashed and uncertain receipts stay pending for explicit reconciliation.
+      }
+      if (reconciled) await this.persist(true);
+      const candidates: QueuedNote[] = [];
+      let heldChanged = false;
+      for (const queued of state.queue) {
+        if (queued.delivery || (queued.ownership && queued.ownership.owner !== (entry && watchOwner(entry.gate)))) continue;
+        if (!queued.hold && entry) {
+          const verdict = await entry.gate.verdict(watchItem(queued), "send");
+          if (!verdict.admit) {
+            const owner = watchOwner(entry.gate);
+            queued.ownership ??= { owner, id: watchMessageId(queued, owner) };
+            queued.hold = { plan: verdict.plan, stage: verdict.stage, reason: verdict.reason };
+            await entry.gate.refusal(watchItem(queued), verdict.reason); heldChanged = true;
+          }
+        }
+        if (queued.hold && (!entry || !await entry.gate.sidecar(queued.hold.plan, "aborted"))) {
+          const target = entry && (await entry.gate.targets()).find(target => target.plan === queued.hold!.plan);
+          if (!target || target.damaged || !target.drains.has(itemFingerprint(watchItem(queued)))) continue;
+        }
+        if (!candidates.some(candidate => sameOccurrence(candidate, queued))) candidates.push(queued);
+      }
+      if (heldChanged) await this.persist(true);
+      const ordered = !!entry && (!!await entry.gate.armed() || (await entry.gate.targets()).length > 0);
+      if (ordered) candidates.sort((a, b) => occurrenceOrder({ ran: a.ran, key: a.ownership?.id ?? watchItem(a).id }, { ran: b.ran, key: b.ownership?.id ?? watchItem(b).id }));
+      const confirm = async (items: GateItem[]): Promise<GateItem[]> => {
+        const admitted = new Set(items.map(itemFingerprint));
+        const ready = candidates.filter(note => state.queue.includes(note) && admitted.has(itemFingerprint(watchItem(note))));
+        if (!ready.length && (!state.dropped || state.queue.length)) return [];
+        // Armed turns admit one occurrence, oldest first, with its immutable native ID.
+        // Default unarmed batching/fitting and dropped-count behavior stay unchanged.
+        const note = await fitWatchNote(ordered ? ready.slice(0, 1) : ready, state.dropped);
+        if (entry) for (const queued of note.sent) queued.ownership ??= { owner: watchOwner(entry.gate), id: watchMessageId(queued, watchOwner(entry.gate)) };
+        const messageId = note.sent[0]?.ownership?.id ?? watchMessageId(note.sent[0] ?? { name: "dropped", ran: "", kind: "output", text: note.text }, entry ? watchOwner(entry.gate) : "");
+        selected = { note, messageId, dropped: state.dropped };
+        for (const queued of note.sent) queued.delivery = { state: "uncertain", recipient: entry?.recipient ?? "", messageId, claim: null };
+        await this.persist(true); // A crash from here cannot cause automatic native replay.
+        return note.sent.map(watchItem);
+      };
+      if (entry) {
+        const admission = await entry.gate.claimHeld(candidates.map(watchItem), entry.recipient, confirm);
+        claim = admission.claim;
+      } else await confirm(candidates.map(watchItem));
+      if (selected) {
+        for (const queued of selected.note.sent) queued.delivery!.claim = claim;
+        await this.persist(true);
+      }
+    });
+    try { if (entry) await entry.gate.run(prepare); else await prepare(); }
+    catch (error) {
+      await entry?.gate.settle(claim, "failed", "Queue reservation failed before native delivery.", true);
+      throw error;
+    }
+    for (const id of completed) await entry?.gate.prune(id);
+    if (!selected) return;
+    const { note, messageId, dropped } = selected;
     let outcome: DeliveryOutcome;
     try {
-      outcome = await this.options.deliver(note.text, retainedBatch ? { owner: note.sent[0]!.retained!.owner, recipient: entry!.recipient } : undefined);
+      outcome = await this.options.deliver(note.text, entry ? { owner: watchOwner(entry.gate), recipient: entry.recipient, messageId } : undefined);
     } catch (error) {
-      await entry?.gate.settle(claim, "uncertain", String(error));
-      console.error("[firstmate] could not send the watches' output to the first mate:", error);
-      return;
+      await entry?.gate.settle(claim, "uncertain", String(error), true);
+      console.error("[firstmate] could not send the watches' output to the first mate:", error); return;
     }
-    // "wait" is decided before any send: a definite non-admission.
-    await entry?.gate.settle(claim, outcome === "sent" ? "accepted" : "failed", note.cut.length ? `cut: ${note.cut.map((q) => watchItem(q).id).join(", ")}` : "");
-    if (outcome !== "sent") return;
-    // What was cut to fit is gone too: counted in this message's tag, not tried again.
-    state.queue = state.queue.filter((queued) => !note.sent.includes(queued) && !note.cut.includes(queued));
-    state.dropped -= dropped;
-    const settle = (queued: QueuedNote, result: WatchResult) => {
-      const record = state.watches[queued.name];
-      if (queued.retained && result === "delivered" && (!record?.lastRunAt || record.lastRunAt <= queued.ran)) {
-        state.watches[queued.name] = { ...BLANK, lastRunAt: queued.ran, lastResult: queued.kind === "failed" ? "failed" : "delivered",
-          lastOutput: queued.text, lastOutputAt: queued.ran, lastError: queued.reason ?? null, failing: queued.kind === "failed" };
-        return;
+    await entry?.gate.settle(claim, outcome === "sent" ? "accepted" : "failed", "", true);
+    await this.gated(async () => {
+      const owner = entry ? watchOwner(entry.gate) : undefined;
+      const current = state.queue.filter(queued => (queued.ownership?.owner ?? owner) === owner &&
+        ((!queued.delivery && outcome === "sent") || (queued.delivery?.claim === claim && queued.delivery.messageId === messageId)) &&
+        note.sent.some(sent => itemFingerprint(watchItem(sent)) === itemFingerprint(watchItem(queued))));
+      if (outcome !== "sent") {
+        for (const queued of current) delete queued.delivery;
+      } else {
+        for (const queued of current) { if (queued.delivery) queued.delivery.state = "accepted"; this.markDelivered(state, queued); }
+        state.queue = state.queue.filter(queued => !current.includes(queued) && !note.cut.some(cut => itemFingerprint(watchItem(cut)) === itemFingerprint(watchItem(queued))));
+        state.dropped = Math.max(0, state.dropped - dropped);
+        for (const queued of note.cut) {
+          const record = state.watches[queued.name];
+          if (record?.lastOutputAt === queued.ran) record.lastResult = "dropped";
+        }
       }
-      if (queued.kind === "output" && record?.lastResult === "queued" && record.lastOutputAt === queued.ran) {
-        state.watches[queued.name] = { ...record, lastResult: result };
-      }
-    };
-    note.cut.forEach((queued) => settle(queued, "dropped"));
-    note.sent.forEach((queued) => settle(queued, "delivered"));
-    await this.persist(retainedBatch);
-    for (const delivered of note.sent) if (delivered.retained)
-      await rm(join(this.heldDirectory(), `${delivered.retained.fingerprint}.json`), { force: true });
+      await this.persist(true);
+    }, entry?.gate);
+    await entry?.gate.prune(claim);
   }
 
-  /** Retained transitions drain oldest first without dropping an older occurrence to fit a newer one. */
-  private async fitRetained(batch: QueuedNote[], dropped: number): Promise<{ text: string; sent: QueuedNote[]; cut: QueuedNote[] }> {
-    const sent: QueuedNote[] = []; let text = "";
-    for (const note of batch) {
-      const candidate = await watchNote([...sent, note], dropped);
-      if (sent.length > 0 && candidate.length > MAX_MESSAGE_CHARS) break;
-      sent.push(note); text = candidate;
+  private markDelivered(state: RunnerState, queued: QueuedNote): void {
+    const record = state.watches[queued.name];
+    if (!record?.lastRunAt || record.lastRunAt <= queued.ran) {
+      state.watches[queued.name] = { ...BLANK, lastRunAt: queued.ran, lastResult: queued.kind === "failed" ? "failed" : "delivered",
+        lastOutput: queued.text, lastOutputAt: queued.ran, lastError: queued.reason ?? null, failing: queued.kind === "failed" };
     }
-    return { text, sent, cut: [] };
   }
 
   /** Every watch in the home as the board draws it. */
@@ -687,6 +717,12 @@ export class WatchRunner {
     return this.loading;
   }
 
+  /** Called under the queue lock: a reloaded writer must see another runner's durable reservation. */
+  private async refresh(): Promise<void> {
+    const state = await this.load();
+    Object.assign(state, await readState(this.options.stateFile));
+  }
+
   private persist(strict = false): Promise<void> {
     const state = this.state;
     if (state === null) return Promise.resolve();
@@ -703,9 +739,9 @@ export class WatchRunner {
   }
 }
 
-/** A watch queue row as the cutover gate sees it: no invented id, its exact persisted fields instead. */
+/** The immutable watch payload; routing/hold/reservation metadata cannot change a delivery's identity. */
 export function watchItem(note: QueuedNote): GateItem {
-  return { source: "watch", id: `${note.name}@${note.ran}#${note.kind}`, payloadHash: digest(note), text: `${note.name} ${note.text}` };
+  return { source: "watch", id: `${note.name}@${note.ran}#${note.kind}`, payloadHash: digest(bareNote(note)), text: `${note.name} ${note.text}` };
 }
 
 /**
@@ -735,15 +771,18 @@ function asString(value: unknown): string | null {
   return typeof value === "string" ? value : null;
 }
 
-/** The saved state, leniently: anything it cannot read starts afresh rather than stopping the watches. */
+/** Legacy fields remain lenient; unreadable state and damaged protected rows must never reset delivery history. */
 export async function readState(path: string): Promise<RunnerState> {
+  // Earlier unactivated revisions used a second store. Never silently forget such evidence or replay it.
+  try {
+    if ((await readdir(`${path}.held`)).some(name => name.endsWith(".json")))
+      throw new Error("Legacy watch spool requires explicit reconciliation before using the single queue.");
+  } catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
   let raw: unknown;
   try {
     raw = JSON.parse(await readFile(path, "utf8"));
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-      console.error(`[firstmate] ${path} could not be read, starting afresh: ${describe(error)}`);
-    }
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     return { watches: {}, queue: [], dropped: 0 };
   }
   const object = (raw ?? {}) as { watches?: unknown; queue?: unknown; dropped?: unknown };
@@ -767,13 +806,24 @@ export async function readState(path: string): Promise<RunnerState> {
         const ran = asString(entry.ran);
         const text = asString(entry.text);
         const kind = entry.kind === "failed" ? "failed" : entry.kind === "output" ? "output" : null;
-        if (name === null || ran === null || text === null || kind === null) return [];
+        if (name === null || ran === null || text === null || kind === null) {
+          if (entry.ownership !== undefined || entry.hold !== undefined || entry.delivery !== undefined)
+            throw new Error("Queued watch provenance has a damaged payload; reconcile it explicitly.");
+          return [];
+        }
         const reason = asString(entry.reason);
         const note: QueuedNote = { name, ran, kind, text, ...(reason === null ? {} : { reason }) };
-        if (entry.retained !== undefined) {
-          note.retained = RetainedOwnerSchema.parse(entry.retained);
-          if (note.retained.fingerprint !== heldFingerprint(note.retained.owner, note)) throw new Error("Queued retained watch provenance does not match its payload.");
+        if (entry.retained !== undefined) throw new Error("Legacy retained watch provenance requires explicit reconciliation before this queue can be used.");
+        if (entry.ownership !== undefined) {
+          const ownership = OwnershipSchema.parse(entry.ownership);
+          note.ownership = { owner: ownership.owner, id: ownership.id, ...(ownership.occurrence ? { occurrence: ownership.occurrence } : {}) };
+          if (ownership.id !== watchMessageId(note, ownership.owner, ownership.occurrence)) throw new Error("Queued watch provenance does not match its payload.");
         }
+        if (entry.hold !== undefined) {
+          note.hold = HoldSchema.parse(entry.hold);
+          if (!note.ownership) throw new Error("Held watch provenance is missing.");
+        }
+        if (entry.delivery !== undefined) note.delivery = DeliverySchema.parse(entry.delivery);
         return [note];
       })
     : [];
