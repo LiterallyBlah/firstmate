@@ -58,7 +58,7 @@ Lifecycle covers General's own launch, compaction and handover.
 | S2 | Plan notes `queuePlanNotes` (`workflow-service.ts:47`, 1 s timer) | `config.mateNotes` | Routine | **Enqueue** + cutover pre-skip | Drainable per scope |
 | S3 | Local steer relay burst (`crew.ts:203` → `mate.ts:356`) | `mateNotes[].burst` | Routine | **Enqueue** | Drainable; scoped workers refused by S08 |
 | S4 | Burst extend (`mate.ts`, `extendBurstNote`) | `burst.holdUntil` | Routine | **Enqueue**: verdict and refusal receipt under lock | F3 closed; refused extensions leave the captured payload unchanged |
-| S5 | Watch batch (`watches.ts`, `record` / `enqueuePrompt` / `flushOnce`) | `watches.json` queue; refused payloads in `watches.json.held/` | Routine | **Full at send; enqueue verdict, durable payload retention and refusal receipt under lock** | Frozen-plan output stays outside the normal queue in a checked, untrimmed spool. A valid release/abort and fresh admission can restore it; only actual delivery removes its spool copy. Existing queued opaque output retains S07 dispositions |
+| S5 | Watch batch (`watches.ts`, `record` / `enqueuePrompt` / `flushOnce`) | `watches.json` queue with retained-owner capsules; refused payloads in `watches.json.held/` | Routine | **Full at send; enqueue verdict, occurrence deduplication, retention backpressure and refusal receipt under lock** | Frozen-plan output stays outside the normal queue. A valid release/abort and fresh admission restore it with its owner; lifecycle-locked delivery checks that owner and captured recipient. Recovery drains oldest first; only actual delivery removes the exact spool copy. Existing queued opaque output retains S07 dispositions |
 | S6 | Watch-runtime fault note (`watch-service.ts:183-191`) | `config.mateNotes` | Routine | **Enqueue** | Drainable |
 | S7 | Inspection result to General (`watch-inspections.ts`, `deliver`; 15 s `tickPrompts`) | `watch-inspections/inspection-runs.json` | Routine, only for watches routed to an isolated session | **Full** (`inspection` claim, exact payload hash and saved opaque text) | F1 closed; plan mentions stay pending during freeze and after commit, with a refusal receipt. Pending runs are not transferred; reconcile explicitly |
 | S8 | Inspector prompts (`watch-inspections.ts`, `start` / `reconcile`) | same | Fleet inspection lifecycle, to the inspector agent | **None** | Out of per-plan drain scope: parentless read-only inspectors have no crew identity, plan ownership or finish subscription. General retains fleet inspection; S7 gates its results |
@@ -210,6 +210,10 @@ These procedures apply once activation exists. **Nothing here is authorised by t
 - A build that has retained refused output also needs the `watches.json.held/` reader. Older runners ignore
   that evidence; keep it intact and reconcile with a compatible reader rather than treating an empty queue as
   proof that the producer had nothing to report.
+- Restored rows now carry checked `retained.owner` and `retained.fingerprint` fields. Keep the owner-aware
+  queue reader and delivery guard while those rows exist: earlier lenient readers discard the capsule and
+  can send through another home's mate. New prompt holds also carry an occurrence key. An older reader is
+  not a safe rollback target until all retained evidence has been explicitly reconciled with a compatible build.
 - Before the trigger, rollback to `9ed5dd84` stays safe, because this head writes no new legacy-store construct.
 
 **Plugin rollback (installation only, nothing armed).** Reinstall the retained previous directory source with
@@ -278,8 +282,23 @@ captain would see:
   receipt. It never admits that payload to the normal queue while refused. `WatchRunner.held()` reads the full
   evidence for deliberate reconciliation; a checked aborted sidecar plus a fresh enqueue verdict permits a
   later flush to restore it in the originating absolute plan-store namespace. Another home's same-named abort
-  and commit alone do not release it. Spool copies survive reload, queue pressure and message fitting, and are
-  removed only for the exact notes actually sent. The refusal says delivery is held for reconciliation, rather
+  and commit alone do not release it. Restored rows keep their checked owner and exact spool fingerprint through
+  the persisted queue. A foreign home cannot admit them; production delivery rechecks the originating namespace
+  and captured mate under the lifecycle lock, including after the native refresh. A same-home handover selects
+  its current mate only on a fresh admission. Known old bare queue copies are rebound to their still-intact
+  spool's provenance; ambiguous or malformed provenance fails closed. Existing late queue insertions stay
+  visible to S07's explicit disposition flow and cannot bypass its send permission.
+  Prompt retries deduplicate by namespace, watch and due UTC minute, surviving reload and successful release
+  delivery. `MAX_HELD_WATCHES` permits 20 retained/reserved admissions per originating namespace. Another
+  home's retained evidence does not change an unarmed home's producer behavior. The affected script pauses while its
+  earlier output is held, and capacity is checked before a stateful producer can advance its baseline. Concurrent
+  armed producers reserve slots; a cap refusal has a stable per-watch receipt, rather than a new row per tick.
+  Scripts already running when a cutover is armed still retain every observation, even if that finite in-flight
+  work temporarily exceeds the admission limit; subsequent admissions pause until space is available.
+  Recovery sorts the stored occurrence time with a fingerprint tie-break before queue filling, and retained
+  batches fit an oldest-first prefix across messages. Ordinary unarmed queue fitting stays unchanged.
+  Spool copies survive reload, queue pressure and message fitting, and are removed by their captured fingerprint
+  only for the exact notes actually sent. The refusal says delivery is held for reconciliation, rather
   than claiming it stays queued. Existing queued output still uses S07's explicit disposition flow; a foreign late insertion is still
   re-inventoried as a hold. Burst extension records its refusal and leaves the payload unchanged, returning as
   before. Watch routing stays outside the gate, preserving the R12O N1 lock-order fix.
@@ -316,9 +335,15 @@ Review recovery regressions (`server/legacy-delivery-gating.test.ts`, `server/su
   callback remains blocked after admission; migration refuses before activation. Recovered older named direct
   drains also block re-inventory, resolution, barrier and commit until native settlement. Positive controls
   retain the original permission record and append the actual result receipt before committing.
+- `server/watch-retention.test.ts` covers RR3's real release/home/mate switch with a busy mate and reload,
+  admission/refresh races, old bare queue copies and malformed provenance; RR4's four retries and 16-minute
+  growth reproduction, stable cap receipts, pre-baseline/concurrent backpressure and unarmed control; RR5's
+  sequential recovery and oldest-first delivery across multiple messages/reloads.
 
-Review-fix local qualification (Windows, Node 24.22.1): typecheck passed; full CI-shaped two-worker suite
-passed 203 files / 3,023 tests with 3 skips and no failures, with the CI journal/diagnostic/pilot flags.
+Retention re-review local qualification (Windows, Node 24.22.1): typecheck and all 17 retention regressions
+passed. Full two-worker rechecks passed 203 of 204 files, with only unchanged launch-tool record checks
+failing; that file passed all 90 tests in isolation. Hosted checks and the origin/main control are recorded
+per head on the PR; local test assertions and timeout budgets were not changed.
 All five CI render commands passed: `docs/needs-you/render.mjs`, `docs/scoped-supervision/s05-ui/render.mjs`,
 `docs/attention-deck/render.mjs`, `docs/fm-ui-polish/render.mjs` and `docs/decision-ux-lists/render.mjs`.
 Artifacts remain in ignored `.local/`. These local checks qualify Windows only; hosted checks are tracked

@@ -51,6 +51,8 @@ export const MAX_OUTPUT_CHARS = 16000;
 export const MAX_ERROR_CHARS = 1500;
 /** Outputs waiting for the first mate; past this the oldest go. */
 export const MAX_QUEUED = 20;
+/** Per namespace, admissions stop here; already running producers retain their observations. */
+export const MAX_HELD_WATCHES = 20;
 /**
  * The most one catch-up message may hold, tags and all. Past it the oldest blocks go whole — never one
  * cut in the middle — and are counted in the dropped tag; the newest block always goes.
@@ -83,16 +85,24 @@ export interface QueuedNote {
   text: string;
   /** For a failure, what went wrong. */
   reason?: string;
+  /** Recovered evidence retains its namespace and exact spool identity through persistence and delivery. */
+  retained?: { owner: string; fingerprint: string };
 }
 
+const RetainedOwnerSchema = z.object({ owner: z.string().regex(/^[0-9a-f]{64}$/), fingerprint: z.string().regex(/^[0-9a-f]{64}$/) }).strict();
 const HeldWatchSchema = z.object({ format: z.literal("firstmate.held-watch/1"), fingerprint: z.string().regex(/^[0-9a-f]{64}$/),
   owner: z.string().regex(/^[0-9a-f]{64}$/),
+  occurrence: z.string().optional(),
   plan: z.string().regex(/^[a-z0-9][a-z0-9-]*$/), stage: z.string(), reason: z.string(),
-  note: z.object({ name: z.string(), ran: z.string(), kind: z.enum(["output", "failed"]), text: z.string(), reason: z.string().optional() }).strict()
+  note: z.object({ name: z.string(), ran: z.string().refine(value => Number.isFinite(Date.parse(value)), "Invalid occurrence time"), kind: z.enum(["output", "failed"]), text: z.string(), reason: z.string().optional() }).strict()
     .transform(({ reason, ...note }): QueuedNote => ({ ...note, ...(reason === undefined ? {} : { reason }) })) }).strict();
 export type HeldWatch = z.infer<typeof HeldWatchSchema>;
-const heldOwner = (gate: CutoverGate) => digest(process.platform === "win32" ? gate.root.toLowerCase() : gate.root);
-const heldFingerprint = (owner: string, note: QueuedNote) => digest({ owner, item: itemFingerprint(watchItem(note)) });
+export const watchOwner = (gate: CutoverGate) => digest(process.platform === "win32" ? gate.root.toLowerCase() : gate.root);
+const bareNote = ({ retained: _retained, ...note }: QueuedNote): QueuedNote => note;
+const heldFingerprint = (owner: string, note: QueuedNote) => digest({ owner, item: itemFingerprint(watchItem(bareNote(note))) });
+const occurrenceOrder = (a: { ran: string; key: string }, b: { ran: string; key: string }) =>
+  Date.parse(a.ran) - Date.parse(b.ran) || a.key.localeCompare(b.key);
+export interface WatchDelivery { owner: string; recipient: string }
 
 interface RunnerState {
   watches: Record<string, WatchRecord>;
@@ -110,7 +120,7 @@ export interface WatchRunnerOptions {
   /** Names the captain has switched off. */
   disabled: () => Promise<readonly string[]>;
   /** Sends the note, or says to wait: while the first mate is mid-turn, or while there is none. */
-  deliver: (text: string) => Promise<DeliveryOutcome>;
+  deliver: (text: string, expected?: WatchDelivery) => Promise<DeliveryOutcome>;
   /** Persist isolated-session inputs before removing them from the script's delivery path. */
   routeNote?: (note: QueuedNote) => Promise<boolean>;
   canRun?: (name: string) => Promise<boolean>;
@@ -225,6 +235,7 @@ export class WatchRunner {
   private state: RunnerState | null = null;
   private loading: Promise<RunnerState> | null = null;
   private readonly running = new Set<string>();
+  private readonly producing = new Map<string, string | null>();
   private readonly aborter = new AbortController();
   private flushing: Promise<void> = Promise.resolve();
   private readonly afterTurn = new Set<NodeJS.Timeout>();
@@ -285,8 +296,22 @@ export class WatchRunner {
   async runOne(home: string, watch: WatchFile, at: Date = this.now()): Promise<void> {
     if (this.running.has(watch.name) || this.aborter.signal.aborted) return;
     this.running.add(watch.name);
+    let producerGate: CutoverGate | undefined;
     try {
       if (this.options.canRun && !(await this.options.canRun(watch.name))) return;
+      const entry = await this.options.gate?.();
+      producerGate = entry?.gate;
+      const reserve = () => serialized(`${this.options.stateFile}.retention`, async () => {
+        const held = await this.held();
+        const owner = producerGate ? watchOwner(producerGate) : null, owned = held.filter(record => record.owner === owner);
+        if (owned.some(record => record.note.name === watch.name)) return false;
+        // With no retained evidence or armed gate, preserve the legacy producer behavior.
+        const guarding = owned.length > 0 || !!(producerGate && (await producerGate.armed() || (await producerGate.targets()).length));
+        const reserved = [...this.producing.values()].filter(value => value === owner).length;
+        if (guarding && owned.length + reserved >= MAX_HELD_WATCHES) await this.capacityRefusal(producerGate, watch.name);
+        this.producing.set(watch.name, owner); return true;
+      });
+      if (!(await (producerGate ? producerGate.run(reserve) : reserve()))) return;
       const stateDirectory = join(this.options.scriptStateRoot, watch.name);
       await mkdir(stateDirectory, { recursive: true });
       const result = await this.run(watch.path, {
@@ -305,8 +330,9 @@ export class WatchRunner {
         signal: this.aborter.signal,
       });
       if (this.aborter.signal.aborted) return;
-      await this.record(watch.name, stamp(at), result);
+      await this.record(watch.name, stamp(at), result, producerGate);
     } finally {
+      this.producing.delete(watch.name);
       this.running.delete(watch.name);
     }
   }
@@ -317,7 +343,7 @@ export class WatchRunner {
    * gate, so a freeze's inventory either includes them or follows them. One watch never records two runs at once
    * (`running`), so the note decided from the state read before the gate still matches the state written under it.
    */
-  private async record(name: string, ran: string, result: RunResult): Promise<void> {
+  private async record(name: string, ran: string, result: RunResult, producerGate?: CutoverGate): Promise<void> {
     const reason = failureReason(result, this.timeoutMs);
     const stderr = tail(result.stderr, MAX_ERROR_CHARS);
     const output = result.stdout.trim();
@@ -329,7 +355,7 @@ export class WatchRunner {
     await this.gated(async gate => {
       const state = await this.load();
       const previous = state.watches[name] ?? BLANK;
-      if (note !== null && !routed) await this.enqueue(state, note, gate);
+      if (note !== null && !routed) await this.enqueue(state, note, gate, undefined, true);
       if (reason !== null) {
         state.watches[name] = {
           ...previous,
@@ -351,7 +377,7 @@ export class WatchRunner {
         };
       }
       await this.persist();
-    });
+    }, producerGate);
   }
 
   /** Current-session prompt watches use the existing execution queue, with no second result notification. */
@@ -359,16 +385,21 @@ export class WatchRunner {
     return serialized(`${this.options.stateFile}.prompts`, () => this.gated(async gate => {
       const state = await this.load();
       const ran = stamp(at);
+      const occurrence = `${name}@${ran.slice(0, 16)}`;
+      const held = gate ? (await this.held()).find(record => record.owner === watchOwner(gate) &&
+        (record.occurrence === occurrence || (!record.occurrence && record.note.name === name && record.note.ran.slice(0, 16) === ran.slice(0, 16)))) : undefined;
+      if (held) throw this.heldRefusal(held);
       const previous = state.watches[name];
       if (previous?.lastRunAt?.slice(0, 16) === ran.slice(0, 16) || state.queue.some((note) => note.name === name)) return;
-      await this.enqueue(state, { name, ran, kind: "output", text }, gate);
+      await this.enqueue(state, { name, ran, kind: "output", text }, gate, occurrence);
       state.watches[name] = { ...BLANK, lastRunAt: ran, lastResult: "queued", lastOutput: text, lastOutputAt: ran };
       await this.persist();
     }));
   }
 
   /** Queue enqueues run inside the cutover gate, so a freeze's inventory either includes them or follows them. */
-  private async gated<T>(work: (gate?: CutoverGate) => Promise<T>): Promise<T> {
+  private async gated<T>(work: (gate?: CutoverGate) => Promise<T>, captured?: CutoverGate): Promise<T> {
+    if (captured) return captured.run(() => work(captured));
     const entry = await this.options.gate?.();
     return entry ? entry.gate.run(() => work(entry.gate)) : work();
   }
@@ -392,7 +423,7 @@ export class WatchRunner {
         throw new Error(`Held watch evidence ${name} does not match its payload.`);
       records.push(record);
     }
-    return records;
+    return records.sort((a, b) => occurrenceOrder({ ran: a.note.ran, key: a.fingerprint }, { ran: b.note.ran, key: b.fingerprint }));
   }
 
   /** Only a checked release/abort lets a hold re-enter the queue. Commit is not release permission.
@@ -401,20 +432,30 @@ export class WatchRunner {
     const held = await this.held();
     if (!held.length) return;
     const entry = await this.options.gate?.();
-    if (!entry) return;
-    await entry.gate.run(async () => {
+    const restore = async () => {
       const state = await this.load(); let changed = false;
+      // Upgrade known bare copies without hiding a late insertion from S07's disposition inventory.
+      // No new frozen entry is inserted here; an existing one still needs its explicit send permission.
+      state.queue = state.queue.map(note => {
+        if (note.retained) return note;
+        const matches = held.filter(record => heldFingerprint(record.owner, note) === record.fingerprint);
+        if (matches.length === 0) return note;
+        if (matches.length !== 1) throw new Error("Ambiguous retained watch provenance; reconcile the matching spool records explicitly.");
+        const record = matches[0]!;
+        changed = true; return { ...note, retained: { owner: record.owner, fingerprint: record.fingerprint } };
+      });
       for (const record of held) {
         if (state.queue.length >= MAX_QUEUED) break;
-        if (record.owner !== heldOwner(entry.gate)) continue;
+        if (!entry || record.owner !== watchOwner(entry.gate)) continue;
         if (!await entry.gate.sidecar(record.plan, "aborted")) continue;
         const item = watchItem(record.note);
         if (!(await entry.gate.verdict(item, "enqueue")).admit) continue;
-        if (state.queue.some(note => heldFingerprint(record.owner, note) === record.fingerprint)) continue;
-        state.queue.push(record.note); changed = true;
+        if (state.queue.some(note => note.retained?.owner === record.owner && note.retained.fingerprint === record.fingerprint)) continue;
+        state.queue.push({ ...record.note, retained: { owner: record.owner, fingerprint: record.fingerprint } }); changed = true;
       }
       if (changed) await this.persist(true);
-    });
+    };
+    if (entry) await entry.gate.run(restore); else await restore();
   }
 
   /** Puts back an entry a released cutover archived, exactly, unless one with its identity is already queued. */
@@ -450,25 +491,51 @@ export class WatchRunner {
     return (await this.load()).queue.some((note) => note.name === name) || (await this.held()).some(record => record.note.name === name);
   }
 
-  private async enqueue(state: RunnerState, note: QueuedNote, gate?: CutoverGate): Promise<void> {
+  private heldRefusal(record: HeldWatch): CutoverRefusal {
+    return new CutoverRefusal(record.plan, record.stage, `${record.reason} Output retained durably in ${this.heldDirectory()}.`);
+  }
+
+  private async recordCapacity(gate: CutoverGate | undefined, name: string): Promise<string> {
+    const reason = `Watch retention capacity (${MAX_HELD_WATCHES}) reached; further production of ${name} is paused. Reconcile retained output before retrying.`;
+    if (gate) await gate.refusal({ source: "watch", id: `retention-capacity:${name}`, payloadHash: digest({ owner: watchOwner(gate), name, limit: MAX_HELD_WATCHES }) }, reason);
+    return reason;
+  }
+
+  private async capacityRefusal(gate: CutoverGate | undefined, name: string): Promise<never> {
+    const reason = await this.recordCapacity(gate, name);
+    throw new CutoverRefusal("watch-retention", "capacity", reason);
+  }
+
+  private async enqueue(state: RunnerState, note: QueuedNote, gate?: CutoverGate, occurrence?: string, produced = false): Promise<void> {
     if (gate) {
       const item = watchItem(note), verdict = await gate.verdict(item, "enqueue");
       if (!verdict.admit) {
-        const owner = heldOwner(gate), fingerprint = heldFingerprint(owner, note), path = join(this.heldDirectory(), `${fingerprint}.json`);
-        await mkdir(this.heldDirectory(), { recursive: true });
-        try { await publish(path, { format: "firstmate.held-watch/1", fingerprint, owner, note, plan: verdict.plan, stage: verdict.stage, reason: verdict.reason } satisfies HeldWatch); }
-        catch (error) {
-          if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
-          if (!(await this.held()).some(record => record.fingerprint === fingerprint)) throw error;
-        }
-        await gate.refusal(item, verdict.reason);
-        throw new CutoverRefusal(verdict.plan, verdict.stage, `${verdict.reason} Output retained durably in ${this.heldDirectory()}.`);
+        return serialized(`${this.options.stateFile}.retention`, async () => {
+          const owner = watchOwner(gate), fingerprint = heldFingerprint(owner, note), path = join(this.heldDirectory(), `${fingerprint}.json`);
+          const held = await this.held();
+          const existing = held.find(record => record.fingerprint === fingerprint || (occurrence && record.owner === owner && record.occurrence === occurrence));
+          if (existing) throw this.heldRefusal(existing);
+          if (!produced && held.filter(record => record.owner === owner).length + [...this.producing.values()].filter(value => value === owner).length >= MAX_HELD_WATCHES)
+            await this.capacityRefusal(gate, note.name);
+          // A script already advanced its baseline. Its reserved/in-flight observation must survive even
+          // if a cutover was armed after it started; capacity stops subsequent producer admissions.
+          const record: HeldWatch = { format: "firstmate.held-watch/1", fingerprint, owner, note,
+            ...(occurrence ? { occurrence } : {}), plan: verdict.plan, stage: verdict.stage, reason: verdict.reason };
+          await mkdir(this.heldDirectory(), { recursive: true });
+          try { await publish(path, record); }
+          catch (error) {
+            if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+            if (!(await this.held()).some(record => record.fingerprint === fingerprint)) throw error;
+          }
+          if (produced && held.filter(record => record.owner === owner).length >= MAX_HELD_WATCHES) await this.recordCapacity(gate, note.name);
+          await gate.refusal(item, verdict.reason);
+          throw this.heldRefusal(record);
+        });
       }
     }
     state.queue.push(note);
     while (state.queue.length > MAX_QUEUED) {
-      state.queue.shift();
-      state.dropped += 1;
+      if (!state.queue.shift()?.retained) state.dropped += 1;
     }
   }
 
@@ -505,26 +572,34 @@ export class WatchRunner {
     await this.restoreReleasedHeld();
     const state = await this.load();
     if (state.queue.length === 0 && state.dropped === 0) return;
-    let batch = [...state.queue];
+    const entry = await this.options.gate?.();
+    const held = await this.held();
+    // Keep retained traffic separate from the legacy batch: neither another home nor the legacy
+    // newest-first fitter may consume it. Provenance survives waiting, reload and mate handover.
+    const ordinary = state.queue.filter(note => !note.retained);
+    let batch = ordinary.length ? ordinary : state.queue.filter(note => entry && note.retained?.owner === watchOwner(entry.gate) &&
+      held.some(record => record.owner === note.retained?.owner && record.fingerprint === note.retained?.fingerprint))
+      .sort((a, b) => occurrenceOrder({ ran: a.ran, key: a.retained!.fingerprint }, { ran: b.ran, key: b.retained!.fingerprint }));
     const dropped = state.dropped;
+    const retainedBatch = batch.length > 0 && !!batch[0]!.retained;
+    if (batch.length === 0 && dropped === 0) return;
     // Send admission: the gate leaves a frozen scope's opaque entries queued with their legacy owner,
     // and claims the rest durably before the send. Unrelated output still flows.
-    const entry = await this.options.gate?.();
     let claim: string | null = null;
     if (entry) {
       const admission = await entry.gate.claim(batch.map(watchItem), entry.recipient, async (items) =>
         items.filter((item) => state.queue.some((queued) => watchItem(queued).id === item.id && watchItem(queued).payloadHash === item.payloadHash)));
       batch = batch.filter((queued) => admission.admitted.some((item) => item.id === watchItem(queued).id && item.payloadHash === watchItem(queued).payloadHash));
       claim = admission.claim;
-      if (batch.length === 0 && (dropped === 0 || admission.refused.length > 0)) {
+      if (batch.length === 0 && (retainedBatch || dropped === 0 || admission.refused.length > 0)) {
         await entry.gate.settle(claim, "failed", "Nothing admitted to send.");
         return;
       }
     }
-    const note = await fitWatchNote(batch, dropped);
+    const note = retainedBatch ? await this.fitRetained(batch, dropped) : await fitWatchNote(batch, dropped);
     let outcome: DeliveryOutcome;
     try {
-      outcome = await this.options.deliver(note.text);
+      outcome = await this.options.deliver(note.text, retainedBatch ? { owner: batch[0]!.retained!.owner, recipient: entry!.recipient } : undefined);
     } catch (error) {
       await entry?.gate.settle(claim, "uncertain", String(error));
       console.error("[firstmate] could not send the watches' output to the first mate:", error);
@@ -534,19 +609,35 @@ export class WatchRunner {
     await entry?.gate.settle(claim, outcome === "sent" ? "accepted" : "failed", note.cut.length ? `cut: ${note.cut.map((q) => watchItem(q).id).join(", ")}` : "");
     if (outcome !== "sent") return;
     // What was cut to fit is gone too: counted in this message's tag, not tried again.
-    state.queue = state.queue.filter((queued) => !batch.includes(queued));
+    state.queue = state.queue.filter((queued) => !(retainedBatch ? note.sent : batch).includes(queued));
     state.dropped -= dropped;
     const settle = (queued: QueuedNote, result: WatchResult) => {
       const record = state.watches[queued.name];
+      if (queued.retained && result === "delivered" && (!record?.lastRunAt || record.lastRunAt <= queued.ran)) {
+        state.watches[queued.name] = { ...BLANK, lastRunAt: queued.ran, lastResult: queued.kind === "failed" ? "failed" : "delivered",
+          lastOutput: queued.text, lastOutputAt: queued.ran, lastError: queued.reason ?? null, failing: queued.kind === "failed" };
+        return;
+      }
       if (queued.kind === "output" && record?.lastResult === "queued" && record.lastOutputAt === queued.ran) {
         state.watches[queued.name] = { ...record, lastResult: result };
       }
     };
     note.cut.forEach((queued) => settle(queued, "dropped"));
     note.sent.forEach((queued) => settle(queued, "delivered"));
-    await this.persist();
-    if (entry) for (const delivered of note.sent)
-      await rm(join(this.heldDirectory(), `${heldFingerprint(heldOwner(entry.gate), delivered)}.json`), { force: true });
+    await this.persist(retainedBatch);
+    for (const delivered of note.sent) if (delivered.retained)
+      await rm(join(this.heldDirectory(), `${delivered.retained.fingerprint}.json`), { force: true });
+  }
+
+  /** Retained transitions drain oldest first without dropping an older occurrence to fit a newer one. */
+  private async fitRetained(batch: QueuedNote[], dropped: number): Promise<{ text: string; sent: QueuedNote[]; cut: QueuedNote[] }> {
+    const sent: QueuedNote[] = []; let text = "";
+    for (const note of batch) {
+      const candidate = await watchNote([...sent, note], dropped);
+      if (sent.length > 0 && candidate.length > MAX_MESSAGE_CHARS) break;
+      sent.push(note); text = candidate;
+    }
+    return { text, sent, cut: [] };
   }
 
   /** Every watch in the home as the board draws it. */
@@ -670,7 +761,12 @@ export async function readState(path: string): Promise<RunnerState> {
         const kind = entry.kind === "failed" ? "failed" : entry.kind === "output" ? "output" : null;
         if (name === null || ran === null || text === null || kind === null) return [];
         const reason = asString(entry.reason);
-        return [{ name, ran, kind, text, ...(reason === null ? {} : { reason }) }];
+        const note: QueuedNote = { name, ran, kind, text, ...(reason === null ? {} : { reason }) };
+        if (entry.retained !== undefined) {
+          note.retained = RetainedOwnerSchema.parse(entry.retained);
+          if (note.retained.fingerprint !== heldFingerprint(note.retained.owner, note)) throw new Error("Queued retained watch provenance does not match its payload.");
+        }
+        return [note];
       })
     : [];
   const dropped = typeof object.dropped === "number" && object.dropped > 0 ? Math.floor(object.dropped) : 0;
