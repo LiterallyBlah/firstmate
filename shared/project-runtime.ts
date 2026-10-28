@@ -1,7 +1,7 @@
 import { defineRpc } from "@getpaseo/plugin";
 import { z } from "zod";
 import { SupervisionHash, SupervisionUuid, SupervisionVersionRefSchema } from "./supervision";
-import { PolicySourceSchema } from "./supervision-policy";
+import { PolicySourceSchema, ProjectProvisionInputSchema } from "./supervision-policy";
 import { AgentProfileSchema } from "./supervision-effects";
 import { MemoryKey } from "./supervision-projects";
 const count = z.number().int().min(0).max(1_000_000);
@@ -28,11 +28,13 @@ const PlanAssociation = z.object({ id: z.string(), title: z.string(), backend: z
   state: z.string(), projectIds: z.array(SupervisionUuid), sponsorScopeId: SupervisionUuid.nullable(), ownerScopeId: SupervisionUuid.nullable() }).strict();
 export const ProjectRuntimeSnapshotSchema = z.object({ enabled: z.boolean(), homeId: z.string(), registryDigest: SupervisionHash.nullable(),
   sequence: count, hash: SupervisionHash.nullable(), freshness: z.string(), problems: z.array(z.string()),
+  recovery: z.object({ sequence: count, hash: SupervisionHash.nullable() }).strict().nullable().optional(),
   general: z.object({ agentId: z.string().nullable(), scopeId: SupervisionUuid.nullable(), headroom: count, slots: count,
     providerAvailability: z.literal("unknown") }).strict(),
   projects: z.array(z.object({ name: z.string(), projectId: SupervisionUuid.nullable(), scopeId: SupervisionUuid.nullable(), hostId: z.string().nullable(),
     directory: z.string().nullable(), state: z.string(), reason: z.string().nullable(), version: count, aliases: z.array(z.string()),
     agentId: z.string().nullable(), workspaceId: z.string().nullable(), provisionRequestId: SupervisionUuid.nullable(),
+    provisionInput: ProjectProvisionInputSchema.nullable().optional(),
     sessions: count, turns: count, uncertain: count, memoryPending: count, profile: AgentProfileSchema.nullable(),
     limits: z.object({ supervisorSessions: count, supervisorTurns: count }).strict().nullable(), plans: z.array(PlanAssociation) }).strict()),
 }).strict();
@@ -40,8 +42,12 @@ export type ProjectRuntimeSnapshot = z.infer<typeof ProjectRuntimeSnapshotSchema
 export const readProjectRuntime = defineRpc({ name: "firstmate.projects.read", input: z.object({}).strict(), output: ProjectRuntimeSnapshotSchema });
 /** Same-user role convention, as workflow requests. Never authenticated caller identity or Attach. */
 export const administerProject = defineRpc({ name: "firstmate.projects.admin", input: z.object({ homeId: z.string(), requestId: SupervisionUuid, actorId: z.string().min(1), command: ProjectAdminSchema }).strict(), output: ProjectRuntimeSnapshotSchema });
-export const provisionProjectFromUi = defineRpc({ name: "firstmate.projects.provision-ui", input: z.object({ homeId: z.string(), requestId: SupervisionUuid,
-  projectId: SupervisionUuid, projectVersion: count.min(1) }).strict(), output: ProjectRuntimeSnapshotSchema });
+export const provisionProjectFromUi = defineRpc({ name: "firstmate.projects.provision-ui", input: ProjectProvisionInputSchema, output: ProjectRuntimeSnapshotSchema });
+/** Explicit inspected repair only. No session reservation, dispatch, authority reconstruction or Attach. */
+export const recoverProjectRuntimeFromUi = defineRpc({ name: "firstmate.projects.recover-ui", input: z.object({ homeId: z.string(), sequence: count,
+  hash: SupervisionHash.nullable() }).strict(), output: ProjectRuntimeSnapshotSchema });
+export const abortProjectProvisionFromUi = defineRpc({ name: "firstmate.projects.abort-ui", input: z.object({ homeId: z.string(), projectId: SupervisionUuid,
+  projectVersion: count.min(1), provisionRequestId: SupervisionUuid }).strict(), output: ProjectRuntimeSnapshotSchema });
 export const readProjectMemory = defineRpc({ name: "firstmate.projects.memory", input: z.object({ homeId: z.string(), projectId: SupervisionUuid }).strict(),
   output: z.object({ projectId: SupervisionUuid, scopeId: SupervisionUuid, name: z.string(), aliases: z.array(z.string()), authority: z.literal("none"),
     conventions: z.array(z.object({ path: z.string(), digest: SupervisionHash, text: z.string(), authority: z.literal("none") }).strict()),

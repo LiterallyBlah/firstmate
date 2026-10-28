@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { ProjectAdmin } from "../shared/project-runtime";
@@ -13,6 +13,9 @@ import { policyRef } from "./supervision-policy";
 import { scopeSnapshot } from "./scope-projection";
 import { workflowFixture } from "../test/workflow-fixture";
 import { workflowStore } from "./workflow-service";
+import { askMate } from "./mate";
+import { canonical, digest } from "./submissions";
+import { stableId } from "./supervision-effects";
 const root = process.env.PASEO_HOME!, api = {} as PaseoApi;
 let home: string, data: string, runtime: SupervisionRuntime, service: ProjectRuntime, receiver: SyntheticReceiver, source: Extract<ProjectAdmin, { op: "admit" }>["source"];
 const actor = { kind: "mate-chat" as const, id: "general", source: "project administration (same-user role convention, unverified)" };
@@ -41,12 +44,172 @@ async function admit(name = "scheduler") {
 }
 it("production RPCs are registered; off and enabled reads create nothing, account every registry entry, and never provision", async () => {
   const handles: string[] = []; registerProjectRuntime({ handle: ((rpc: { name: string }) => { handles.push(rpc.name); }) as never }, make(false));
-  expect(handles).toHaveLength(4);
+  expect(handles).toHaveLength(6); expect(handles).toContain("firstmate.projects.recover-ui"); expect(handles).toContain("firstmate.projects.abort-ui");
   expect((await service.read()).projects).toHaveLength(4);
   expect((await service.read()).projects.find(p => p.name === "remote")?.reason).toMatch(/canonical local/);
   service = make(false); const read = await service.read();
+  await expect(service.recover({ homeId: read.homeId, sequence: 0, hash: null })).rejects.toMatchObject({ code: "UNSUPPORTED" });
+  await expect(service.abort({ homeId: read.homeId, projectId: randomUUID(), projectVersion: 1, provisionRequestId: randomUUID() })).rejects.toMatchObject({ code: "UNSUPPORTED" });
   await expect(service.provision({ homeId: read.homeId, requestId: randomUUID(), projectId: randomUUID(), projectVersion: 1 }, api)).rejects.toMatchObject({ code: "UNSUPPORTED" });
   await expect(stat(join(data, "supervision"))).rejects.toMatchObject({ code: "ENOENT" }); expect(receiver.calls).toEqual([]);
+});
+it("review F1: General chat and another admitted project finish while a project's native workspace call waits", async () => {
+  await admit(); const read = await admit("beta"), a = read.projects.find(p => p.name === "scheduler")!, b = read.projects.find(p => p.name === "beta")!;
+  let release!: () => void, entered!: () => void, generalRead = false;
+  const gate = new Promise<void>(done => { release = done; }), ready = new Promise<void>(done => { entered = done; });
+  const original = receiver.openWorkspace.bind(receiver);
+  vi.spyOn(receiver, "openWorkspace").mockImplementationOnce(async intent => { entered(); await gate; return original(intent); });
+  const input = (p: typeof a) => ({ homeId: read.homeId, projectId: p.projectId!, projectVersion: p.version, requestId: randomUUID() });
+  const first = service.provision(input(a), api); await ready;
+  let secondFinished = false;
+  const second = service.provision(input(b), api).then(() => { secondFinished = true; });
+  const send = vi.fn(async () => {});
+  const mateApi = { agents: { ref: () => ({ refresh: async () => { generalRead = true; return { agent: { id: "general", archivedAt: null, status: "idle", provider: "codex", capabilities: { supportsStreaming: false } } }; }, send }) } } as unknown as PaseoApi;
+  const general = askMate(mateApi, { text: "captain request" });
+  try {
+    await vi.waitFor(() => { expect(generalRead).toBe(true); expect(send).toHaveBeenCalledTimes(1); expect(secondFinished).toBe(true); }, { timeout: 20000 });
+    expect(receiver.agents.size).toBe(1); // Only B; A's native call is still waiting.
+  } finally { release(); await Promise.all([first, second, general]); }
+  expect(receiver.agents.size).toBe(2);
+}, 60000);
+
+it("review F2: the app can inspect and recover a stale checkpoint after restart, then resume its original input exactly once", async () => {
+  const read = await admit(), p = read.projects.find(p => p.name === "scheduler")!;
+  await runtime.stop(); let failOnce = true;
+  runtime = new SupervisionRuntime(data, (root, targetHome) => new SupervisionStore(root, targetHome, { writable: true, boundary: async name => {
+    if (name === "publication:linked" && failOnce) { failOnce = false; throw Error("review F2 checkpoint interruption"); }
+  } })); service = make();
+  const input = { homeId: read.homeId, projectId: p.projectId!, projectVersion: p.version, requestId: randomUUID() };
+  await expect(service.provision(input, api)).rejects.toMatchObject({ code: "HELD" });
+  await runtime.stop(); runtime = new SupervisionRuntime(data); service = make();
+  const held = await service.read();
+  expect(held.freshness).toBe("held"); expect(receiver.calls).toHaveLength(0);
+  expect(held.recovery).toEqual({ sequence: held.sequence, hash: held.hash });
+  const recovered = await service.recover({ homeId: held.homeId, ...held.recovery! });
+  expect(recovered.freshness).toBe("current"); expect(receiver.calls).toHaveLength(0);
+  const retained = recovered.projects.find(p => p.name === "scheduler")!;
+  expect(retained.provisionInput).toEqual(input);
+  await service.provision(retained.provisionInput!, api); await service.provision(input, api);
+  expect(receiver.agents.size).toBe(1); expect(receiver.calls.map(c => c.op)).toEqual(["openWorkspace", "createAgent", "send"]);
+  expect((await service.read()).projects.find(p => p.name === "scheduler")).toMatchObject({ sessions: 1, turns: 1 });
+});
+it("a stale provisioning input cannot pin an invalid request and block the next current app action", async () => {
+  const read = await admit(), p = read.projects.find(p => p.name === "scheduler")!;
+  await expect(service.provision({ homeId: read.homeId, projectId: p.projectId!, projectVersion: p.version + 1, requestId: randomUUID() }, api)).rejects.toMatchObject({ code: "STALE" });
+  expect((await service.read()).projects.find(row => row.projectId === p.projectId)?.provisionInput).toBeNull();
+  await service.provision({ homeId: read.homeId, projectId: p.projectId!, projectVersion: p.version, requestId: randomUUID() }, api);
+  expect(receiver.agents.size).toBe(1);
+});
+const interruptions = [
+  ...Array.from({ length: 9 }, (_, i) => ["publication:linked", i + 1] as const),
+  ...["checkpoint:written", "checkpoint:synced", "checkpoint:replaced"].flatMap(point => [1, 6, 9].map(n => [point, n] as const)),
+  ["event:linked", 1] as const,
+];
+it.each(interruptions)("app recovery after %s at provisioning transaction %i retains one identity and offers safe resume or stop", async (point, transaction) => {
+  const read = await admit(), p = read.projects.find(p => p.name === "scheduler")!;
+  await runtime.stop(); let seen = 0, tripped = false;
+  runtime = new SupervisionRuntime(data, (root, home) => new SupervisionStore(root, home, { writable: true, boundary: async name => {
+    if (name === point && ++seen === transaction) { tripped = true; throw Error(`interrupted ${point}/${transaction}`); }
+  } })); service = make();
+  const input = { homeId: read.homeId, requestId: randomUUID(), projectId: p.projectId!, projectVersion: p.version };
+  await expect(service.provision(input, api)).rejects.toMatchObject({ code: "HELD" }); expect(tripped).toBe(true);
+  await runtime.stop(); runtime = new SupervisionRuntime(data); service = make();
+  const held = await service.read(), calls = receiver.calls.length;
+  if (held.recovery) {
+    await expect(service.recover({ homeId: held.homeId, sequence: held.sequence, hash: "0".repeat(64) })).rejects.toMatchObject({ code: "STALE" });
+    await service.recover({ homeId: held.homeId, ...held.recovery }); expect(receiver.calls).toHaveLength(calls);
+  }
+  const restored = await service.read(), reservedId = restored.projects.find(row => row.projectId === p.projectId)?.agentId;
+  expect(restored.freshness).toBe("current"); expect(restored.projects.find(row => row.projectId === p.projectId)?.provisionInput).toEqual(input);
+  await service.provision(input, api); await service.provision(input, api);
+  let latest = (await service.read()).projects.find(row => row.projectId === p.projectId)!;
+  if (reservedId) expect(latest.agentId).toBe(reservedId);
+  expect(latest).toMatchObject({ sessions: 1, turns: 1 });
+  if (latest.reason) {
+    const abort = { homeId: read.homeId, projectId: p.projectId!, projectVersion: latest.version, provisionRequestId: input.requestId };
+    await service.abort(abort); await service.abort(abort);
+    await runtime.stop(); runtime = new SupervisionRuntime(data); service = make();
+    latest = (await service.read()).projects.find(row => row.projectId === p.projectId)!;
+    expect(latest.reason).toMatch(/Provisioning stopped/); expect(latest).toMatchObject({ sessions: 1, turns: 1 });
+    await expect(service.provision(input, api)).rejects.toMatchObject({ code: "HELD" });
+    await service.provision({ ...input, requestId: randomUUID() }, api);
+  }
+  expect(receiver.calls.filter(c => c.op === "createAgent").length).toBeLessThanOrEqual(1);
+  expect(receiver.calls.filter(c => c.op === "send").length).toBeLessThanOrEqual(1);
+}, 20000);
+
+it.each(["checkpoint", "event"])("app recovery refuses missing %s authority/witness without creating or changing identities", async damage => {
+  const read = await admit(); await runtime.stop();
+  const store = new SupervisionStore(data, home), before = await store.read();
+  const path = join(store.root, damage === "checkpoint" ? "checkpoint.json" : `transactions/${String(before.sequence).padStart(12, "0")}.event.json`);
+  await rm(path); runtime = new SupervisionRuntime(data); service = make();
+  const held = await service.read();
+  await expect(service.recover({ homeId: read.homeId, sequence: held.sequence, hash: held.hash })).rejects.toMatchObject({ code: "HELD" });
+  await expect(stat(path)).rejects.toMatchObject({ code: "ENOENT" }); expect(receiver.calls).toHaveLength(0);
+});
+it("app recovery preserves a divergent checkpoint instead of reconstructing authority", async () => {
+  const read = await admit(); await runtime.stop(); const store = new SupervisionStore(data, home), path = join(store.root, "checkpoint.json");
+  const { hash: _hash, ...body } = JSON.parse(await readFile(path, "utf8"));
+  const changed = { ...body, sequence: 0, transactionHash: null }, bytes = canonical({ ...changed, hash: digest(changed) }) + "\n";
+  await writeFile(path, bytes); runtime = new SupervisionRuntime(data); service = make(); const held = await service.read();
+  await expect(service.recover({ homeId: read.homeId, sequence: held.sequence, hash: held.hash })).rejects.toMatchObject({ code: "HELD" });
+  expect(await readFile(path, "utf8")).toBe(bytes); expect(receiver.calls).toHaveLength(0);
+});
+it("same-project accepted memory changes during provisioning still refuse the context snapshot", async () => {
+  const read = await admit(), p = read.projects.find(p => p.name === "scheduler")!, proposal = randomUUID(), update = randomUUID();
+  await admin({ op: "memory-propose", projectId: p.projectId!, key: "conventions", expectedVersion: 0, text: "original", evidence: [] }, proposal);
+  await admin({ op: "memory-decide", proposalId: proposal, proposalVersion: 1, decision: "accept", memoryVersion: 0 });
+  await admin({ op: "memory-propose", projectId: p.projectId!, key: "conventions", expectedVersion: 1, text: "updated", evidence: [] }, update);
+  const original = SupervisionStore.prototype.readBlob;
+  vi.spyOn(SupervisionStore.prototype, "readBlob").mockImplementationOnce(async function (this: SupervisionStore, id, max) {
+    const bytes = await original.call(this, id, max);
+    await admin({ op: "memory-decide", proposalId: update, proposalVersion: 1, decision: "accept", memoryVersion: 1 }); return bytes;
+  });
+  const input = { homeId: read.homeId, projectId: p.projectId!, projectVersion: p.version, requestId: randomUUID() };
+  await expect(service.provision(input, api)).rejects.toMatchObject({ code: "STALE" }); expect(receiver.calls).toHaveLength(0);
+  await service.provision(input, api); expect(receiver.sends[0]?.text).toContain("updated");
+});
+
+it("simultaneous project admissions keep General's reserved slot", async () => {
+  await admit(); await admit("beta"); const read = await admit("gamma");
+  service = new ProjectRuntime(runtime, { enabled: true, slots: 3, generalHeadroom: 1, receiver: () => receiver });
+  const inputs = read.projects.filter(p => p.profile).map(p => ({ homeId: read.homeId, projectId: p.projectId!, projectVersion: p.version, requestId: randomUUID() }));
+  const outcomes = await Promise.allSettled(inputs.map(input => service.provision(input, api)));
+  expect(outcomes.filter(r => r.status === "fulfilled"), outcomes.map(r => r.status === "rejected" ? String(r.reason) : "ok").join("; ")).toHaveLength(2);
+  expect(outcomes.filter(r => r.status === "rejected")).toHaveLength(1);
+  expect(receiver.agents.size).toBe(2);
+});
+it("a General role change between native effects holds dispatch and resumes the original reservation after repair", async () => {
+  const read = await admit(), p = read.projects.find(p => p.name === "scheduler")!;
+  const original = receiver.openWorkspace.bind(receiver);
+  vi.spyOn(receiver, "openWorkspace").mockImplementationOnce(async intent => { const receipt = await original(intent); await updateFirstmateConfig({ mateAgentId: "changed-general" }); return receipt; });
+  const input = { homeId: read.homeId, projectId: p.projectId!, projectVersion: p.version, requestId: randomUUID() };
+  await expect(service.provision(input, api)).rejects.toMatchObject({ code: "STALE" });
+  expect(receiver.calls.map(c => c.op)).toEqual(["openWorkspace"]);
+  await updateFirstmateConfig({ mateAgentId: "general" }); await service.provision(input, api);
+  expect(receiver.agents.size).toBe(1); expect(receiver.sends).toHaveLength(1);
+});
+it("the app can stop an in-flight provisioning without waiting for its native IO or refunding its identity", async () => {
+  const read = await admit(), p = read.projects.find(p => p.name === "scheduler")!;
+  let release!: () => void, entered!: () => void;
+  const gate = new Promise<void>(done => { release = done; }), ready = new Promise<void>(done => { entered = done; });
+  const original = receiver.openWorkspace.bind(receiver);
+  vi.spyOn(receiver, "openWorkspace").mockImplementationOnce(async intent => { entered(); await gate; return original(intent); });
+  const input = { homeId: read.homeId, projectId: p.projectId!, projectVersion: p.version, requestId: randomUUID() };
+  const running = service.provision(input, api).catch(error => error); await ready;
+  try {
+    const stopped = await service.abort({ homeId: read.homeId, projectId: p.projectId!, projectVersion: p.version, provisionRequestId: input.requestId });
+    expect(stopped.projects.find(row => row.projectId === p.projectId)).toMatchObject({ sessions: 1, turns: 1, reason: expect.stringContaining("Provisioning stopped") });
+  } finally { release(); await running; }
+  expect(receiver.calls.map(c => c.op)).toEqual(["openWorkspace"]);
+  await expect(service.provision(input, api)).rejects.toMatchObject({ code: "HELD" });
+});
+
+it("review O1: commented registry examples stay inactive while the raw reviewed fingerprint is retained", async () => {
+  const path = join(home, "data/projects.md"), text = await readFile(path, "utf8"), next = `${text}\n<!-- old example\n${text.split("\n")[0]}\n-->\n`;
+  await writeFile(path, next); const read = await service.read();
+  expect(read.registryDigest).toBe(digest(next)); expect(read.projects.filter(p => p.name === "scheduler")).toHaveLength(1);
+  expect(read.projects.find(p => p.name === "scheduler")?.reason).not.toMatch(/ambiguous/);
 });
 it("admits from an exact reviewed census, provisions one independent project mate, and retains context/spend on restart", async () => {
   await workflowStore(home).execute({ op: "draft", definition: workflowFixture() }, randomUUID(), "general");
@@ -78,6 +241,17 @@ it("lost opening stays uncertain across explicit resume and restart, with no ext
   await service.provision(input, api); await service.provision({ ...input, requestId: randomUUID() }, api);
   const latest = (await service.read()).projects.find(p => p.name === "scheduler")!;
   expect(latest).toMatchObject({ sessions: 1, turns: 1, uncertain: 1 }); expect(receiver.calls.filter(c => c.op === "send")).toHaveLength(1);
+});
+it("app stop also retains a legacy provisioning receipt that predates complete input metadata", async () => {
+  const read = await admit(), p = read.projects.find(p => p.name === "scheduler")!, input = { homeId: read.homeId, projectId: p.projectId!, projectVersion: p.version, requestId: randomUUID() };
+  await runtime.mutate(home, store => store.transactCommand(stableId("project-provision-input", input.requestId), digest(input),
+    { kind: "plugin-ui-unverified", id: "unauthenticated-plugin-call", source: "project provision button (unverified)" },
+    async () => ({ mutations: [], expectedVersions: [], result: { planId: null, planHash: null, decisionId: null, outboxId: null } })));
+  receiver.faults.send = ["lose"]; await service.provision(input, api);
+  expect((await service.read()).projects.find(row => row.projectId === p.projectId)?.provisionInput).toBeNull();
+  await service.abort({ homeId: read.homeId, projectId: p.projectId!, projectVersion: p.version, provisionRequestId: input.requestId });
+  await expect(service.provision(input, api)).rejects.toMatchObject({ code: "HELD" });
+  expect(receiver.agents.size).toBe(1); expect(receiver.sends).toHaveLength(1);
 });
 it("stop holds only the affected project; an unrelated project provisions, and original accepted admission replays", async () => {
   const first = await admit(), a = first.projects.find(p => p.name === "scheduler")!; await admit("beta");
@@ -111,10 +285,11 @@ it("reserves General headroom before a second project session and resumes after 
   const a = read.projects.find(p => p.name === "scheduler")!, b = read.projects.find(p => p.name === "beta")!;
   const input = (p: typeof a) => ({ homeId: read.homeId, projectId: p.projectId!, projectVersion: p.version, requestId: randomUUID() });
   const first = await service.provision(input(a), api);
-  await expect(service.provision(input(b), api)).rejects.toMatchObject({ code: "HELD", message: expect.stringContaining("General headroom") });
+  const secondInput = input(b);
+  await expect(service.provision(secondInput, api)).rejects.toMatchObject({ code: "HELD", message: expect.stringContaining("General headroom") });
   expect(receiver.agents.size).toBe(1);
   receiver.finish(first.projects.find(p => p.name === "scheduler")!.agentId!);
-  await service.provision(input(b), api); expect(receiver.agents.size).toBe(2);
+  await service.provision(secondInput, api); expect(receiver.agents.size).toBe(2);
 });
 
 it("the existing-clock transport pages past replied requests, and rejects provisioning or Attach files", async () => {

@@ -35,7 +35,14 @@ try {
     await page.getByText("Use isolated homes and preserve uncertain effects.", { exact: true }).waitFor();
     await page.screenshot({ path: resolve(out, `${theme}-${device}-memory.png`) });
     assert.equal(await page.evaluate(() => window.projectActions.length), 0); assert.deepEqual(errors, []);
-    results.push({ theme, device, noOverflow: true, actionsOnRead: 0, errors }); await page.close();
+    await page.goto(`http://127.0.0.1:${server.address().port}/?theme=${theme}&mode=recovery`);
+    await page.getByRole("button", { name: "Project mates and plans", exact: true }).click();
+    assert.equal(await page.getByRole("button", { name: "Recover project records", exact: true }).isEnabled(), true);
+    assert.equal(await page.evaluate(() => window.projectActions.length), 0);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    await page.screenshot({ path: resolve(out, `${theme}-${device}-recovery.png`) });
+    assert.deepEqual(errors, []);
+    results.push({ theme, device, recoveryVisible: true, noOverflow: true, actionsOnRead: 0, errors }); await page.close();
   }
 } finally { await browser.close(); await new Promise(done => server.close(done)); }
 await writeFile(resolve(out, "results.json"), JSON.stringify(results, null, 2)); console.log(JSON.stringify(results));

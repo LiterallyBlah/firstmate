@@ -5,7 +5,7 @@ import { Modal } from "@getpaseo/plugin/client/react-native";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
-import { ProjectRuntimeSnapshotSchema, provisionProjectFromUi, readProjectMemory, readProjectRuntime, type ProjectRuntimeSnapshot } from "../shared/project-runtime";
+import { ProjectRuntimeSnapshotSchema, provisionProjectFromUi, recoverProjectRuntimeFromUi, abortProjectProvisionFromUi, readProjectMemory, readProjectRuntime, type ProjectRuntimeSnapshot } from "../shared/project-runtime";
 import { workflowRequestId } from "./workflow-plans";
 import { errorText } from "./format";
 type Project = ProjectRuntimeSnapshot["projects"][number];
@@ -19,6 +19,7 @@ export function ProjectOwnershipBoard({ theme, compact, navigation, hostId = "lo
   theme: PluginTheme; compact: boolean; navigation?: PluginScreenProps["navigation"]; hostId?: string;
 }) {
   const read = useRpc(readProjectRuntime), provision = useRpc(provisionProjectFromUi);
+  const recover = useRpc(recoverProjectRuntimeFromUi), stop = useRpc(abortProjectProvisionFromUi);
   const query = useQuery({ queryKey: ["firstmate", "project-ownership", hostId], queryFn: async () => ProjectRuntimeSnapshotSchema.parse(await read({})), refetchInterval: 5000 });
   const [selected, select] = useState<Project | null>(null), [busy, setBusy] = useState(false), [error, setError] = useState<string | null>(null);
   const gate = useRef(false), pending = useRef<Parameters<typeof provision>[0] | null>(null), homeId = query.data?.homeId;
@@ -29,7 +30,7 @@ export function ProjectOwnershipBoard({ theme, compact, navigation, hostId = "lo
   async function confirm() {
     if (gate.current || stale || !selected?.projectId || !data) return;
     gate.current = true; setBusy(true); setError(null);
-    pending.current ??= { homeId: data.homeId, requestId: selected.provisionRequestId ?? workflowRequestId(), projectId: selected.projectId, projectVersion: selected.version };
+    pending.current ??= selected.provisionInput ?? { homeId: data.homeId, requestId: selected.provisionRequestId ?? workflowRequestId(), projectId: selected.projectId, projectVersion: selected.version };
     try {
       const next = ProjectRuntimeSnapshotSchema.parse(await provision(pending.current));
       // Reread after receipt; never reinterpret a lost reply as a fresh provisioning request.
@@ -40,28 +41,51 @@ export function ProjectOwnershipBoard({ theme, compact, navigation, hostId = "lo
     } catch (e) { setError(`${errorText(e)} The request may be recorded; retry retains its identity.`); }
     finally { gate.current = false; setBusy(false); }
   }
+  async function repair() {
+    if (gate.current || query.isError || !data?.enabled || !data.recovery) return;
+    gate.current = true; setBusy(true); setError(null);
+    try { await recover({ homeId: data.homeId, ...data.recovery }); await query.refetch(); }
+    catch (e) { setError(errorText(e)); }
+    finally { gate.current = false; setBusy(false); }
+  }
+  async function abort() {
+    const requestId = selected?.provisionRequestId ?? pending.current?.requestId;
+    if (gate.current || stale || !data || !selected?.projectId || !requestId) return;
+    gate.current = true; setBusy(true); setError(null);
+    try {
+      await stop({ homeId: data.homeId, projectId: selected.projectId, projectVersion: selected.version, provisionRequestId: requestId });
+      await query.refetch(); select(null); pending.current = null;
+    } catch (e) { setError(errorText(e)); }
+    finally { gate.current = false; setBusy(false); }
+  }
   return <>
     <ProjectOwnershipView theme={theme} compact={compact} data={data} readError={query.isError} onRefresh={() => { void query.refetch(); }}
+      {...(!selected ? { onRecover: () => { void repair(); }, recoveryBusy: busy } : {})}
       onProvision={p => { pending.current = null; setError(null); select(p); }}
       onOpen={navigation ? p => { if (p.agentId) navigation.openAgent({ agentId: p.agentId, ...(hostId === "local" ? {} : { serverId: hostId }) }); } : undefined} />
-    {selected ? <Modal title={`${selected.agentId ? "Resume" : "Create"} project mate for ${selected.name}?`} open onOpenChange={open => { if (!open && !busy) select(null); }}>
+    {!selected && error ? <Text accessibilityRole="alert" style={{ color: theme.colors.statusDanger }}>{error}</Text> : null}
+    {selected ? <Modal title={`${selected.provisionRequestId ? "Resume" : "Create"} project mate for ${selected.name}?`} open onOpenChange={open => { if (!open && !busy) select(null); }}>
       <Modal.Content><View style={{ gap: 12 }}>
         <Text style={{ color: theme.colors.foreground }}>Create one persistent conversation in its own workspace. This reserves a session and opening turn within the reviewed project limits.</Text>
         <Text selectable style={{ color: theme.colors.foreground }}>{selected.profile?.provider} · {selected.profile?.modeId} · {selected.profile?.thinkingOptionId || "default reasoning"}</Text>
         <Text style={{ color: theme.colors.foregroundMuted }}>Limits: {selected.limits?.supervisorSessions} sessions, {selected.limits?.supervisorTurns} turns. Spent: {selected.sessions} sessions, {selected.turns} turns.</Text>
         <Text style={{ color: theme.colors.foregroundMuted }}>Explicit app action by convention; caller identity is unverified. Project oversight grants no plan execution or release authority.</Text>
         {error ? <Text accessibilityRole="alert" style={{ color: theme.colors.statusDanger }}>{error}</Text> : null}
-        {stale ? <Text accessibilityRole="alert" style={{ color: theme.colors.statusWarning }}>Project status changed or could not be refreshed. Close and refresh before acting.</Text> : null}
+        {stale ? <Text accessibilityRole="alert" style={{ color: theme.colors.statusWarning }}>{data.recovery ? "Recover project records, then resume the recorded request. Recovery checks retained history and creates no session." : "Project status changed or could not be refreshed. Close and refresh before acting."}</Text> : null}
+        {(pending.current || selected.provisionRequestId) && !stale ? <Text style={{ color: theme.colors.foregroundMuted }}>Stopping provisioning cancels only undispatched operations. Its identity, spent budget and uncertain operations remain recorded; no replacement mate is created.</Text> : null}
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
           <Action theme={theme} label="Cancel" disabled={busy} onPress={() => select(null)} />
-          <Action theme={theme} label={busy ? "Provisioning…" : pending.current ? "Resume recorded request" : selected.agentId ? "Resume project provisioning" : "Create project mate"} disabled={busy || stale} onPress={() => { void confirm(); }} />
+          {data.recovery ? <Action theme={theme} label="Recover project records" disabled={busy || query.isError || !data.enabled} onPress={() => { void repair(); }} /> : null}
+          <Action theme={theme} label={busy ? "Provisioning…" : pending.current ? "Resume recorded request" : selected.provisionRequestId ? "Resume project provisioning" : "Create project mate"} disabled={busy || stale} onPress={() => { void confirm(); }} />
+          {pending.current || selected.provisionRequestId ? <Action theme={theme} label="Stop recorded provisioning" disabled={busy || stale} onPress={() => { void abort(); }} /> : null}
         </View>
       </View></Modal.Content>
     </Modal> : null}
   </>;
 }
-export function ProjectOwnershipView({ theme, compact, data, readError = false, onRefresh, onProvision, onOpen }: {
+export function ProjectOwnershipView({ theme, compact, data, readError = false, onRefresh, onProvision, onOpen, onRecover, recoveryBusy = false }: {
   theme: PluginTheme; compact: boolean; data: ProjectRuntimeSnapshot; readError?: boolean; onRefresh(): void; onProvision(p: Project): void; onOpen?: ((p: Project) => void) | undefined;
+  onRecover?: () => void; recoveryBusy?: boolean;
 }) {
   const [expanded, expand] = useState(false), [memoryProject, setMemory] = useState<Project | null>(null), colors = theme.colors;
   const stale = readError || data.freshness !== "current";
@@ -76,6 +100,8 @@ export function ProjectOwnershipView({ theme, compact, data, readError = false, 
     {readError ? <Text accessibilityRole="alert" style={{ color: colors.statusDanger }}>Project status could not be refreshed. Showing the last received census; actions are unavailable.</Text> : null}
     {expanded ? <>
       {data.problems.map((p, i) => <Text key={i} accessibilityRole="alert" style={{ color: colors.statusWarning }}>{p}</Text>)}
+      {data.recovery && onRecover ? <View style={{ gap: 8 }}><Text style={{ color: colors.foregroundMuted }}>Recover the inspected project records before resuming. Recovery validates history and creates no workspace, agent or turn.</Text>
+        <Action theme={theme} label="Recover project records" disabled={!data.enabled || readError || recoveryBusy} onPress={onRecover} /></View> : null}
       <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>General retains {data.general.headroom} of {data.general.slots} plugin admission slots. Provider capacity is unknown.</Text>
       {!data.projects.length ? <Text style={{ color: colors.foregroundMuted }}>Register active projects in Home files, then record reviewed admission and allocation.</Text> : null}
       <ScrollView style={{ maxHeight: compact ? 300 : 380 }} contentContainerStyle={{ gap: 16 }}>
@@ -91,8 +117,8 @@ export function ProjectOwnershipView({ theme, compact, data, readError = false, 
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             {p.agentId && p.workspaceId && onOpen ? <Action theme={theme} label={`Open ${p.name} conversation`} onPress={() => onOpen(p)} /> : null}
             {p.version > 0 ? <Action theme={theme} label={`Read ${p.name} memory${p.memoryPending ? ` (${p.memoryPending} proposals)` : ""}`} onPress={() => setMemory(p)} /> : null}
-            {data.enabled && p.profile && p.state === "admitted" && (!p.agentId || p.reason?.startsWith("Provisioning incomplete")) ?
-              <Action theme={theme} label={`${p.agentId ? "Resume" : "Create"} ${p.name} mate`} disabled={stale || !!p.reason && !p.reason.startsWith("Provisioning incomplete")} onPress={() => onProvision(p)} /> : null}
+            {data.enabled && p.profile && p.state === "admitted" && (!p.provisionRequestId && !p.agentId || p.reason?.startsWith("Provisioning incomplete")) ?
+              <Action theme={theme} label={`${p.provisionRequestId ? "Resume" : "Create"} ${p.name} mate`} disabled={stale || !!p.reason && !p.reason.startsWith("Provisioning incomplete")} onPress={() => onProvision(p)} /> : null}
           </View>
         </View>)}
       </ScrollView>

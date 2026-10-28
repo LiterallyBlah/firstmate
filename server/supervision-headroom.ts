@@ -1,6 +1,11 @@
 import type { SupervisionStatus } from "../shared/supervision";
 import type { GatewayReceiver } from "../shared/supervision-effects";
 import { refuse } from "./supervision-effects";
+import { serialized } from "./serialize";
+/** Shared only for checking and reserving plugin capacity. Release before any native effect. */
+export function withScopeAdmission<T>(homeId: string, run: () => Promise<T>) {
+  return serialized(`firstmate.scope-admission:${homeId}`, run);
+}
 /** Conservative plugin admission, not reserved provider quota or a fence against native/raw callers. */
 export async function checkGeneralHeadroom(status: SupervisionStatus, receiver: GatewayReceiver, slots: number, reserved: number) {
   const identities = new Map<string, string>();

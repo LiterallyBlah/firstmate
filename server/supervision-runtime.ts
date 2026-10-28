@@ -18,7 +18,7 @@ export class SupervisionRuntime {
     return this.writers.get(workflowHomeIdentity(home))?.read(options) ?? this.reader.read(home, options);
   }
   /** Caller owns its role/config guard; all services share acquisition and shutdown serialization. */
-  async mutate<T>(home: string, run: (store: SupervisionStore) => Promise<T>, recoverIndex = false): Promise<T> {
+  async mutate<T>(home: string, run: (store: SupervisionStore) => Promise<T>, recoverIndex: boolean | { homeId: string; sequence: number; hash: string | null } = false): Promise<T> {
     const owned = await serialized(this.lock, async () => {
       if (this.closed) throw new Error("Scoped runtime has stopped.");
       const id = workflowHomeIdentity(home);
@@ -28,13 +28,13 @@ export class SupervisionRuntime {
         if (recoverIndex) {
           const status = await store.read();
           if (status.problems.some(p => p.startsWith("Checkpoint validation failed;")))
-            await store.recoverIndex({ homeId: status.homeId, sequence: status.sequence, hash: status.hash });
+            await store.recoverIndex(typeof recoverIndex === "object" ? recoverIndex : { homeId: status.homeId, sequence: status.sequence, hash: status.hash });
         }
         await store.acquireCoordinator(); this.writers.set(id, store);
       } else if (recoverIndex) {
         const status = await store.read();
         if (status.problems.some(p => p.startsWith("Checkpoint validation failed;")))
-          await store.recoverIndex({ homeId: status.homeId, sequence: status.sequence, hash: status.hash });
+          await store.recoverIndex(typeof recoverIndex === "object" ? recoverIndex : { homeId: status.homeId, sequence: status.sequence, hash: status.hash });
       }
       let release!: () => void;
       const pending = new Promise<void>(done => { release = done; }); this.active.add(pending);

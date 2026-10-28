@@ -63,8 +63,12 @@ export const OperationHoldSchema = z.object({
   operations: z.array(PilotOperation).min(1).max(6), reason: label,
   sourceVector: z.array(SupervisionVersionRefSchema).min(1).max(256), state: z.enum(["held", "released"]),
 }).strict();
+/** Durable app request, retained before any provisioning effects are reserved. Context, never a grant. */
+export const ProjectProvisionInputSchema = z.object({ homeId: z.string(), requestId: SupervisionUuid,
+  projectId: SupervisionUuid, projectVersion: version }).strict();
 export const ScopedCommandResultSchema = z.object({
   planId: PlanId.nullable(), planHash: SupervisionHash.nullable(), decisionId: SupervisionUuid.nullable(), outboxId: SupervisionUuid.nullable(),
+  projectProvision: ProjectProvisionInputSchema.optional(),
   /** UI convention only. Kept in the immutable accepted command, never authentication evidence. */
   attachmentAudit: z.object({ at: SupervisionUtc, plan: PlanId, supervisor: SupervisionUuid,
     source: z.literal("client UI (unverified)"), authorization: z.literal("by convention, not verified"),

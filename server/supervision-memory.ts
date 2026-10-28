@@ -122,6 +122,9 @@ export async function readProjectContext(store: SupervisionStore, projectId: str
     memory.push({ key: entry.key, version: entry.version, digest: entry.textDigest, text, authority: "none" as const });
   }
   const current = await store.read();
-  if (current.hash !== status.hash) refuse("STALE", "Project context changed during the snapshot read.");
+  // Independent projects may publish while these confined files/blobs are read. Pin this
+  // project's complete owner row and accepted memory, without borrowing a global quiet period.
+  if (current.freshness !== "current" || digest(rowsOf(current).projects.find(p => p.id === projectId) ?? null) !== digest(project) ||
+    digest(projectMemory(current, projectId).entries) !== digest(entries)) refuse("STALE", "Project context changed during the snapshot read.");
   return { projectId, scopeId: project.scopeId, name: project.name, aliases: project.aliases, conventions, memory, authority: "none" as const };
 }

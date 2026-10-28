@@ -16,7 +16,12 @@ const fixture = { enabled: true, homeId: "fixture-home", registryDigest: "a".rep
     project("Remote storage", 3, { state: "held", reason: "Project directory is unavailable; identity was not guessed.", profile: null, version: 0 }),
   ] };
 window.projectActions = [];
+if (new URLSearchParams(location.search).get("mode") === "recovery") {
+  fixture.freshness = "held"; fixture.recovery = { sequence: fixture.sequence, hash: fixture.hash };
+  fixture.problems = ["Checkpoint validation failed; retained history requires explicit recovery before provisioning can resume."];
+  fixture.projects = fixture.projects.map(p => ({ ...p, state: "unadmitted", version: 0, profile: null, limits: null, agentId: null, workspaceId: null, reason: "Status held; ownership is not inferred." }));
+}
 document.body.style.cssText = `margin:0;background:${theme.colors.surface0};font-family:system-ui`;
 createRoot(document.getElementById("root")).render(<QueryClientProvider client={new QueryClient()}>
-  <ProjectOwnershipView theme={theme} compact={innerWidth < 638} data={fixture} onRefresh={() => {}} onProvision={p => window.projectActions.push(p.projectId)} onOpen={() => {}} />
+  <ProjectOwnershipView theme={theme} compact={innerWidth < 638} data={fixture} onRefresh={() => {}} onProvision={p => window.projectActions.push(p.projectId)} onRecover={() => window.projectActions.push("recover")} onOpen={() => {}} />
 </QueryClientProvider>);

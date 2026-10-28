@@ -1160,13 +1160,15 @@ export class SupervisionStore {
   /** Only completes an exact validated event+tip. Missing events/anchors require deliberate repair.
    * No anchor deletion/reconstruction, external dispatch or recovery of a shorter history exists.
    */
-  async recoverPublication(): Promise<SupervisionReceipt | null> {
+  async recoverPublication(observed?: { homeId: string; sequence: number; hash: string | null }): Promise<SupervisionReceipt | null> {
     this.writable();
     return this.locked(async () => {
       await this.assertCoordinator();
       this.cached = null;
       const snapshot = await this.scanFull();
       if (snapshot.problems.some(p => p !== "Final transaction awaits publication.")) fail("HELD", snapshot.problems.join(" "));
+      if (observed && (observed.homeId !== this.homeId || observed.sequence !== snapshot.sequence || observed.hash !== snapshot.hash))
+        fail("STALE", "Recovery observation changed under the publication repair lock.");
       await this.ancestorCheckpoint(snapshot);
       if (!snapshot.pending) { await this.saveCheckpoint(snapshot); return null; }
       const { event, tip } = snapshot.pending;

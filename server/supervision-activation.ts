@@ -19,7 +19,7 @@ import { SupervisionUiReceiver } from "./supervision-ui-receiver";
 import type { PaseoApi } from "./host-types";
 import { cooperativeReadiness } from "./supervision-cooperative";
 import { SupervisionRuntime } from "./supervision-runtime";
-import { checkGeneralHeadroom } from "./supervision-headroom";
+import { checkGeneralHeadroom, withScopeAdmission } from "./supervision-headroom";
 const UI_CALL: SupervisionActor = { kind: "plugin-ui-unverified", id: "unauthenticated-plugin-call", source: "client UI (unverified)" };
 
 export function proposedSupervisor(scopeId: string) {
@@ -109,10 +109,12 @@ export class SupervisionActivation {
       // Explicit app retry can finish an exact pending publication, but never reconstruct lost history.
       await store.recoverPublication();
       if (!("resume" in input)) {
-        if (this.options.headroom && !(await store.read()).commands.some(c => c.id === input.requestId))
-          await checkGeneralHeadroom(await store.read(), receiver, this.options.headroom.slots, this.options.headroom.reserved);
-        await sessions.attachFromUnverifiedUi({ requestId: input.requestId, scopeId: input.scopeId, scopeVersion: input.scopeVersion,
-          planId: input.plan, planHash: input.planHash, supervisorId: input.supervisorId, profile: input.profile, opening: input.opening });
+        await withScopeAdmission(input.homeId, async () => {
+          if (this.options.headroom && !(await store.read()).commands.some(c => c.id === input.requestId))
+            await checkGeneralHeadroom(await store.read(), receiver, this.options.headroom.slots, this.options.headroom.reserved);
+          await sessions.attachFromUnverifiedUi({ requestId: input.requestId, scopeId: input.scopeId, scopeVersion: input.scopeVersion,
+            planId: input.plan, planHash: input.planHash, supervisorId: input.supervisorId, profile: input.profile, opening: input.opening });
+        });
       }
       // Only this accepted request's three supervisor effects. Never launch workers or replay an uncertain send.
       const status = await store.read(), accepted = status.commands.find(c => c.id === input.requestId), audit = accepted?.result.attachmentAudit;

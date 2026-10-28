@@ -16,8 +16,12 @@ Build A overlays the historical unwired S09 notes below: `server/supervision-run
 coordinator per home shared with activation; `server/project-runtime.ts` exposes reviewed registry
 admission, S09 administration and explicit project provisioning only with `FIRSTMATE_PROJECT_MATES=1`.
 Its helper reuses the workflow clock and exposes no provisioning or Attach. `client/project-ownership.tsx`
-shows Home/Plans membership and context without model wakes. The explicit capacity upgrade retains the
-original prefix, uses 256-event pages and a metadata-only replay index, and applies byte/projection reserve
+shows Home/Plans membership and context without model wakes. Provisioning retains its
+original input for fresh-client resume; inspected app recovery repairs only validated metadata,
+and app stop retains identity/spend and uncertain effects. Per-project queues never hold General's conversation
+lock; only capacity reservation shares the scoped admission queue, with fresh guards before native effects.
+The explicit capacity upgrade retains the original prefix, uses 256-event pages and a metadata-only replay
+index, and applies byte/projection reserve
 bands rather than resetting sequence or budget. See `docs/scoped-supervision/build-a.md`; B/C/D runtime,
 chat and maintenance are still separate, and no live rollout is implied.
 

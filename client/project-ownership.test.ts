@@ -2,10 +2,19 @@ import { createElement, type ReactNode } from "react";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { createHash, randomUUID } from "node:crypto";
+import { mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { ProjectRuntime, registerProjectRuntime } from "../server/project-runtime";
+import { SupervisionRuntime } from "../server/supervision-runtime";
+import { SupervisionStore } from "../server/supervision-store";
+import { SyntheticReceiver } from "../test/synthetic-receiver";
+import { updateFirstmateConfig } from "../server/config";
+import type { PaseoApi } from "../server/host-types";
 import type { ProjectRuntimeSnapshot } from "../shared/project-runtime";
 import { attentionTheme as theme } from "../test/attention-deck-fixture";
-const state = vi.hoisted(() => ({ data: null as ProjectRuntimeSnapshot | null, read: vi.fn(), provision: vi.fn() }));
-vi.mock("@getpaseo/plugin/client", () => ({ useRpc: (rpc: { name: string }) => rpc.name.endsWith("provision-ui") ? state.provision : state.read }));
+const state = vi.hoisted(() => ({ data: null as ProjectRuntimeSnapshot | null, read: vi.fn(), provision: vi.fn(), recover: vi.fn(), abort: vi.fn() }));
+vi.mock("@getpaseo/plugin/client", () => ({ useRpc: (rpc: { name: string }) => rpc.name.endsWith("provision-ui") ? state.provision : rpc.name.endsWith("recover-ui") ? state.recover : rpc.name.endsWith("abort-ui") ? state.abort : state.read }));
 vi.mock("react-native", () => ({ Pressable: "Pressable", ScrollView: "ScrollView", Text: "Text", View: "View" }));
 vi.mock("@getpaseo/plugin/client/react-native", () => ({ Modal: Object.assign(({ open, children }: { open: boolean; children: ReactNode }) => open ? children : null, { Content: "Content" }) }));
 vi.mock("./workflow-plans", () => ({ workflowRequestId: () => "00000000-0000-4000-8000-000000000099" }));
@@ -42,4 +51,59 @@ it("a failed refresh disables a pending explicit confirmation", async () => {
   await act(async () => { await cache.refetchQueries(); });
   await act(async () => { await new Promise(done => setTimeout(done, 20)); });
   expect(button("Create project mate").props.disabled).toBe(true); expect(state.provision).not.toHaveBeenCalled();
+});
+
+it.each(["mounted", "remounted", "stop"])("review F2: %s app repairs through the production RPC and resumes the same recorded input", async mode => {
+  const previousHome = process.env.PASEO_HOME!, root = join(previousHome, randomUUID()), home = join(root, "home"), data = join(root, "data"), text = "Reviewed Alpha allocation.\n";
+  process.env.PASEO_HOME = root;
+  await mkdir(join(home, "data"), { recursive: true }); await mkdir(join(home, "Alpha"));
+  await writeFile(join(home, "data/projects.md"), `- Alpha [reviewed] - ${join(home, "Alpha")} - fixture\n`);
+  await writeFile(join(home, "data/orders.md"), text);
+  await updateFirstmateConfig({ home, mateAgentId: "", migration: null, mateLaunch: null }); await updateFirstmateConfig({ mateAgentId: "general" });
+  const receiver = new SyntheticReceiver(), api = {} as PaseoApi;
+  let armed = false;
+  const runtime = new SupervisionRuntime(data, (root, home) => new SupervisionStore(root, home, { writable: true, boundary: async name => {
+    if (armed && name === "publication:linked") { armed = false; throw Error("review F2 interrupted checkpoint"); }
+  } }));
+  const service = new ProjectRuntime(runtime, { enabled: true, receiver: () => receiver });
+  const handlers = new Map<string, (input: any, context?: any) => Promise<any>>();
+  registerProjectRuntime({ handle: ((rpc: { name: string }, handler: any) => handlers.set(rpc.name, handler)) as never }, service);
+  const call = (name: string, input: unknown) => handlers.get(`firstmate.projects.${name}`)!(input, { paseo: api });
+  state.read.mockImplementation(() => call("read", {})); state.provision.mockImplementation(input => call("provision-ui", input));
+  state.recover.mockImplementation(input => call("recover-ui", input)); state.abort.mockImplementation(input => call("abort-ui", input));
+  const sha = (s: string) => createHash("sha256").update(s).digest("hex");
+  try {
+    const read = await service.read();
+    await service.admin({ homeId: read.homeId, requestId: randomUUID(), actorId: "general", command: { op: "admit", name: "Alpha", aliases: [], registryDigest: read.registryDigest!,
+      source: { id: randomUUID(), version: 1, path: "data/orders.md", lineStart: 1, lineEnd: 1, fileHash: sha(text), excerptHash: sha(text.trim()),
+        provenance: { kind: "mate-chat", id: "general", source: "project administration (same-user role convention, unverified)" }, supersedes: [] },
+      profile: { provider: "codex/test", modeId: "full-access" }, budget: { agents: 4, turns: 12 }, limits: { supervisorSessions: 1, supervisorTurns: 5 } } });
+    await mount(); await act(async () => button("Project mates and plans").props.onPress());
+    await act(async () => button("Create Alpha mate").props.onPress()); armed = true;
+    await act(async () => { button("Create project mate").props.onPress(); await state.provision.mock.results.at(-1)!.value.catch(() => {}); });
+    const input = state.provision.mock.calls[0]![0];
+    await act(async () => { await cache.refetchQueries(); await new Promise(done => setTimeout(done, 20)); });
+    expect(button("Resume recorded request").props.disabled).toBe(true);
+    if (mode === "remounted") {
+      await act(async () => renderer?.unmount()); renderer = undefined; cache.clear();
+      await mount(); await act(async () => button("Project mates and plans").props.onPress());
+      expect(renderer!.root.findAll(n => n.type === "Pressable" as never && n.props.accessibilityLabel === "Create Alpha mate")).toHaveLength(0);
+    }
+    expect(button("Recover project records").props.disabled).toBe(false);
+    await act(async () => { button("Recover project records").props.onPress(); await state.recover.mock.results.at(-1)!.value; await cache.refetchQueries(); await new Promise(done => setTimeout(done, 20)); });
+    expect(state.recover).toHaveBeenCalledTimes(1); expect(receiver.calls).toHaveLength(0);
+    if (mode === "remounted") await act(async () => button("Resume Alpha mate").props.onPress());
+    if (mode === "stop") receiver.faults.send = ["lose"];
+    await act(async () => { button(mode !== "remounted" ? "Resume recorded request" : "Resume project provisioning").props.onPress(); await state.provision.mock.results.at(-1)!.value; await new Promise(done => setTimeout(done, 20)); });
+    expect(state.provision.mock.calls[1]![0]).toEqual(input);
+    expect(receiver.agents.size).toBe(1); expect(receiver.sends).toHaveLength(1);
+    expect((await service.read()).projects[0]).toMatchObject({ sessions: 1, turns: 1 });
+    if (mode === "stop") {
+      await act(async () => { button("Stop recorded provisioning").props.onPress(); await state.abort.mock.results.at(-1)!.value; await cache.refetchQueries(); await new Promise(done => setTimeout(done, 20)); });
+      expect(state.abort).toHaveBeenCalledTimes(1);
+      expect((await service.read()).projects[0]).toMatchObject({ sessions: 1, turns: 1, uncertain: 1, reason: expect.stringContaining("Provisioning stopped") });
+      await expect(service.provision(input, api)).rejects.toMatchObject({ code: "HELD" });
+      expect(receiver.agents.size).toBe(1); expect(receiver.sends).toHaveLength(1);
+    }
+  } finally { await runtime.stop(); process.env.PASEO_HOME = previousHome; }
 });
