@@ -18,6 +18,7 @@ import { pluginDir } from "./data-dir";
 import { workflowStore } from "./workflow-service";
 import { workflowHomeIdentity } from "./workflow-ownership";
 import type { PaseoAgent } from "./host-types";
+import { canonical, digest } from "./submissions";
 
 vi.setConfig({ testTimeout: 30000 });
 const root = process.env.PASEO_HOME!;
@@ -170,6 +171,76 @@ it("B2: production resume refuses a missing event and leaves its retained tip in
   await expect(activation.migrate({ ...input, op: "resume" })).rejects.toMatchObject({ code: "HELD" });
   expect(await readFile(tipPath)).toEqual(tipBytes); expect(native.createAgent).not.toHaveBeenCalled();
 });
+it.each(["publication:linked", "checkpoint:written", "checkpoint:synced", "checkpoint:replaced"])(
+  "B2-R1: fresh production resume recovers the published transaction at %s before acquiring its coordinator", async point => {
+    let published = false, crashed = false;
+    const migrator = await interrupted(undefined, async name => {
+      if (name === "publication:linked") published = true;
+      if (published && name === point && !crashed) { crashed = true; throw new Error("published before checkpoint completion"); }
+    });
+    await expect(migrator.prepare(input)).rejects.toMatchObject({ code: "HELD" });
+    const storeRoot = fixtureStore!.root, checkpointPath = join(storeRoot, "checkpoint.json"); await handBack();
+    const checkpoint = await readFile(checkpointPath);
+    await activation.read(); expect(await readFile(checkpointPath)).toEqual(checkpoint);
+    const disabled = new SupervisionActivation(pluginDir(), { enabled: false, adapters: () => legacyAdapters(runner, () => ledger.read()) });
+    await expect(disabled.migrate({ ...input, op: "resume" })).rejects.toMatchObject({ code: "UNSUPPORTED" });
+    await disabled.stop(); expect(await readFile(checkpointPath)).toEqual(checkpoint);
+    const [first, replay] = await Promise.all([activation.migrate({ ...input, op: "resume" }), activation.migrate({ ...input, op: "resume" })]);
+    expect(first.migrations).toEqual(replay.migrations); expect(first.migrations[0]).toMatchObject({ id: input.migrationId, state: "prepared" });
+    const status = await new SupervisionStore(pluginDir(), home).read();
+    expect(status).toMatchObject({ sequence: 1, freshness: "current" }); expect(status.plans).toHaveLength(1);
+    expect(JSON.parse(await readFile(checkpointPath, "utf8")).sequence).toBe(1);
+    await activation.migrate(abort()); await activation.migrate(abort());
+    expect(await new SupervisionStore(pluginDir(), home).read()).toMatchObject({ sequence: 2, migrations: [expect.objectContaining({ state: "aborted" })] });
+    expect(native.openProject).not.toHaveBeenCalled(); expect(native.createAgent).not.toHaveBeenCalled(); expect(native.sendAgentMessage).not.toHaveBeenCalled();
+  });
+it.each(["event:linked", "publication:linked"])("B2-R1: direct production abort recovers prepare interrupted at %s after restart", async point => {
+  let crashed = false;
+  const migrator = await interrupted(undefined, async name => {
+    if (name === point && !crashed) { crashed = true; throw new Error("interrupted prepare publication"); }
+  });
+  await expect(migrator.prepare(input)).rejects.toMatchObject({ code: "HELD" }); await handBack();
+  const released = await activation.migrate(abort()); expect(released.migrations[0]!.state).toBe("aborted");
+  await activation.migrate(abort()); expect((await new SupervisionStore(pluginDir(), home).read()).sequence).toBe(2);
+  expect(await cutoverGate(home).sidecar(input.plan, "aborted")).not.toBeNull(); expect(native.createAgent).not.toHaveBeenCalled();
+});
+it("B2-R1: an attachment's published audit/effects recover from the journal after restart without another reservation", async () => {
+  await cutover(); const request = await attachment();
+  const writers = (activation as unknown as { writers: Map<string, SupervisionStore> }).writers;
+  const writer = [...writers.values()][0]!; let crashed = false;
+  // Inject only the real file-publication boundary; every adapter and store operation stays production.
+  const boundary = vi.spyOn(writer as unknown as { boundary(name: string): Promise<void> }, "boundary").mockImplementation(async name => {
+    if (name === "publication:linked" && !crashed) { crashed = true; throw new Error("published attachment before checkpoint"); }
+  });
+  await expect(activation.attach(request, native.api)).rejects.toMatchObject({ code: "HELD" });
+  expect(native.openProject).not.toHaveBeenCalled(); boundary.mockRestore(); await activation.stop(); activation = make();
+  const completed = await activation.attach(request, native.api);
+  expect(completed.plans[0]).toMatchObject({ binding: "active", opening: "succeeded" });
+  await activation.attach({ homeId: input.homeId, requestId: request.requestId, resume: true }, native.api);
+  const status = await new SupervisionStore(pluginDir(), home).read();
+  expect(status.effects.filter(e => e.operation === "agent.create")).toHaveLength(1); expect(completed.audits).toHaveLength(1);
+  expect(native.openProject).toHaveBeenCalledOnce(); expect(native.createAgent).toHaveBeenCalledOnce(); expect(native.sendAgentMessage).toHaveBeenCalledOnce();
+});
+it.each(["missing-checkpoint", "divergent-checkpoint", "corrupt-checkpoint", "shortened-journal"])(
+  "B2-R1: production recovery refuses %s and retains the checkpoint witness", async damage => {
+    await activation.migrate(input); await activation.stop(); activation = make();
+    const storeRoot = new SupervisionStore(pluginDir(), home).root, checkpointPath = join(storeRoot, "checkpoint.json");
+    if (damage === "missing-checkpoint") await unlink(checkpointPath);
+    if (damage === "corrupt-checkpoint") await writeFile(checkpointPath, "incomplete{");
+    if (damage === "divergent-checkpoint") {
+      const { hash: _hash, ...checkpoint } = JSON.parse(await readFile(checkpointPath, "utf8")); checkpoint.prefixDigest = "a".repeat(64);
+      await writeFile(checkpointPath, `${canonical({ ...checkpoint, hash: digest(checkpoint) })}\n`);
+    }
+    if (damage === "shortened-journal") for (const suffix of ["event", "tip", "publication"])
+      await unlink(join(storeRoot, "transactions", `000000000001.${suffix}.json`));
+    const witness = damage === "missing-checkpoint" ? null : await readFile(checkpointPath);
+    for (const command of [{ ...input, op: "resume" as const }, abort()])
+      await expect(activation.migrate(command)).rejects.toMatchObject({ code: "HELD" });
+    if (witness) expect(await readFile(checkpointPath)).toEqual(witness);
+    else await expect(readFile(checkpointPath)).rejects.toMatchObject({ code: "ENOENT" });
+    expect((await activation.read()).migrations).toEqual([]);
+    expect(native.openProject).not.toHaveBeenCalled(); expect(native.createAgent).not.toHaveBeenCalled(); expect(native.sendAgentMessage).not.toHaveBeenCalled();
+  });
 it("B3: production resume accounts for a real late watch after freeze-before-receipt, then releases it unchanged", async () => {
   const migrator = await interrupted(async name => { if (name === "frozen") throw new Error("crash after freeze"); });
   await expect(migrator.prepare(input)).rejects.toThrow("crash after freeze"); await handBack();

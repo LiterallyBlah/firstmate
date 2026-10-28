@@ -71,7 +71,7 @@ export class SupervisionActivation {
     const home = resolveHome(await this.config()), id = workflowHomeIdentity(home);
     return activationSnapshot(await (this.writers.get(id)?.read() ?? this.reader.read(home)), !!this.options.enabled);
   }
-  private mutate<T>(homeId: string, run: (home: string, store: SupervisionStore) => Promise<T>) {
+  private mutate<T>(homeId: string, run: (home: string, store: SupervisionStore) => Promise<T>, recoverIndex = false) {
     // Same lock order as legacy delivery: lifecycle -> gate/queue/store. Cleanup waits for all writes.
     return oneAtATime(() => serialized(this.lock, async () => {
       if (!this.options.enabled || this.closed) refuse("UNSUPPORTED", "Scoped activation is disabled. No store or session was created.");
@@ -79,10 +79,18 @@ export class SupervisionActivation {
       const home = resolveHome(config), id = workflowHomeIdentity(home);
       if (homeId !== id) refuse("STALE", "Home changed. Refresh before acting.");
       let store = this.writers.get(id);
-      if (!store) {
-        store = new SupervisionStore(this.root, home, { writable: true, actor: UI_CALL });
-        await store.initialize(); await store.acquireCoordinator(); this.writers.set(id, store);
+      const acquired = !!store;
+      store ??= new SupervisionStore(this.root, home, { writable: true, actor: UI_CALL });
+      if (!acquired) await store.initialize();
+      if (recoverIndex) {
+        const observed = await store.read();
+        // Only explicit recovery reaches this derived repair. The diagnostic selects the operation;
+        // recoverIndex independently validates the published journal AND its ancestor checkpoint.
+        // Do this before coordinator acquisition, which correctly refuses a stale checkpoint.
+        if (observed.problems.some(p => p.startsWith("Checkpoint validation failed;")))
+          await store.recoverIndex({ homeId: observed.homeId, sequence: observed.sequence, hash: observed.hash });
       }
+      if (!acquired) { await store.acquireCoordinator(); this.writers.set(id, store); }
       return run(home, store);
     }));
   }
@@ -94,13 +102,13 @@ export class SupervisionActivation {
         case "reconcile": await migrator.reconcile(input.migrationId); break;
         case "barrier": await migrator.barrier(input.migrationId); break;
         case "commit": await migrator.commit(input.migrationId); break;
-        case "abort": await migrator.abort(input.migrationId, input.reason, UI_CALL); break;
+        case "abort": await store.recoverPublication(); await migrator.abort(input.migrationId, input.reason, UI_CALL); break;
         case "resolve-hold": await migrator.resolveHold(input.migrationId, input.dispositionId, input.route, input.evidence, UI_CALL); break;
         // Deliberate recovery only: validates the complete event+tip, never reconstructs missing history.
         case "resume": await store.recoverPublication(); await migrator.resume(input); break;
       }
       return activationSnapshot(await store.read(), true);
-    });
+    }, input.op === "resume" || input.op === "abort");
   }
   async attach(input: AttachSupervisorInput | ResumeSupervisorInput, paseo: PaseoApi) {
     return this.mutate(input.homeId, async (home, store) => {
@@ -135,7 +143,7 @@ export class SupervisionActivation {
       if (!effects.send || effects.send.requestId !== input.requestId) refuse("HELD", "Opening is not this attachment's reserved effect.");
       if (effects.send.state === "reserved") await gateway.dispatch(effects.send.id);
       return activationSnapshot(await store.read(), true);
-    });
+    }, true);
   }
   async stop() {
     await serialized(this.lock, async () => {

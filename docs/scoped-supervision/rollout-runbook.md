@@ -424,8 +424,13 @@ visible when the switch is off.
    unauthenticated RPC**: the original S07 captain-actor requirement is retained. Abort rather than
    inventing captain provenance or forcing a barrier. Reconcile, barrier and commit only when S07
    permits them. Use resume with the original preparation fields after an interrupted freeze or
-   journal publication. It first finishes only an exact validated event/tip publication; missing or
-   damaged history remains held. With no prepared receipt, S07 requires the exact frozen source and
+   journal publication. Before claiming a coordinator, explicit resume/abort repairs a stale derived
+   checkpoint only after full published-journal and ancestor-checkpoint validation. It rebuilds the
+   accepted-request/state projections before advancing the checkpoint; a published transaction is
+   recorded once. Then it finishes only an exact event/tip awaiting publication. Missing, unreadable
+   or divergent checkpoint witnesses and missing, shortened or damaged history remain held, with
+   evidence untouched. Reads and disabled activation never repair. With no prepared receipt, S07
+   requires the exact frozen source and
    original full inventory hash. Protected late watch arrivals stay in the queue and enter the
    re-inventory as holds after preparation. Resume does not discard them or treat them as handled.
    Abort before commit restores archived entries exactly under S07, preserves late held rows and
@@ -472,11 +477,11 @@ operator. It adds no home tool or agent tool. Every input carries `homeId` and `
 | `op` | Additional fields | Existing S07 operation |
 |---|---|---|
 | `prepare` | `plan`, `scopeId`, `projectId`, `prerequisites: { inventory, rollbackBuild, policy }` | `arm`, then `prepare` |
-| `resume` | The exact original preparation fields | Validated `recoverPublication`, then S07 `resume` and re-inventory of late holds |
+| `resume` | The exact original preparation fields | Strict derived-index repair before coordinator acquisition when needed, then `recoverPublication`, S07 `resume` and re-inventory |
 | `reconcile` | none | Re-inventory and reconcile existing dispositions |
 | `barrier` | none | Verify parity, disposition/receipt/capacity barriers |
 | `commit` | none | Existing committed sidecars and scoped backend activation |
-| `abort` | `reason` | Existing release/restoration, with unverified app provenance |
+| `abort` | `reason` | The same strict index/publication recovery, then existing release/restoration with unverified app provenance |
 | `resolve-hold` | `dispositionId`, `route`, `evidence: { ref, digest }` | Explicit ordinary hold evidence; answer holds still refuse |
 
 `firstmate.supervision.activation` is read-only and returns migrations, dispositions, plan readiness,

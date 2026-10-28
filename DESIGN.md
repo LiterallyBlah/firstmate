@@ -72,9 +72,15 @@ to recover a freeze before its journal receipt. History import, sidecars, claim/
 compare-by-ID/payload removals and exact abort restoration remain S07's implementation. No second
 queue or send path is introduced.
 
-Explicit migration resume (and an explicit attachment retry) first calls the store's existing
-`recoverPublication` under its coordinator. This only publishes an exact validated pending event/tip
-pair. Missing anchors/events or a shorter/corrupt history still refuse recovery. Reads never publish.
+Explicit migration resume/abort and attachment retry detect a checkpoint-held restart before
+coordinator acquisition. The existing strict `recoverIndex` validates the authoritative published
+journal and the old checkpoint's ancestry, rebuilds accepted-request and state projections, then
+advances only the derived checkpoint. The observed journal head is rechecked under its repair lock.
+An already published transaction is recorded once, even if its checkpoint replacement was interrupted.
+Missing, unreadable or divergent checkpoints over nonempty history, missing anchors/events and a
+shortened/corrupt journal still refuse; no witness is erased. After coordinator acquisition, resume,
+abort and retry call the existing `recoverPublication` for an exact event/tip awaiting its marker.
+Reads never repair or publish, and disabled activation never enters either recovery operation.
 After a freeze without a prepared receipt, S07 proves the original inventory by its full frozen hash.
 Protected watch arrivals append under the same gate, so recovery checks bounded watch prefixes while
 retaining every non-watch disposition. A hold flag alone cannot identify a late row: a flush may also
