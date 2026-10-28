@@ -205,7 +205,7 @@ function FleetViewBody({
     : view === "deck" ? "Deck" : view === "crew" ? "List" : view === "board" ? "Board" : view === "plans" ? "Plans" : "Chat");
   /** The drawer sits beside the list or board, rather than over it, on a wide pane with room for both. */
   const onDeck = view === "deck" || (home && (compact ? shownTab : pane) === "deck");
-  const scenePicker = useDeckSceneSwitcher({ theme, display, enabled: onDeck && deck,
+  const sceneSwitcher = useDeckSceneSwitcher({ theme, display, enabled: onDeck && deck,
     compact: home ? compact || paneWidth < 638 : compact || width < 900 });
   const docked = !compact && drawerDocks(paneWidth);
 
@@ -323,12 +323,14 @@ function FleetViewBody({
   }, [home, plans.taskRequest, plans.scope, plans.snapshot, display.status, data, fleet.error]);
 
   function setTab(next: Tab, keepConversation = false): void {
+    if (onDeck && next !== "deck") sceneSwitcher.cancel();
     if (next === "board" && tab === "board" && !keepConversation) setWatching(null);
     cachedTab = next;
     setTabState(next);
   }
 
   function setRightPane(next: RightPane, keepConversation = false): void {
+    if (onDeck && next !== "deck") sceneSwitcher.cancel();
     if (next === "board" && pane === "board" && !keepConversation) setWatching(null);
     cachedRightPane = next;
     setRightPaneState(next);
@@ -1015,7 +1017,7 @@ function FleetViewBody({
         : decisions.data ?? data.needsYou}
       onOpenDecision={openDecision}
       conversationOpen={watching !== null}
-      captionActions={home ? scenePicker : null}
+      captionActions={home ? sceneSwitcher.picker : null}
       setting={values.deckSetting}
       hostId={host.id}
       hideDisconnectedWorkers={values.hideDisconnectedWorkers}
@@ -1077,7 +1079,7 @@ function FleetViewBody({
             </Text>
             {compact ? null : attention}
             <View style={styles.spacer} />
-            {view === "deck" && deck ? scenePicker : null}
+            {view === "deck" && deck ? sceneSwitcher.picker : null}
             {shell === undefined ? null : (
               <IconButton theme={theme} compact={compact} icon="Ship" label="FirstMate Home" showLabel onPress={shell.openHome} />
             )}

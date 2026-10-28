@@ -140,6 +140,43 @@ try {
     await page.close(); console.log(`${surface} ${light ? "light" : "dark"}: ${expectStale ? "stale rejection reproduced" : "recovered, persisted, switched back, suggestions work"}`);
   }
   if (!expectStale) {
+    for (const surface of ["home", "compact"]) {
+      const page = await open(surface, false);
+      let releaseRead;
+      const delayed = new Promise(resolve => { releaseRead = resolve; });
+      let intercept = true;
+      await page.route("**/settings/read", async route => {
+        if (route.request().postDataJSON().id !== "display" || !intercept) { await route.continue(); return; }
+        intercept = false;
+        await delayed;
+        const response = await route.fetch();
+        await route.fulfill({ response });
+      });
+      try {
+        await restore({ deckSetting: "sky-airship", pollSeconds: 120, homePane: "deck", density: "comfortable" });
+        log.length = 0;
+        const reloadRequested = page.waitForRequest(request => request.url().endsWith("/settings/read") && request.postDataJSON().id === "display");
+        await choose(page, "Sakura coast");
+        await reloadRequested;
+        await page.getByRole("tab", { name: "Board", exact: true }).click();
+        await page.waitForFunction(() => document.querySelectorAll("canvas[data-firstmate-deck]").length === 0);
+        await page.getByRole("tab", { name: "Deck", exact: true }).click();
+        await actual(page, "ship");
+        await restore({ deckSetting: "ghost-ship", pollSeconds: 120, homePane: "deck", density: "compact" });
+        releaseRead();
+        await actual(page, "ghost-ship");
+        const writes = log.filter(row => row.action === "write" && row.values.deckSetting === "japanese-ship");
+        assert.equal(writes.length, 1); assert.equal(writes[0].saved, false);
+        const saved = JSON.parse(await readFile(file));
+        assert.equal(saved.deckSetting, "ghost-ship"); assert.equal(saved.density, "compact");
+        assert.deepEqual(await page.evaluate(() => window.fixtureErrors), []);
+        // A new deliberate choice after returning is still usable.
+        await choose(page, "Pirate voyage"); await actual(page, "ship");
+        await page.screenshot({ path: join(out, `${surface}-navigation.png`) });
+        results.push({ surface, cancelledAcrossNavigation: true, preservedRestore: "ghost-ship", log: structuredClone(log) });
+        console.log(`${surface}: Deck -> Board -> Deck cancels the old choice and preserves the newer restore`);
+      } finally { releaseRead(); await page.close(); }
+    }
     const page = await open("panel", false, 1);
     await restore({ deckSetting: "sky-airship", pollSeconds: 1, density: "compact" });
     await actual(page, "sky-airship");

@@ -233,6 +233,100 @@ it("does not retry after unmounting during the conflict refresh", async () => {
   expect(state.error).not.toHaveBeenCalled();
 });
 
+it("cancels a pending retry when leaving Deck even after returning before the read settles", async () => {
+  let enabled = true;
+  let release!: () => void;
+  function Controller() {
+    const scene = useDeckSceneSwitcher({ theme: {} as PluginTheme, enabled,
+      display: state.display as Parameters<typeof useDeckSceneSwitcher>[0]["display"] });
+    return enabled ? scene.picker : null;
+  }
+  state.save.mockResolvedValueOnce(false);
+  state.reload.mockImplementation(() => new Promise<void>(resolve => { release = () => {
+    state.display = { ...state.display, revision: "restored-9", values: displaySettings.schema.parse({ deckSetting: "office" }) };
+    resolve();
+  }; }));
+  await act(async () => { renderer = create(createElement(Controller)); });
+  await act(async () => picker().onSelect("studio"));
+  enabled = false;
+  await act(async () => renderer!.update(createElement(Controller)));
+  enabled = true;
+  await act(async () => renderer!.update(createElement(Controller)));
+  await act(async () => release());
+  // The host hook publishes the completed read independently of the cancelled attempt.
+  await act(async () => renderer!.update(createElement(Controller)));
+  expect(state.save).toHaveBeenCalledTimes(1);
+  expect(picker().value).toBe("office");
+  expect(picker().disabled).toBe(false);
+  expect(state.error).not.toHaveBeenCalled();
+});
+
+it("does not rebase a retry past the first revision observed after the refused save", async () => {
+  let release!: () => void;
+  state.save.mockResolvedValueOnce(false);
+  state.reload.mockImplementation(() => new Promise<void>(resolve => { release = resolve; }));
+  await act(async () => { renderer = create(view()); });
+  await act(async () => picker().onSelect("studio"));
+  state.display = { ...state.display, revision: "restored-8", values: displaySettings.schema.parse({ deckSetting: "office" }) };
+  await act(async () => renderer!.update(view()));
+  state.display = { ...state.display, revision: "restored-9", values: displaySettings.schema.parse({ deckSetting: "ship" }) };
+  await act(async () => renderer!.update(view()));
+  await act(async () => release());
+  expect(state.save).toHaveBeenCalledTimes(1);
+  expect(picker().value).toBe("ship");
+  expect(state.error).toHaveBeenCalledExactlyOnceWith("The scene was not saved. Please try again.");
+});
+
+it("cancels synchronously and keeps an abandoned read from finishing a new selection", async () => {
+  let controller!: ReturnType<typeof useDeckSceneSwitcher>;
+  let finishRead!: () => void, finishSave!: (ok: boolean) => void;
+  function Controller() {
+    controller = useDeckSceneSwitcher({ theme: {} as PluginTheme,
+      display: state.display as Parameters<typeof useDeckSceneSwitcher>[0]["display"] });
+    return controller.picker;
+  }
+  state.save.mockResolvedValueOnce(false).mockImplementationOnce(() => new Promise<boolean>(resolve => { finishSave = resolve; }));
+  state.reload.mockImplementation(() => new Promise<void>(resolve => { finishRead = resolve; }));
+  await act(async () => { renderer = create(createElement(Controller)); });
+  await act(async () => picker().onSelect("studio"));
+  await act(async () => {
+    // Fleet navigation cancels at the event, including a leave/return batched
+    // before the next render, when enabled never becomes false in an effect.
+    controller.cancel();
+    picker().onSelect("office");
+  });
+  await act(async () => finishRead());
+  expect(state.save).toHaveBeenCalledTimes(2);
+  expect(state.reload).toHaveBeenCalledTimes(1);
+  expect(picker().disabled).toBe(true);
+  await act(async () => finishSave(true));
+  expect(picker().disabled).toBe(false);
+  expect(state.error).not.toHaveBeenCalled();
+});
+
+it("cancels before a refused initial save settles and stops polling while away from Deck", async () => {
+  vi.useFakeTimers();
+  try {
+    let enabled = true;
+    let finishSave!: (ok: boolean) => void;
+    function Controller() {
+      return useDeckSceneSwitcher({ theme: {} as PluginTheme, enabled,
+        display: state.display as Parameters<typeof useDeckSceneSwitcher>[0]["display"] }).picker;
+    }
+    state.save.mockImplementation(() => new Promise<boolean>(resolve => { finishSave = resolve; }));
+    await act(async () => { renderer = create(createElement(Controller)); });
+    await act(async () => picker().onSelect("studio"));
+    enabled = false;
+    await act(async () => renderer!.update(createElement(Controller)));
+    await act(async () => finishSave(false));
+    await act(async () => { await vi.advanceTimersByTimeAsync(20000); });
+    expect(state.save).toHaveBeenCalledTimes(1);
+    expect(state.reload).not.toHaveBeenCalled();
+    expect(state.error).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
+  } finally { vi.useRealTimers(); }
+});
+
 it.each(["unreadable", "incompatible"])("refuses a retry when the refreshed choice is %s", async (problem) => {
   state.save.mockResolvedValue(false);
   state.reload.mockImplementation(async () => {
@@ -248,7 +342,7 @@ it.each(["unreadable", "incompatible"])("refuses a retry when the refreshed choi
 it("reports unreadable refreshed settings even when Home falls back away from Deck", async () => {
   function HomeController() {
     return useDeckSceneSwitcher({ theme: {} as PluginTheme, enabled: state.display.status === "ready",
-      display: state.display as Parameters<typeof useDeckSceneSwitcher>[0]["display"] });
+      display: state.display as Parameters<typeof useDeckSceneSwitcher>[0]["display"] }).picker;
   }
   state.save.mockResolvedValue(false);
   state.reload.mockImplementation(async () => { state.display = { ...state.display, status: "invalid" }; });
