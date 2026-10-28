@@ -807,6 +807,9 @@ Office was withdrawn after visual review; its files are retained at
 - **Global selection** lives in `displaySettings.deckSetting`, default `ship`, chosen through **Scene** in the
   Deck workspace toolbar (`client/deck-scene-switcher.tsx`) or Settings > Plugins > FirstMate > Deck setting.
   The toolbar saves the host document at its current revision and reports a failed save without changing the scene.
+  An external file restore emits no host notification: the mounted scene selector rereads at the fleet poll interval.
+  A refused save reloads once, then retries only from a changed, readable revision on the next committed render,
+  merging only the scene into fresh preferences. A second refusal reports an error; unmount cancels a pending retry.
   The picker lists installed pack previews, disabling incompatible choices with their
   reason. `resolveDeckSetting(display, scope, installed)` handles the fleet scope now; a future project resolver
   changes selection alone. Missing, incompatible or failed choices fall back to ship with a notice, leaving the

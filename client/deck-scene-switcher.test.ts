@@ -1,4 +1,4 @@
-import { act, createElement, type ComponentProps } from "react";
+import { act, createElement, StrictMode, type ComponentProps } from "react";
 import { create, type ReactTestRenderer } from "react-test-renderer";
 import { afterEach, beforeAll, beforeEach, expect, it, vi } from "vitest";
 import type { PluginTheme } from "@getpaseo/plugin";
@@ -11,12 +11,13 @@ const state = vi.hoisted(() => ({
   installed: { data: undefined as DeckSettingSummary[] | undefined, isError: false },
   error: vi.fn(),
   save: vi.fn(),
+  reload: vi.fn(),
 }));
 vi.mock("@getpaseo/plugin/client", () => ({ useSettings: () => state.display }));
 vi.mock("@getpaseo/plugin/client/react-native", () => ({ useToast: () => ({ error: state.error }) }));
 vi.mock("./deck-setting-query", () => ({ useDeckSettings: () => state.installed }));
 vi.mock("./option-picker", () => ({ OptionPicker: "OptionPicker" }));
-import { DeckSceneSwitcher } from "./deck-scene-switcher";
+import { DeckSceneSwitcher, useDeckSceneSwitcher } from "./deck-scene-switcher";
 
 let renderer: ReactTestRenderer | null = null;
 const view = () => createElement(DeckSceneSwitcher, { theme: {} as PluginTheme });
@@ -37,12 +38,14 @@ beforeAll(() => {
 });
 beforeEach(() => {
   state.save.mockReset().mockResolvedValue(true);
+  state.reload.mockReset().mockResolvedValue(undefined);
   state.error.mockReset();
   state.display = {
     status: "ready",
     values: displaySettings.schema.parse({ density: "compact" }),
-    revision: 7,
+    revision: "revision-7",
     save: state.save,
+    reload: state.reload,
   };
   state.installed = { data: [pack("ship"), pack("office"), pack("studio"), pack("future", false)], isError: false };
 });
@@ -59,7 +62,7 @@ it("discovers future packs and saves a compatible scene in the global document a
   expect(picker().options.map((option) => option.value)).toEqual(["ship", "office", "studio", "future"]);
   expect(picker().options.at(-1)).toMatchObject({ disabled: true, detail: "Needs walk-in@2" });
   await act(async () => picker().onSelect("studio"));
-  expect(state.save).toHaveBeenCalledExactlyOnceWith({ ...(state.display.values as object), deckSetting: "studio" }, 7);
+  expect(state.save).toHaveBeenCalledExactlyOnceWith({ ...(state.display.values as object), deckSetting: "studio" }, "revision-7");
   // Selection follows the host document, including remounts and another settings screen/device.
   state.display.values = { ...(state.display.values as object), deckSetting: "studio" };
   await act(async () => renderer!.update(view()));
@@ -121,4 +124,153 @@ it("reports a rejected save and permits retry", async () => {
   expect(picker().disabled).toBe(false);
   await act(async () => picker().onSelect("office"));
   expect(state.save).toHaveBeenCalledTimes(2);
+});
+
+it("reloads an externally replaced document and retries only the scene against its fresh revision", async () => {
+  const before = state.display.values as object;
+  const restored = displaySettings.schema.parse({ deckSetting: "office", density: "comfortable", pollSeconds: 30 });
+  state.save.mockResolvedValueOnce(false);
+  state.reload.mockImplementation(async () => {
+    // reload returns void: the new hook snapshot arrives only on the next render.
+    state.display = { ...state.display, values: restored, revision: "restored-8" };
+  });
+  await act(async () => { renderer = create(view()); });
+  await act(async () => picker().onSelect("studio"));
+  expect(state.reload).toHaveBeenCalledTimes(1);
+  expect(state.save.mock.calls).toEqual([
+    [{ ...before, deckSetting: "studio" }, "revision-7"],
+    [{ ...restored, deckSetting: "studio" }, "restored-8"],
+  ]);
+  expect(state.error).not.toHaveBeenCalled();
+  expect(picker().disabled).toBe(false);
+});
+
+it("stops after a second conflict and leaves the fresh choice visible with an error", async () => {
+  state.save.mockResolvedValue(false);
+  state.reload.mockImplementation(async () => {
+    state.display = { ...state.display, values: displaySettings.schema.parse({ deckSetting: "office" }), revision: "restored-8" };
+  });
+  await act(async () => { renderer = create(view()); });
+  await act(async () => picker().onSelect("studio"));
+  expect(state.save).toHaveBeenCalledTimes(2);
+  expect(state.reload).toHaveBeenCalledTimes(1);
+  expect(state.error).toHaveBeenCalledExactlyOnceWith("The scene was not saved. Please try again.");
+  expect(picker().value).toBe("office");
+  expect(picker().disabled).toBe(false);
+});
+
+it("reports a failed refresh without retrying a stale save", async () => {
+  state.save.mockResolvedValue(false);
+  state.reload.mockRejectedValue(new Error("Disconnected"));
+  await act(async () => { renderer = create(view()); });
+  await act(async () => picker().onSelect("studio"));
+  expect(state.reload).toHaveBeenCalledTimes(1);
+  expect(state.save).toHaveBeenCalledTimes(1);
+  expect(state.error).toHaveBeenCalledTimes(1);
+  expect(picker().disabled).toBe(false);
+});
+
+it("refreshes external settings at the configured interval and stops when unmounted", async () => {
+  vi.useFakeTimers();
+  try {
+    state.reload.mockImplementation(async () => {
+      state.display = { ...state.display, values: displaySettings.schema.parse({ deckSetting: "studio" }), revision: "restored-8" };
+      renderer!.update(view());
+    });
+    await act(async () => { renderer = create(view()); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+    expect(state.reload).toHaveBeenCalledTimes(1);
+    expect(picker().value).toBe("studio");
+    await act(async () => { renderer!.unmount(); renderer = null; });
+    await vi.advanceTimersByTimeAsync(10000);
+    expect(state.reload).toHaveBeenCalledTimes(1);
+    expect(state.save).not.toHaveBeenCalled();
+  } finally { vi.useRealTimers(); }
+});
+
+it("keeps one selection in flight through refresh and retries once under StrictMode", async () => {
+  let release!: () => void;
+  state.save.mockResolvedValueOnce(false);
+  state.reload.mockImplementation(() => new Promise<void>(resolve => {
+    release = () => {
+      state.display = { ...state.display, revision: "restored-8", values: displaySettings.schema.parse({ pollSeconds: 30 }) };
+      resolve();
+    };
+  }));
+  await act(async () => { renderer = create(createElement(StrictMode, null, view())); });
+  await act(async () => picker().onSelect("studio"));
+  expect(picker().disabled).toBe(true);
+  await act(async () => picker().onSelect("office"));
+  expect(state.save).toHaveBeenCalledTimes(1);
+  await act(async () => release());
+  expect(state.save).toHaveBeenCalledTimes(2);
+  expect(state.save.mock.calls[1]).toEqual([{ ...state.display.values as object, deckSetting: "studio" }, "restored-8"]);
+  expect(state.error).not.toHaveBeenCalled();
+});
+
+it("accepts a refreshed document already at the requested scene without another write", async () => {
+  state.save.mockResolvedValueOnce(false);
+  state.reload.mockImplementation(async () => {
+    state.display = { ...state.display, revision: "restored-8", values: displaySettings.schema.parse({ deckSetting: "studio" }) };
+  });
+  await act(async () => { renderer = create(view()); });
+  await act(async () => picker().onSelect("studio"));
+  expect(state.save).toHaveBeenCalledTimes(1);
+  expect(picker().value).toBe("studio");
+  expect(picker().disabled).toBe(false);
+  expect(state.error).not.toHaveBeenCalled();
+});
+
+it("does not retry after unmounting during the conflict refresh", async () => {
+  let release!: () => void;
+  state.save.mockResolvedValue(false);
+  state.reload.mockImplementation(() => new Promise<void>(resolve => { release = resolve; }));
+  await act(async () => { renderer = create(view()); });
+  await act(async () => picker().onSelect("studio"));
+  await act(async () => { renderer!.unmount(); renderer = null; });
+  await act(async () => release());
+  expect(state.save).toHaveBeenCalledTimes(1);
+  expect(state.error).not.toHaveBeenCalled();
+});
+
+it.each(["unreadable", "incompatible"])("refuses a retry when the refreshed choice is %s", async (problem) => {
+  state.save.mockResolvedValue(false);
+  state.reload.mockImplementation(async () => {
+    state.display = { ...state.display, revision: "restored-8", ...(problem === "unreadable" ? { status: "invalid" } : {}) };
+    if (problem === "incompatible") state.installed.data = [pack("studio", false)];
+  });
+  await act(async () => { renderer = create(view()); });
+  await act(async () => picker().onSelect("studio"));
+  expect(state.save).toHaveBeenCalledTimes(1);
+  expect(state.error).toHaveBeenCalledTimes(1);
+});
+
+it("reports unreadable refreshed settings even when Home falls back away from Deck", async () => {
+  function HomeController() {
+    return useDeckSceneSwitcher({ theme: {} as PluginTheme, enabled: state.display.status === "ready",
+      display: state.display as Parameters<typeof useDeckSceneSwitcher>[0]["display"] });
+  }
+  state.save.mockResolvedValue(false);
+  state.reload.mockImplementation(async () => { state.display = { ...state.display, status: "invalid" }; });
+  await act(async () => { renderer = create(createElement(HomeController)); });
+  await act(async () => picker().onSelect("studio"));
+  expect(state.save).toHaveBeenCalledTimes(1);
+  expect(state.error).toHaveBeenCalledExactlyOnceWith("The scene was not saved. Please try again.");
+});
+
+it("keeps passive refreshes from overlapping or interrupting a scene save", async () => {
+  vi.useFakeTimers();
+  try {
+    let finishRead!: () => void, finishSave!: (ok: boolean) => void;
+    state.reload.mockImplementation(() => new Promise<void>(resolve => { finishRead = resolve; }));
+    state.save.mockImplementation(() => new Promise<boolean>(resolve => { finishSave = resolve; }));
+    await act(async () => { renderer = create(view()); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(15000); });
+    expect(state.reload).toHaveBeenCalledTimes(1);
+    await act(async () => finishRead());
+    await act(async () => picker().onSelect("studio"));
+    await act(async () => { await vi.advanceTimersByTimeAsync(15000); });
+    expect(state.reload).toHaveBeenCalledTimes(1);
+    await act(async () => finishSave(true));
+  } finally { vi.useRealTimers(); }
 });

@@ -61,7 +61,7 @@ vi.mock("./files", () => ({ FilesView: () => null }));
 vi.mock("./launch", () => ({ LaunchPanel: () => null }));
 vi.mock("./resize-handle", () => ({ ResizeHandle: () => null }));
 vi.mock("./deck-setting-view", () => ({ SelectedDeckView: () => null }));
-vi.mock("./deck-scene-switcher", () => ({ DeckSceneSwitcher: () => null }));
+vi.mock("./deck-scene-switcher", () => ({ useDeckSceneSwitcher: () => null }));
 import { FleetSurface } from "./fleet";
 import { PlanChip, PlanNeeds, useWorkflowPlans, WorkflowSurface } from "./workflow-plans";
 
