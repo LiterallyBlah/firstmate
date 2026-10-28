@@ -9,7 +9,7 @@
  * one message once it is idle: `<firstmate-watch>` blocks one after another, one per run, each holding
  * everything that run printed, and nothing of the plugin's — how the output is to be read, and what in it is quoted from
  * others, is for the script to say. While it is mid-turn, or while there is no first mate at all,
- * the queue waits, at most `MAX_QUEUED` long, the oldest dropped first and the drop counted in the
+ * the ordinary queue waits, at most `MAX_QUEUED` long, the oldest dropped first and the drop counted in the
  * next message, as a `<firstmate-watch-dropped count="N"/>` ahead of its blocks.
  *
  * Guardrails: a run has `WATCH_TIMEOUT_MS`; its output is clipped to `MAX_OUTPUT_CHARS`, with a
@@ -49,7 +49,7 @@ export const WATCH_TIMEOUT_MS = 2 * 60 * 1000;
 export const MAX_OUTPUT_CHARS = 16000;
 /** The most of a failed run's stderr sent, from its end. */
 export const MAX_ERROR_CHARS = 1500;
-/** Outputs waiting for the first mate; past this the oldest go. */
+/** Ordinary outputs waiting for the first mate; restored evidence has its own spool-backed capacity. */
 export const MAX_QUEUED = 20;
 /** Per namespace, admissions stop here; already running producers retain their observations. */
 export const MAX_HELD_WATCHES = 20;
@@ -445,7 +445,8 @@ export class WatchRunner {
         changed = true; return { ...note, retained: { owner: record.owner, fingerprint: record.fingerprint } };
       });
       for (const record of held) {
-        if (state.queue.length >= MAX_QUEUED) break;
+        // These are copies of already bounded, durable evidence, not new ordinary admissions.
+        // A full ordinary queue (possibly frozen by another plan) must not block their recovery.
         if (!entry || record.owner !== watchOwner(entry.gate)) continue;
         if (!await entry.gate.sidecar(record.plan, "aborted")) continue;
         const item = watchItem(record.note);
@@ -534,8 +535,9 @@ export class WatchRunner {
       }
     }
     state.queue.push(note);
-    while (state.queue.length > MAX_QUEUED) {
-      if (!state.queue.shift()?.retained) state.dropped += 1;
+    while (state.queue.filter(queued => !queued.retained).length > MAX_QUEUED) {
+      const oldest = state.queue.findIndex(queued => !queued.retained);
+      state.queue.splice(oldest, 1); state.dropped += 1;
     }
   }
 
@@ -574,32 +576,38 @@ export class WatchRunner {
     if (state.queue.length === 0 && state.dropped === 0) return;
     const entry = await this.options.gate?.();
     const held = await this.held();
-    // Keep retained traffic separate from the legacy batch: neither another home nor the legacy
-    // newest-first fitter may consume it. Provenance survives waiting, reload and mate handover.
-    const ordinary = state.queue.filter(note => !note.retained);
-    let batch = ordinary.length ? ordinary : state.queue.filter(note => entry && note.retained?.owner === watchOwner(entry.gate) &&
-      held.some(record => record.owner === note.retained?.owner && record.fingerprint === note.retained?.fingerprint))
-      .sort((a, b) => occurrenceOrder({ ran: a.ran, key: a.retained!.fingerprint }, { ran: b.ran, key: b.retained!.fingerprint }));
+    // Consider both kinds before choosing a batch: a refused ordinary scope cannot starve ready
+    // retained traffic. Foreign or unproven retained copies never become delivery candidates.
+    const candidates = state.queue.filter(note => !note.retained || (entry && note.retained.owner === watchOwner(entry.gate) &&
+      held.some(record => record.owner === note.retained?.owner && record.fingerprint === note.retained?.fingerprint)));
     const dropped = state.dropped;
-    const retainedBatch = batch.length > 0 && !!batch[0]!.retained;
-    if (batch.length === 0 && dropped === 0) return;
-    // Send admission: the gate leaves a frozen scope's opaque entries queued with their legacy owner,
-    // and claims the rest durably before the send. Unrelated output still flows.
+    type Batch = { retained: boolean; note: Awaited<ReturnType<typeof fitWatchNote>> };
+    const selection: { batch?: Batch } = {};
+    const select = async (items: GateItem[]): Promise<GateItem[]> => {
+      const admitted = new Set(items.map(itemFingerprint));
+      const ready = candidates.filter(queued => state.queue.includes(queued) && admitted.has(itemFingerprint(watchItem(queued))));
+      const ordinary = ready.filter(queued => !queued.retained);
+      const retained = ordinary.length === 0;
+      const batch = ordinary.length ? ordinary : ready.sort((a, b) =>
+        occurrenceOrder({ ran: a.ran, key: a.retained!.fingerprint }, { ran: b.ran, key: b.retained!.fingerprint }));
+      // A drop-only notice can flow without consuming foreign or refused entries.
+      if (!batch.length && (!dropped || candidates.length > 0)) return [];
+      const note = retained && batch.length ? await this.fitRetained(batch, dropped) : await fitWatchNote(batch, dropped);
+      selection.batch = { retained: retained && batch.length > 0, note };
+      // Fitting is part of confirmation under the gate lock. Only actual native-message rows get
+      // a claim/result; deferred retained rows and ordinary cut rows must never inherit acceptance.
+      return note.sent.map(watchItem);
+    };
     let claim: string | null = null;
     if (entry) {
-      const admission = await entry.gate.claim(batch.map(watchItem), entry.recipient, async (items) =>
-        items.filter((item) => state.queue.some((queued) => watchItem(queued).id === item.id && watchItem(queued).payloadHash === item.payloadHash)));
-      batch = batch.filter((queued) => admission.admitted.some((item) => item.id === watchItem(queued).id && item.payloadHash === watchItem(queued).payloadHash));
+      const admission = await entry.gate.claim(candidates.map(watchItem), entry.recipient, select);
       claim = admission.claim;
-      if (batch.length === 0 && (retainedBatch || dropped === 0 || admission.refused.length > 0)) {
-        await entry.gate.settle(claim, "failed", "Nothing admitted to send.");
-        return;
-      }
-    }
-    const note = retainedBatch ? await this.fitRetained(batch, dropped) : await fitWatchNote(batch, dropped);
+    } else await select(candidates.map(watchItem));
+    if (!selection.batch) return;
+    const { note, retained: retainedBatch } = selection.batch;
     let outcome: DeliveryOutcome;
     try {
-      outcome = await this.options.deliver(note.text, retainedBatch ? { owner: batch[0]!.retained!.owner, recipient: entry!.recipient } : undefined);
+      outcome = await this.options.deliver(note.text, retainedBatch ? { owner: note.sent[0]!.retained!.owner, recipient: entry!.recipient } : undefined);
     } catch (error) {
       await entry?.gate.settle(claim, "uncertain", String(error));
       console.error("[firstmate] could not send the watches' output to the first mate:", error);
@@ -609,7 +617,7 @@ export class WatchRunner {
     await entry?.gate.settle(claim, outcome === "sent" ? "accepted" : "failed", note.cut.length ? `cut: ${note.cut.map((q) => watchItem(q).id).join(", ")}` : "");
     if (outcome !== "sent") return;
     // What was cut to fit is gone too: counted in this message's tag, not tried again.
-    state.queue = state.queue.filter((queued) => !(retainedBatch ? note.sent : batch).includes(queued));
+    state.queue = state.queue.filter((queued) => !note.sent.includes(queued) && !note.cut.includes(queued));
     state.dropped -= dropped;
     const settle = (queued: QueuedNote, result: WatchResult) => {
       const record = state.watches[queued.name];

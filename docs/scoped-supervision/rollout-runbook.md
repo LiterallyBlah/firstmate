@@ -58,7 +58,7 @@ Lifecycle covers General's own launch, compaction and handover.
 | S2 | Plan notes `queuePlanNotes` (`workflow-service.ts:47`, 1 s timer) | `config.mateNotes` | Routine | **Enqueue** + cutover pre-skip | Drainable per scope |
 | S3 | Local steer relay burst (`crew.ts:203` → `mate.ts:356`) | `mateNotes[].burst` | Routine | **Enqueue** | Drainable; scoped workers refused by S08 |
 | S4 | Burst extend (`mate.ts`, `extendBurstNote`) | `burst.holdUntil` | Routine | **Enqueue**: verdict and refusal receipt under lock | F3 closed; refused extensions leave the captured payload unchanged |
-| S5 | Watch batch (`watches.ts`, `record` / `enqueuePrompt` / `flushOnce`) | `watches.json` queue with retained-owner capsules; refused payloads in `watches.json.held/` | Routine | **Full at send; enqueue verdict, occurrence deduplication, retention backpressure and refusal receipt under lock** | Frozen-plan output stays outside the normal queue. A valid release/abort and fresh admission restore it with its owner; lifecycle-locked delivery checks that owner and captured recipient. Recovery drains oldest first; only actual delivery removes the exact spool copy. Existing queued opaque output retains S07 dispositions |
+| S5 | Watch batch (`watches.ts`, `record` / `enqueuePrompt` / `flushOnce`) | `watches.json` queue with retained-owner capsules; refused payloads in `watches.json.held/` | Routine | **Full at send; enqueue verdict, occurrence deduplication, retention backpressure and refusal receipt under lock** | Frozen-plan output stays outside the normal queue. A valid release/abort and fresh admission restore it with its owner; lifecycle-locked delivery checks that owner and captured recipient. Admission precedes batch choice and fitting precedes the durable claim, so only sent rows receive the native result. Refused ordinary rows and full ordinary queues cannot block another scope's released evidence. Recovery drains oldest first; only actual delivery removes the exact spool copy. Existing queued opaque output retains S07 dispositions |
 | S6 | Watch-runtime fault note (`watch-service.ts:183-191`) | `config.mateNotes` | Routine | **Enqueue** | Drainable |
 | S7 | Inspection result to General (`watch-inspections.ts`, `deliver`; 15 s `tickPrompts`) | `watch-inspections/inspection-runs.json` | Routine, only for watches routed to an isolated session | **Full** (`inspection` claim, exact payload hash and saved opaque text) | F1 closed; plan mentions stay pending during freeze and after commit, with a refusal receipt. Pending runs are not transferred; reconcile explicitly |
 | S8 | Inspector prompts (`watch-inspections.ts`, `start` / `reconcile`) | same | Fleet inspection lifecycle, to the inspector agent | **None** | Out of per-plan drain scope: parentless read-only inspectors have no crew identity, plan ownership or finish subscription. General retains fleet inspection; S7 gates its results |
@@ -297,6 +297,13 @@ captain would see:
   work temporarily exceeds the admission limit; subsequent admissions pause until space is available.
   Recovery sorts the stored occurrence time with a fingerprint tie-break before queue filling, and retained
   batches fit an oldest-first prefix across messages. Ordinary unarmed queue fitting stays unchanged.
+  Send admission considers ordinary and eligible retained rows together, before selecting either batch;
+  a refused ordinary scope or retained prefix cannot block a later ready scope. Restored copies use their
+  existing spool capacity, separately from the 20 ordinary rows, so a full frozen ordinary queue cannot
+  block release recovery or force extra ordinary evictions. Fitting runs during confirmation under the gate
+  lock, before the claim is persisted. Accepted, failed and uncertain results name only the fitted rows.
+  Deferred retained rows stay held and unreceipted; ordinary cut rows keep the existing dropped-count
+  behavior without receiving a false native-delivery receipt. Native delivery still runs outside the lock.
   Spool copies survive reload, queue pressure and message fitting, and are removed by their captured fingerprint
   only for the exact notes actually sent. The refusal says delivery is held for reconciliation, rather
   than claiming it stays queued. Existing queued output still uses S07's explicit disposition flow; a foreign late insertion is still
@@ -339,8 +346,21 @@ Review recovery regressions (`server/legacy-delivery-gating.test.ts`, `server/su
   admission/refresh races, old bare queue copies and malformed provenance; RR4's four retries and 16-minute
   growth reproduction, stable cap receipts, pre-baseline/concurrent backpressure and unarmed control; RR5's
   sequential recovery and oldest-first delivery across multiple messages/reloads.
+- RR6: `RR6 %s retained send claims and settles exactly the fitted occurrences` checks small and partial
+  messages against both pending and accepted claims, then drains the remainder across reloads. The wait
+  and uncertain-result cases leave all evidence intact without receipting deferred occurrences. Ordinary
+  cut rows retain their drop count without being recorded as accepted deliveries.
+- RR7: `RR7 $blocked frozen ordinary rows with ready=$ready cannot starve a released retained scope`
+  covers the review reproduction, a full ordinary queue and mixed admitted/refused ordinary traffic.
+  A frozen retained prefix also cannot block a later admitted occurrence; restored evidence does not consume
+  ordinary queue capacity. Refused rows remain held and unclaimed throughout these progress checks.
 
-Retention re-review local qualification (Windows, Node 24.22.1): typecheck and all 17 retention regressions
+RR6–RR7 local qualification (Windows, Node 24.22.1): typecheck passed; the full two-worker suite passed
+all 204 files, with 3,050 tests passed and three skipped (249.80 seconds), including all 27 retention cases
+and all 90 unchanged launch-tool cases. All five CI render commands below passed again. Per-head local
+and hosted evidence is recorded on the PR; this does not claim independent-review acceptance or activation.
+
+RR3–RR5 local qualification at `499b4ad` (Windows, Node 24.22.1): typecheck and all 17 retention regressions
 passed. Full two-worker rechecks passed 203 of 204 files, with only unchanged launch-tool record checks
 failing; that file passed all 90 tests in isolation. Hosted checks and the origin/main control are recorded
 per head on the PR; local test assertions and timeout budgets were not changed.

@@ -1,4 +1,4 @@
-/** RR3–RR5: retained observations keep their owner, occurrence identity and order. */
+/** RR3–RR7: retained observations keep their owner, occurrence identity, order and exact receipts. */
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -9,17 +9,17 @@ import type { PaseoApi } from "./host-types";
 import { releaseMate } from "./mate";
 import { cutoverGate, type CutoverGate } from "./supervision-gate";
 import { deliverToMate } from "./watch-service";
-import { MAX_HELD_WATCHES, WatchRunner, type WatchRunnerOptions } from "./watches";
+import { MAX_HELD_WATCHES, MAX_QUEUED, WatchRunner, type WatchRunnerOptions } from "./watches";
 
-async function freeze(gate: CutoverGate) {
+async function freeze(gate: CutoverGate, plan = "scheduler") {
   await gate.arm([]);
   await gate.run(() => gate.publishSidecar({ format: "firstmate.cutover-sidecar/1", compatibility: MIGRATION_COMPATIBILITY,
-    stage: "freeze", homeId: "fixture", planId: "scheduler", migrationId: randomUUID(), scopeId: randomUUID(), at: new Date().toISOString(),
+    stage: "freeze", homeId: "fixture", planId: plan, migrationId: randomUUID(), scopeId: randomUUID(), at: new Date().toISOString(),
     sourceHash: "1".repeat(64), inventoryHash: "2".repeat(64), transaction: null,
-    tokens: { plan: "scheduler", nodes: [], actions: [], agents: [], tasks: [] } }));
+    tokens: { plan, nodes: [], actions: [], agents: [], tasks: [] } }));
 }
-async function abort(gate: CutoverGate) {
-  const { hash: _hash, ...body } = (await gate.sidecar("scheduler", "freeze"))!;
+async function abort(gate: CutoverGate, plan = "scheduler") {
+  const { hash: _hash, ...body } = (await gate.sidecar(plan, "freeze"))!;
   await gate.run(() => gate.publishSidecar({ ...body, stage: "aborted" }));
 }
 async function fixture() {
@@ -265,5 +265,123 @@ it("RR5 retained transitions preserve occurrence order across message fitting an
     for (let i = 0; i < 8; i++) { await runner.flush(); runner.stop(); runner = f.create(); }
     expect([...f.sends.map(s => s.text).join("\n").matchAll(/OCCURRENCE_(\d)/g)].map(m => Number(m[1]))).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
     expect(await runner.held()).toEqual([]);
+  } finally { runner.stop(); }
+});
+
+async function keepReceipts(gate: CutoverGate) {
+  // Committed opaque mentions are allowed and keep their claims available for S07 inventory.
+  await freeze(gate, "harbor");
+  const { hash: _hash, ...body } = (await gate.sidecar("harbor", "freeze"))!;
+  await gate.run(() => gate.publishSidecar({ ...body, stage: "committed" }));
+}
+const receiptNames = (items: { id: string }[]) => items.map(item => item.id.split("@")[0]);
+const deliveredNames = (text: string) => [...text.matchAll(/name="(probe-\d)"/g)].map(match => match[1]);
+
+it.each(["small", "large"])("RR6 %s retained send claims and settles exactly the fitted occurrences", async size => {
+  const f = await fixture();
+  f.beforeDelivery = async () => {
+    const pending = (await f.gate.claims()).filter(row => !row.result);
+    expect(pending).toHaveLength(1);
+    expect(receiptNames(pending[0]!.claim.items)).toEqual(size === "large" ? ["probe-0"] : ["probe-0", "probe-1", "probe-2"]);
+  };
+  let runner = f.create();
+  try {
+    await keepReceipts(f.gate); await freeze(f.gate);
+    for (let i = 0; i < 3; i++) await expect(runner.enqueuePrompt(`probe-${i}`, `scheduler harbor RECEIPT_${i} ${"x".repeat(size === "large" ? 15980 : 0)}`, at(i))).rejects.toThrow(/retained durably/);
+    await abort(f.gate); await runner.flush();
+    const accepted = (await f.gate.claims()).filter(row => row.result?.outcome === "accepted");
+    expect(accepted).toHaveLength(1);
+    expect(receiptNames(accepted[0]!.claim.items)).toEqual(deliveredNames(f.sends[0]!.text));
+    expect(await runner.held()).toHaveLength(size === "large" ? 2 : 0);
+    expect(await runner.queued()).toHaveLength(size === "large" ? 2 : 0);
+    // Deferred occurrences have no result until a later native message actually includes them.
+    f.beforeDelivery = async () => {};
+    for (let i = 0; i < 2; i++) { runner.stop(); runner = f.create(); await runner.flush(); }
+    expect(f.sends.flatMap(send => deliveredNames(send.text))).toEqual(["probe-0", "probe-1", "probe-2"]);
+    expect(receiptNames((await f.gate.claims()).flatMap(row => row.claim.items))).toEqual(["probe-0", "probe-1", "probe-2"]);
+    expect(await runner.held()).toEqual([]);
+  } finally { runner.stop(); }
+});
+
+it.each(["wait", "uncertain"] as const)("RR6 a partial retained %s result never receipts deferred occurrences", async outcome => {
+  const f = await fixture(), runner = f.create({ deliver: async () => {
+    if (outcome === "uncertain") throw new Error("native acknowledgement lost");
+    return "wait";
+  } });
+  try {
+    await keepReceipts(f.gate); await freeze(f.gate);
+    for (let i = 0; i < 3; i++) await expect(runner.enqueuePrompt(`probe-${i}`, `scheduler harbor ${"x".repeat(15980)}`, at(i))).rejects.toThrow(/retained durably/);
+    await abort(f.gate); await runner.flush();
+    const claims = await f.gate.claims(); expect(claims).toHaveLength(1);
+    expect(receiptNames(claims[0]!.claim.items)).toEqual(["probe-0"]);
+    expect(claims[0]!.result?.outcome).toBe(outcome === "wait" ? "failed" : "uncertain");
+    expect(await runner.queued()).toHaveLength(3); expect(await runner.held()).toHaveLength(3);
+  } finally { runner.stop(); }
+});
+
+it("RR6 ordinary rows cut to fit are counted as dropped without an accepted delivery receipt", async () => {
+  const f = await fixture(), runner = f.create();
+  try {
+    await keepReceipts(f.gate);
+    for (let i = 0; i < 3; i++) await runner.enqueuePrompt(`probe-${i}`, `harbor ${"x".repeat(15980)}`, at(i));
+    await runner.flush();
+    expect(deliveredNames(f.sends[0]!.text)).toEqual(["probe-2"]);
+    expect(f.sends[0]!.text).toContain('<firstmate-watch-dropped count="2"/>');
+    const claims = await f.gate.claims(); expect(claims).toHaveLength(1);
+    expect(receiptNames(claims[0]!.claim.items)).toEqual(["probe-2"]);
+    expect(claims[0]!.result?.outcome).toBe("accepted"); expect(await runner.queued()).toEqual([]);
+  } finally { runner.stop(); }
+});
+
+it.each([{ blocked: 1, ready: false }, { blocked: MAX_QUEUED, ready: false }, { blocked: 1, ready: true }])(
+  "RR7 $blocked frozen ordinary rows with ready=$ready cannot starve a released retained scope", async ({ blocked, ready }) => {
+    const f = await fixture(), runner = f.create();
+    try {
+      for (let i = 0; i < blocked; i++) await runner.enqueuePrompt(`harbor-${i}`, "harbor WAIT_FOR_RECONCILIATION", at(i));
+      await freeze(f.gate, "harbor"); await freeze(f.gate);
+      if (ready) await runner.enqueuePrompt("ordinary-ready", "UNRELATED_READY", at(30));
+      await expect(runner.enqueuePrompt("released", "scheduler READY_AFTER_ABORT", at(31))).rejects.toThrow(/retained durably/);
+      await abort(f.gate);
+      for (let i = 0; i < 3; i++) await runner.flush();
+      expect(f.sends.map(send => send.text).join("\n")).toContain("READY_AFTER_ABORT");
+      expect(f.sends.map(send => send.text).join("\n")).not.toContain("WAIT_FOR_RECONCILIATION");
+      if (ready) expect(f.sends[0]!.text).toContain("UNRELATED_READY");
+      expect((await runner.queued()).map(note => note.name)).toEqual(Array.from({ length: blocked }, (_, i) => `harbor-${i}`));
+      expect(await runner.held()).toEqual([]);
+      expect((await f.gate.claims()).flatMap(row => row.claim.items)).toEqual([]); // Refused rows were never claimed.
+    } finally { runner.stop(); }
+  });
+
+it("RR7 a frozen retained prefix cannot block a later admitted occurrence", async () => {
+  const f = await fixture(), runner = f.create();
+  try {
+    await freeze(f.gate);
+    await expect(runner.enqueuePrompt("blocked", "scheduler harbor WAIT_FOR_RECONCILIATION", at(0))).rejects.toThrow(/retained durably/);
+    await expect(runner.enqueuePrompt("ready", "scheduler READY_AFTER_ABORT", at(1))).rejects.toThrow(/retained durably/);
+    await abort(f.gate); f.waiting = true; await runner.flush();
+    await freeze(f.gate, "harbor"); f.waiting = false; await runner.flush();
+    expect(f.sends).toHaveLength(1); expect(f.sends[0]!.text).toContain("READY_AFTER_ABORT");
+    expect(f.sends[0]!.text).not.toContain("WAIT_FOR_RECONCILIATION");
+    expect((await runner.held()).map(record => record.note.name)).toEqual(["blocked"]);
+    expect((await runner.queued()).map(note => note.name)).toEqual(["blocked"]);
+  } finally { runner.stop(); }
+});
+
+it("RR7 restored evidence does not consume ordinary queue capacity", async () => {
+  const f = await fixture(), runner = f.create();
+  try {
+    for (let i = 0; i < MAX_QUEUED; i++) await runner.enqueuePrompt(`harbor-${i}`, "harbor HELD_ORDINARY", at(i));
+    await freeze(f.gate, "harbor"); await freeze(f.gate);
+    await expect(runner.enqueuePrompt("released", "scheduler READY_AFTER_ABORT", at(30))).rejects.toThrow(/retained durably/);
+    await abort(f.gate); f.waiting = true; await runner.flush();
+    expect(await runner.queued()).toHaveLength(MAX_QUEUED + 1);
+    await runner.enqueuePrompt("ordinary-new", "UNRELATED_READY", at(31));
+    const queue = await runner.queued();
+    expect(queue.filter(note => !note.retained)).toHaveLength(MAX_QUEUED);
+    expect(queue.filter(note => note.retained)).toHaveLength(1);
+    expect(queue[0]!.name).toBe("harbor-1"); // Exactly the usual one oldest ordinary row is dropped.
+    f.waiting = false; await runner.flush(); await runner.flush();
+    expect(f.sends.map(send => send.text).join("\n")).toContain("READY_AFTER_ABORT");
+    expect((await runner.queued()).map(note => note.name)).toEqual(Array.from({ length: MAX_QUEUED - 1 }, (_, i) => `harbor-${i + 1}`));
   } finally { runner.stop(); }
 });
