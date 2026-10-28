@@ -27,6 +27,11 @@ import { cutoverGate } from "./supervision-gate";
 import { receiptJournal } from "./receipts";
 import { sendWithoutInterrupting } from "./send";
 import { TEMPLATES, message } from "./templates";
+import { digest } from "./submissions";
+
+const crewAction = (agentId: string, action: string, text = "") => ({ source: "crew-action" as const,
+  id: `crew:${action}:${randomUUID()}`, payloadHash: digest({ agentId, action, text }), agentKey: agentId });
+const crewGate = async () => cutoverGate(resolveHome(await readFirstmateConfig()));
 
 /** The most of a crewmate's answer relayed to the first mate; the same cap Paseo's own notification uses. */
 const MAX_RELAYED_CHARS = 4000;
@@ -133,24 +138,27 @@ export async function steerCrew(paseo: PaseoApi, steers: CaptainSteers, agentId:
   }
   await requireCrew(paseo, agentId);
   const messageId = `${CAPTAIN_STEER_MESSAGE_ID_PREFIX}${randomUUID()}`;
-  steers.record(agentId, text, messageId);
-  try {
-    await sendWithoutInterrupting(paseo, agentId, text, { messageId }, { channel: "crew-steer", actor: "captain" });
-  } catch (error) {
-    steers.forget(agentId, text);
-    throw error;
-  }
+  const gate = await crewGate();
+  await gate.deliver({ ...crewAction(agentId, "steer", text), id: messageId }, agentId, async () => {
+    steers.record(agentId, text, messageId);
+    try {
+      await sendWithoutInterrupting(paseo, agentId, text, { messageId }, { channel: "crew-steer", actor: "captain" });
+    } catch (error) {
+      steers.forget(agentId, text);
+      throw error;
+    }
+  });
   await extendBurstNote(agentId).catch((error: unknown) => console.error("[firstmate] could not hold the steer relay for its answer:", error));
 }
 
 export async function interruptCrew(paseo: PaseoApi, agentId: string): Promise<void> {
   await requireCrew(paseo, agentId, true);
-  await stopAgent(agentId);
+  await (await crewGate()).deliver(crewAction(agentId, "interrupt"), agentId, () => stopAgent(agentId), { stopWithUnknownOwner: true });
 }
 
 export async function exitCrew(paseo: PaseoApi, agentId: string): Promise<void> {
   await requireCrew(paseo, agentId, true);
-  await paseo.agents.ref(agentId).archive();
+  await (await crewGate()).deliver(crewAction(agentId, "end"), agentId, () => paseo.agents.ref(agentId).archive(), { stopWithUnknownOwner: true });
 }
 
 /** What the first mate is asked when the captain presses Relaunch (`templates/messages/relaunch.md`). */
@@ -165,7 +173,12 @@ export function relaunchText(agent: Pick<PaseoAgent, "id" | "title" | "labels">,
 
 export async function relaunchCrew(paseo: PaseoApi, agentId: string, note: string): Promise<string> {
   const agent = await requireCrew(paseo, agentId);
-  return askMate(paseo, { text: await relaunchText(agent, note) });
+  const text = await relaunchText(agent, note), gate = await crewGate();
+  let claim: string | null = null, recipient: string;
+  try { recipient = await askMate(paseo, { text }, async id => { claim = await gate.admit(crewAction(agentId, "relaunch", text), id); }); }
+  catch (error) { await gate.settle(claim, "uncertain", String(error)); throw error; }
+  await gate.settle(claim, "accepted");
+  return recipient;
 }
 
 /** One exchange: what the captain said and what the turn that read it answered (`templates/messages/steer-relay-exchange.md`). */

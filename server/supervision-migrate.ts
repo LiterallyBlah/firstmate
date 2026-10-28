@@ -103,7 +103,7 @@ interface Snapshot {
   dispositions: LegacyDeliveryDisposition[]; receipt: MigrationReceipt; problems: string[]; prepared: StoreMutation[]; capacity: Capacity;
 }
 function claimItem(i: Claim["items"][number]): GateItem {
-  return { source: i.source, id: i.id, payloadHash: i.payloadHash, text: i.mentions.join(" "), ...(i.plan ? { plan: i.plan } : {}),
+  return { source: i.source, id: i.id, payloadHash: i.payloadHash, text: i.text ?? i.mentions.join(" "), ...(i.plan ? { plan: i.plan } : {}),
     ...(i.actionId ? { actionId: i.actionId } : {}), ...(i.agentKey ? { agentKey: i.agentKey } : {}), ...(i.task ? { task: i.task } : {}) };
 }
 /** Every attempt the legacy plan ever recorded, current, prior and removed, with its last known state. */
@@ -306,7 +306,7 @@ export class SupervisionMigrator {
         reason: `Legacy attempt ${a.attempt} on ${a.node} is ${uncertainLaunch ? `an uncertain launch (${uncertainLaunch.state})` : a.state.state}; its native callback still reaches the original first mate. Hold until it is quiescent and its finish is accounted.`,
         destination: null, removal: { state: "not-queued", receipt: null } }));
     }
-    for (const row of claims.filter(c => !c.result && !rows.some(r => r.claimId === c.claim.id))) {
+    for (const row of claims.filter(c => (!c.result || c.result.outcome === "uncertain") && !rows.some(r => r.claimId === c.claim.id))) {
       const target = this.target(input.plan, tokens);
       if (row.claim.items.some(i => CutoverGate.classify(claimItem(i), target))) rows.push(this.claimHold(input, row.claim, tokens, tip, owner));
     }
@@ -334,8 +334,8 @@ export class SupervisionMigrator {
     return this.row(input, "send-claim", claim.id, tip, owner, { original: { claimItem: claim.items.map(i => i.id).join(",").slice(0, 400) }, payloadHash: digest(claim),
       resolution: { by: claim.items.some(i => CutoverGate.classify(claimItem(i), this.target(input.plan, tokens)) === "identity") ? "identity" : "mention", plans: [input.plan], unresolved: [] },
       recipient: claim.recipient, observed: { notified: null, handledKeys: [], pendingKeys: [], outcome: null }, delivery: "uncertain", claimId: claim.id,
-      imperative: claim.items.some(i => i.source === "decision" || i.source === "watch"), route: "hold",
-      reason: "A legacy send was claimed by a process that stopped before recording its result. It may have arrived; it is never treated as unsent or re-sent.",
+      imperative: claim.items.some(i => ["decision", "watch", "crew-action", "inspection"].includes(i.source)), route: "hold",
+      reason: "A legacy send has no definite result. It may have arrived; it is never treated as unsent or re-sent.",
       destination: null, removal: { state: "not-queued", receipt: null } });
   }
 
@@ -415,7 +415,7 @@ export class SupervisionMigrator {
           imperative: false, route: "hold", reason: "A note for this plan appeared after the freeze, outside the gate. Held for review.", removal: { state: "pending", receipt: null } }));
       }
       for (const c of claims) {
-        if (c.result || rows.some(d => d.claimId === c.claim.id)) continue;
+        if ((c.result && c.result.outcome !== "uncertain") || rows.some(d => d.claimId === c.claim.id)) continue;
         if (liveClaims().has(c.claim.id)) fail("HELD", "A legacy send is in flight; account for it before re-inventory.");
         if (c.claim.items.some(i => CutoverGate.classify(claimItem(i), target))) add(this.claimHold(input, c.claim, tokens, tip, owner));
       }

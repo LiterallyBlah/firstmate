@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -8,6 +8,9 @@ import type { PaseoApi, TimelineItem } from "./host-types";
 import { oneAtATime } from "./mate";
 import { WatchInspections, INSPECTION_TIMEOUT_MS, parseInspectionResult, inspectionResultText, timelineHasMessage } from "./watch-inspections";
 import type { TimelinePage } from "./host-types";
+import { randomUUID } from "node:crypto";
+import { MIGRATION_COMPATIBILITY } from "../shared/supervision-migration";
+import { cutoverGate } from "./supervision-gate";
 
 const directories: string[] = [];
 afterEach(async () => { for (const directory of directories.splice(0)) await rm(directory, { recursive: true, force: true }); });
@@ -15,6 +18,7 @@ async function fixture() {
   const root = await mkdtemp(join(tmpdir(), "firstmate-inspections-")); directories.push(root);
   let config = FirstmateConfigSchema.parse({ home: join(root, "home"), mateAgentId: "mate" });
   let clock = Date.now(); let readOnly = true; let createFailure: string | null = null; let ackLost = false;
+  let beforeDelivery = async () => {};
   type Agent = { id: string; provider: string; model: string; status: string; currentModeId: string; thinkingOptionId: string;
     workspaceId: string; archivedAt: string | null; labels: Record<string, string>; pendingPermissions: { id: string }[]; lastError: string | null; cwd: string };
   const agents = new Map<string, Agent>(); const timelines = new Map<string, TimelineItem[]>();
@@ -35,6 +39,7 @@ async function fixture() {
     agents: { ref: (id: string) => ({ refresh: async () => {
       const agent = agents.get(id); if (!agent) throw new Error("Agent not found"); return { agent };
     }, send: async (text: string, options: any) => {
+      if (id === config.mateAgentId) await beforeDelivery();
       // The daemon's message receipt deduplicates the stable message ID.
       const items = timelines.get(id)!;
       if (!items.some((item) => item.type === "user_message" && item.clientMessageId === options.messageId)) {
@@ -59,10 +64,50 @@ async function fixture() {
     get runner() { return runner; }, get config() { return config; }, set config(value) { config = value; },
     set clock(value: number) { clock = value; }, set readOnly(value: boolean) { readOnly = value; },
     set createFailure(value: string) { createFailure = value; }, set ackLost(value: boolean) { ackLost = value; },
+    set beforeDelivery(value: () => Promise<void>) { beforeDelivery = value; },
     reload() { runner = new WatchInspections(options); } };
 }
 
 describe("isolated inspection lifecycle", () => {
+  it("F1 inspection result claims before General delivery and settles before marking sent", async () => {
+    const f = await fixture(); const gate = cutoverGate(f.config.home); await gate.arm([]);
+    await f.runner.start(f.watch.name, f.watch.prompt, f.watch); const id = f.created[0].agentId;
+    f.beforeDelivery = async () => {
+      expect(await gate.claims()).toEqual([expect.objectContaining({ claim: expect.objectContaining({ recipient: "mate" }), result: null })]);
+      await gate.run(async () => undefined);
+    };
+    f.finish(id, "actionable", [f.finding]); await f.runner.reconcile();
+    expect(f.sent.filter(entry => entry.id === "mate")).toHaveLength(1);
+    expect(await gate.claims()).toEqual([expect.objectContaining({ result: expect.objectContaining({ outcome: "accepted" }) })]);
+    expect((await f.runner.history(f.watch.name)).runs[0]!.delivery).toBe("sent");
+  });
+  it.each(["freeze", "committed"] as const)("F1 inspection result refuses a %s plan mention and retains pending evidence", async stage => {
+    const f = await fixture(); const gate = cutoverGate(f.config.home); await gate.arm([]);
+    await f.runner.start(f.watch.name, f.watch.prompt, f.watch); const id = f.created[0].agentId;
+    await gate.run(() => gate.publishSidecar({ format: "firstmate.cutover-sidecar/1", compatibility: MIGRATION_COMPATIBILITY,
+      stage, homeId: "fixture", planId: "scheduler", migrationId: randomUUID(), scopeId: randomUUID(), at: new Date().toISOString(),
+      sourceHash: "1".repeat(64), inventoryHash: "2".repeat(64), transaction: null,
+      tokens: { plan: "scheduler", nodes: [], agents: [], actions: [], tasks: [] } }));
+    f.finish(id, "actionable", [{ ...f.finding, subject: "scheduler" }]); await f.runner.reconcile();
+    expect(f.sent.filter(entry => entry.id === "mate")).toEqual([]);
+    expect((await f.runner.history(f.watch.name)).runs[0]).toMatchObject({ delivery: "pending", report: expect.stringContaining("cutover") });
+    expect(await readdir(join(gate.directory, "refusals"))).toHaveLength(1);
+    expect(await gate.claims()).toEqual([]);
+  });
+  it("F1 inspection result is supervision-write-free while unarmed", async () => {
+    const f = await fixture(); await f.runner.start(f.watch.name, f.watch.prompt, f.watch);
+    f.finish(f.created[0].agentId, "actionable", [f.finding]); await f.runner.reconcile();
+    expect(f.sent.filter(entry => entry.id === "mate")).toHaveLength(1);
+    await expect(readdir(cutoverGate(f.config.home).directory)).rejects.toMatchObject({ code: "ENOENT" });
+  });
+  it("F1 inspection result retains an uncertain claim after a lost acknowledgement", async () => {
+    const f = await fixture(); const gate = cutoverGate(f.config.home); await gate.arm([]);
+    await f.runner.start(f.watch.name, f.watch.prompt, f.watch); const id = f.created[0].agentId;
+    f.finish(id, "actionable", [f.finding]); f.ackLost = true; await f.runner.reconcile();
+    expect(await gate.claims()).toEqual([expect.objectContaining({ result: expect.objectContaining({ outcome: "uncertain" }) })]);
+    f.mate.status = "idle"; f.reload(); await f.runner.reconcile();
+    expect(f.sent.filter(entry => entry.id === "mate")).toHaveLength(1);
+  });
   it("creates a separate, parentless read-only session at medium with no supervisor charter or notifications", async () => {
     const f = await fixture(); await f.runner.start(f.watch.name, f.watch.prompt, f.watch);
     expect(f.created).toHaveLength(1); const created = f.created[0];

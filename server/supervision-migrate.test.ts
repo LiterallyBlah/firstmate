@@ -103,6 +103,17 @@ function makeMigrator(boundary?: (name: string) => Promise<void>) {
   return new SupervisionMigrator({ home, store, legacy, enabled: true, adapters: legacyAdapters(runner, () => service.read()),
     boundary: async name => { chronology.push(`boundary:${name}`); await boundary?.(name); } });
 }
+it.each(["worker", "inspection"])("F1/F2 uncertain %s delivery remains an inventoried hold after settlement", async kind => {
+  await migrator.arm();
+  const gate = cutoverGate(home);
+  const item = kind === "worker" ? { source: "crew-action" as const, id: "direct-control", payloadHash: sha("control"), task: { taskId: "build", host: "local" } }
+    : { source: "inspection" as const, id: "inspection-result", payloadHash: sha("result"), text: "scheduler needs attention" };
+  const admission = await gate.claim([item], GENERAL);
+  await gate.settle(admission.claim, "uncertain", "acknowledgement lost");
+  await migrator.prepare(input);
+  expect((await store.read()).dispositions).toEqual(expect.arrayContaining([expect.objectContaining({ source: "send-claim", claimId: admission.claim, route: "hold", delivery: "uncertain" })]));
+  await expect(migrator.barrier(input.migrationId)).rejects.toMatchObject({ code: "HELD" });
+});
 /** S11: which of the scope's explicit dependencies still hold it out of cooperative rollout. */
 const unmet = async () => cooperativeReadiness(await store.read(), input.scopeId).dependencies.filter(d => !d.satisfied).map(d => d.id);
 async function notes() { return (await readFirstmateConfig()).mateNotes; }
@@ -536,9 +547,13 @@ it("exports a separate scoped projection bound to its preimage; backlog bytes an
   await writeTextFile(home, { path: "data/scoped/proposals/scheduler.md", content: "Proposal", expectedModifiedMs: null, force: true });
 });
 
-it("B1: watch output naming the plan after the freeze becomes a resolvable hold; a generic step name is no clue", async () => {
+it("B1: refused watch enqueue is accounted; a noncompliant late insert still becomes a resolvable hold", async () => {
   await migrator.arm(); await migrator.prepare(input);
-  await runner.enqueuePrompt("pr-watch", "PR 12 on branch fm/scheduler: checks red.", new Date("2026-10-27T10:01:00Z"));
+  await expect(runner.enqueuePrompt("pr-watch", "PR 12 on branch fm/scheduler: checks red.", new Date("2026-10-27T10:01:00Z"))).rejects.toThrow(/cutover/);
+  expect(await readdir(join(cutoverGate(home).directory, "refusals"))).toHaveLength(1);
+  // Retain the S07 recovery case: a foreign/old writer bypasses the checked insertion path.
+  const bypass = runner as unknown as { gated: (w: () => Promise<void>) => Promise<void>; load: () => Promise<{ queue: QueuedNote[] }>; persist: () => Promise<void> };
+  await bypass.gated(async () => { (await bypass.load()).queue.push({ name: "pr-watch", ran: "2026-10-27T10:01:00Z", kind: "output", text: "PR 12 on branch fm/scheduler: checks red." }); await bypass.persist(); });
   await runner.enqueuePrompt("storage", "Nightly build cache pruned; disk healthy.", new Date("2026-10-27T10:01:00Z"));
   await runner.flush();
   expect(sent.map(s => s.text).join("\n")).toContain("disk healthy"); // A generic step name alone is not the plan.

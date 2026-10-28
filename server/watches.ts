@@ -37,7 +37,7 @@ import type { WatchResult, WatchSummary } from "../shared/fleet";
 import { watchRouting, type ManagedWatch } from "../shared/watch-routing";
 import { serialized } from "./serialize";
 import { digest } from "./submissions";
-import type { CutoverGate, GateItem } from "./supervision-gate";
+import { CutoverRefusal, type CutoverGate, type GateItem } from "./supervision-gate";
 import { TEMPLATES, message } from "./templates";
 import { BUILT_IN_WATCHES, builtInStates, listWatches, seedWatches, type WatchFile } from "./watch-files";
 import { runWatchScript, type RunResult } from "./watch-run";
@@ -316,10 +316,10 @@ export class WatchRunner {
       ? ((await this.load()).watches[name] ?? BLANK).failing ? null : { name, ran, kind: "failed", reason, text: stderr }
       : text === null ? null : { name, ran, kind: "output", text };
     const routed = note !== null && !!(await this.options.routeNote?.(note));
-    await this.gated(async () => {
+    await this.gated(async gate => {
       const state = await this.load();
       const previous = state.watches[name] ?? BLANK;
-      if (note !== null && !routed) this.enqueue(state, note);
+      if (note !== null && !routed) await this.enqueue(state, note, gate);
       if (reason !== null) {
         state.watches[name] = {
           ...previous,
@@ -346,21 +346,21 @@ export class WatchRunner {
 
   /** Current-session prompt watches use the existing execution queue, with no second result notification. */
   async enqueuePrompt(name: string, text: string, at: Date): Promise<void> {
-    return serialized(`${this.options.stateFile}.prompts`, () => this.gated(async () => {
+    return serialized(`${this.options.stateFile}.prompts`, () => this.gated(async gate => {
       const state = await this.load();
       const ran = stamp(at);
       const previous = state.watches[name];
       if (previous?.lastRunAt?.slice(0, 16) === ran.slice(0, 16) || state.queue.some((note) => note.name === name)) return;
-      this.enqueue(state, { name, ran, kind: "output", text });
+      await this.enqueue(state, { name, ran, kind: "output", text }, gate);
       state.watches[name] = { ...BLANK, lastRunAt: ran, lastResult: "queued", lastOutput: text, lastOutputAt: ran };
       await this.persist();
     }));
   }
 
   /** Queue enqueues run inside the cutover gate, so a freeze's inventory either includes them or follows them. */
-  private async gated<T>(work: () => Promise<T>): Promise<T> {
+  private async gated<T>(work: (gate?: CutoverGate) => Promise<T>): Promise<T> {
     const entry = await this.options.gate?.();
-    return entry ? entry.gate.run(work) : work();
+    return entry ? entry.gate.run(() => work(entry.gate)) : work();
   }
 
   /** The persisted queue, for a cutover inventory. Watch rows have no ids; their exact fields identify them. */
@@ -399,7 +399,11 @@ export class WatchRunner {
     return (await this.load()).queue.some((note) => note.name === name);
   }
 
-  private enqueue(state: RunnerState, note: QueuedNote): void {
+  private async enqueue(state: RunnerState, note: QueuedNote, gate?: CutoverGate): Promise<void> {
+    if (gate) {
+      const item = watchItem(note), verdict = await gate.verdict(item, "enqueue");
+      if (!verdict.admit) { await gate.refusal(item, verdict.reason); throw new CutoverRefusal(verdict.plan, verdict.stage, verdict.reason); }
+    }
     state.queue.push(note);
     while (state.queue.length > MAX_QUEUED) {
       state.queue.shift();

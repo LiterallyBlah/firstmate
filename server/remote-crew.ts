@@ -11,6 +11,10 @@
  */
 import type { RemoteHost, RemoteSnapshot, RemoteWorker } from "../shared/remotes";
 import { TEMPLATES, message } from "./templates";
+import { randomUUID } from "node:crypto";
+import { readFirstmateConfig, resolveHome } from "./config";
+import { cutoverGate } from "./supervision-gate";
+import { digest } from "./submissions";
 
 /** Refuses a mutation the supervision registry owns (S08: remote mutation of scoped work stays disabled). */
 export type RemoteMutationGuard = (serverId: string, agentId: string) => Promise<void>;
@@ -48,6 +52,13 @@ async function send(remotes: RemoteGateway, host: RemoteHost, args: string[]): P
   }
 }
 
+/** S08's guard remains in front of S07. The remote request itself never holds the cutover lock. */
+async function mutate(remotes: RemoteGateway, host: RemoteHost, worker: RemoteWorker, args: string[]) {
+  const gate = cutoverGate(resolveHome(await readFirstmateConfig())), agentKey = `remote:${host.serverId}:${worker.id}`;
+  return gate.deliver({ source: "crew-action", id: `remote:${randomUUID()}`, payloadHash: digest({ serverId: host.serverId, args }), agentKey },
+    agentKey, () => send(remotes, host, args));
+}
+
 export async function steerRemoteCrew(
   remotes: RemoteGateway,
   serverId: string,
@@ -61,14 +72,14 @@ export async function steerRemoteCrew(
   await guard?.(serverId, worker.id);
   // After `--`, as the helper sends a prompt: the request path keeps it out of its option checks and
   // puts its own flags before it, and the CLI reads it as text even when it starts with a dash.
-  await send(remotes, host, ["send", worker.id, "--", words]);
+  await mutate(remotes, host, worker, ["send", worker.id, "--", words]);
   return { host, worker, text: words };
 }
 
 export async function interruptRemoteCrew(remotes: RemoteGateway, serverId: string, agentId: string, guard?: RemoteMutationGuard): Promise<void> {
   const { host, worker } = await requireWorker(remotes, serverId, agentId);
   await guard?.(serverId, worker.id);
-  await send(remotes, host, ["stop", worker.id]);
+  await mutate(remotes, host, worker, ["stop", worker.id]);
 }
 
 export async function exitRemoteCrew(remotes: RemoteGateway, serverId: string, agentId: string, guard?: RemoteMutationGuard): Promise<void> {
@@ -76,7 +87,7 @@ export async function exitRemoteCrew(remotes: RemoteGateway, serverId: string, a
   await guard?.(serverId, worker.id);
   // A followed session is the captain's own, not crew; the board never ends it.
   if (worker.followed === true) throw new Error(`${worker.name} is a session the first mate follows, not crew; end it on ${host.label}.`);
-  await send(remotes, host, ["archive", worker.id]);
+  await mutate(remotes, host, worker, ["archive", worker.id]);
 }
 
 export async function remoteCrewLogs(
