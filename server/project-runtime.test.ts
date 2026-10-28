@@ -43,6 +43,87 @@ async function admit(name = "scheduler") {
   return admin({ op: "admit", name, aliases: [name + "-alias"], registryDigest: read.registryDigest!, source: { ...source, id: randomUUID() },
     profile: { provider: "codex/test", modeId: "full-access", thinkingOptionId: "xhigh" }, budget: { agents: 4, turns: 12 }, limits: { supervisorSessions: 1, supervisorTurns: 5 } });
 }
+async function cutoverForAttach(projectId: string) {
+  const { SupervisionActivation } = await import("./supervision-activation");
+  const { legacyAdapters } = await import("./supervision-migrate");
+  const { NeedsYouService, readConfiguredDecisionHome } = await import("./needs-you-service");
+  await writeFile(join(home, "data/backlog.md"), "# Backlog\n## In flight\n## Queued\n## Done\n");
+  await workflowStore(home).execute({ op: "draft", definition: workflowFixture() }, randomUUID(), "general");
+  let clock = 1000;
+  const ledger = new NeedsYouService({ root: join(data, "ledger"), home: readConfiguredDecisionHome, catalog: async () => null, enabled: () => true, now: () => clock });
+  await ledger.read(); clock += 2000; await ledger.read();
+  const activation = new SupervisionActivation(data, { runtime, enabled: true, headroom: { slots: 4, reserved: 1 },
+    adapters: () => legacyAdapters(null, () => ledger.read()), receiver: () => receiver });
+  const read = await service.read(), migrationId = randomUUID();
+  await activation.migrate({ op: "prepare", homeId: read.homeId, plan: "scheduler", scopeId: randomUUID(), projectId, migrationId,
+    prerequisites: { inventory: "drained inventory", policy: "reviewed policy", rollbackBuild: "compatible build" } });
+  for (const op of ["reconcile", "barrier", "commit"] as const) await activation.migrate({ op, homeId: read.homeId, migrationId });
+  const plan = (await activation.read()).plans[0]!;
+  return { activation, ledger, input: { requestId: randomUUID(), homeId: read.homeId, plan: plan.plan, planHash: plan.hash, scopeId: plan.scopeId,
+    scopeVersion: plan.scopeVersion, supervisorId: plan.supervisorId, profile: { provider: "codex/test", modeId: "full-access" }, opening: "Supervise Scheduler only." } };
+}
+function captainRequest() {
+  const send = vi.fn(async () => {}), refresh = vi.fn(async () => ({ agent: { id: "general", archivedAt: null, status: "idle" } }));
+  const ref = vi.fn(() => ({ refresh, send }));
+  return { send, ref, request: () => askMate({ agents: { ref } } as unknown as PaseoApi, { text: "captain request" }) };
+}
+function stallNextLookup() {
+  let release!: () => void, entered!: () => void;
+  const gate = new Promise<void>(done => { release = done; }), ready = new Promise<void>(done => { entered = done; });
+  const original = receiver.findAgent.bind(receiver);
+  vi.spyOn(receiver, "findAgent").mockImplementationOnce(async id => { entered(); await gate; return original(id); });
+  return { release, ready };
+}
+it("review F1b: a concurrent real Attach cannot carry a stalled project lookup into General's lifecycle lock", async () => {
+  await admit(); const read = await admit("beta"), a = read.projects.find(p => p.name === "scheduler")!, b = read.projects.find(p => p.name === "beta")!;
+  const { activation, ledger, input } = await cutoverForAttach(a.projectId!);
+  let pendingProject: Promise<unknown> | undefined, attaching: Promise<unknown> | undefined, captain: Promise<unknown> | undefined;
+  const first = { homeId: read.homeId, projectId: a.projectId!, projectVersion: a.version, requestId: randomUUID() };
+  await service.provision(first, api);
+  const lookup = stallNextLookup();
+  try {
+    pendingProject = service.provision({ ...first, projectId: b.projectId!, projectVersion: b.version, requestId: randomUUID() }, api); await lookup.ready;
+    const baseline = captainRequest(); await baseline.request(); expect(baseline.send).toHaveBeenCalledTimes(1);
+    let enteredAttach = false;
+    const original = SupervisionStore.prototype.recoverPublication;
+    vi.spyOn(SupervisionStore.prototype, "recoverPublication").mockImplementation(async function(this: SupervisionStore, observed) {
+      const result = await original.call(this, observed); enteredAttach = true; return result;
+    });
+    attaching = activation.attach(input, api);
+    await vi.waitFor(() => expect(enteredAttach).toBe(true));
+    const general = captainRequest(); captain = general.request();
+    await vi.waitFor(() => expect(general.send).toHaveBeenCalledTimes(1), { timeout: 2000 });
+    expect(general.ref).toHaveBeenCalledWith("general");
+  } finally {
+    lookup.release(); await Promise.all([pendingProject, attaching, captain]); await activation.stop(); await ledger.stop();
+  }
+  expect(receiver.agents.size).toBe(3); expect(receiver.sends).toHaveLength(3);
+}, 60000);
+it.each(["project", "Attach"] as const)("a stalled %s capacity lookup times out without touching General or admitting late effects", async kind => {
+  await admit(); const read = await admit("beta"), a = read.projects.find(p => p.name === "scheduler")!, b = read.projects.find(p => p.name === "beta")!;
+  const { activation, ledger, input } = await cutoverForAttach(a.projectId!);
+  await service.provision({ homeId: read.homeId, projectId: a.projectId!, projectVersion: a.version, requestId: randomUUID() }, api);
+  const projectInput = { homeId: read.homeId, projectId: b.projectId!, projectVersion: b.version, requestId: randomUUID() };
+  const calls = receiver.calls.length, before = await runtime.read(home), lookup = stallNextLookup();
+  let result: unknown, settled = false, captain: Promise<unknown> | undefined;
+  const pending = (kind === "project" ? service.provision(projectInput, api) : activation.attach(input, api))
+    .then(value => { result = value; settled = true; }, error => { result = error; settled = true; });
+  try {
+    await lookup.ready;
+    const general = captainRequest(); captain = general.request();
+    await vi.waitFor(() => expect(general.send).toHaveBeenCalledTimes(1), { timeout: 2000 });
+    await vi.waitFor(() => expect(settled).toBe(true), { timeout: 8000 });
+    expect(result).toMatchObject({ code: "HELD", message: expect.stringContaining("lookup timed out") });
+    const held = await runtime.read(home);
+    expect(held.bindings).toEqual(before.bindings); expect(held.effects).toEqual(before.effects);
+    expect(receiver.calls).toHaveLength(calls);
+    // The timed-out native read stays pending. Another admission can still use the released queue.
+    await (kind === "project" ? activation.attach(input, api) : service.provision(projectInput, api));
+    expect(receiver.agents.size).toBe(2);
+    expect((await service.read()).general.agentId).toBe("general");
+  } finally { lookup.release(); await Promise.all([pending, captain]); await activation.stop(); await ledger.stop(); }
+  expect(receiver.agents.size).toBe(2); expect(receiver.sends).toHaveLength(2);
+}, 60000);
 it("production RPCs are registered; off and enabled reads create nothing, account every registry entry, and never provision", async () => {
   const handles: string[] = []; registerProjectRuntime({ handle: ((rpc: { name: string }) => { handles.push(rpc.name); }) as never }, make(false));
   expect(handles).toHaveLength(6); expect(handles).toContain("firstmate.projects.recover-ui"); expect(handles).toContain("firstmate.projects.abort-ui");
