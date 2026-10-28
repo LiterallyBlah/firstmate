@@ -8,6 +8,7 @@ import { SupervisionRuntime } from "./supervision-runtime";
 import { ProjectRuntime, registerProjectRuntime } from "./project-runtime";
 import { SupervisionStore } from "./supervision-store";
 import { SyntheticReceiver } from "../test/synthetic-receiver";
+import { projectRuntimeFixture } from "../test/project-runtime-fixture";
 import type { PaseoApi } from "./host-types";
 import { policyRef } from "./supervision-policy";
 import { scopeSnapshot } from "./scope-projection";
@@ -30,7 +31,7 @@ beforeEach(async () => {
   await updateFirstmateConfig({ mateAgentId: "general" });
   source = { id: randomUUID(), version: 1, path: "data/orders.md", lineStart: 1, lineEnd: 1, fileHash: sha("Reviewed project allocation and project-mate profile.\n"),
     excerptHash: sha("Reviewed project allocation and project-mate profile."), provenance: actor, supersedes: [] };
-  runtime = new SupervisionRuntime(data); receiver = new SyntheticReceiver(); service = make();
+  runtime = projectRuntimeFixture(data); receiver = new SyntheticReceiver(); service = make();
 });
 afterEach(async () => { await runtime?.stop(); });
 const make = (enabled = true) => new ProjectRuntime(runtime, { enabled, receiver: () => receiver });
@@ -76,12 +77,12 @@ it("review F1: General chat and another admitted project finish while a project'
 it("review F2: the app can inspect and recover a stale checkpoint after restart, then resume its original input exactly once", async () => {
   const read = await admit(), p = read.projects.find(p => p.name === "scheduler")!;
   await runtime.stop(); let failOnce = true;
-  runtime = new SupervisionRuntime(data, (root, targetHome) => new SupervisionStore(root, targetHome, { writable: true, boundary: async name => {
+  runtime = projectRuntimeFixture(data, { boundary: async name => {
     if (name === "publication:linked" && failOnce) { failOnce = false; throw Error("review F2 checkpoint interruption"); }
-  } })); service = make();
+  } }); service = make();
   const input = { homeId: read.homeId, projectId: p.projectId!, projectVersion: p.version, requestId: randomUUID() };
   await expect(service.provision(input, api)).rejects.toMatchObject({ code: "HELD" });
-  await runtime.stop(); runtime = new SupervisionRuntime(data); service = make();
+  await runtime.stop(); runtime = projectRuntimeFixture(data); service = make();
   const held = await service.read();
   expect(held.freshness).toBe("held"); expect(receiver.calls).toHaveLength(0);
   expect(held.recovery).toEqual({ sequence: held.sequence, hash: held.hash });
@@ -108,12 +109,12 @@ const interruptions = [
 it.each(interruptions)("app recovery after %s at provisioning transaction %i retains one identity and offers safe resume or stop", async (point, transaction) => {
   const read = await admit(), p = read.projects.find(p => p.name === "scheduler")!;
   await runtime.stop(); let seen = 0, tripped = false;
-  runtime = new SupervisionRuntime(data, (root, home) => new SupervisionStore(root, home, { writable: true, boundary: async name => {
+  runtime = projectRuntimeFixture(data, { boundary: async name => {
     if (name === point && ++seen === transaction) { tripped = true; throw Error(`interrupted ${point}/${transaction}`); }
-  } })); service = make();
+  } }); service = make();
   const input = { homeId: read.homeId, requestId: randomUUID(), projectId: p.projectId!, projectVersion: p.version };
   await expect(service.provision(input, api)).rejects.toMatchObject({ code: "HELD" }); expect(tripped).toBe(true);
-  await runtime.stop(); runtime = new SupervisionRuntime(data); service = make();
+  await runtime.stop(); runtime = projectRuntimeFixture(data); service = make();
   const held = await service.read(), calls = receiver.calls.length;
   if (held.recovery) {
     await expect(service.recover({ homeId: held.homeId, sequence: held.sequence, hash: "0".repeat(64) })).rejects.toMatchObject({ code: "STALE" });
@@ -128,7 +129,7 @@ it.each(interruptions)("app recovery after %s at provisioning transaction %i ret
   if (latest.reason) {
     const abort = { homeId: read.homeId, projectId: p.projectId!, projectVersion: latest.version, provisionRequestId: input.requestId };
     await service.abort(abort); await service.abort(abort);
-    await runtime.stop(); runtime = new SupervisionRuntime(data); service = make();
+    await runtime.stop(); runtime = projectRuntimeFixture(data); service = make();
     latest = (await service.read()).projects.find(row => row.projectId === p.projectId)!;
     expect(latest.reason).toMatch(/Provisioning stopped/); expect(latest).toMatchObject({ sessions: 1, turns: 1 });
     await expect(service.provision(input, api)).rejects.toMatchObject({ code: "HELD" });
@@ -142,7 +143,7 @@ it.each(["checkpoint", "event"])("app recovery refuses missing %s authority/witn
   const read = await admit(); await runtime.stop();
   const store = new SupervisionStore(data, home), before = await store.read();
   const path = join(store.root, damage === "checkpoint" ? "checkpoint.json" : `transactions/${String(before.sequence).padStart(12, "0")}.event.json`);
-  await rm(path); runtime = new SupervisionRuntime(data); service = make();
+  await rm(path); runtime = projectRuntimeFixture(data); service = make();
   const held = await service.read();
   await expect(service.recover({ homeId: read.homeId, sequence: held.sequence, hash: held.hash })).rejects.toMatchObject({ code: "HELD" });
   await expect(stat(path)).rejects.toMatchObject({ code: "ENOENT" }); expect(receiver.calls).toHaveLength(0);
@@ -151,7 +152,7 @@ it("app recovery preserves a divergent checkpoint instead of reconstructing auth
   const read = await admit(); await runtime.stop(); const store = new SupervisionStore(data, home), path = join(store.root, "checkpoint.json");
   const { hash: _hash, ...body } = JSON.parse(await readFile(path, "utf8"));
   const changed = { ...body, sequence: 0, transactionHash: null }, bytes = canonical({ ...changed, hash: digest(changed) }) + "\n";
-  await writeFile(path, bytes); runtime = new SupervisionRuntime(data); service = make(); const held = await service.read();
+  await writeFile(path, bytes); runtime = projectRuntimeFixture(data); service = make(); const held = await service.read();
   await expect(service.recover({ homeId: read.homeId, sequence: held.sequence, hash: held.hash })).rejects.toMatchObject({ code: "HELD" });
   expect(await readFile(path, "utf8")).toBe(bytes); expect(receiver.calls).toHaveLength(0);
 });
@@ -228,7 +229,7 @@ it("admits from an exact reviewed census, provisions one independent project mat
   expect(receiver.sends[0]?.text).toContain("Project conventions: isolated fixtures.");
   await Promise.all([service.provision(input, api), service.provision({ ...input, requestId: randomUUID() }, api)]);
   expect(receiver.calls).toHaveLength(3);
-  await runtime.stop(); runtime = new SupervisionRuntime(data); service = make();
+  await runtime.stop(); runtime = projectRuntimeFixture(data); service = make();
   await service.provision(input, api);
   expect((await service.read()).projects.find(p => p.name === "scheduler")).toMatchObject({ agentId: owner.agentId, workspaceId: owner.workspaceId, sessions: 1, turns: 1 });
   expect(receiver.calls).toHaveLength(3);
@@ -237,7 +238,7 @@ it("admits from an exact reviewed census, provisions one independent project mat
 it("lost opening stays uncertain across explicit resume and restart, with no extra send or identity", async () => {
   const read = await admit(), p = read.projects.find(p => p.name === "scheduler")!, input = { homeId: read.homeId, projectId: p.projectId!, projectVersion: p.version, requestId: randomUUID() };
   receiver.faults.send = ["lose"];
-  await service.provision(input, api); await runtime.stop(); runtime = new SupervisionRuntime(data); service = make();
+  await service.provision(input, api); await runtime.stop(); runtime = projectRuntimeFixture(data); service = make();
   await service.provision(input, api); await service.provision({ ...input, requestId: randomUUID() }, api);
   const latest = (await service.read()).projects.find(p => p.name === "scheduler")!;
   expect(latest).toMatchObject({ sessions: 1, turns: 1, uncertain: 1 }); expect(receiver.calls.filter(c => c.op === "send")).toHaveLength(1);

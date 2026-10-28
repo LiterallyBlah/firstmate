@@ -6,9 +6,8 @@ import { createHash, randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ProjectRuntime, registerProjectRuntime } from "../server/project-runtime";
-import { SupervisionRuntime } from "../server/supervision-runtime";
-import { SupervisionStore } from "../server/supervision-store";
 import { SyntheticReceiver } from "../test/synthetic-receiver";
+import { projectRuntimeFixture } from "../test/project-runtime-fixture";
 import { updateFirstmateConfig } from "../server/config";
 import type { PaseoApi } from "../server/host-types";
 import type { ProjectRuntimeSnapshot } from "../shared/project-runtime";
@@ -32,7 +31,10 @@ afterEach(async () => { await act(async () => renderer?.unmount()); cache.clear(
 const button = (label: string) => renderer!.root.find(n => n.type === "Pressable" as never && n.props.accessibilityLabel === label);
 async function mount() {
   await act(async () => { renderer = create(createElement(QueryClientProvider, { client: cache }, createElement(ProjectOwnershipBoard, { theme, compact: true }))); });
-  await act(async () => { await new Promise(done => setTimeout(done, 20)); });
+  await vi.waitFor(async () => {
+    await act(async () => { await new Promise(done => setTimeout(done, 0)); });
+    expect(button("Project mates and plans")).toBeDefined();
+  }, { timeout: 20000 });
 }
 it("opening, reading and remounting creates no session; explicit confirmation retains the request after uncertainty", async () => {
   state.provision.mockRejectedValue(new Error("reply lost")); await mount();
@@ -62,9 +64,9 @@ it.each(["mounted", "remounted", "stop"])("review F2: %s app repairs through the
   await updateFirstmateConfig({ home, mateAgentId: "", migration: null, mateLaunch: null }); await updateFirstmateConfig({ mateAgentId: "general" });
   const receiver = new SyntheticReceiver(), api = {} as PaseoApi;
   let armed = false;
-  const runtime = new SupervisionRuntime(data, (root, home) => new SupervisionStore(root, home, { writable: true, boundary: async name => {
+  const runtime = projectRuntimeFixture(data, { boundary: async name => {
     if (armed && name === "publication:linked") { armed = false; throw Error("review F2 interrupted checkpoint"); }
-  } }));
+  } });
   const service = new ProjectRuntime(runtime, { enabled: true, receiver: () => receiver });
   const handlers = new Map<string, (input: any, context?: any) => Promise<any>>();
   registerProjectRuntime({ handle: ((rpc: { name: string }, handler: any) => handlers.set(rpc.name, handler)) as never }, service);
@@ -86,6 +88,9 @@ it.each(["mounted", "remounted", "stop"])("review F2: %s app repairs through the
     expect(button("Resume recorded request").props.disabled).toBe(true);
     if (mode === "remounted") {
       await act(async () => renderer?.unmount()); renderer = undefined; cache.clear();
+      const readRpc = state.read.getMockImplementation()!;
+      // A fresh client must wait for its cold RPC rather than assuming it finishes in 20 ms.
+      state.read.mockImplementationOnce(async () => { await new Promise(done => setTimeout(done, 100)); return readRpc(); });
       await mount(); await act(async () => button("Project mates and plans").props.onPress());
       expect(renderer!.root.findAll(n => n.type === "Pressable" as never && n.props.accessibilityLabel === "Create Alpha mate")).toHaveLength(0);
     }
@@ -105,5 +110,9 @@ it.each(["mounted", "remounted", "stop"])("review F2: %s app repairs through the
       await expect(service.provision(input, api)).rejects.toMatchObject({ code: "HELD" });
       expect(receiver.agents.size).toBe(1); expect(receiver.sends).toHaveLength(1);
     }
-  } finally { await runtime.stop(); process.env.PASEO_HOME = previousHome; }
+  } finally {
+    await act(async () => { renderer?.unmount(); renderer = undefined; cache.clear();
+      await Promise.allSettled(state.read.mock.results.map(result => Promise.resolve(result.value))); });
+    await runtime.stop(); process.env.PASEO_HOME = previousHome;
+  }
 });
