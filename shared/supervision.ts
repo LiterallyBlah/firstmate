@@ -117,7 +117,7 @@ export const SupervisionRowKind = z.enum(["scope", "binding", "task", "attempt",
   "resource-reservation", "maintenance-job", "occurrence", "occurrence-host", "maintenance-incident"]);
 export const SupervisionExpectedSchema = z.object({ kind: SupervisionRowKind, id: text(1024), version: count }).strict();
 export const SupervisionActorSchema = z.object({
-  kind: z.enum(["captain-ui", "mate-chat", "agent", "system"]), id: text(), source: text(1024),
+  kind: z.enum(["captain-ui", "mate-chat", "agent", "system", "plugin-ui-unverified"]), id: text(), source: text(1024),
 }).strict();
 export type SupervisionScope = z.infer<typeof SupervisionScopeSchema>;
 export type SupervisionBinding = z.infer<typeof SupervisionBindingSchema>;

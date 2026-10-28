@@ -7,18 +7,18 @@ installation readiness assessment are in the S12 report (`data/fm-ss-s12/report.
 It is judged against **D6 option 2, the conservative rollout amendment**. U1–U3 are not delivered upstream and
 are not assumed. Broader rollout may cover only drained cooperative scopes, with no strong-isolation or
 automatic-failover claim. Any milestone that needs U1–U3 is recorded as **gated on U1–U3**, not as failed.
-`data/fm-ss-d6/decision.md` still holds the placeholder text, which recommends option 1. The option 2 choice
-comes from FirstMate's dispatch, and it should be written into the decision record before any activation.
+The dispatch supplies option 2. Section 7 records per-plan expansion and the chosen 24–48 hour
+observation window. This change does not edit the live `data/fm-ss-d6/decision.md`; record the actual
+approved plan and window there before activation.
 
 Census baseline: `ac07bd04` (the S11 merge), plus S12. The F1–F3 follow-up on `fm/fm-sa-gating`
 updates sections 1.2 and 6 below. It adds no activation wiring (see *Wiring*).
 
 ## Verdict in one line
 
-**Broader rollout and legacy drain are held.** Every new scoped capability is unwired or off in production, so
-no scope can exist yet, let alone be drained. Even for drained scopes, four conditions block a General-relief
-claim: reviewed activation wiring, General-owned native callbacks and heartbeats, an unmeasured captain-admission
-metric, and an unagreed observation window. F1–F3 have code and fixture coverage below; this is not live drain
+**Broader rollout and legacy drain are held.** Activation wiring is now explicit and default off.
+General relief still needs reviewed wiring, drained native callbacks/heartbeats, and live captain-admission
+and routing metrics over the section 7 window. F1–F3 have code and fixture coverage below; this is not live drain
 qualification. *Gates holding expansion* below lists each remaining gate with its reason.
 
 ## 1. Census
@@ -29,16 +29,17 @@ Traced through the runtime (value) import graph of `index.server.ts`:
 
 | Module | Runtime status at this head |
 |---|---|
-| `supervision-store` | Imported through `supervision-status-reader`, `workflow-service`. **Read-only**: every write calls `writable()` and throws `UNSUPPORTED` without `{ writable: true }` (`supervision-store.ts:301`). Production never passes it. No journal exists in the live plugin data |
+| `supervision-store` | Reads remain read-only. Default-off `SupervisionActivation` acquires a writable store/coordinator lazily for an explicit mutation, never for startup/view |
 | `supervision-status-reader` | Built at `index.server.ts:111`. Serves the read-only scope RPCs, the combined Needs-you read, the crew-seen skip and the S08 refusal guards |
-| `supervision-gate` (S07) | **Live in every legacy delivery path listed in 1.2**. Unarmed, it reads sidecars and writes nothing. `arm()`/`publishSidecar()` are called only from `supervision-migrate`, which is unreachable |
+| `supervision-gate` (S07) | **Live in every legacy delivery path listed in 1.2**. Unarmed it writes nothing. Enabled, explicit migration preparation arms it through S07 |
 | `supervision-routing` | `legacyRoute` runs on every legacy workflow mutation. It returns immediately while supervision is uninitialised (`supervision-routing.ts:22`) |
 | `supervision-sources` (S08) | Only the pure guards `isScopedSourceWorker` and `refuseScopedRemoteMutation`. The ingress hook is not registered |
 | `scope-rpc` | `registerScopeRpcs(..., uiEnabled: false, executionEnabled: false)` (`index.server.ts:157-160`). Answers and discussion throw or refuse |
-| `supervision-jobs`, `-resources`, `-projects`, `-commands`, `-inbox`, `-observation` | Imported transitively, never constructed or called in production |
-| `supervision-migrate`, `supervisor-sessions` (attach), `supervision-capabilities`, `supervision-capability-evidence`, `supervision-receivers`, `supervision-cooperative`, `supervision-metrics`, `supervision-lifecycle`, `supervision-events`, `supervision-memory`, `scope-discussion` | **Unreachable** at runtime (tests only). They still ship, since `files` includes all of `server/` |
+| `supervision-activation`, `supervision-migrate`, `supervisor-sessions`, `supervision-ui-receiver`, `supervision-effects`, `supervision-commands` | Explicit default-off migration RPC and dedicated UI Attach through S04; unverified call provenance, durable audit and cooperative SDK lifecycle only. No worker/background executor |
+| `supervision-jobs`, `-resources`, `-projects`, `-inbox`, `-observation`, `-capabilities`, `-receivers`, `-cooperative`, `-metrics`, `-lifecycle`, `-events`, `-memory`, `scope-discussion` | No new executor, ingress, readiness loop, maintenance or strong receiver is wired |
 
-Flags: `FIRSTMATE_STRONG_CAPABILITIES` is read only by unreachable code. `FIRSTMATE_PR_OBSERVATIONS` (off) changes
+Flags: `FIRSTMATE_SCOPED_ACTIVATION` enables explicit activation controls only when exactly `1` (default off).
+`FIRSTMATE_STRONG_CAPABILITIES` is read only by unreachable code. `FIRSTMATE_PR_OBSERVATIONS` (off) changes
 only the seeded `pr-watch` script, and nothing ingests its spool. `FIRSTMATE_NEEDS_YOU` (on),
 `FIRSTMATE_RECEIPT_JOURNAL` and `FIRSTMATE_ATTENTION_OBSERVE` (both off by default) are pre-S06 and unchanged.
 
@@ -84,11 +85,11 @@ That case has no first mate, so no recipient.
 
 | Owner | Held by | Transfer available? |
 |---|---|---|
-| Legacy plugin queues (`mateNotes`, watch queue, decision ledger) | `config.mateAgentId` (General) | Yes, per plan, through S07 dispositions; the importer is unwired (the cutover executor is gated) |
+| Legacy plugin queues (`mateNotes`, watch queue, decision ledger) | `config.mateAgentId` (General) | Yes, per plan, through S07 dispositions; explicit migration is default-off |
 | Native finish/permission callbacks (`notifyOnFinish`) | The agent that created or last prompted each worker, which is General for legacy crew | **No (U2).** The only path is drain or hold with the original owner, and the charter never re-prompts to rearm. `worker-callback` is an S07 hold kind |
 | Native heartbeat (`create_heartbeat`, charter section 7, about every 30 minutes while work is under way) | General | **No (U2).** There is no heartbeat inventory or ownership API. Archiving General completes its heartbeat |
 | Native schedules | The captain's; the charter only reads them | Not plugin-owned |
-| Scoped plan owners | None can exist: `SupervisorSessions.attach` (captain-only) and `prepare` have no production caller | Gated (activation) |
+| Scoped plan owners | An S07-committed plan may receive its first supervisor through the explicit UI Attach convention; no automatic ownership | Default-off activation; by convention, not verified |
 
 Live read-only observation at census time: 0 entries in `config.mateNotes`, 0 entries in the watch queue
 (`watches.json`), and no `supervision/` journal. One legacy plan store exists, with 86 entries under one home
@@ -133,7 +134,7 @@ production-path evidence.
 | A05 | H; E | `supervision-cooperative`, `supervision-effects`, pilot, S09 project-stop holds; R09 | H. E unq. |
 | A06 | H; source completeness | S02 events/inbox, S08 sources (dedupe, gaps); R02, R08 | H on the journal path. Native callback replay is **gated on U2**: documented drain/hold, not transfer |
 | A07.scoped | H | S03, S05, S06 answer identity/routing; R03, R05, R06 | H (synthetic). Live: none |
-| A07.legacy | H | `supervision-migrate` L1–L5 on actual `queuePlanNotes`/`flushMateNotes`/decision adapters (L1 now asserts its exact binding reason); R07, R11 | H on the adapters. **Current-owner receipt** comes from a synthetic receiver: a live bound owner cannot be attached at this head. Live disposition: none |
+| A07.legacy | H | `supervision-migrate` L1–L5 on actual adapters; `supervision-activation` production-shaped cutover/attach fixture | H in fixtures. Explicit UI attach now exists; no live owner/disposition qualification was performed |
 | A08 | H; T | Pilot ten-minute General turn; R06 | H (synthetic, virtual clock). T unmeasured |
 | A09 | H | S02 status pages, S05 UI (`S05-verification.json`), S09 `portfolio()` with zero `transact` calls; production reader is non-writable | H. "No resource on view": the production reader cannot write (store `writable()`) |
 | A10 | H; E | `supervision-effects`, `supervisor-sessions`, `supervision-cooperative` (unresolved/uncertain hold); R04, R11 | H. E unq.; no automatic takeover is claimed (typed `false`) |
@@ -160,12 +161,12 @@ timing flake. `npx tsc --noEmit` exits 0. CI on both operating systems is the au
 
 | Gate | Reason | Clears when |
 |---|---|---|
-| G1. Activation is unwired | No production path initialises a writable store, runs the S07 migrator, attaches a supervisor or constructs `SupervisionCommands` | A separately reviewed wiring change plus captain activation |
+| G1. Activation | Default-off wiring now provides a lazy writable store, S07 migration and dedicated UI attach through S04. Attach is captain-only by convention, not authenticated | Review wiring, then separately authorize explicit per-plan activation; installation alone activates nothing |
 | G2. Legacy source coverage (F1–F3) | Implemented with per-path positive/refusal fixtures in section 6; unarmed adapters remain supervision-write-free. S8, S12/S13 and S16/S17 have explicit drain exclusions in the census | Review this follow-up before activation; re-run census and live qualification on the eventual wired build |
 | G3. Native owners (U2) | General owns legacy crew callbacks and the heartbeat, and nothing can transfer them | **Gated on U2.** Under option 2, only scopes whose legacy workers have all finished (drained) qualify. General keeps its heartbeat while any legacy work runs |
 | G4. Fleet-wide zero routine traffic | Requires G2, G3, and every legacy plan either drained or held by an accounted owner | Census re-run shows zero ungated routine paths and zero General-owned live callbacks |
 | G5. Metrics | Captain admission was never measured (denominator 0). Queue latency is synthetic only | A live observation window records `captain[]` and samples with a monotonic clock |
-| G6. Decisions | D6 option 2 is not yet recorded in its decision file; the exact install/route expansion and the observation window (the plan proposes 24–48 hours with a controlled reconnect) are not chosen | The captain records them |
+| G6. Decisions | D6 option 2 expansion and a 24–48 hour window with one controlled reconnect are recorded in section 7. The live decision file was not changed | Captain records the approved plan/evidence and actual window in the live decision file before expansion |
 | G7. Reviews | R12 and R12O have not run | Both accept, with no blocking findings |
 | G8. Executor | `executorApproval` stays unapproved: `live-readers` is partial, there is no no-follow executor, and N7/receiver acknowledgements are missing | Not needed for drain; needed before any maintenance executor |
 
@@ -208,6 +209,9 @@ These procedures apply once activation exists. **Nothing here is authorised by t
 - A build that has armed this follow-up also needs readers for delivery claim sources `crew-action` and
   `inspection`, including inspection text retained for later inventory. A pre-follow-up migrator cannot read
   those claims. Keep the writing build or a compatible later one for reconciliation.
+- Once activation has written a `plugin-ui-unverified` actor, `attachmentAudit` command result or
+  `cooperative-paseo` receiver metadata, retain this writing build or a compatible later reader.
+  An older strict reader may hold those additive records. Never delete the audit to make rollback load.
 - The single watch queue requires the ownership/occurrence reader, lifecycle recipient check and durable
   reservation/result reconciliation while any new queue rows exist. Earlier lenient readers discard those
   fields and may reroute or replay an instruction. Keep a compatible reader until every row is reconciled.
@@ -219,7 +223,7 @@ These procedures apply once activation exists. **Nothing here is authorised by t
 **Plugin rollback (installation only, nothing armed).** Reinstall the retained previous directory source with
 the same remove/install lifecycle used for the 2026-10-26 install. Plugin data persists across remove/install.
 
-**Observation (proposed, not agreed).** At least 24–48 hours of representative traffic, including one controlled
+**Observation (chosen for D6 option 2; activation remains separate).** A 24–48 hour window of representative traffic, including one controlled
 remote reconnect and the actual maintenance cadence. Record a `firstmate.supervision-pilot-metrics/2` dataset
 with `mode: live` and `clock: monotonic`, with captain samples. Compare against the legacy route. Report
 denominators and exclusions. Unknown cost stays unknown.
@@ -374,3 +378,105 @@ the previously directed hosted-CI tiebreaker applies. Typecheck and all five bra
 Current per-head full-suite, typecheck, render and hosted CI evidence is recorded on the PR.
 Artifacts remain in ignored `.local/`. These are fixture checks. No live daemon/provider qualification,
 install, reload, arm, migrate or attach was performed.
+
+## 7. Explicit activation and per-plan expansion
+
+This records D6 option 2 and G6's procedure. Installing this build authorizes none of these live
+operations. Obtain the separately approved installation and named-plan activation first.
+
+### Caller convention and audit
+
+The captain chose **captain-only by convention**. The plugin's client UI has a dedicated Attach
+button and a confirmation naming the plan, reserved supervisor ID, model, permission mode and
+opening. General must never invoke attach by any route or brief crew to do so. There is no attach
+MCP tool, CLI command, slash command, home request-file operation or timer.
+
+**Paseo's plugin RPC carries no caller identity. This is a convention, not a security boundary.**
+A direct daemon RPC caller can submit the same request. The server does not claim authenticated
+captain identity or transport-level refusal of General/crew. It supplies the immutable provenance
+`plugin-ui-unverified:unauthenticated-plugin-call`, source `client UI (unverified)`, and never accepts
+an input actor. Real authenticated caller identity remains a future option; see [DESIGN](../../DESIGN.md).
+
+Every accepted attach atomically records server time, plan and supervisor in its existing command
+receipt before any external effect. The board displays the complete attachment history, explicitly
+`by convention, not verified`, including uncertain/failed creation or opening. Exact-request retries
+retain the original audit and budget. Rejected/off/stale calls create no attachment. History remains
+visible when the switch is off.
+
+### One plan at a time
+
+1. Install the reviewed compatible build under the existing installation/rollback procedure. Record
+   D6 option 2, the chosen first plan, evidence references and observation start/end in the live
+   decision record. Preserve the rollback build, journal, queue, sidecars and checksums.
+2. Configure the daemon environment with exactly `FIRSTMATE_SCOPED_ACTIVATION=1` for the approved
+   plugin lifecycle. It is sampled at plugin start. Unset, `0` or any other value is off. The switch
+   alone creates no store, claims, scope or session. Leave strong capabilities and PR observations off.
+3. Drain this plan's legacy workers, native callbacks and admitted sends with General as their
+   original owner. Finish or explicitly account for permissions, unknown delivery receipts, watch
+   rows and any board-steer reply still owed. Do not re-prompt to move callback ownership (U2).
+   General keeps its heartbeat while any legacy work anywhere remains.
+4. Use the app-connected migration RPC described below to prepare this exact plan, with the accepted
+   inventory, compatible rollback build and reviewed policy references. Preparation arms S07's
+   existing claim gate, preflights capacity, freezes under its locks and imports the original chain.
+   Inspect every returned disposition. Reconcile actual receipts; never call transport acceptance
+   “handled”. New arrivals are holds. Never guess that a missing decision ledger means no answers.
+5. Resolve ordinary holds only with recorded evidence. **Answer holds remain refused through this
+   unauthenticated RPC**: the original S07 captain-actor requirement is retained. Abort rather than
+   inventing captain provenance or forcing a barrier. Reconcile, barrier and commit only when S07
+   permits them. Use resume with the original preparation fields after an interrupted freeze.
+   Abort before commit restores archived entries exactly under S07, without resending anything.
+6. After commit, the board offers **Attach supervisor to <plan>**. Choose the intended model and
+   permission mode, supply its bounded opening, and inspect the confirmation's exact plan and
+   supervisor identity. Cancel is write-free. Confirm only that displayed attachment. The final
+   append checks scope version, plan hash and supervisor identity again. A preexisting binding,
+   partial cutover or changed subject refuses a new attachment.
+7. Inspect the board's audit and opening state. The one reserved supervisor is created parentless,
+   unprompted in its own workspace, verified, and then sent its reserved opening. One session and one
+   opening turn are spent per scope, including failure/uncertainty. Do not automatically resend an
+   unknown outcome or attach another identity. Preserve the exact request and inspect/reconcile
+   the reserved identity; a lost reply is not proof the action did not happen.
+8. Require all `cooperativeReadiness` checks, including the current epoch's successful opening. Its
+   read-only result/reasons appear on the board and activation snapshot. It is a necessary stored
+   check, not live qualification. Source ingress, scope request execution, inbox offering and worker
+   dispatch remain unwired in this change. Do not claim relief for traffic that has no enabled,
+   accounted route/owner. G3–G5 and reviews still apply; attaching alone grants no fleet-wide relief.
+9. Observe this plan for **24–48 hours** of representative traffic, with **one controlled remote
+   reconnect**. Keep legacy routes for unrelated plans. Record reconnect start/end, gaps, outstanding
+   claims, queue ages, duplicate/unknown deliveries, General turns, owner openings and captain
+   admission/first-reply samples. Use `firstmate.supervision-pilot-metrics/2`, `mode: live`,
+   `clock: monotonic`, with denominators and exclusions. Synthetic latency is not live evidence.
+10. At 24 hours, review the gates and incident log. Extend to 48 hours if representative cadence or
+    reconnect coverage is incomplete. Any unexplained loss, duplicate, owner uncertainty, live legacy
+    callback, unresolved hold or failed readiness check holds expansion. At 48 hours, missing evidence
+    remains held; elapsed time does not count as approval. After review, separately approve the next
+    named plan and repeat the entire procedure. A fleet-wide claim requires G4's complete census.
+
+### Production migration contract
+
+`firstmate.supervision.migrate` is a strict, default-off plugin RPC for the existing app-connected
+operator. It adds no home tool or agent tool. Every input carries `homeId` and `migrationId`.
+
+| `op` | Additional fields | Existing S07 operation |
+|---|---|---|
+| `prepare` | `plan`, `scopeId`, `projectId`, `prerequisites: { inventory, rollbackBuild, policy }` | `arm`, then `prepare` |
+| `resume` | The exact original preparation fields | `resume`, including freeze-before-receipt recovery |
+| `reconcile` | none | Re-inventory and reconcile existing dispositions |
+| `barrier` | none | Verify parity, disposition/receipt/capacity barriers |
+| `commit` | none | Existing committed sidecars and scoped backend activation |
+| `abort` | `reason` | Existing release/restoration, with unverified app provenance |
+| `resolve-hold` | `dispositionId`, `route`, `evidence: { ref, digest }` | Explicit ordinary hold evidence; answer holds still refuse |
+
+`firstmate.supervision.activation` is read-only and returns migrations, dispositions, plan readiness,
+bindings and attachment audits. The only shipped caller of `firstmate.supervision.attach-ui` is
+the dedicated client confirmation. Do not add an attach example to an MCP/CLI/home helper.
+
+### Acceptance mapping for activation wiring
+
+| IDs | Evidence |
+|---|---|
+| G1, A09, A16 | `supervision-activation.test.ts`: omitted switch, enabled read, stale home and lazy writer; no resources on view |
+| A12, A13.store, A13.legacy | Production-shaped S07 prepare/reconcile/barrier/commit and abort/coordinator-release tests; existing S07 replay/crash suites |
+| A01, A10, A20 | Exact plan/supervisor checks, single binding/session/turn, accepted replay, unknown opening without resend; existing session guards remain |
+| Attach convention | Strict input with no actor, no attach operation in migration/home/CLI entry points; client cancel/view/double-press/exact-retry tests; visible immutable unverified audit |
+| G6 | Per-plan expansion above; 24–48 hours and one controlled reconnect; no live decision-file edit or rollout |
+| G3, G4, G5, G7, G8; U1–U3 | Remain held/unqualified as described. No live relief or strong-capability claim |

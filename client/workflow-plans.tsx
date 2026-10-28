@@ -16,6 +16,8 @@ import { errorText } from "./format";
 import { workflowOwnsCard } from "../shared/workflow-identity";
 import { ToolbarButton } from "./task-toolbar";
 import type { FleetShell, FleetView } from "./shell";
+import type { ActivationSnapshot } from "../shared/supervision-activation";
+import { SCOPE_QUERY_KEY, useScopeSnapshot } from "./scope-query";
 import { planSessionKey, updatePlanBrowse, usePlanBrowse } from "./workflow-plan-state";
 import { routeWorkflowTask, type WorkflowTaskRequest } from "./workflow-task-navigation";
 import { WorkflowTaskActions } from "./workflow-task-actions";
@@ -23,7 +25,6 @@ import { planSummary } from "./workflow-plan-list";
 import { planDecisionReady } from "../shared/plan-readiness";
 import { planReviewRequest } from "../shared/plan-decisions";
 import { DecisionTask } from "./decision-tasks";
-import { useScopeSnapshot } from "./scope-query";
 import { scopeForPlan } from "../shared/scope-discussion";
 
 export const WORKFLOW_QUERY_KEY = ["firstmate", "workflow-plans"] as const;
@@ -31,6 +32,7 @@ export function workflowRequestId() {
   return globalThis.crypto?.randomUUID?.() ?? "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => { const n = Math.floor(Math.random() * 16); return (c === "x" ? n : (n & 3) | 8).toString(16); });
 }
 type PlansContext = {
+  activation?: ActivationSnapshot | undefined; activationError?: boolean | undefined; updateActivation?(snapshot: ActivationSnapshot): void;
   snapshot?: WorkflowSnapshot; loading: boolean; error: string | null; refresh(): void; open(id: string): void;
   scope?: string | null; fleet?: Fleet | undefined; fleetOffline?: boolean; canNavigate?: boolean;
   planFilter?: string | null; setPlanFilter?(id: string | null): void;
@@ -57,6 +59,11 @@ export function WorkflowSurface({ theme, children, hostId, view, shell, params =
   const snapshot = query.data, plan = snapshot?.plans.find(p => p.definition.id === selected?.id);
   const fleet = useFleet(5, !!hostId), data = fleet.isPlaceholderData ? undefined : fleet.data;
   const scopeRead = useScopeSnapshot(hostId ?? "local", data?.home ?? "");
+  useEffect(() => {
+    if (!scopeRead.data?.activation?.enabled) return;
+    const timer = setInterval(() => { void scopeRead.refetch(); }, 5000);
+    return () => clearInterval(timer);
+  }, [scopeRead.data?.activation?.enabled, hostId, data?.home]);
   const discussionScope = (id: string) => {
     if (!shell?.openScope) return undefined;
     return scopeForPlan(scopeRead.data, snapshot?.homeId, id);
@@ -85,6 +92,8 @@ export function WorkflowSurface({ theme, children, hostId, view, shell, params =
     finally { gate.current = false; setBusy(false); }
   }
   return <Plans.Provider value={{ ...(snapshot ? { snapshot } : {}), loading: query.isPending, error: query.error ? errorText(query.error) : null, refresh: () => { void query.refetch(); }, open,
+    activation: scopeRead.data?.activation, activationError: !!scopeRead.error,
+    updateActivation: next => cache.setQueryData([...SCOPE_QUERY_KEY, hostId ?? "local", data?.home ?? ""], (current: typeof scopeRead.data) => current ? { ...current, activation: next } : current),
     scope, fleet: data, fleetOffline: !!fleet.error, canNavigate: !!scope && (!view || !!shell?.openTask), planFilter,
     discussPlan, canDiscussPlan: id => !!discussionScope(id),
     setPlanFilter: filter => updatePlanBrowse(scope, { filter }), taskRequest, navigationNotice: navigationNotice?.scope === scope ? navigationNotice.text : null,

@@ -541,7 +541,8 @@ export class SupervisionMigrator {
       const claims = await this.gate.claims(), freeze = (await this.gate.sidecar(m.planId, "freeze"))!;
       this.assertNoLiveClaims(claims, this.target(m.planId, freeze.tokens), status.dispositions!.filter(row => row.migrationId === migrationId));
       if (d.source === "decision-submission" && actor.kind !== "captain-ui") fail("UNKNOWN_OWNER", "An answer hold is the captain's to resolve: the old owner cannot attest its own handling.");
-      if (!["captain-ui", "mate-chat", "agent"].includes(actor.kind)) fail("UNKNOWN_OWNER", "Name the first mate or the captain as the resolving owner.");
+      // App migration controls are cooperative and explicitly unverified. Answer holds above still require captain-ui.
+      if (!["captain-ui", "mate-chat", "agent", "plugin-ui-unverified"].includes(actor.kind)) fail("UNKNOWN_OWNER", "Name the first mate or the captain as the resolving owner.");
       if (route === "drain-legacy" && !["watch-queue", "decision-submission", "worker-callback", "send-claim"].includes(d.source)) fail("UNSUPPORTED", "This delivery cannot drain with its legacy owner.");
       const native = d.source === "send-claim" && route === "drain-legacy" ? claims.find(c => c.claim.id === d.claimId) : null;
       if (d.source === "send-claim" && route === "drain-legacy" && (!native?.result || native.result.outcome === "uncertain"))
@@ -657,7 +658,7 @@ export class SupervisionMigrator {
    */
   async abort(migrationId: string, reason: string, actor: SupervisionActor): Promise<MigrationReceipt> {
     this.enabled();
-    if (!reason.trim() || !["captain-ui", "mate-chat", "agent"].includes(actor.kind)) fail("UNKNOWN_OWNER", "A release names the main first mate or the captain and a reason.");
+    if (!reason.trim() || !["captain-ui", "mate-chat", "agent", "plugin-ui-unverified"].includes(actor.kind)) fail("UNKNOWN_OWNER", "A release names the main first mate or the captain and a reason.");
     let status = await this.options.store.read(), m = this.migration(status, migrationId);
     if (m.state === "committed" || await this.gate.sidecar(m.planId, "committed")) fail("HELD", "The cutover has committed; recovery is forward (hold, or transfer at a higher epoch).");
     if (m.state !== "aborted") {

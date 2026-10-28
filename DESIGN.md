@@ -1,0 +1,68 @@
+# Scoped supervision activation
+
+Activation is off unless the daemon environment contains exactly
+`FIRSTMATE_SCOPED_ACTIVATION=1`. Installing or viewing the plugin does not initialize a journal,
+acquire a coordinator, arm the delivery gate, migrate a plan or create a session. The switch enables
+explicit controls; it does not perform those operations itself.
+
+## Attach is a convention
+
+The captain chose **captain-only by convention**: a dedicated Attach button in the plugin's client
+UI, with a confirmation naming the plan, supervisor identity, model, permission mode and opening.
+General's charter forbids invoking attach by any route or briefing a crewmate to do so. No shipped
+MCP tool, CLI command, slash command, home helper or background loop exposes attachment.
+
+**Paseo's plugin RPC carries no caller identity.** Handlers receive only the plugin's shared `paseo`
+handle. The button is a convention, **not a security boundary**. A direct caller with daemon RPC
+access can submit the same request. The server does not authenticate the captain or claim to refuse
+General and crew as transport principals. Input cannot supply an actor.
+
+The original library `SupervisorSessions.attach` retains its captain-actor guard. Production uses a
+separate `attachFromUnverifiedUi` seam, explicitly enabled by the activation service, with actor kind
+`plugin-ui-unverified`, ID `unauthenticated-plugin-call`, and source `client UI (unverified)`.
+Authenticated caller identity and captain authorization remain a future transport upgrade. Roles
+supplied in input, agent labels and shared home files would not provide that upgrade.
+
+## Atomic audit and lifecycle
+
+Each accepted attachment stores its audit in the existing immutable command receipt, atomically
+with its binding, cumulative session/turn spend and three reserved S04 effects. It retains server
+time, plan ID, supervisor ID, source `client UI (unverified)` and authorization label
+`by convention, not verified`. Disabled, malformed and stale calls do not attach. An exact accepted
+retry preserves the original audit without introducing another action. The board shows every audit,
+including a later failed or uncertain create/opening, and retains the history when activation is off.
+
+The final transaction checks the displayed plan hash, scope version and deterministic supervisor ID.
+Attachment requires an S07-committed active plan scope with no existing binding. S04 claims precede
+opening a separate workspace, creating the reserved parentless, unprompted session, verifying its
+actual workspace/settings/labels, and sending its reserved opening. The production cap is one
+supervisor session and one opening turn per scope. Failure and uncertainty never refund the budget.
+
+The SDK adapter is labeled `cooperative-paseo`, not live-qualified or strongly confined. SDK send
+success is transport history, not semantic handling evidence. Unknown outcomes keep their effects
+and spend; no automatic replay or takeover is installed. Worker dispatch, conditional archive,
+receiver exclusion, failover, takeover and U1–U3 remain unavailable. The strong-capability gate and
+its frozen evidence are unchanged.
+
+## Store and cutover ownership
+
+`SupervisionActivation` acquires a writable store/coordinator lazily per absolute home identity on
+an explicit mutation, and releases it during plugin cleanup. Views stay read-only. Mutations use
+the existing lifecycle lock and store serialization; home is rechecked before opening the writer.
+Corruption and unknown coordinator liveness hold writes. A nonempty damaged journal is never reset.
+
+The production migration RPC delegates to S07's `SupervisionMigrator` and `legacyAdapters`, using
+the actual watch runner's single queue, config mate notes and fresh Needs-you ledger. It provides
+prepare, resume, reconcile, barrier, commit and abort, plus evidence-based resolution of ordinary
+holds. Prepare explicitly arms the existing claim gate. Resume takes the original preparation input
+to recover a freeze before its journal receipt. History import, sidecars, claim/receipt sequencing,
+compare-by-ID/payload removals and exact abort restoration remain S07's implementation. No second
+queue or send path is introduced.
+
+Migration app calls also record unverified provenance. Abort and ordinary hold resolution accept
+that provenance. **Answer holds still require the original captain actor and are refused through
+this unauthenticated RPC.** No call is relabeled `captain-ui` to clear one.
+
+Scoped workflow commands, source ingress, inbox offering, discussion execution and worker dispatch
+remain unwired. Attaching a session does not qualify broader rollout or General relief. Follow
+[the per-plan procedure and observation gates](docs/scoped-supervision/rollout-runbook.md#7-explicit-activation-and-per-plan-expansion).

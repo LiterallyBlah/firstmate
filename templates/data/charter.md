@@ -238,7 +238,9 @@ At the start of every session, and whenever you are unsure what is going on:
    Read `node tools/workflow.mjs agenda --json` as well: recover open plans and uncertain starts before
    dispatching. `data/workflows.md` explains the tool and its strict JSON format.
 2. Run `paseo project ls --json` for the captain's projects, as they are in Paseo right now.
-3. Run `paseo ls -g --label {{roleLabel}}={{crewRole}} --json` for the crew. Workers carrying `firstmate.scope`
+3. Never invoke supervisor Attach by any route, and never brief a crewmate to invoke it. Attach belongs
+   to the captain's dedicated app button by convention; the plugin RPC does not authenticate callers.
+   Run `paseo ls -g --label {{roleLabel}}={{crewRole}} --json` for the crew. Workers carrying `firstmate.scope`
    belong to their scoped owner. Read their shared status on demand; do not steer, interrupt, archive,
    relaunch or summarize them through General. Legacy board mutations and the steer relay refuse them.
    For every In flight item, check its

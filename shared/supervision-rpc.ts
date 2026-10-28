@@ -7,6 +7,7 @@ import { DiscussionRouteSchema, DiscussionTargetSchema } from "./scope-discussio
 import { ItemThreadSchema } from "./item-threads";
 import { NeedsYouSnapshotSchema } from "./needs-you";
 import { ScopedAnswerSchema } from "./scoped-commands";
+import { ActivationSnapshotSchema } from "./supervision-activation";
 const count = z.number().int().nonnegative();
 export const SupervisionInboxStatusSchema = z.object({ format: z.literal("firstmate.supervision-inbox/1"), homeId: z.string(),
   scopeId: SupervisionUuid.nullable(), sequence: count, hash: SupervisionHash.nullable(), freshness: z.enum(["uninitialized", "current", "held"]),
@@ -37,6 +38,7 @@ export const ScopeSummarySchema = z.object({ id: z.string(), title: z.string(), 
   lastEffectFailure: z.object({ id: z.string(), operation: z.string(), reason: z.string().nullable() }).nullable(),
   goals: z.array(ScopeGoalSchema), activeWorkers: count, activeEffects: count, uncertainEffects: count }).strict();
 export const ScopeSnapshotSchema = z.object({ homeId: z.string(), sequence: count, freshness: z.enum(["uninitialized", "current", "held"]), asOf: SupervisionUtc,
+  activation: ActivationSnapshotSchema.optional(),
   uiEnabled: z.boolean(), executionEnabled: z.boolean(), problems: z.array(z.string()), scopes: z.array(ScopeSummarySchema),
   projects: z.array(z.object({ id: z.string(), name: z.string() }).strict()) }).strict();
 export type ScopeSnapshot = z.infer<typeof ScopeSnapshotSchema>;

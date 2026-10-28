@@ -132,8 +132,11 @@ the store's append handler. Active/held plans remain browsable with decision and
 an open review form disappears if review ends. The status guard follows request-id replay and
 revision/subject checks, and never runs during ledger replay, preserving previously accepted history.
 
-S07 history import and single-writer cutover (`docs/scoped-supervision/S07.md`) is disabled and
-unwired. `server/supervision-gate.ts` is the one cutover gate for every plugin-owned legacy delivery:
+S07 history import and single-writer cutover (`docs/scoped-supervision/S07.md`) is default-off.
+`server/supervision-activation.ts` exposes explicit migration and the dedicated client Attach convention
+only with `FIRSTMATE_SCOPED_ACTIVATION=1`. Views create no writer. Attach provenance is unverified,
+never authenticated captain identity; its atomic command audit is visible on the board. No tool/CLI
+exposes attach. See `DESIGN.md` and runbook section 7. `server/supervision-gate.ts` is the one cutover gate for every plugin-owned legacy delivery:
 `queuePlanNotes`, `queueMateNote`, burst queue/extend, `flushMateNotes`, decision-answer send, watch
 enqueue/flush and the watch-runtime note all check it before touching a queue, and every armed send
 persists a claim before the network call and its result before removal. Unarmed it writes nothing.
