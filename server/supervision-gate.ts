@@ -18,6 +18,7 @@ import { CutoverSidecarSchema, MIGRATION_COMPATIBILITY, type CutoverSidecar } fr
 import { pluginDir } from "./data-dir";
 import { serialized } from "./serialize";
 import { canonical, digest, publish } from "./submissions";
+import type { SupervisionStore } from "./supervision-store";
 
 /** The existing home-scoped legacy workflow store; `workflowStore` uses the same directory. */
 export function legacyWorkflowRoot(home: string): string {
@@ -76,6 +77,7 @@ export class CutoverRefusal extends Error {
 export class CutoverGate {
   readonly root: string;
   readonly directory: string;
+  private evictionStore?: SupervisionStore;
   constructor(readonly home: string, root = legacyWorkflowRoot(home)) {
     this.root = resolve(root);
     this.directory = join(this.root, ".scoped");
@@ -179,6 +181,33 @@ export class CutoverGate {
         return { admit: false, plan: target.plan, stage, reason: `Opaque watch output mentions ${target.plan} during its cutover; legacy delivery is held for reconciliation.` };
     }
     return { admit: true };
+  }
+  /** Capacity eviction is not delivery permission. Even an explicitly drained or released inventory
+   * row remains evidence until compare-removal/delivery accounts for it. Caller holds the gate lock.
+   * This reader never initializes a store, acquires a coordinator or enables scoped execution. */
+  async evictable(items: GateItem[]): Promise<Set<string>> {
+    try {
+      const targets = await this.targets();
+      // Dynamic import avoids the workflow-store/gate module cycle. The default store is read-only.
+      this.evictionStore ??= new (await import("./supervision-store")).SupervisionStore(pluginDir(), this.home);
+      const status = await this.evictionStore.read();
+      if (status.freshness === "held" || targets.some(t => t.damaged && !t.tokens)) return new Set();
+      const inventoried = new Set((status.dispositions ?? []).filter(d => d.source === "watch-queue" && d.original.watch).map(d => {
+        const w = d.original.watch!;
+        return itemFingerprint({ source: "watch", id: `${w.name}@${w.ran}#${w.kind}`, payloadHash: d.payloadHash });
+      }));
+      const claimed = new Set((await this.claims()).flatMap(c => c.claim.items.map(itemFingerprint)));
+      const permitted = new Set<string>();
+      for (const item of items) {
+        const key = itemFingerprint(item);
+        if (!inventoried.has(key) && !claimed.has(key) && !targets.some(t => CutoverGate.classify(item, t)) &&
+          (await this.verdict(item, "enqueue", targets)).admit) permitted.add(key);
+      }
+      return permitted;
+    } catch {
+      // An unreadable ownership/inventory record cannot prove any row safe to discard.
+      return new Set();
+    }
   }
   /** Gate-checked enqueue. The insertion runs inside the gate, so a cutover either sees it or refuses it. */
   async enqueue<T>(item: GateItem, insert: () => Promise<T>): Promise<T> {

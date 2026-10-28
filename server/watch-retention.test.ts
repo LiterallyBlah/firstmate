@@ -335,7 +335,7 @@ it("RR6 ordinary rows cut to fit are counted as dropped without an accepted deli
   } finally { runner.stop(); }
 });
 
-it.each([{ blocked: 1, ready: false }, { blocked: MAX_QUEUED, ready: false }, { blocked: 1, ready: true }])(
+it.each([{ blocked: 1, ready: false }, { blocked: MAX_QUEUED - 1, ready: false }, { blocked: 1, ready: true }])(
   "RR7 $blocked frozen ordinary rows with ready=$ready cannot starve a released retained scope", async ({ blocked, ready }) => {
     const f = await fixture(), runner = f.create();
     try {
@@ -348,8 +348,8 @@ it.each([{ blocked: 1, ready: false }, { blocked: MAX_QUEUED, ready: false }, { 
       expect(f.sends.map(send => send.text).join("\n")).toContain("READY_AFTER_ABORT");
       expect(f.sends.map(send => send.text).join("\n")).not.toContain("WAIT_FOR_RECONCILIATION");
       if (ready) expect(f.sends[0]!.text).toContain("UNRELATED_READY");
-      const remaining = blocked === MAX_QUEUED ? MAX_QUEUED - 1 : blocked;
-      const start = blocked === MAX_QUEUED ? 1 : 0;
+      const remaining = blocked;
+      const start = 0;
       expect((await runner.queued()).map(note => note.name)).toEqual(Array.from({ length: remaining }, (_, i) => `harbor-${i + start}`));
       expect((await runner.held()).map(row => row.note.name)).toEqual(Array.from({ length: remaining }, (_, i) => `harbor-${i + start}`));
       expect((await f.gate.claims()).flatMap(row => row.claim.items)).toEqual([]); // Refused rows were never claimed.
@@ -374,7 +374,7 @@ it("RR7 a frozen retained prefix cannot block a later admitted occurrence", asyn
 it("RR7 held rows share ordinary queue capacity and survive ordinary overflow", async () => {
   const f = await fixture(), runner = f.create();
   try {
-    for (let i = 0; i < MAX_QUEUED; i++) await runner.enqueuePrompt(`harbor-${i}`, "harbor HELD_ORDINARY", at(i));
+    for (let i = 0; i < MAX_QUEUED - 1; i++) await runner.enqueuePrompt(`harbor-${i}`, "harbor HELD_ORDINARY", at(i));
     await freeze(f.gate, "harbor"); await freeze(f.gate);
     await expect(runner.enqueuePrompt("released", "scheduler READY_AFTER_ABORT", at(30))).rejects.toThrow(/retained durably/);
     await abort(f.gate); f.waiting = true; await runner.flush();
@@ -382,11 +382,11 @@ it("RR7 held rows share ordinary queue capacity and survive ordinary overflow", 
     await expect(runner.enqueuePrompt("ordinary-new", "UNRELATED_READY", at(31))).rejects.toThrow(/capacity/);
     const queue = await runner.queued();
     expect(queue.filter(note => note.hold)).toHaveLength(MAX_QUEUED);
-    expect(queue[0]!.name).toBe("harbor-1"); // Once admission refuses a row, overflow cannot evict it.
+    expect(queue[0]!.name).toBe("harbor-0"); // Freezing protects ordinary rows before a flush annotates them.
     f.waiting = false; await runner.flush();
     await runner.enqueuePrompt("ordinary-new", "UNRELATED_READY", at(31)); await runner.flush();
     expect(f.sends.map(send => send.text).join("\n")).toContain("READY_AFTER_ABORT");
-    expect((await runner.queued()).map(note => note.name)).toEqual(Array.from({ length: MAX_QUEUED - 1 }, (_, i) => `harbor-${i + 1}`));
+    expect((await runner.queued()).map(note => note.name)).toEqual(Array.from({ length: MAX_QUEUED - 1 }, (_, i) => `harbor-${i}`));
   } finally { runner.stop(); }
 });
 

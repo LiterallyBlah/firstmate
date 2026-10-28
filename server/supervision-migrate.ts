@@ -58,7 +58,7 @@ export interface LegacyDeliveryAdapters {
   restoreMateNote(note: MateNote): Promise<"restored" | "present">;
   watchQueue(): Promise<QueuedNote[]>;
   removeWatchEntry(id: string, payloadHash: string): Promise<"removed" | "absent" | "mismatch">;
-  restoreWatchEntry(entry: QueuedNote): Promise<"restored" | "present">;
+  restoreWatchEntry(entry: QueuedNote, lockedGate?: CutoverGate): Promise<"restored" | "present">;
   /** Required. A missing, disabled, stale or unknown ledger refuses the cutover; it is never "no decisions". */
   decisions(): Promise<NeedsYouSnapshot | null>;
 }
@@ -80,7 +80,7 @@ export function legacyAdapters(runner: WatchRunner | null, decisions: (() => Pro
     }),
     watchQueue: async () => runner ? runner.queued() : [],
     removeWatchEntry: async (id, payloadHash) => runner ? runner.removeQueued(id, payloadHash) : "absent",
-    restoreWatchEntry: async entry => runner ? runner.restoreQueued(entry) : "present",
+    restoreWatchEntry: async (entry, gate) => runner ? runner.restoreQueued(entry, gate) : "present",
     decisions: async () => decisions ? decisions() : null,
   };
 }
@@ -687,7 +687,7 @@ export class SupervisionMigrator {
     await this.gate.run(async () => {
       for (const a of archived) {
         const value = a.value as { source: string; entry: unknown };
-        if (value.source === "watch-queue") await this.options.adapters.restoreWatchEntry(value.entry as QueuedNote);
+        if (value.source === "watch-queue") await this.options.adapters.restoreWatchEntry(value.entry as QueuedNote, this.gate);
         else await this.options.adapters.restoreMateNote(value.entry as MateNote);
       }
     });

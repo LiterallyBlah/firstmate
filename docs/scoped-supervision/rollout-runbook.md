@@ -283,9 +283,14 @@ captain would see:
   the output in an explicit reconciliation hold instead of losing it after its producer advanced its baseline.
   A same-watch/due-UTC-minute retry finds that row instead of appending another. The script pauses while its
   earlier held or uncertain output waits. `MAX_QUEUED` is the shared 20-row cap per home, including holds and
-  reservations. At capacity only ordinary, unreserved rows may be dropped with the existing count; protected
-  rows cause a recorded capacity refusal before another stateful producer advances its baseline. Concurrent
-  armed producers reserve capacity. The finite pre-arm in-flight exception still preserves every already
+  reservations. Before eviction the gate reads authoritative cutover targets, claims and the read-only S07
+  disposition inventory under the gate/queue locks. Frozen/owned rows and any inventoried occurrence are
+  protected even without a local hold annotation, after drain permission, or after abort. Unreadable ownership
+  or inventory fails closed. Only proven ordinary, unreserved rows may be dropped with the existing count;
+  insufficient evictable room records a capacity refusal without changing the queue. Concurrent armed
+  producers reserve capacity shared by all runner instances. Prompt admission, archive restoration, script
+  admission and script completion all count those slots; completion atomically replaces its own slot with
+  its row. The finite pre-arm in-flight exception still preserves every already
   produced observation and stops later admissions until capacity is available. Archive restoration shares
   the same cap and refuses a conflicting identity/payload; failed restoration leaves the archive intact.
   The reader preserves owner and occurrence metadata across reload. Foreign homes cannot admit those rows;
@@ -354,10 +359,18 @@ Review recovery regressions (`server/legacy-delivery-gating.test.ts`, `server/su
   progress by another scope while an unknown send waits. Migration tests reject lending an accepted receipt
   to a changed payload with the same watch ID. No native-dedupe stand-in may hide a second send attempt.
   The original R1 regression also injects refusal-journal and admission-read failures after baseline advancement.
+- RR10/RR11: `server/watch-capacity.test.ts` preserves all 20 stateful pre-freeze observations with and
+  without a refusal-only flush; the real migrator's pending hold survives unrelated pressure and remains
+  protected after abort. Twenty blocked armed scripts leave no prompt capacity, while nineteen leave one
+  slot. A second runner cannot bypass reservations through prompts, restoration or another script. The
+  full-queue RR7 controls now contain 19 frozen rows and one ready row, with no frozen-row eviction.
 
-Single-queue local qualification (Windows, Node 24.22.1): all 205 files passed, with 3,070 tests passed
-and three skipped (246.95 seconds), including the 16 delivery and 30 retained-output regression cases.
-All 90 unchanged launch-tool cases passed. Typecheck and all five branch CI render commands passed.
+Capacity follow-up local qualification (Windows, Node 24.22.1): 205 files passed and one failed, with
+3,077 tests passed, one failed and three skipped (258.25 seconds). All eight capacity, 16 delivery,
+30 retention and earlier gating/migration regression cases passed. The sole full-run failure was the
+unchanged launch-tool authority/dependency case at line 323. Its isolated diagnostic passed that case
+but failed two different unchanged cases (88 passed, two failed). No launch test/assertion/timeout changed;
+the previously directed hosted-CI tiebreaker applies. Typecheck and all five branch renders passed.
 Current per-head full-suite, typecheck, render and hosted CI evidence is recorded on the PR.
 Artifacts remain in ignored `.local/`. These are fixture checks. No live daemon/provider qualification,
 install, reload, arm, migrate or attach was performed.

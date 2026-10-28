@@ -234,11 +234,14 @@ function failureReason(result: RunResult, timeoutMs: number): string | null {
   return null;
 }
 
+interface ProductionReservation { owner: string | undefined; bounded: boolean }
+// The queue lock serializes all users of these slots, including a replacement/cached runner.
+const productionReservations = new Map<string, Set<ProductionReservation>>();
+
 export class WatchRunner {
   private state: RunnerState | null = null;
   private loading: Promise<RunnerState> | null = null;
   private readonly running = new Set<string>();
-  private readonly producing = new Map<string, string | null>();
   private readonly aborter = new AbortController();
   private flushing: Promise<void> = Promise.resolve();
   private readonly afterTurn = new Set<NodeJS.Timeout>();
@@ -300,20 +303,24 @@ export class WatchRunner {
     if (this.running.has(watch.name) || this.aborter.signal.aborted) return;
     this.running.add(watch.name);
     let producerGate: CutoverGate | undefined;
+    let reservation: ProductionReservation | undefined;
     try {
       if (this.options.canRun && !(await this.options.canRun(watch.name))) return;
       const entry = await this.options.gate?.();
       producerGate = entry?.gate;
       const reserve = () => serialized(`${this.options.stateFile}.queue`, async () => {
         await this.refresh();
-        const state = await this.load(), owner = producerGate ? watchOwner(producerGate) : null;
+        const state = await this.load(), owner = producerGate ? watchOwner(producerGate) : undefined;
         const pending = state.queue.filter(note => !note.ownership || note.ownership.owner === owner);
         if (pending.some(note => note.name === watch.name && (note.hold || note.delivery))) return false;
         const guarding = pending.some(note => note.hold || note.delivery) ||
           !!(producerGate && (await producerGate.armed() || (await producerGate.targets()).length));
-        const reserved = [...this.producing.values()].filter(value => value === owner).length;
+        const reserved = this.reserved(owner);
         if (guarding && pending.length + reserved >= MAX_QUEUED) await this.capacityRefusal(producerGate, watch.name);
-        this.producing.set(watch.name, owner); return true;
+        reservation = { owner, bounded: guarding };
+        let slots = productionReservations.get(this.options.stateFile);
+        if (!slots) productionReservations.set(this.options.stateFile, slots = new Set());
+        slots.add(reservation); return true;
       });
       if (!(await (producerGate ? producerGate.run(reserve) : reserve()))) return;
       const stateDirectory = join(this.options.scriptStateRoot, watch.name);
@@ -334,9 +341,9 @@ export class WatchRunner {
         signal: this.aborter.signal,
       });
       if (this.aborter.signal.aborted) return;
-      await this.record(watch.name, stamp(at), result, producerGate);
+      await this.record(watch.name, stamp(at), result, producerGate, reservation);
     } finally {
-      this.producing.delete(watch.name);
+      this.releaseReservation(reservation);
       this.running.delete(watch.name);
     }
   }
@@ -347,7 +354,7 @@ export class WatchRunner {
    * gate, so a freeze's inventory either includes them or follows them. One watch never records two runs at once
    * (`running`), so the note decided from the state read before the gate still matches the state written under it.
    */
-  private async record(name: string, ran: string, result: RunResult, producerGate?: CutoverGate): Promise<void> {
+  private async record(name: string, ran: string, result: RunResult, producerGate?: CutoverGate, reservation?: ProductionReservation): Promise<void> {
     const reason = failureReason(result, this.timeoutMs);
     const stderr = tail(result.stderr, MAX_ERROR_CHARS);
     const output = result.stdout.trim();
@@ -357,9 +364,11 @@ export class WatchRunner {
       : text === null ? null : { name, ran, kind: "output", text };
     const routed = note !== null && !!(await this.options.routeNote?.(note));
     await this.gated(async gate => {
+      // Replace our slot atomically with the resulting row (or release it for a silent/routed run).
+      this.releaseReservation(reservation);
       const state = await this.load();
       const previous = state.watches[name] ?? BLANK;
-      const refusal = note !== null && !routed ? await this.enqueue(state, note, gate, undefined, true) : undefined;
+      const refusal = note !== null && !routed ? await this.enqueue(state, note, gate, undefined, !!reservation && !reservation.bounded) : undefined;
       if (reason !== null) {
         state.watches[name] = {
           ...previous,
@@ -429,18 +438,22 @@ export class WatchRunner {
   }
 
   /** Puts back an entry a released cutover archived, exactly, unless one with its identity is already queued. */
-  async restoreQueued(entry: QueuedNote): Promise<"restored" | "present"> {
-    return serialized(`${this.options.stateFile}.queue`, async () => {
+  async restoreQueued(entry: QueuedNote, lockedGate?: CutoverGate): Promise<"restored" | "present"> {
+    const current = lockedGate ?? (await this.options.gate?.())?.gate;
+    const restore = () => serialized(`${this.options.stateFile}.queue`, async () => {
       await this.refresh();
       const state = await this.load(), item = watchItem(entry);
       if (state.queue.some(note => itemFingerprint(watchItem(note)) === itemFingerprint(item))) return "present";
       if (state.queue.some(note => watchItem(note).id === item.id)) throw new Error("Archived watch identity has a different queued payload; reconcile it explicitly.");
-      const current = await this.options.gate?.();
-      await this.makeRoom(state, entry.ownership?.owner ?? (current ? watchOwner(current.gate) : undefined), entry.name);
+      if (entry.ownership && (!current || entry.ownership.owner !== watchOwner(current)))
+        throw new Error("Archived watch belongs to another home; restore it under its original cutover gate.");
+      await this.makeRoom(state, entry.ownership?.owner ?? (current ? watchOwner(current) : undefined), entry.name, current);
       state.queue.push(structuredClone(entry));
       await this.persist(true);
-      return "restored";
+      return "restored" as const;
     });
+    // Migration already holds its original home's gate, independently of the current configuration.
+    return current && !lockedGate ? current.run(restore) : restore();
   }
 
   /** Compare-by-identity/payload removal for a published cutover disposition. Never sends anything. */
@@ -484,10 +497,20 @@ export class WatchRunner {
     throw new CutoverRefusal("watch-retention", "capacity", await this.recordCapacity(gate, name));
   }
 
-  private async enqueue(state: RunnerState, note: QueuedNote, gate?: CutoverGate, occurrence?: string, produced = false): Promise<CutoverRefusal | undefined> {
+  private reserved(owner: string | undefined): number {
+    return [...(productionReservations.get(this.options.stateFile) ?? [])].filter(r => r.owner === owner).length;
+  }
+
+  private releaseReservation(reservation?: ProductionReservation): void {
+    const slots = productionReservations.get(this.options.stateFile);
+    if (reservation) slots?.delete(reservation);
+    if (slots?.size === 0) productionReservations.delete(this.options.stateFile);
+  }
+
+  private async enqueue(state: RunnerState, note: QueuedNote, gate?: CutoverGate, occurrence?: string, preArmProduced = false): Promise<CutoverRefusal | undefined> {
     const owner = gate ? watchOwner(gate) : undefined;
     if (owner) note.ownership = { owner, id: watchMessageId(note, owner, occurrence), ...(occurrence ? { occurrence } : {}) };
-    const overflow = await this.makeRoom(state, owner, note.name, gate, produced);
+    const overflow = await this.makeRoom(state, owner, note.name, gate, preArmProduced);
     state.queue.push(note);
     if (gate) {
       let verdict: Awaited<ReturnType<CutoverGate["verdict"]>>;
@@ -506,17 +529,30 @@ export class WatchRunner {
     return note.hold ? this.heldRefusal(note) : undefined;
   }
 
-  private async makeRoom(state: RunnerState, owner: string | undefined, name: string, gate?: CutoverGate, produced = false): Promise<boolean> {
+  private async makeRoom(state: RunnerState, owner: string | undefined, name: string, gate?: CutoverGate, preArmProduced = false): Promise<boolean> {
     const sameHome = (queued: QueuedNote) => !queued.ownership || queued.ownership.owner === owner;
-    while (state.queue.filter(sameHome).length >= MAX_QUEUED) {
-      const oldest = state.queue.findIndex(queued => sameHome(queued) && !queued.hold && !queued.delivery);
-      if (oldest < 0) {
-        if (!produced) await this.capacityRefusal(gate, name);
-        // Finite producers already running before arming may have advanced their baselines.
-        return true;
-      }
-      state.queue.splice(oldest, 1); state.dropped++;
+    let guarding = state.queue.some(q => sameHome(q) && (q.hold || q.delivery)) ||
+      [...(productionReservations.get(this.options.stateFile) ?? [])].some(r => r.owner === owner && r.bounded);
+    if (!guarding && gate) {
+      try { guarding = !!(await gate.armed() || (await gate.targets()).length); }
+      catch { guarding = true; } // Never lose already-produced output because capacity metadata is unreadable.
     }
+    // Pre-arm completions preserve their already-produced output; only actual overflow is diagnosed.
+    // New admissions still count every outstanding slot, including those pre-arm producers.
+    const reserved = guarding && !preArmProduced ? this.reserved(owner) : 0;
+    const needed = state.queue.filter(sameHome).length + reserved + 1 - MAX_QUEUED;
+    if (needed <= 0) return false;
+    const evictable = gate ? await gate.evictable(state.queue.filter(sameHome).map(watchItem)) :
+      new Set(state.queue.filter(sameHome).map(q => itemFingerprint(watchItem(q))));
+    const candidates = state.queue.filter(q => sameHome(q) && !q.hold && !q.delivery && evictable.has(itemFingerprint(watchItem(q))));
+    if (candidates.length < needed) {
+      if (!preArmProduced) await this.capacityRefusal(gate, name);
+      // Finite producers already running before arming may have advanced their baselines.
+      return true;
+    }
+    // Determine that the whole admission fits before changing anything, including on refusal.
+    const removed = new Set(candidates.slice(0, needed));
+    state.queue = state.queue.filter(q => !removed.has(q)); state.dropped += removed.size;
     return false;
   }
 
