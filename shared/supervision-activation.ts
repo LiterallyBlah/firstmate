@@ -11,6 +11,8 @@ export const ActivationSnapshotSchema = z.object({ enabled: z.boolean(), homeId:
   plans: z.array(z.object({ plan: PlanId, title: z.string(), hash: SupervisionHash, scopeId: SupervisionUuid,
     scopeVersion: z.number().int().positive(), supervisorId: SupervisionUuid, canAttach: z.boolean(),
     binding: z.enum(["prepared", "active", "suspect", "retired"]).nullable(), opening: z.string().nullable(),
+    /** Existing audited attachment only; no new identity or opening can be supplied on resume. */
+    resumeRequestId: SupervisionUuid.nullable().optional(),
     readiness: z.object({ ready: z.boolean(), reasons: z.array(z.string()) }).strict().optional(),
   }).strict()), migrations: z.array(MigrationReceiptSchema), dispositions: z.array(LegacyDeliveryDispositionSchema),
 }).strict();
@@ -21,7 +23,10 @@ export const AttachSupervisorInputSchema = z.object({ homeId: z.string(), reques
   supervisorId: SupervisionUuid, profile: AgentProfileSchema, opening: z.string().trim().min(1).max(16000),
 }).strict();
 export type AttachSupervisorInput = z.infer<typeof AttachSupervisorInputSchema>;
-export const attachSupervisorFromUi = defineRpc({ name: "firstmate.supervision.attach-ui", input: AttachSupervisorInputSchema, output: ActivationSnapshotSchema });
+export const ResumeSupervisorInputSchema = z.object({ homeId: z.string(), requestId: SupervisionUuid, resume: z.literal(true) }).strict();
+export type ResumeSupervisorInput = z.infer<typeof ResumeSupervisorInputSchema>;
+export const attachSupervisorFromUi = defineRpc({ name: "firstmate.supervision.attach-ui",
+  input: z.union([AttachSupervisorInputSchema, ResumeSupervisorInputSchema]), output: ActivationSnapshotSchema });
 const base = { homeId: z.string(), migrationId: SupervisionUuid };
 export const MigrationCommandSchema = z.discriminatedUnion("op", [
   z.object({ ...base, op: z.enum(["prepare", "resume"]), plan: PlanId, scopeId: SupervisionUuid, projectId: SupervisionUuid,

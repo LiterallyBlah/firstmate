@@ -38,6 +38,19 @@ opening a separate workspace, creating the reserved parentless, unprompted sessi
 actual workspace/settings/labels, and sending its reserved opening. The production cap is one
 supervisor session and one opening turn per scope. Failure and uncertainty never refund the budget.
 
+Paseo's SDK takes a combined `provider/model` selection for creation but returns separate `provider`
+and `model` fields. The production receiver restores that combined identity before the existing exact
+profile verification; a different provider, model, mode or thinking option still refuses the opening.
+
+An explicit retry reconciles an uncertain create through the existing gateway's lookup of the reserved
+agent ID. A negative lookup never creates another supervisor. Verification of its workspace, labels,
+parentlessness and full profile still precedes the opening. The board derives `resumeRequestId` from
+the durable audited command and its current binding/effects. Its **Resume attachment** confirmation
+uses that request ID through the same UI RPC, including after client/plugin reload; it accepts no new
+profile, opening or identity. A partial audit keeps the original confirmation open. Only an active
+binding with a successful opening closes it. Unknown workspace/opening delivery stays held; no replay
+of an uncertain workspace open or send, new identity, refund or takeover is offered.
+
 The SDK adapter is labeled `cooperative-paseo`, not live-qualified or strongly confined. SDK send
 success is transport history, not semantic handling evidence. Unknown outcomes keep their effects
 and spend; no automatic replay or takeover is installed. Worker dispatch, conditional archive,
@@ -58,6 +71,16 @@ holds. Prepare explicitly arms the existing claim gate. Resume takes the origina
 to recover a freeze before its journal receipt. History import, sidecars, claim/receipt sequencing,
 compare-by-ID/payload removals and exact abort restoration remain S07's implementation. No second
 queue or send path is introduced.
+
+Explicit migration resume (and an explicit attachment retry) first calls the store's existing
+`recoverPublication` under its coordinator. This only publishes an exact validated pending event/tip
+pair. Missing anchors/events or a shorter/corrupt history still refuse recovery. Reads never publish.
+After a freeze without a prepared receipt, S07 proves the original inventory by its full frozen hash.
+Protected watch arrivals append under the same gate, so recovery checks bounded watch prefixes while
+retaining every non-watch disposition. A hold flag alone cannot identify a late row: a flush may also
+hold an original row. Only the exact original hash admits preparation. Late rows remain in the real
+queue, then enter the existing re-inventory as holds. Resume is idempotent, and abort can release the
+prepared cutover while preserving those rows; no sidecar deletion or invented disposition is used.
 
 Migration app calls also record unverified provenance. Abort and ordinary hold resolution accept
 that provenance. **Answer holds still require the original captain actor and are refused through

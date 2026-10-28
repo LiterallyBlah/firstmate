@@ -37,7 +37,7 @@ export class SupervisionUiReceiver implements GatewayReceiver {
     try { agent = (await this.paseo.agents.ref(agentId).refresh())?.agent; }
     catch (error) { if (error instanceof Error && /not found|unknown agent|no agent/i.test(error.message)) return null; throw error; }
     if (!agent) return null;
-    return { id: agent.id, workspaceId: agent.workspaceId ?? null, cwd: agent.cwd, labels: agent.labels ?? {}, provider: agent.provider,
+    return { id: agent.id, workspaceId: agent.workspaceId ?? null, cwd: agent.cwd, labels: agent.labels ?? {}, provider: `${agent.provider}/${agent.model}`,
       modeId: agent.currentModeId ?? null, thinkingOptionId: agent.thinkingOptionId ?? null, status: agent.status,
       pendingPermissions: agent.pendingPermissions.length, archivedAt: agent.archivedAt ?? null };
   }

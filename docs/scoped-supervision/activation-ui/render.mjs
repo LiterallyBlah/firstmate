@@ -49,8 +49,23 @@ try {
     await page.screenshot({ path: resolve(out, `${theme}-${device}-confirmation.png`) });
     await page.getByRole("button", { name: "Cancel", exact: true }).click();
     assert.equal(await page.evaluate(() => window.attachCalls.length), 0);
+    await page.goto(`${origin}/?${theme}&recover`);
+    await page.getByRole("button", { name: "Resume attachment to Scheduler", exact: true }).click();
+    const recovery = page.getByRole("dialog", { name: "Resume attachment to Scheduler?" });
+    await recovery.waitFor(); assert.match(await recovery.innerText(), /Plan: Scheduler \(scheduler\)/);
+    assert.match(await recovery.innerText(), /00000000-0000-4000-8000-000000000002/);
+    assert.equal(await page.getByRole("textbox").count(), 0);
+    assert.equal(await page.evaluate(() => window.attachCalls.length), 0);
+    await page.screenshot({ path: resolve(out, `${theme}-${device}-recovery.png`) });
+    await page.getByRole("button", { name: "Cancel", exact: true }).click();
+    assert.equal(await page.evaluate(() => window.attachCalls.length), 0);
+    await page.getByRole("button", { name: "Resume attachment to Scheduler", exact: true }).click();
+    await page.getByRole("button", { name: "Resume 00000000-0000-4000-8000-000000000002 for Scheduler", exact: true }).click();
+    await recovery.waitFor({ state: "hidden" });
+    assert.deepEqual(await page.evaluate(() => window.attachCalls), [{ homeId: "fixture-home",
+      requestId: "00000000-0000-4000-8000-000000000003", resume: true }]);
     assert.deepEqual(errors, []);
-    results.push({ theme, device, disabledViewWrites: 0, confirmationNamesBoth: true, cancelWrites: 0, errors });
+    results.push({ theme, device, disabledViewWrites: 0, confirmationNamesBoth: true, cancelWrites: 0, savedRequestResumed: true, errors });
     await page.close();
   }
   await writeFile(resolve(out, "results.json"), JSON.stringify(results, null, 2)); console.log(JSON.stringify(results));

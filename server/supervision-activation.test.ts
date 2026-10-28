@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { workflowFixture } from "../test/workflow-fixture";
 import { SyntheticReceiver } from "../test/synthetic-receiver";
-import { AttachSupervisorInputSchema, MigrationCommandSchema, type AttachSupervisorInput, type MigrationCommand } from "../shared/supervision-activation";
+import { AttachSupervisorInputSchema, ResumeSupervisorInputSchema, MigrationCommandSchema, type AttachSupervisorInput, type MigrationCommand } from "../shared/supervision-activation";
 import { SupervisionActivation, registerSupervisionActivation } from "./supervision-activation";
 import { SupervisionStore } from "./supervision-store";
 import { pluginDir } from "./data-dir";
@@ -54,6 +54,7 @@ it("default off: view and every mutation leave supervision, gate and receiver un
   expect((await activation.read()).enabled).toBe(false);
   await expect(activation.migrate(prepare)).rejects.toMatchObject({ code: "UNSUPPORTED" });
   await expect(activation.attach({ homeId: prepare.homeId } as AttachSupervisorInput, api)).rejects.toMatchObject({ code: "UNSUPPORTED" });
+  await expect(activation.attach({ homeId: prepare.homeId, requestId: randomUUID(), resume: true }, api)).rejects.toMatchObject({ code: "UNSUPPORTED" });
   await expect(stat(join(pluginDir(), "supervision"))).rejects.toMatchObject({ code: "ENOENT" });
   expect(receiver.calls).toEqual([]);
 });
@@ -125,6 +126,8 @@ it("production resume accepts the original fields after freeze-before-receipt in
 it("strict RPCs accept no actor/source and no attach operation exists on migration or home/CLI tools", async () => {
   await cutover();
   expect(AttachSupervisorInputSchema.safeParse({ ...await attachment(), actor: { kind: "captain-ui" } }).success).toBe(false);
+  for (const extra of [{ actor: { kind: "captain-ui" } }, { supervisorId: randomUUID() }, { opening: "replacement opening" }, { profile: { provider: "codex/test", modeId: "" } }])
+    expect(ResumeSupervisorInputSchema.safeParse({ homeId: prepare.homeId, requestId: randomUUID(), resume: true, ...extra }).success).toBe(false);
   expect(MigrationCommandSchema.safeParse({ ...prepare, op: "attach" }).success).toBe(false);
   const handlers: string[] = [];
   registerSupervisionActivation({ handle: (rpc: { name: string }) => { handlers.push(rpc.name); } } as never, activation);

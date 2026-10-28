@@ -423,8 +423,13 @@ visible when the switch is off.
 5. Resolve ordinary holds only with recorded evidence. **Answer holds remain refused through this
    unauthenticated RPC**: the original S07 captain-actor requirement is retained. Abort rather than
    inventing captain provenance or forcing a barrier. Reconcile, barrier and commit only when S07
-   permits them. Use resume with the original preparation fields after an interrupted freeze.
-   Abort before commit restores archived entries exactly under S07, without resending anything.
+   permits them. Use resume with the original preparation fields after an interrupted freeze or
+   journal publication. It first finishes only an exact validated event/tip publication; missing or
+   damaged history remains held. With no prepared receipt, S07 requires the exact frozen source and
+   original full inventory hash. Protected late watch arrivals stay in the queue and enter the
+   re-inventory as holds after preparation. Resume does not discard them or treat them as handled.
+   Abort before commit restores archived entries exactly under S07, preserves late held rows and
+   publishes the existing aborted sidecar. Repeating resume/abort retains the same import/release.
 6. After commit, the board offers **Attach supervisor to <plan>**. Choose the intended model and
    permission mode, supply its bounded opening, and inspect the confirmation's exact plan and
    supervisor identity. Cancel is write-free. Confirm only that displayed attachment. The final
@@ -433,8 +438,16 @@ visible when the switch is off.
 7. Inspect the board's audit and opening state. The one reserved supervisor is created parentless,
    unprompted in its own workspace, verified, and then sent its reserved opening. One session and one
    opening turn are spent per scope, including failure/uncertainty. Do not automatically resend an
-   unknown outcome or attach another identity. Preserve the exact request and inspect/reconcile
-   the reserved identity; a lost reply is not proof the action did not happen.
+   unknown outcome or attach another identity. A partial receipt keeps confirmation open with its
+   exact request. After closing/reloading, use the board's **Resume attachment to <plan>**, inspect its
+   named reserved supervisor, and confirm the saved request. This uses the same UI RPC with only the
+   durable audited request ID; it cannot change the profile, opening or supervisor. A lost create reply
+   is reconciled by observing that exact agent, then checking workspace, parent, labels and the full
+   provider/model/mode/thinking profile before sending the still-reserved opening. A negative lookup
+   never repeats creation. A successful opening closes confirmation; a partial audit alone does not.
+   If a pending publication hides the receipt, first use migration resume with its original fields to
+   validate/publish the retained event/tip, then refresh the board. Unknown workspace/send outcomes stay
+   held for deliberate evidence review and are never automatically resent or replaced.
 8. Require all `cooperativeReadiness` checks, including the current epoch's successful opening. Its
    read-only result/reasons appear on the board and activation snapshot. It is a necessary stored
    check, not live qualification. Source ingress, scope request execution, inbox offering and worker
@@ -459,7 +472,7 @@ operator. It adds no home tool or agent tool. Every input carries `homeId` and `
 | `op` | Additional fields | Existing S07 operation |
 |---|---|---|
 | `prepare` | `plan`, `scopeId`, `projectId`, `prerequisites: { inventory, rollbackBuild, policy }` | `arm`, then `prepare` |
-| `resume` | The exact original preparation fields | `resume`, including freeze-before-receipt recovery |
+| `resume` | The exact original preparation fields | Validated `recoverPublication`, then S07 `resume` and re-inventory of late holds |
 | `reconcile` | none | Re-inventory and reconcile existing dispositions |
 | `barrier` | none | Verify parity, disposition/receipt/capacity barriers |
 | `commit` | none | Existing committed sidecars and scoped backend activation |
@@ -468,7 +481,9 @@ operator. It adds no home tool or agent tool. Every input carries `homeId` and `
 
 `firstmate.supervision.activation` is read-only and returns migrations, dispositions, plan readiness,
 bindings and attachment audits. The only shipped caller of `firstmate.supervision.attach-ui` is
-the dedicated client confirmation. Do not add an attach example to an MCP/CLI/home helper.
+the dedicated client confirmation, also used to resume an existing audited attachment by its saved
+request ID. Recovery is explicit, has the same unverified provenance, and never reserves another
+session/turn. Do not add an attach example to an MCP/CLI/home helper.
 
 ### Acceptance mapping for activation wiring
 
