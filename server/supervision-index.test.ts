@@ -29,6 +29,9 @@ async function fixture() {
 // The bound under test is the spies' zero scanFull/apply counts, not wall time. Building 176 durable transactions takes
 // ~4 s locally on Windows; a loaded hosted Windows runner (two heavy store files on its two workers, plus its random
 // ~10-14 s pauses) took over 20 s on b4adc1c2 with no code slowdown (503e0c35 and b4adc1c2 time alike on one machine).
+// Run 40768790318 retained zero historical scans/reducers and an 828 ms/eight-transition launch,
+// but durable fixture padding/validation exceeded 30/20 s. Keep all three history fixtures at 60 s;
+// the work-count assertions below, rather than hosted filesystem scheduling, enforce the bound.
 it.each([11, 176])("warm reads at %i transactions replay no historical reducers or full scans", async history => {
   const f = await fixture(); for (let n = 0; n < history; n++) await f.advance();
   const scan = vi.spyOn(f.store as any, "scanFull"), apply = vi.spyOn(f.store as any, "apply");
@@ -62,7 +65,7 @@ it("launch work stays bounded after 176 transactions instead of replaying the pr
   await f.run(owner, { op: "record", plan: owner.planId, node: "indexed-build", attempt: launched.attemptId!, state: "done", evidence: "Owner inspected the admitted synthetic report." });
   expect((await f.store.read()).plans[0]!.plan.nodes["indexed-build"]!.state).toBe("done");
   expect(f.receiver.calls.filter(c => c.op === "createAgent")).toHaveLength(1);
-}, 30000);
+}, 60_000);
 it("a reader validates a bounded new tail; startup and an oversized tail validate full history", async () => {
   const f = await fixture(); await f.advance();
   const reader = new SupervisionStore(f.data, f.home), full = vi.spyOn(reader as any, "scanFull");
@@ -71,7 +74,7 @@ it("a reader validates a bounded new tail; startup and an oversized tail validat
   expect(await reader.read()).toMatchObject({ freshness: "current", sequence: 5 }); expect(full).not.toHaveBeenCalled();
   for (let n = 0; n <= SUPERVISION_INDEX_LIMITS.tail; n++) await f.advance();
   expect((await reader.read()).freshness).toBe("current"); expect(full).toHaveBeenCalledTimes(1);
-});
+}, 60_000);
 it("old in-place corruption is caught by explicit audit and automatic startup validation", async () => {
   const f = await fixture(); await f.advance(); await f.advance(); await writeFile(f.path(1), "{old-corruption");
   expect((await f.store.read()).freshness).toBe("current"); // Accepted prefix trust, not a historical audit.
