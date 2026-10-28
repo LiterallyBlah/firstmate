@@ -389,16 +389,20 @@ export async function queueBurstNote(
 export async function extendBurstNote(key: string, now: () => number = Date.now): Promise<void> {
   const gate = cutoverGate(resolveHome(await readFirstmateConfig()));
   // An extension changes a queued payload: a frozen scope's burst keeps exactly what its cutover captured.
-  await gate.run(async () => (await gate.verdict({ source: "burst", id: `burst:${key}`, payloadHash: digest(key), agentKey: key }, "enqueue")).admit &&
-    serialized("firstmate.mate.notes", async () => {
-    const config = await readFirstmateConfig();
-    const at = now();
-    const open = config.mateNotes.find((note) => note.burst?.key === key && holding(note, at));
-    if (open?.burst === undefined) return;
-    const burst = { ...open.burst, holdUntil: holdUntil(open.burst.startedAt, at) };
-    if (burst.holdUntil === open.burst.holdUntil) return;
-    await updateFirstmateConfig({ mateNotes: config.mateNotes.map((note) => (note.id === open.id ? { ...open, burst } : note)) });
-  }));
+  await gate.run(async () => {
+    const item = { source: "burst" as const, id: `burst:${key}`, payloadHash: digest(key), agentKey: key };
+    const verdict = await gate.verdict(item, "enqueue");
+    if (!verdict.admit) { await gate.refusal(item, verdict.reason); return; }
+    return serialized("firstmate.mate.notes", async () => {
+      const config = await readFirstmateConfig();
+      const at = now();
+      const open = config.mateNotes.find((note) => note.burst?.key === key && holding(note, at));
+      if (open?.burst === undefined) return;
+      const burst = { ...open.burst, holdUntil: holdUntil(open.burst.startedAt, at) };
+      if (burst.holdUntil === open.burst.holdUntil) return;
+      await updateFirstmateConfig({ mateNotes: config.mateNotes.map((note) => (note.id === open.id ? { ...open, burst } : note)) });
+    });
+  });
 }
 
 /** What the cutover gate knows of a queued note: its exact identity and persisted payload. */

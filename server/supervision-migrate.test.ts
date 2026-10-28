@@ -36,6 +36,10 @@ import { watchItem, WatchRunner, type QueuedNote } from "./watches";
 import { LegacyCutoverError, planSubjectHash, type WorkflowPlanStore } from "./workflow-plans";
 import { planOwnership } from "./workflow-ownership";
 import { queuePlanNotes, workflowStore } from "./workflow-service";
+import { sendThread } from "./item-threads";
+import { buildCards } from "./fleet";
+import { parseBacklog } from "./backlog";
+import { itemTagKey } from "../shared/item-tags";
 
 // Each case drives several durable stages; allow for a loaded CI host.
 vi.setConfig({ testTimeout: 30000 });
@@ -103,6 +107,101 @@ function makeMigrator(boundary?: (name: string) => Promise<void>) {
   return new SupervisionMigrator({ home, store, legacy, enabled: true, adapters: legacyAdapters(runner, () => service.read()),
     boundary: async name => { chronology.push(`boundary:${name}`); await boundary?.(name); } });
 }
+it.each(["worker", "inspection"])("F1/F2 uncertain %s delivery remains an inventoried hold after settlement", async kind => {
+  await migrator.arm();
+  const gate = cutoverGate(home);
+  const item = kind === "worker" ? { source: "crew-action" as const, id: "direct-control", payloadHash: sha("control"), task: { taskId: "build", host: "local" } }
+    : { source: "inspection" as const, id: "inspection-result", payloadHash: sha("result"), text: "scheduler needs attention" };
+  const admission = await gate.claim([item], GENERAL);
+  await gate.settle(admission.claim, "uncertain", "acknowledgement lost");
+  await migrator.prepare(input);
+  expect((await store.read()).dispositions).toEqual(expect.arrayContaining([expect.objectContaining({ source: "send-claim", claimId: admission.claim, route: "hold", delivery: "uncertain" })]));
+  await expect(migrator.barrier(input.migrationId)).rejects.toMatchObject({ code: "HELD" });
+});
+it("R2 a blocked discussion callback cannot drain into an active scoped backend", async () => {
+  await migrator.arm(); let release!: () => void, admitted!: () => void;
+  const native = new Promise<void>(r => { release = r; }), admission = new Promise<void>(r => { admitted = r; });
+  const card = buildCards(parseBacklog("## Queued\n- [ ] build - Build the scheduler (project: scheduler)"), [])[0]!;
+  let nativeFinished = false;
+  const sending = sendThread(home, card, { key: itemTagKey(card), id: "blocked-discussion", kind: "discuss", text: "Inspect this task" },
+    async (_text, _id, before) => { await before(GENERAL); admitted(); await native; nativeFinished = true; });
+  try {
+    await admission; let refusal: unknown = null;
+    try {
+      await migrator.prepare(input);
+      const hold = (await store.read()).dispositions!.find(d => d.source === "send-claim")!;
+      await migrator.resolveHold(input.migrationId, hold.id, "drain-legacy",
+        { ref: "Captain permits the old owner to finish its admitted delivery", digest: "a".repeat(64) }, captainUi);
+      await migrator.barrier(input.migrationId); await migrator.commit(input.migrationId);
+    } catch (error) { refusal = error; }
+    expect(nativeFinished).toBe(false);
+    expect(refusal, "Permission to finish cannot stand in for a recorded native result").toMatchObject({ code: "HELD" });
+    expect((await store.read()).backends.find(b => b.planId === input.plan)?.state).not.toBe("active");
+  } finally { release(); await sending; }
+});
+/** Recover a prepared record the pre-fix importer could write while a direct native call was live.
+ * Temporarily hiding its in-process flag models that older inventory; the native result stays absent. */
+async function preparedLiveDirect(permission = true) {
+  await migrator.arm(); const gate = cutoverGate(home);
+  const claim = (await gate.claim([{ source: "crew-action", id: "direct-operation", payloadHash: sha("operation"), task: { taskId: "build", host: "local" } }], GENERAL)).claim!;
+  const live = liveClaims() as Set<string>; live.delete(claim);
+  try { await migrator.prepare(input); } finally { live.add(claim); }
+  if (permission) {
+    const d = (await store.read()).dispositions!.find(row => row.claimId === claim)!;
+    await store.transact([{ kind: "delivery-disposition", id: d.id, version: d.version }], randomUUID(), [{ kind: "delivery-disposition", value: {
+      ...d, version: d.version + 1, route: "drain-legacy", removal: { state: "not-queued", receipt: "drain-legacy:permission to finish" },
+      resolvedBy: { actor: "captain-ui:fixture", evidenceRef: "permission to finish", evidenceDigest: "a".repeat(64), previousRoute: "hold" },
+    } }]);
+  }
+  return { gate, claim, d: (await store.read()).dispositions!.find(row => row.claimId === claim)! };
+}
+it.each(["reinventory", "resolution", "barrier", "commit"])("R2 %s refuses a live direct claim even when an older disposition names it", async stage => {
+  const f = await preparedLiveDirect(stage !== "resolution");
+  try {
+    if (stage === "commit") {
+      // Retain an older barrier receipt too: commit must revalidate rather than trusting that snapshot.
+      const m = (await store.read()).migrations!.find(m => m.id === input.migrationId)!;
+      const prepared = (await f.gate.sidecar(input.plan, "prepared"))!;
+      await store.transact([{ kind: "migration", id: m.id, version: m.version }], migrationUuid(m.id, "barrier"), [{ kind: "migration", value: {
+        ...m, version: m.version + 1, state: "barrier", sidecars: { ...m.sidecars, prepared: prepared.hash },
+      } }]);
+    }
+    const work = stage === "reinventory" ? migrator.reinventory(input.migrationId) : stage === "resolution"
+      ? migrator.resolveHold(input.migrationId, f.d.id, "drain-legacy", { ref: "permission to finish", digest: "a".repeat(64) }, captainUi)
+      : stage === "barrier" ? migrator.barrier(input.migrationId) : migrator.commit(input.migrationId);
+    await expect(work).rejects.toMatchObject({ code: "HELD", message: expect.stringContaining("in flight") });
+    expect((await store.read()).backends.find(b => b.planId === input.plan)?.state).toBe("prepared");
+    expect((await migrator.report(input.plan)).legacyDeliveryPossible).toContain(`open claim ${f.claim}`);
+  } finally { await f.gate.settle(f.claim, "accepted"); }
+});
+it("R2 a recorded native result, not drain permission, supplies a direct completion receipt", async () => {
+  const f = await preparedLiveDirect();
+  try {
+    await expect(migrator.barrier(input.migrationId)).rejects.toThrow(/in flight/);
+    await f.gate.settle(f.claim, "accepted");
+    await expect(migrator.barrier(input.migrationId)).rejects.toThrow(/no definite native result receipt/);
+    await migrator.reconcile(input.migrationId);
+    await migrator.barrier(input.migrationId); await migrator.commit(input.migrationId);
+    expect((await store.read()).dispositions!.find(d => d.id === f.d.id)).toMatchObject({
+      removal: { state: "not-queued", receipt: "drain-legacy:permission to finish" }, receipts: { send: `claim:${f.claim}` }, resolvedBy: f.d.resolvedBy,
+    });
+  } finally { if (liveClaims().has(f.claim)) await f.gate.settle(f.claim, "uncertain"); }
+});
+it("R2 a live direct claim for one plan does not block another plan's inventory", async () => {
+  const f = await preparedLiveDirect();
+  try { await expect(migrator.prepare({ ...input, plan: "harbor", scopeId: randomUUID(), migrationId: randomUUID() })).resolves.toMatchObject({ state: "prepared" }); }
+  finally { await f.gate.settle(f.claim, "accepted"); }
+});
+it("R2 uncertain direct delivery cannot acquire a completion receipt from drain permission", async () => {
+  await migrator.arm(); const gate = cutoverGate(home);
+  const claim = (await gate.claim([{ source: "crew-action", id: "uncertain-direct", payloadHash: sha("uncertain"), task: { taskId: "build", host: "local" } }], GENERAL)).claim!;
+  await gate.settle(claim, "uncertain", "acknowledgement lost"); await migrator.prepare(input);
+  const d = (await store.read()).dispositions!.find(d => d.claimId === claim)!;
+  await expect(migrator.resolveHold(input.migrationId, d.id, "drain-legacy", { ref: "permission to finish", digest: "a".repeat(64) }, captainUi)).rejects.toThrow(/definite recorded native result/);
+  expect((await store.read()).dispositions!.find(row => row.id === d.id)).toMatchObject({ route: "hold", removal: { receipt: null } });
+  await migrator.resolveHold(input.migrationId, d.id, "already-handled", { ref: "verified receiver handling receipt", digest: "b".repeat(64) }, captainUi);
+  await migrator.barrier(input.migrationId); await migrator.commit(input.migrationId);
+});
 /** S11: which of the scope's explicit dependencies still hold it out of cooperative rollout. */
 const unmet = async () => cooperativeReadiness(await store.read(), input.scopeId).dependencies.filter(d => !d.satisfied).map(d => d.id);
 async function notes() { return (await readFirstmateConfig()).mateNotes; }
@@ -536,18 +635,37 @@ it("exports a separate scoped projection bound to its preimage; backlog bytes an
   await writeTextFile(home, { path: "data/scoped/proposals/scheduler.md", content: "Proposal", expectedModifiedMs: null, force: true });
 });
 
-it("B1: watch output naming the plan after the freeze becomes a resolvable hold; a generic step name is no clue", async () => {
+it("RR8 migration never lends another payload the accepted receipt of the same watch ID", async () => {
+  await migrator.arm();
+  const gate = cutoverGate(home), original: QueuedNote = { name: "pr-watch", ran: "2026-10-27T10:01:00Z", kind: "output", text: "scheduler ORIGINAL" };
+  const admitted = await gate.claim([watchItem(original)], GENERAL);
+  await gate.settle(admitted.claim, "accepted", "", true);
+  await runner.restoreQueued({ ...original, text: "scheduler CHANGED_PAYLOAD" });
+  await migrator.prepare(input);
+  const held = (await store.read()).dispositions!.find(row => row.source === "watch-queue")!;
+  expect(held).toMatchObject({ delivery: "queued", claimId: null, route: "hold", payloadHash: watchItem({ ...original, text: "scheduler CHANGED_PAYLOAD" }).payloadHash });
+});
+
+it("B1: refused watch enqueue is accounted; a noncompliant late insert still becomes a resolvable hold", async () => {
   await migrator.arm(); await migrator.prepare(input);
-  await runner.enqueuePrompt("pr-watch", "PR 12 on branch fm/scheduler: checks red.", new Date("2026-10-27T10:01:00Z"));
+  await expect(runner.enqueuePrompt("pr-watch", "PR 12 on branch fm/scheduler: checks red.", new Date("2026-10-27T10:01:00Z"))).rejects.toThrow(/cutover/);
+  expect(await readdir(join(cutoverGate(home).directory, "refusals"))).toHaveLength(1);
+  // Retain the S07 recovery case: a foreign/old writer bypasses the checked insertion path.
+  const bypass = runner as unknown as { gated: (w: () => Promise<void>) => Promise<void>; load: () => Promise<{ queue: QueuedNote[] }>; persist: () => Promise<void> };
+  await bypass.gated(async () => { (await bypass.load()).queue.push({ name: "pr-watch", ran: "2026-10-27T10:01:00Z", kind: "output", text: "PR 12 on branch fm/scheduler: checks red." }); await bypass.persist(); });
   await runner.enqueuePrompt("storage", "Nightly build cache pruned; disk healthy.", new Date("2026-10-27T10:01:00Z"));
   await runner.flush();
   expect(sent.map(s => s.text).join("\n")).toContain("disk healthy"); // A generic step name alone is not the plan.
-  expect((await runner.queued()).map(q => q.name)).toEqual(["pr-watch"]);
+  expect((await runner.queued()).map(q => q.name)).toEqual(["pr-watch", "pr-watch"]);
   await expect(migrator.barrier(input.migrationId)).rejects.toThrow(/resolve each hold/);
-  const late = (await store.read()).dispositions!.find(d => d.source === "watch-queue")!;
-  expect(late).toMatchObject({ route: "hold", reason: expect.stringContaining("after the freeze") });
-  await migrator.resolveHold(input.migrationId, late.id, "drain-legacy", { ref: "first mate: General may read it", digest: "e".repeat(64) }, owner);
-  await runner.flush();
+  const late = (await store.read()).dispositions!.filter(d => d.source === "watch-queue");
+  expect(late).toHaveLength(1); // Both physical copies have one immutable occurrence identity.
+  for (const row of late) {
+    expect(row).toMatchObject({ route: "hold", reason: expect.stringContaining("after the freeze") });
+    await migrator.resolveHold(input.migrationId, row.id, "drain-legacy", { ref: "first mate: General may read it", digest: "e".repeat(64) }, owner);
+  }
+  const beforeDrain = sent.length; await runner.flush(); await runner.flush();
+  expect(sent).toHaveLength(beforeDrain + 1); // The noncompliant copy cannot create a second native attempt.
   expect(sent.at(-1)!.text).toContain("PR 12");
   await migrator.reconcile(input.migrationId); await migrator.barrier(input.migrationId); await migrator.commit(input.migrationId);
   expect((await migrator.report("scheduler")).complete).toBe(true);

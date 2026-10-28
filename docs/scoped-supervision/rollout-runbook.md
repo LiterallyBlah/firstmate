@@ -10,15 +10,16 @@ automatic-failover claim. Any milestone that needs U1–U3 is recorded as **gate
 `data/fm-ss-d6/decision.md` still holds the placeholder text, which recommends option 1. The option 2 choice
 comes from FirstMate's dispatch, and it should be written into the decision record before any activation.
 
-Census head: `ac07bd04` (origin/main, the S11 merge), plus the S12 R11 pre-wiring commit. Neither changes
-any production import (see *Wiring*).
+Census baseline: `ac07bd04` (the S11 merge), plus S12. The F1–F3 follow-up on `fm/fm-sa-gating`
+updates sections 1.2 and 6 below. It adds no activation wiring (see *Wiring*).
 
 ## Verdict in one line
 
 **Broader rollout and legacy drain are held.** Every new scoped capability is unwired or off in production, so
 no scope can exist yet, let alone be drained. Even for drained scopes, four conditions block a General-relief
-claim: ungated legacy sources, General-owned native callbacks and heartbeats, an unmeasured captain-admission
-metric, and an unagreed observation window. *Gates holding expansion* below lists each one with its reason.
+claim: reviewed activation wiring, General-owned native callbacks and heartbeats, an unmeasured captain-admission
+metric, and an unagreed observation window. F1–F3 have code and fixture coverage below; this is not live drain
+qualification. *Gates holding expansion* below lists each remaining gate with its reason.
 
 ## 1. Census
 
@@ -44,8 +45,9 @@ only the seeded `pr-watch` script, and nothing ingests its spool. `FIRSTMATE_NEE
 ### 1.2 Sources: every plugin delivery to General or a worker
 
 Gate column: **full** means verdict, a durable claim and a settled result (`claim`/`claimHeld` → `settle`).
-**Enqueue** means a verdict under the gate lock at insertion. **Verdict** means a bare admission check with no
-claim. **None** means no S07 gate call at all.
+**Enqueue** means a verdict under the gate lock at insertion. **None** means no S07 gate call at all.
+Every direct send releases the gate lock before its native call, and settles before marking delivery sent.
+Unknown native outcomes remain uncertain holds in the migrator inventory. No new gate is armed by default.
 
 Routine traffic is automatic and plan- or fleet-related. Conversation is the captain talking to General.
 Lifecycle covers General's own launch, compaction and handover.
@@ -55,25 +57,25 @@ Lifecycle covers General's own launch, compaction and handover.
 | S1 | Note flush `flushMateNotes` (`mate.ts:426-442`; 15 s timer, turn-end hook, fleet load, plan act) | `config.mateNotes` | Routine | **Full** | Drainable per scope (S07 L1–L5) |
 | S2 | Plan notes `queuePlanNotes` (`workflow-service.ts:47`, 1 s timer) | `config.mateNotes` | Routine | **Enqueue** + cutover pre-skip | Drainable per scope |
 | S3 | Local steer relay burst (`crew.ts:203` → `mate.ts:356`) | `mateNotes[].burst` | Routine | **Enqueue** | Drainable; scoped workers refused by S08 |
-| S4 | Burst extend (`mate.ts:389-392`) | `burst.holdUntil` | Routine | Verdict under lock; **a refusal writes no `refusal()` record** | Gap: unaccounted refusal (finding F3) |
-| S5 | Watch batch (`watches.ts:444-463`, minute tick and turn-end retries) | `watches.json` queue | Routine | **Full at send**; **enqueue is lock-only**, never refuses (`watches.ts:356-358`) | Mixed/opaque output stays with its legacy owner (S07) |
+| S4 | Burst extend (`mate.ts`, `extendBurstNote`) | `burst.holdUntil` | Routine | **Enqueue**: verdict and refusal receipt under lock | F3 closed; refused extensions leave the captured payload unchanged |
+| S5 | Watch batch (`watches.ts`, `record` / `enqueuePrompt` / `flushOnce`) | One `watches.json` queue: owner, occurrence ID, scope hold and send reservation on each row | Routine | **Full**: admission, reservation and exact-row claim under the gate/queue locks | Refused output stays durably held in the queue. Abort/release or explicit S07 drain plus fresh admission permits delivery. Armed turns select one eligible occurrence, oldest first, skipping frozen or uncertain rows. Accepted receipts complete cleanup; unknown outcomes never replay automatically. No separate refused-output spool |
 | S6 | Watch-runtime fault note (`watch-service.ts:183-191`) | `config.mateNotes` | Routine | **Enqueue** | Drainable |
-| S7 | **Inspection result to General** (`watch-inspections.ts:321`, polled by the 15 s `tickPrompts`) | `watch-inspections/inspection-runs.json` | Routine, but only for watches routed to an isolated session. Dormant live: none is routed and no inspection runs | **None**: the module never imports the gate; `GateSource` has no inspection kind | **Undrainable as built (F1)** |
-| S8 | Inspector prompts (`watch-inspections.ts:215, 258`) | same | Routine, to the inspector agent | **None** | Not General traffic; inspector is never crew |
+| S7 | Inspection result to General (`watch-inspections.ts`, `deliver`; 15 s `tickPrompts`) | `watch-inspections/inspection-runs.json` | Routine, only for watches routed to an isolated session | **Full** (`inspection` claim, exact payload hash and saved opaque text) | F1 closed; plan mentions stay pending during freeze and after commit, with a refusal receipt. Pending runs are not transferred; reconcile explicitly |
+| S8 | Inspector prompts (`watch-inspections.ts`, `start` / `reconcile`) | same | Fleet inspection lifecycle, to the inspector agent | **None** | Out of per-plan drain scope: parentless read-only inspectors have no crew identity, plan ownership or finish subscription. General retains fleet inspection; S7 gates its results |
 | S9 | Decision answer (`decision-answer.ts:116-137`) | Needs-you ledger | Captain-initiated, plan-scoped | **Full** (`claimHeld`) | Drainable (L4) |
-| S10 | Item discussion (`item-threads.ts:95-97`) | `data/item-threads/` | Captain-initiated | **Verdict**, outside the gate lock, no claim | Gap: a freeze can land between check and send (F2) |
-| S11 | Relaunch request to General (`crew.ts:163-164`) | none | Captain-initiated | **Verdict** on the worker | Gap (F2) |
+| S10 | Item discussion (`item-threads.ts`, `sendThread`) | `data/item-threads/` | Captain-initiated | **Full**, in the captured recipient's `beforeSend`, with reservation under the same gate lock | F2 closed; refused drafts are not reserved, recorded messages replay without a second send |
+| S11 | Relaunch request to General (`crew.ts`, `relaunchCrew`) | none | Captain-initiated | **Full**, after `askMate` captures General | F2 closed; claim retains worker identity and exact relaunch payload |
 | S12 | Captain chat, Bearings, Ahoy, update request (`askMate`, `mate.ts:287-301`) | none | Conversation | None | Out of drain scope: General stays conversation-first |
 | S13 | Opening, compact, handover (`mate.ts:176, 251`; `migration.ts:252`) | config | Lifecycle | None | Out of drain scope |
-| S14 | Local steer, interrupt, end (`crew.ts:130-148`) | in-memory steers | Captain → worker | **Verdict** | Gap (F2); S08 also refuses scoped workers |
-| S15 | Remote steer, interrupt, end (`remote-crew.ts:64, 71, 79`) | none | Captain → remote worker | **None** (S08 `remoteGuard` only); the remote burst note is enqueued after the words are sent | Gap (F1) |
+| S14 | Local steer, interrupt, end (`crew.ts`, board action functions) | in-memory steers | Captain → worker | **Full** (`crew-action`) | F2 closed; S08 refusals retained. Existing safety exception retained: an unreadable sidecar with no worker identities cannot block local Interrupt/End; known frozen/scoped workers remain refused |
+| S15 | Remote steer, interrupt, end (`remote-crew.ts`, `mutate`) | none | Captain → remote worker | **Full** (`crew-action`, remote worker key), after S08 guard | F1 closed; request outside lock, accepted/uncertain result before return; no native retry added |
 
 General-originated actions are not plugin deliveries, but they reach workers too (R12O N4):
 
 | # | Path | Class | S07 gate | Drain status |
 |---|---|---|---|---|
-| S16 | Remote helper pump (`remotes.ts:427`, 1 s): runs the first mate's `tools/remote.mjs` requests (send, run, archive …) against remote hosts | General → remote worker | **None**, and no S08 guard | Only the charter keeps it off scoped workers (cooperative). Classify explicitly before any drain claim |
-| S17 | General's native Paseo MCP calls (`send_agent_prompt`, `archive_agent`, `create_agent` …) | General → local worker | **None**: the daemon executes them, so no plugin path exists | Only the charter keeps them off scoped workers (cooperative; U1 would enforce it) |
+| S16 | Remote helper pump (`remotes.ts:427`, 1 s): runs the first mate's `tools/remote.mjs` requests (send, run, archive …) against remote hosts | General → remote worker | **None**, and no S08 guard | Out of automatic per-plan delivery drain: explicit General-authored tool commands, not queue notifications or board actions. Charter-only exclusion of scoped workers remains cooperative; no enforced exclusion or fleet-wide relief claim |
+| S17 | General's native Paseo MCP calls (`send_agent_prompt`, `archive_agent`, `create_agent` …) | General → local worker | **None**: the daemon executes them, so no plugin path exists | Out of plugin delivery drain: explicit General-authored native operations with no plugin admission point. Charter-only exclusion remains cooperative; enforced exclusion needs U1 |
 
 The gate is skipped entirely when `config.home` and `config.mateAgentId` are both empty (`watch-service.ts:133`).
 That case has no first mate, so no recipient.
@@ -138,7 +140,7 @@ production-path evidence.
 | A11 | H; E | S03 policy, S09 memory/grants (`supervision-projects`); R03, R09 | H. E unq. (spoof resistance) |
 | A12 | H | `supervision-migrate` A12 history replay; S01 | H |
 | A13.store | H | S01 barriers and `supervision-crash`; S07 abort/forward recovery; R01, R07 | H. See section 4 for the rollback-binary rule |
-| A13.legacy | H | S07 L1–L5 (enqueue/flush/answer/watch races, mixed/opaque holds); R07 | H on the gated paths. **S7, S10/S11/S14 and S15 are outside the gate** (F1, F2) |
+| A13.legacy | H | S07 L1–L5 plus F1–F3 path tests in section 6 (claim-before-send, freeze races, refusal receipts, uncertain holds) | Fixture coverage now includes S7, S10/S11/S14 and S15. No live scope or drain qualification |
 | A14 | H; E | `archive-inventory`, `supervisor-sessions`, `supervision-cooperative`; R04, R11 | H (refusal). E unq.: conditional archive is gated on U3 |
 | A15 | H | S03, S09 intent/sponsor/conflict tests; R09 | H |
 | A16 | H | S05 UI checks (`S05-verification.json`); R05 rereview | H; the UI is disabled in production |
@@ -159,7 +161,7 @@ timing flake. `npx tsc --noEmit` exits 0. CI on both operating systems is the au
 | Gate | Reason | Clears when |
 |---|---|---|
 | G1. Activation is unwired | No production path initialises a writable store, runs the S07 migrator, attaches a supervisor or constructs `SupervisionCommands` | A separately reviewed wiring change plus captain activation |
-| G2. Ungated legacy sources (F1, F2) | The S7 inspection-result path and the S15 remote steer/interrupt/end path bypass the S07 gate. The S10/S11/S14 paths check the verdict without a durable claim. The S5 watch enqueue never refuses. The S4 burst-extend refusal is unrecorded | Each path is gated (with a claim where it sends) or explicitly classified out of drain scope by FirstMate, with tests |
+| G2. Legacy source coverage (F1–F3) | Implemented with per-path positive/refusal fixtures in section 6; unarmed adapters remain supervision-write-free. S8, S12/S13 and S16/S17 have explicit drain exclusions in the census | Review this follow-up before activation; re-run census and live qualification on the eventual wired build |
 | G3. Native owners (U2) | General owns legacy crew callbacks and the heartbeat, and nothing can transfer them | **Gated on U2.** Under option 2, only scopes whose legacy workers have all finished (drained) qualify. General keeps its heartbeat while any legacy work runs |
 | G4. Fleet-wide zero routine traffic | Requires G2, G3, and every legacy plan either drained or held by an accounted owner | Census re-run shows zero ungated routine paths and zero General-owned live callbacks |
 | G5. Metrics | Captain admission was never measured (denominator 0). Queue latency is synthetic only | A live observation window records `captain[]` and samples with a monotonic clock |
@@ -197,12 +199,22 @@ These procedures apply once activation exists. **Nothing here is authorised by t
 - **Trigger:** any of the following exists:
   - an initialised supervision journal (`plugin-data/firstmate/supervision/`);
   - any worker carrying a `firstmate.scope` label;
-  - any `.scoped/` sidecar or `armed.json` in the live plan store.
+  - any `.scoped/` sidecar or `armed.json` in the live plan store;
+  - any watch queue row with `ownership`, `hold` or `delivery` metadata.
 - **Target, after the trigger:** roll back only to a build that contains S07 **and parses every journal row kind
   present**. In practice that is the build that wrote them, or a later one. `c01b272` (S07) cannot parse the
   S09/S10 kinds (`project` … `maintenance-incident`). A journal holding them would read `held`, and crew-seen
   would stop clearing attention for every crewmate. Never roll back to `9ed5dd84`.
-- Before the trigger, rollback to `9ed5dd84` stays safe, because this head writes no new legacy-store construct.
+- A build that has armed this follow-up also needs readers for delivery claim sources `crew-action` and
+  `inspection`, including inspection text retained for later inventory. A pre-follow-up migrator cannot read
+  those claims. Keep the writing build or a compatible later one for reconciliation.
+- The single watch queue requires the ownership/occurrence reader, lifecycle recipient check and durable
+  reservation/result reconciliation while any new queue rows exist. Earlier lenient readers discard those
+  fields and may reroute or replay an instruction. Keep a compatible reader until every row is reconciled.
+- This design never creates or restores `watches.json.held/`. If an earlier unactivated review build left
+  such evidence, or a queue row still has its old `retained` capsule, the reader refuses explicit reconciliation
+  rather than silently dropping or automatically replaying it. Keep those original files intact.
+- Before all triggers, rollback to `9ed5dd84` stays safe. No installation, reload or rollback is performed by this task.
 
 **Plugin rollback (installation only, nothing armed).** Reinstall the retained previous directory source with
 the same remove/install lifecycle used for the 2026-10-26 install. Plugin data persists across remove/install.
@@ -239,14 +251,11 @@ captain would see:
 
 ## 6. Findings
 
-- **F1 (blocks drain).** Inspection results (`watch-inspections.ts:321`) and remote steer/interrupt/end
-  (`remote-crew.ts:64, 71, 79`) reach General or workers without the S07 gate. AGENTS.md requires every legacy
-  delivery, including crew actions and item discussions, to be gated.
-  - The inspection path is polled every 15 s, but it carries traffic only for a script or managed watch routed
-    to an isolated session. In the live configuration it is dormant: `board-review` is disabled, no script is
-    routed and no inspection runs.
-  - S16/S17 (the remote helper pump and General's native calls) are General-originated. They are listed so that
-    nothing is implicit. Under the conservative D6 option, only the charter keeps them off scoped workers.
+- **F1 (implemented in the gating follow-up).** Inspection results and remote steer/interrupt/end now claim
+  their captured recipients under the gate, send outside its lock, and settle. Inspection claims retain opaque
+  report text so a later inventory can identify plan mentions. Reports mentioning a frozen or committed plan
+  stay pending with a visible delivery error and refusal receipt; they are not rerouted or transferred.
+  S08's remote guard and followed-session End refusal remain in front of delivery.
 - **F6 (fixed in S12, R12O N1).** S07 had wrapped the watch runner's recording of a finished run, including
   `routeNote`, in the cutover gate lock. Once a script watch is routed to an isolated session, this formed a lock
   cycle: gate → inspection lock → lifecycle lock → gate. That deadlocks the plugin until restart. Routing now
@@ -256,12 +265,112 @@ captain would see:
   plan-note tick list `.scoped/` once, instead of reading four sidecar files per plan (about 344 failed reads a
   second on the live store, under the lifecycle lock). The writer's own check is unchanged
   (`workflow-cutover-batch.test.ts`).
-- **F2 (blocks drain).** Item discussion, relaunch and local steer/interrupt/end check the verdict but write no
-  claim. Item discussion checks outside the gate lock. A freeze between check and send leaves no in-flight
-  evidence for the migrator.
-- **F3 (low).** The watch enqueue `gated()` takes only the lock and never refuses, contrary to AGENTS.md's "watch
-  enqueue … check it". The S4 burst-extend refusal writes no `refusal()` record.
+- **F2 (implemented in the gating follow-up).** Item discussion reserves the message and claims the captured
+  General recipient in one gate section, after lifecycle checks. Relaunch claims in `askMate`'s `beforeSend`.
+  Local controls claim the exact native operation and worker. A freeze after the preliminary verdict is
+  rechecked at admission. An uncertain acknowledgement remains a durable migrator hold, including after a
+  result file has been written; it never authorizes automatic replay. Recorded discussion retries still return
+  their original record, including after cutover.
+  The review revision checks scoped live claims before inventory/disposition skips, every removal/result
+  receipt, and barrier/commit. A named or captain-permitted drain still blocks while its native call is live.
+  Commit rechecks under the gate lock; unknown direct drains need a definite native result receipt or separate
+  verified handling evidence. Old permission/resolution receipts remain immutable: reconciliation appends the
+  native result in `receipts.send`. The read-only report includes live named claims and unverified direct drains.
+- **F3 (implemented in the gating follow-up).** There is one delivery queue, `watches.json`. A refused
+  script or prompt output is saved there with its original owner, immutable occurrence/native ID and a scope
+  hold, before refusal returns. No separate spool, restoration loop or retained-only batch exists.
+  Produced output is durable before refusal/capacity diagnostics are written. An unreadable admission keeps
+  the output in an explicit reconciliation hold instead of losing it after its producer advanced its baseline.
+  A same-watch/due-UTC-minute retry finds that row instead of appending another. The script pauses while its
+  earlier held or uncertain output waits. `MAX_QUEUED` is the shared 20-row cap per home, including holds and
+  reservations. Before eviction the gate reads authoritative cutover targets, claims and the read-only S07
+  disposition inventory under the gate/queue locks. Frozen/owned rows and any inventoried occurrence are
+  protected even without a local hold annotation, after drain permission, or after abort. Unreadable ownership
+  or inventory fails closed. Only proven ordinary, unreserved rows may be dropped with the existing count;
+  insufficient evictable room records a capacity refusal without changing the queue. Concurrent armed
+  producers reserve capacity shared by all runner instances. Prompt admission, archive restoration, script
+  admission and script completion all count those slots; completion atomically replaces its own slot with
+  its row. The finite pre-arm in-flight exception still preserves every already
+  produced observation and stops later admissions until capacity is available. Archive restoration shares
+  the same cap and refuses a conflicting identity/payload; failed restoration leaves the archive intact.
+  The reader preserves owner and occurrence metadata across reload. Foreign homes cannot admit those rows;
+  native delivery rechecks the original home and captured mate under the lifecycle lock, including after
+  refresh. Same-home mate handover requires a new definite admission. Malformed provenance fails closed.
+  The queue is refreshed under its own lock so a previously cached runner sees another writer's reservation.
+  Send selection filters all eligible rows together. In armed operation one occurrence gets each admitted turn,
+  oldest first by stored occurrence time with a stable tie-break; frozen and uncertain rows are skipped.
+  Continuing ordinary traffic cannot jump ahead of an older released row. Default unarmed batching, fitting,
+  producer concurrency and ordinary overflow counts remain unchanged.
+  Before any native call the exact row has a durable reservation and a claim, with its stable native message ID.
+  Accepted results are recorded before compare-by-identity/payload removal. Pure receipts remain until queue
+  publication succeeds. After a state-write failure, reload uses the saved accepted receipt only to finish
+  cleanup. A crashed/missing/uncertain result keeps its row for explicit evidence-based reconciliation and never
+  creates another send. A definite non-send may be retried with the same ID. This is the same lifecycle for
+  ordinary and held rows. Claims/results name only rows in the actual native message; deferred or cut rows
+  do not inherit acceptance. Migration inventory also matches the watch payload hash, not just its ID.
+  An aborted sidecar or explicit S07 drain plus fresh send admission releases a scope hold; commit alone
+  cannot. Late insertions remain visible to S07 inventory and need explicit dispositions. Burst extension
+  records its refusal without changing the captured payload. Watch routing remains outside the gate,
+  preserving the R12O N1 lock-order fix; native calls hold neither the gate nor queue lock.
 - **F4 (rollback).** The rollback-binary rule above, with its trigger and target widened per R12-5.
 - **F5 (record).** `data/fm-ss-d6/decision.md` does not record the option 2 choice.
 
-These are integration fixes for separate approved tasks. S12 changed none of them.
+The F1–F3 follow-up adds no writable production store, migrator/attach wiring, default activation or U1–U3
+capability. Native callback/heartbeat ownership, F4 and F5 remain unchanged. The original S12 report records
+its historical head; this census supersedes its F1–F3 source status only.
+
+Per-path fixture coverage (test names with `%s` expand to each action named in the row):
+
+| Finding / path | Implementation | Positive test | Refusal test |
+|---|---|---|---|
+| F1 inspection result | `server/watch-inspections.ts`, `deliver` | `watch-inspections.test.ts`: `F1 inspection result claims before General delivery and settles before marking sent` | `F1 inspection result refuses a %s plan mention and retains pending evidence` (freeze, committed) |
+| F1 remote steer / interrupt / end | `server/remote-crew.ts`, `mutate` | `legacy-delivery-gating.test.ts`: `F1 remote %s claims before request and settles` | `F1 remote %s refuses a committed worker before request` |
+| F2 item discussion | `server/item-threads.ts`, `sendThread` | `F2 discussion claims its captured recipient before delivery and settles before sent` | `F2 discussion rechecks under the gate after lifecycle checks and refuses before reservation` |
+| F2 local steer / interrupt / end / relaunch | `server/crew.ts`, action functions | `F2 local %s claims before native delivery and settles` | `F2 local %s refuses a frozen worker and records it`; `F2 local %s rechecks a freeze after its preliminary verdict` |
+| F3 script-output / prompt-watch enqueue | `server/watches.ts`, `enqueue` | `F3 watch %s enqueue admits unrelated output under the gate` | `F3 watch %s enqueue holds frozen output in the queue before delivery` |
+| F3 burst extension | `server/mate.ts`, `extendBurstNote` | `F3 burst extension admits an unrelated worker` | `F3 burst extension records a refusal without changing the captured payload` |
+
+Additional coverage: direct controls and discussions are supervision-write-free while unarmed; inspection has
+its own unarmed check. Lost native acknowledgements stay uncertain without automatic retry. `supervision-migrate.test.ts`
+checks both worker and inspection uncertainty holds. `watch-lock-order.test.ts` retains the routed-watch lock
+cycle regression; existing scoped-worker tests retain S08 refusals.
+
+Review recovery regressions (`server/legacy-delivery-gating.test.ts`, `server/supervision-migrate.test.ts`):
+
+- `R1 stateful watch output survives refusal, reload and abort after its baseline advances`: producer advances
+  its baseline before refusal, the exact result stays held in the ordinary queue, and that mixed result is delivered after
+  release even though the next run is silent. Queue-pressure/fitting, commit-without-release and foreign-home
+  abort cases retain evidence.
+- `R2 a blocked discussion callback cannot drain into an active scoped backend`: a real `sendThread` native
+  callback remains blocked after admission; migration refuses before activation. Recovered older named direct
+  drains also block re-inventory, resolution, barrier and commit until native settlement. Positive controls
+  retain the original permission record and append the actual result receipt before committing.
+- `server/watch-retention.test.ts` covers RR3's real release/home/mate switch with a busy mate and reload,
+  admission/refresh races, old bare queue copies and malformed provenance; RR4's four retries and 16-minute
+  growth reproduction, stable cap receipts, pre-baseline/concurrent backpressure and unarmed control; RR5's
+  sequential recovery and oldest-first delivery across multiple messages/reloads.
+- RR6: small/large admitted turns and wait/uncertain cases compare pending/accepted claims to actual native
+  messages and leave later occurrences unreceipted. Default unarmed cut rows keep the old dropped-count behavior.
+- RR7: refused ordinary scopes, full queues and refused held prefixes cannot block another queued eligible
+  scope. Holds share the ordinary cap and survive later traffic; a full protected queue applies explicit backpressure.
+- RR8/RR9: `server/watch-delivery.test.ts` retains both real-wrapper fault probes, the no-fault/reload control
+  and the 12-window/36-busy-tick sustained-stream scenario. Additional cases cover ordinary rows with the same
+  lifecycle, stable IDs across busy reloads, cached runners, reservation/wait/result publication failures and
+  progress by another scope while an unknown send waits. Migration tests reject lending an accepted receipt
+  to a changed payload with the same watch ID. No native-dedupe stand-in may hide a second send attempt.
+  The original R1 regression also injects refusal-journal and admission-read failures after baseline advancement.
+- RR10/RR11: `server/watch-capacity.test.ts` preserves all 20 stateful pre-freeze observations with and
+  without a refusal-only flush; the real migrator's pending hold survives unrelated pressure and remains
+  protected after abort. Twenty blocked armed scripts leave no prompt capacity, while nineteen leave one
+  slot. A second runner cannot bypass reservations through prompts, restoration or another script. The
+  full-queue RR7 controls now contain 19 frozen rows and one ready row, with no frozen-row eviction.
+
+Capacity follow-up local qualification (Windows, Node 24.22.1): 205 files passed and one failed, with
+3,077 tests passed, one failed and three skipped (258.25 seconds). All eight capacity, 16 delivery,
+30 retention and earlier gating/migration regression cases passed. The sole full-run failure was the
+unchanged launch-tool authority/dependency case at line 323. Its isolated diagnostic passed that case
+but failed two different unchanged cases (88 passed, two failed). No launch test/assertion/timeout changed;
+the previously directed hosted-CI tiebreaker applies. Typecheck and all five branch renders passed.
+Current per-head full-suite, typecheck, render and hosted CI evidence is recorded on the PR.
+Artifacts remain in ignored `.local/`. These are fixture checks. No live daemon/provider qualification,
+install, reload, arm, migrate or attach was performed.

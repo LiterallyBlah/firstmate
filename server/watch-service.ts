@@ -29,7 +29,7 @@ import type { PaseoApi } from "./host-types";
 import { isMidTurn, oneAtATime, flushMateNotes, recordNoteQueued } from "./mate";
 import { sendWithoutInterrupting } from "./send";
 import { serialized } from "./serialize";
-import { WatchRunner, watchNote, type DeliveryOutcome } from "./watches";
+import { WatchRunner, watchNote, watchOwner, type DeliveryOutcome, type WatchDelivery } from "./watches";
 import { WatchConfigStore } from "./watch-config";
 import { WatchInspections, inspectionChoices } from "./watch-inspections";
 import { listWatches } from "./watch-files";
@@ -64,14 +64,21 @@ export async function deliverToMate(
   config: FirstmateConfig,
   text: string,
   readConfig = async () => config,
+  expected?: WatchDelivery,
 ): Promise<DeliveryOutcome> {
   return oneAtATime(async () => {
     // Re-read after taking the lifecycle gate: a handover may have changed the mate while we waited.
     const latest = await readConfig();
+    if (expected && (watchOwner(cutoverGate(resolveHome(latest))) !== expected.owner || latest.mateAgentId.trim() !== expected.recipient)) return "wait";
     if (latest.migration !== null || latest.mateLaunch !== null || paseo === null) return "wait";
     const { agent } = await resolveMate(paseo, latest);
     if (agent === null || isMidTurn(agent)) return "wait";
-    await sendWithoutInterrupting(paseo, agent.id, text, { messageId: `${WATCH_MESSAGE_ID_PREFIX}${randomUUID()}` },
+    if (expected) {
+      const current = await readConfig();
+      if (agent.id !== expected.recipient || current.migration !== null || current.mateLaunch !== null ||
+        watchOwner(cutoverGate(resolveHome(current))) !== expected.owner || current.mateAgentId.trim() !== expected.recipient) return "wait";
+    }
+    await sendWithoutInterrupting(paseo, agent.id, text, { messageId: expected?.messageId ?? `${WATCH_MESSAGE_ID_PREFIX}${randomUUID()}` },
       { channel: "watch-flush", actor: "plugin", mateRecipient: true });
     return "sent";
   });
@@ -114,8 +121,8 @@ export function startWatches(
     async disabled() {
       return (await readConfig()).disabledWatches;
     },
-    async deliver(text) {
-      return deliverToMate(paseo, await readConfig(), text, readConfig);
+    async deliver(text, expected) {
+      return deliverToMate(paseo, await readConfig(), text, readConfig, expected);
     },
     async canRun(name) {
       const routing = (await store.read()).scripts[name] ?? CURRENT_ROUTING;

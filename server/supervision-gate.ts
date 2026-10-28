@@ -1,8 +1,8 @@
 /** S07's one ownership/cutover gate for every plugin-owned legacy delivery path.
  *
  * Every enqueue (plan notes, crew/burst notes, watch-runtime notes, watch batches) and every send
- * admission (note flush, watch flush, decision answer) passes this gate before it touches a queue or
- * the network. Under the gate's lock a sender persists an in-flight claim, releases the lock, sends,
+ * admission (note/watch flush, decision/discussion, inspection result and local/remote crew control)
+ * passes this gate before it touches a queue or the network. Under the gate's lock a sender persists an in-flight claim, releases the lock, sends,
  * then records the claim's result before removing its queue entry. No network call holds the lock.
  *
  * Inert until a migration explicitly arms it (`.scoped/armed.json`): then it writes claims. A frozen
@@ -18,13 +18,15 @@ import { CutoverSidecarSchema, MIGRATION_COMPATIBILITY, type CutoverSidecar } fr
 import { pluginDir } from "./data-dir";
 import { serialized } from "./serialize";
 import { canonical, digest, publish } from "./submissions";
+import type { SupervisionStore } from "./supervision-store";
 
 /** The existing home-scoped legacy workflow store; `workflowStore` uses the same directory. */
 export function legacyWorkflowRoot(home: string): string {
   return join(pluginDir(), "workflow-plans", digest(process.platform === "win32" ? resolve(home).toLowerCase() : resolve(home)));
 }
 
-export type GateSource = "plan-note" | "mate-note" | "burst" | "watch-runtime" | "watch" | "decision";
+const GateSourceSchema = z.enum(["plan-note", "mate-note", "burst", "watch-runtime", "watch", "decision", "crew-action", "inspection"]);
+export type GateSource = z.infer<typeof GateSourceSchema>;
 /** One legacy delivery as it stands, identified only by what the legacy record already holds. */
 export interface GateItem {
   source: GateSource;
@@ -39,9 +41,11 @@ export interface GateItem {
   /** Opaque text, only ever matched as a mention. Mentions never choose an owner. */
   text?: string;
 }
-const ClaimItemSchema = z.object({ source: z.enum(["plan-note", "mate-note", "burst", "watch-runtime", "watch", "decision"]), id: z.string(),
+const ClaimItemSchema = z.object({ source: GateSourceSchema, id: z.string(),
   payloadHash: z.string(), plan: z.string().optional(), actionId: z.string().optional(), agentKey: z.string().optional(),
-  task: z.object({ taskId: z.string(), host: z.string().nullable() }).strict().optional(), mentions: z.array(z.string()) }).strict();
+  task: z.object({ taskId: z.string(), host: z.string().nullable() }).strict().optional(), mentions: z.array(z.string()),
+  /** Inspection runs have no legacy queue inventory. Retain opaque evidence for a later freeze's mention check. */
+  text: z.string().optional() }).strict();
 export const ClaimSchema = z.object({ format: z.literal("firstmate.delivery-claim/1"), id: z.uuid(), at: z.string(), recipient: z.string(),
   items: z.array(ClaimItemSchema).min(1) }).strict();
 export const ClaimResultSchema = z.object({ format: z.literal("firstmate.delivery-claim-result/1"), id: z.uuid(), at: z.string(),
@@ -73,6 +77,7 @@ export class CutoverRefusal extends Error {
 export class CutoverGate {
   readonly root: string;
   readonly directory: string;
+  private evictionStore?: SupervisionStore;
   constructor(readonly home: string, root = legacyWorkflowRoot(home)) {
     this.root = resolve(root);
     this.directory = join(this.root, ".scoped");
@@ -146,7 +151,7 @@ export class CutoverGate {
   static classify(item: GateItem, target: CutoverTarget | DamagedTarget): "identity" | "mention" | null {
     if (target.damaged && !target.tokens) {
       if (item.plan !== undefined) return item.plan === target.plan ? "identity" : null;
-      return ["plan-note", "burst", "decision"].includes(item.source) ? "identity" : null; // Not provably unrelated.
+      return ["plan-note", "burst", "decision", "crew-action", "inspection"].includes(item.source) ? "identity" : null; // Not provably unrelated.
     }
     const t = target.damaged ? target.tokens! : target.sidecar.tokens;
     if (item.plan === t.plan || (item.actionId && t.actions.includes(item.actionId))) return "identity";
@@ -164,14 +169,45 @@ export class CutoverGate {
       const relation = CutoverGate.classify(item, target);
       if (!relation) continue;
       const stage = target.damaged ? "damaged" : target.stage;
-      if (target.damaged && relation === "mention" && item.source !== "watch") continue;
+      if (target.damaged && relation === "mention" && item.source !== "watch" && item.source !== "inspection") continue;
       if (target.damaged) return { admit: false, plan: target.plan, stage, reason: `A damaged cutover record (${target.plan}) may own this ${item.source === "decision" ? "answer" : "delivery"}; it is held until the main first mate reconciles that record.` };
       const drained = mode === "send" && target.drains.has(itemFingerprint(item));
       if (relation === "identity" && !drained) return { admit: false, plan: target.plan, stage, reason: `${target.plan} is ${stage === "committed" ? "owned by its scoped supervisor" : "in a held cutover"}; the legacy ${item.source} path cannot deliver it.` };
+      // Pending inspection runs are not transferred by S07. Their opaque reports cannot fall through to General
+      // after commit: reconcile them explicitly, rather than treating a mention as an authoritative owner.
+      if (relation === "mention" && item.source === "inspection")
+        return { admit: false, plan: target.plan, stage, reason: `Inspection output mentions ${target.plan} during or after its cutover; its saved result is held for reconciliation.` };
       if (relation === "mention" && item.source === "watch" && stage !== "committed" && !drained)
-        return { admit: false, plan: target.plan, stage, reason: `Opaque watch output mentions ${target.plan} during its cutover; it stays queued with its legacy owner.` };
+        return { admit: false, plan: target.plan, stage, reason: `Opaque watch output mentions ${target.plan} during its cutover; legacy delivery is held for reconciliation.` };
     }
     return { admit: true };
+  }
+  /** Capacity eviction is not delivery permission. Even an explicitly drained or released inventory
+   * row remains evidence until compare-removal/delivery accounts for it. Caller holds the gate lock.
+   * This reader never initializes a store, acquires a coordinator or enables scoped execution. */
+  async evictable(items: GateItem[]): Promise<Set<string>> {
+    try {
+      const targets = await this.targets();
+      // Dynamic import avoids the workflow-store/gate module cycle. The default store is read-only.
+      this.evictionStore ??= new (await import("./supervision-store")).SupervisionStore(pluginDir(), this.home);
+      const status = await this.evictionStore.read();
+      if (status.freshness === "held" || targets.some(t => t.damaged && !t.tokens)) return new Set();
+      const inventoried = new Set((status.dispositions ?? []).filter(d => d.source === "watch-queue" && d.original.watch).map(d => {
+        const w = d.original.watch!;
+        return itemFingerprint({ source: "watch", id: `${w.name}@${w.ran}#${w.kind}`, payloadHash: d.payloadHash });
+      }));
+      const claimed = new Set((await this.claims()).flatMap(c => c.claim.items.map(itemFingerprint)));
+      const permitted = new Set<string>();
+      for (const item of items) {
+        const key = itemFingerprint(item);
+        if (!inventoried.has(key) && !claimed.has(key) && !targets.some(t => CutoverGate.classify(item, t)) &&
+          (await this.verdict(item, "enqueue", targets)).admit) permitted.add(key);
+      }
+      return permitted;
+    } catch {
+      // An unreadable ownership/inventory record cannot prove any row safe to discard.
+      return new Set();
+    }
   }
   /** Gate-checked enqueue. The insertion runs inside the gate, so a cutover either sees it or refuses it. */
   async enqueue<T>(item: GateItem, insert: () => Promise<T>): Promise<T> {
@@ -181,6 +217,27 @@ export class CutoverGate {
       return insert();
     });
   }
+  /** Direct legacy admission, after lifecycle checks have captured the recipient. Reservation and claim share
+   * the freeze lock; the caller must perform the native operation after this returns, then settle its result. */
+  admit(item: GateItem, recipient: string, options: { beforeClaim?: () => Promise<void>; stopWithUnknownOwner?: boolean } = {}): Promise<string | null> {
+    return this.run(async () => {
+      // Preserve the legacy safety control: an unreadable record with no worker identities cannot block a local stop.
+      const targets = (await this.targets()).filter(t => !options.stopWithUnknownOwner || !t.damaged || t.tokens !== null);
+      const verdict = await this.verdict(item, "send", targets);
+      if (!verdict.admit) { await this.refusal(item, verdict.reason); throw new CutoverRefusal(verdict.plan, verdict.stage, verdict.reason); }
+      await options.beforeClaim?.();
+      return (await this.claimHeld([item], recipient, undefined, targets)).claim;
+    });
+  }
+  /** One immediate native operation. No network call holds the gate lock, and any thrown native outcome is uncertain. */
+  async deliver<T>(item: GateItem, recipient: string, send: () => Promise<T>, options?: Parameters<CutoverGate["admit"]>[2]): Promise<T> {
+    const claim = await this.admit(item, recipient, options);
+    let result: T;
+    try { result = await send(); }
+    catch (error) { await this.settle(claim, "uncertain", String(error)); throw error; }
+    await this.settle(claim, "accepted");
+    return result;
+  }
   /** Admit the items that may be sent now and persist one claim for them before any send. `confirm`
    * rereads the queue under the gate so a claim never names an entry that has already gone.
    */
@@ -188,9 +245,9 @@ export class CutoverGate {
     return this.run(() => this.claimHeld(items, recipient, confirm));
   }
   /** `claim` for a caller already inside `run` (the gate's lock is not reentrant). */
-  async claimHeld(items: GateItem[], recipient: string, confirm?: (admitted: GateItem[]) => Promise<GateItem[]>): Promise<{ admitted: GateItem[]; refused: GateItem[]; claim: string | null }> {
+  async claimHeld(items: GateItem[], recipient: string, confirm?: (admitted: GateItem[]) => Promise<GateItem[]>, checkedTargets?: (CutoverTarget | DamagedTarget)[]): Promise<{ admitted: GateItem[]; refused: GateItem[]; claim: string | null }> {
     {
-      const targets = await this.targets(), admitted: GateItem[] = [], refused: GateItem[] = [];
+      const targets = checkedTargets ?? await this.targets(), admitted: GateItem[] = [], refused: GateItem[] = [];
       for (const item of items) ((await this.verdict(item, "send", targets)).admit ? admitted : refused).push(item);
       const confirmed = confirm ? await confirm(admitted) : admitted;
       if (!confirmed.length || !await this.armed()) return { admitted: confirmed, refused, claim: null };
@@ -198,6 +255,7 @@ export class CutoverGate {
       const value: Claim = { format: "firstmate.delivery-claim/1", id, at: new Date().toISOString(), recipient, items: confirmed.map(item => ({
         source: item.source, id: item.id, payloadHash: item.payloadHash, ...(item.plan ? { plan: item.plan } : {}), ...(item.actionId ? { actionId: item.actionId } : {}),
         ...(item.agentKey ? { agentKey: item.agentKey } : {}), ...(item.task ? { task: item.task } : {}),
+        ...(item.source === "inspection" && item.text ? { text: item.text } : {}),
         mentions: item.text ? [...new Set(targets.flatMap(t => t.damaged ? [] : mentions(item.text!, t.sidecar.tokens)))] : [] })) };
       await this.write(join("claims", `${id}.json`), value);
       live.add(id);
@@ -205,19 +263,27 @@ export class CutoverGate {
     }
   }
   /** Record the send's outcome before its queue entry is removed. `failed` is only a definite non-send. */
-  async settle(claim: string | null, outcome: ClaimResult["outcome"], detail = ""): Promise<void> {
+  async settle(claim: string | null, outcome: ClaimResult["outcome"], detail = "", retainForQueue = false): Promise<void> {
     if (!claim) return;
     await this.run(async () => {
       try { await this.write(join("claims", `${claim}.result.json`), { format: "firstmate.delivery-claim-result/1", id: claim, at: new Date().toISOString(), outcome, detail: detail.slice(0, 2000) } satisfies ClaimResult); }
       finally { live.delete(claim); }
       // Pure first-mate traffic that names no plan, worker, task or migration is not evidence any
       // cutover needs. Everything that could be is retained with its result.
-      const saved = await this.readClaim(claim);
-      if (saved && saved.claim.items.every(i => !i.plan && !i.actionId && !i.agentKey && !i.task && !i.mentions.length && !i.id.startsWith("firstmate-plan-"))) {
-        await rm(join(this.directory, "claims", `${claim}.json`), { force: true });
-        await rm(join(this.directory, "claims", `${claim}.result.json`), { force: true });
-      }
+      if (!retainForQueue) await this.pruneHeld(claim);
     });
+  }
+  /** Queue senders keep the receipt until queue publication succeeds. Never prune an unknown outcome. */
+  async prune(claim: string | null): Promise<void> {
+    if (claim) await this.run(() => this.pruneHeld(claim));
+  }
+  private async pruneHeld(claim: string): Promise<void> {
+    const saved = await this.readClaim(claim);
+    if (saved?.result && saved.result.outcome !== "uncertain" && !live.has(claim) &&
+      saved.claim.items.every(i => i.source !== "inspection" && !i.plan && !i.actionId && !i.agentKey && !i.task && !i.mentions.length && !i.id.startsWith("firstmate-plan-"))) {
+      await rm(join(this.directory, "claims", `${claim}.json`), { force: true });
+      await rm(join(this.directory, "claims", `${claim}.result.json`), { force: true });
+    }
   }
   async readClaim(id: string): Promise<{ claim: Claim; result: ClaimResult | null } | null> {
     const read = async (name: string) => { try { return JSON.parse(await readFile(join(this.directory, "claims", name), "utf8")) as unknown; } catch (e) { if ((e as NodeJS.ErrnoException).code === "ENOENT") return null; throw e; } };

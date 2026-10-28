@@ -17,6 +17,8 @@ import { watchNote } from "./watches";
 import type { QueuedNote } from "./watches";
 import { WatchRoutingSchema } from "../shared/watch-routing";
 import { resolveHome } from "./config";
+import { cutoverGate } from "./supervision-gate";
+import { digest } from "./submissions";
 
 export const INSPECTION_TIMEOUT_MS = 5 * 60 * 1000;
 const RunSchema = z.object({
@@ -317,8 +319,9 @@ export class WatchInspections {
             run.delivery = "sent"; run.deliveryError = null; await this.save(); return;
           }
         }
-        if (!run.attempts.includes(agent.id)) { run.attempts.push(agent.id); await this.save(); }
-        await sendWithoutInterrupting(paseo, agent.id, text, { messageId }, { channel: "inspection-delivery", actor: "plugin", relates: [`firstmate-inspection-${run.runId}`], mateRecipient: true });
+        await cutoverGate(run.home).deliver({ source: "inspection", id: messageId, payloadHash: digest({ messageId, text }), text }, agent.id,
+          () => sendWithoutInterrupting(paseo, agent.id, text, { messageId }, { channel: "inspection-delivery", actor: "plugin", relates: [`firstmate-inspection-${run.runId}`], mateRecipient: true }),
+          { beforeClaim: async () => { if (!run.attempts.includes(agent.id)) { run.attempts.push(agent.id); await this.save(); } } });
         run.delivery = "sent"; run.deliveryError = null; await this.save();
       });
     } catch (error) { run.deliveryError = String(error); await this.save(); }

@@ -9,6 +9,7 @@ import { readTextFile, replaceTextIfUnchanged, writeTextFile } from "./files";
 import { serialized } from "./serialize";
 import { cutoverGate } from "./supervision-gate";
 import { message, TEMPLATES } from "./templates";
+import { digest } from "./submissions";
 
 export function threadPath(key: string): string {
   return `data/item-threads/${createHash("sha256").update(key).digest("hex")}/thread.json`;
@@ -92,9 +93,7 @@ export async function sendThread(
   const key = itemTagKey(card);
   if (key !== input.key) throw new Error("The item changed. Reopen its discussion.");
   // S07: a frozen or migrated plan's task is discussed with its scoped owner, never the legacy first mate.
-  const gate = cutoverGate(home), item = { source: "decision" as const, id: `thread:${input.id}`, payloadHash: key, ...(card.taskId ? { task: { taskId: card.taskId, host: card.remote?.host ?? null } } : {}) };
-  const verdict = await gate.verdict(item, "send");
-  if (!verdict.admit) { await gate.refusal(item, verdict.reason); throw new Error(verdict.reason); }
+  const gate = cutoverGate(home), item = { source: "decision" as const, id: `thread:${input.id}`, payloadHash: digest({ key, input }), ...(card.taskId ? { task: { taskId: card.taskId, host: card.remote?.host ?? null } } : {}) };
   return serialized(`${home}:${threadPath(key)}:send`, async () => {
     let { text: previous, thread } = await load(home, key);
     const existing = thread.messages.find((entry) => entry.id === input.id);
@@ -126,19 +125,24 @@ export async function sendThread(
       previous = content;
     }
     let attempted = false;
+    let claim: string | null = null;
     try {
       await deliver(prompt, `firstmate-thread-${input.id}`, async (agentId) => {
-        thread = { ...thread, title: card.title, messages: [...thread.messages, {
-          id: input.id, kind: input.kind, text: input.text, agentId,
-          createdAt: new Date().toISOString(), delivery: "uncertain", reply: null,
-        }] };
-        await save(); // Durable reservation before the send; a crash never causes an automatic resend.
-        attempted = true;
+        claim = await gate.admit({ ...item, payloadHash: digest({ key, input, prompt }) }, agentId, { beforeClaim: async () => {
+          thread = { ...thread, title: card.title, messages: [...thread.messages, {
+            id: input.id, kind: input.kind, text: input.text, agentId,
+            createdAt: new Date().toISOString(), delivery: "uncertain", reply: null,
+          }] };
+          await save(); // Durable reservation before the send; a crash never causes an automatic resend.
+          attempted = true;
+        } });
       });
     } catch (error) {
+      await gate.settle(claim, "uncertain", String(error));
       if (!attempted) throw error;
       return replies(home, thread);
     }
+    await gate.settle(claim, "accepted");
     thread.messages[thread.messages.length - 1]!.delivery = "sent";
     await save();
     return replies(home, thread);
