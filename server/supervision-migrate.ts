@@ -240,6 +240,7 @@ export class SupervisionMigrator {
     if ((decisions.quarantined ?? []).some(q => q.taskId === null || tokens.tasks.some(t => t.task === q.taskId)))
       fail("HELD", "A quarantined Needs-you row may belong to this plan; repair it before the cutover.");
     const claims = await gate.claims(), armed = await gate.armed(), preexisting = new Set(armed?.preexisting ?? []);
+    this.assertNoLiveClaims(claims, this.target(input.plan, tokens));
     const owner = config.mateAgentId.trim() || null;
     const latest = (id: string) => [...claims].reverse().find(c => c.claim.items.some(i => i.id === id) && c.result?.outcome !== "failed");
     const claimed = (id: string): { state: LegacyDeliveryDisposition["delivery"] | null; claim: { claim: Claim; result: ClaimResult | null } | undefined } => {
@@ -314,6 +315,12 @@ export class SupervisionMigrator {
   }
   private target(plan: string, tokens: CutoverTokens): CutoverTarget {
     return { plan, stage: "freeze", drains: new Set(), damaged: false, sidecar: { tokens } as CutoverSidecar };
+  }
+  /** A disposition can grant permission to finish, never make an executing native call disappear. */
+  private assertNoLiveClaims(claims: Awaited<ReturnType<CutoverGate["claims"]>>, target: CutoverTarget, rows: LegacyDeliveryDisposition[] = []): void {
+    const live = claims.filter(c => liveClaims().has(c.claim.id) &&
+      (rows.some(d => d.claimId === c.claim.id) || c.claim.items.some(i => CutoverGate.classify(claimItem(i), target))));
+    if (live.length) fail("HELD", `A legacy send is in flight (${live.map(c => c.claim.id).join(", ")}); wait for its native result before continuing the cutover.`);
   }
   private row(input: MigrationInput, source: LegacyDeliveryDisposition["source"], key: string, tip: { sequence: number; hash: string }, owner: string | null, rest: Partial<LegacyDeliveryDisposition>): LegacyDeliveryDisposition {
     return LegacyDeliveryDispositionSchema.parse({ format: "firstmate.legacy-delivery-disposition/1", id: migrationUuid(input.migrationId, source, key), version: 1,
@@ -405,6 +412,7 @@ export class SupervisionMigrator {
       const ids = new Set(rows.map(d => d.id));
       const add = (d: LegacyDeliveryDisposition) => { if (!ids.has(d.id)) { ids.add(d.id); added.push(d); } };
       const claims = await this.gate.claims();
+      this.assertNoLiveClaims(claims, target, rows);
       for (const entry of await this.options.adapters.watchQueue())
         if (CutoverGate.classify(watchItem(entry), target)) add(this.watchHold(input, entry, tokens, tip, owner, { state: null, claim: undefined }, false, true));
       for (const note of (await this.options.adapters.config()).mateNotes) {
@@ -416,7 +424,6 @@ export class SupervisionMigrator {
       }
       for (const c of claims) {
         if ((c.result && c.result.outcome !== "uncertain") || rows.some(d => d.claimId === c.claim.id)) continue;
-        if (liveClaims().has(c.claim.id)) fail("HELD", "A legacy send is in flight; account for it before re-inventory.");
         if (c.claim.items.some(i => CutoverGate.classify(claimItem(i), target))) add(this.claimHold(input, c.claim, tokens, tip, owner));
       }
       if (!added.length) return [];
@@ -442,8 +449,24 @@ export class SupervisionMigrator {
       if (m.state !== "prepared") return rows;
       const d = rows.find(x => x.removal.state !== "mismatch" && (
         (x.route === "transfer-fact" && !x.destination?.outboxId) || (["transfer-fact", "already-handled"].includes(x.route) && x.removal.state === "pending") ||
+        (x.source === "send-claim" && x.route === "drain-legacy" && !x.receipts.send) ||
         (x.route === "drain-legacy" && x.removal.state === "pending")));
       if (!d) return rows;
+      if (d.source === "send-claim" && d.route === "drain-legacy") {
+        const recorded = await this.gate.run(async () => {
+          const claims = await this.gate.claims(), freeze = (await this.gate.sidecar(m.planId, "freeze"))!;
+          this.assertNoLiveClaims(claims, this.target(m.planId, freeze.tokens), rows);
+          const native = claims.find(c => c.claim.id === d.claimId);
+          if (!native?.result || native.result.outcome === "uncertain") return false;
+          // Older permission receipts and resolutions are immutable. Append the actual native receipt separately.
+          await this.scopedTransaction(migrationUuid(migrationId, d.id, "native-result"), status, [{ kind: "delivery-disposition", value: {
+            ...d, version: d.version + 1, receipts: { ...d.receipts, send: `claim:${native.claim.id}` },
+          } }]);
+          return true;
+        });
+        if (!recorded) return rows;
+        continue;
+      }
       if (d.route === "transfer-fact" && !d.destination!.outboxId) {
         const outboxId = d.destination!.consequenceId;
         await this.scopedTransaction(migrationUuid(migrationId, d.id, "transfer"), status, [
@@ -456,29 +479,40 @@ export class SupervisionMigrator {
       const id = d.original.noteId ?? watchId(d.original.watch!);
       if (d.route === "drain-legacy") {
         // The recorded old owner finishes this delivery; it is accounted once it left with a receipt.
-        const queue = await this.options.adapters.watchQueue();
-        if (queue.some(q => watchItem(q).id === id && watchItem(q).payloadHash === d.payloadHash)) return rows;
-        const sent = (await this.gate.claims()).filter(c => c.result && c.result.outcome !== "failed" && c.claim.items.some(i => i.payloadHash === d.payloadHash));
-        // A full watch queue may have dropped it (MAX_QUEUED): it left without being sent, and nothing is re-sent.
-        const receipt = sent.length ? `claim:${sent.at(-1)!.claim.id}` : "dropped-from-legacy-queue";
-        await this.scopedTransaction(migrationUuid(migrationId, d.id, "drained"), status, [{ kind: "delivery-disposition", value: { ...d, version: d.version + 1,
-          recipient: sent.at(-1)?.claim.recipient ?? d.recipient, receipts: { ...d.receipts, send: sent.length ? receipt : d.receipts.send },
-          removal: { state: sent.length ? "drained" : "absent", receipt } } }]);
+        await this.gate.run(async () => {
+          const claims = await this.gate.claims(), freeze = (await this.gate.sidecar(m.planId, "freeze"))!;
+          this.assertNoLiveClaims(claims, this.target(m.planId, freeze.tokens), rows);
+          const queue = await this.options.adapters.watchQueue();
+          if (queue.some(q => watchItem(q).id === id && watchItem(q).payloadHash === d.payloadHash)) return;
+          const sent = claims.filter(c => c.result && c.result.outcome !== "failed" && c.claim.items.some(i => i.payloadHash === d.payloadHash));
+          // A full watch queue may have dropped it (MAX_QUEUED): it left without being sent, and nothing is re-sent.
+          const receipt = sent.length ? `claim:${sent.at(-1)!.claim.id}` : "dropped-from-legacy-queue";
+          await this.scopedTransaction(migrationUuid(migrationId, d.id, "drained"), status, [{ kind: "delivery-disposition", value: { ...d, version: d.version + 1,
+            recipient: sent.at(-1)?.claim.recipient ?? d.recipient, receipts: { ...d.receipts, send: sent.length ? receipt : d.receipts.send },
+            removal: { state: sent.length ? "drained" : "absent", receipt } } }]);
+        });
+        // A queued drain has no completion receipt until the native send has settled and removed its entry.
+        if ((await this.options.adapters.watchQueue()).some(q => watchItem(q).id === id && watchItem(q).payloadHash === d.payloadHash)) return rows;
         continue;
       }
       // The disposition (and any transfer mapping) is durable; archive the exact entry for a release, then remove it.
       const result = await this.gate.run(async () => {
+        const freeze = (await this.gate.sidecar(m.planId, "freeze"))!;
+        this.assertNoLiveClaims(await this.gate.claims(), this.target(m.planId, freeze.tokens), rows);
         const entry = d.source === "watch-queue" ? (await this.options.adapters.watchQueue()).find(q => watchItem(q).id === id && watchItem(q).payloadHash === d.payloadHash)
           : (await this.options.adapters.config()).mateNotes.find(n => n.id === id && digest(n) === d.payloadHash);
         if (entry) await this.archive(m.planId, d.id, { source: d.source, entry });
         return d.source === "watch-queue" ? this.options.adapters.removeWatchEntry(id, d.payloadHash) : this.options.adapters.removeMateNote(id, d.payloadHash);
       });
       await this.boundary(`removed:${d.id}`);
-      const after = await this.options.store.read();
-      const current = after.dispositions!.find(x => x.id === d.id)!;
-      await this.scopedTransaction(migrationUuid(migrationId, d.id, "removal"), after, [{ kind: "delivery-disposition", value: { ...current, version: current.version + 1,
-        ...(result === "mismatch" ? { route: "hold" as const, reason: "The queued payload changed after its disposition; held for reconciliation, nothing removed." } : {}),
-        removal: { state: result, receipt: `removal:${digest({ id, payloadHash: d.payloadHash, result })}` } } }]);
+      await this.gate.run(async () => {
+        const after = await this.options.store.read(), freeze = (await this.gate.sidecar(m.planId, "freeze"))!;
+        this.assertNoLiveClaims(await this.gate.claims(), this.target(m.planId, freeze.tokens), rows);
+        const current = after.dispositions!.find(x => x.id === d.id)!;
+        await this.scopedTransaction(migrationUuid(migrationId, d.id, "removal"), after, [{ kind: "delivery-disposition", value: { ...current, version: current.version + 1,
+          ...(result === "mismatch" ? { route: "hold" as const, reason: "The queued payload changed after its disposition; held for reconciliation, nothing removed." } : {}),
+          removal: { state: result, receipt: `removal:${digest({ id, payloadHash: d.payloadHash, result })}` } } }]);
+      });
     }
   }
   private async archive(plan: string, dispositionId: string, value: unknown) {
@@ -500,47 +534,68 @@ export class SupervisionMigrator {
     this.enabled();
     if (!evidence.ref.trim() || !/^[0-9a-f]{64}$/.test(evidence.digest)) fail("HELD", "A resolution needs an evidence reference and its SHA-256.");
     await this.reinventory(migrationId);
-    const status = await this.options.store.read(), m = this.migration(status, migrationId), d = status.dispositions!.find(x => x.id === dispositionId);
-    if (m.state !== "prepared" || !d || d.migrationId !== migrationId || d.route !== "hold") fail("CONFLICT", "Only a held disposition of a prepared migration can be resolved.");
-    if (d.source === "decision-submission" && actor.kind !== "captain-ui") fail("UNKNOWN_OWNER", "An answer hold is the captain's to resolve: the old owner cannot attest its own handling.");
-    if (!["captain-ui", "mate-chat", "agent"].includes(actor.kind)) fail("UNKNOWN_OWNER", "Name the first mate or the captain as the resolving owner.");
-    if (route === "drain-legacy" && !["watch-queue", "decision-submission", "worker-callback", "send-claim"].includes(d.source)) fail("UNSUPPORTED", "This delivery cannot drain with its legacy owner.");
-    const who = `${actor.kind}:${actor.id}`;
-    await this.scopedTransaction(migrationUuid(migrationId, d.id, "resolve", route, evidence), status, [{ kind: "delivery-disposition", value: { ...d, version: d.version + 1, route,
-      reason: `${d.reason} Resolved by ${who}: ${route}, evidence ${evidence.ref}.`, resolvedBy: { actor: who, evidenceRef: evidence.ref, evidenceDigest: evidence.digest, previousRoute: "hold" },
-      ...(d.removal.state === "not-queued" ? { removal: { state: "not-queued" as const, receipt: `${route}:${evidence.ref}`.slice(0, 1024) } } : {}) } }]);
-    if (route === "drain-legacy" && d.source === "watch-queue")
-      await this.gate.allowDrain(m.planId, itemFingerprint({ source: "watch", id: watchId(d.original.watch!), payloadHash: d.payloadHash }), d.id);
+    await this.gate.run(async () => {
+      const status = await this.options.store.read(), m = this.migration(status, migrationId), d = status.dispositions!.find(x => x.id === dispositionId);
+      if (m.state !== "prepared" || !d || d.migrationId !== migrationId || d.route !== "hold")
+        fail("CONFLICT", "Only a held disposition of a prepared migration can be resolved.");
+      const claims = await this.gate.claims(), freeze = (await this.gate.sidecar(m.planId, "freeze"))!;
+      this.assertNoLiveClaims(claims, this.target(m.planId, freeze.tokens), status.dispositions!.filter(row => row.migrationId === migrationId));
+      if (d.source === "decision-submission" && actor.kind !== "captain-ui") fail("UNKNOWN_OWNER", "An answer hold is the captain's to resolve: the old owner cannot attest its own handling.");
+      if (!["captain-ui", "mate-chat", "agent"].includes(actor.kind)) fail("UNKNOWN_OWNER", "Name the first mate or the captain as the resolving owner.");
+      if (route === "drain-legacy" && !["watch-queue", "decision-submission", "worker-callback", "send-claim"].includes(d.source)) fail("UNSUPPORTED", "This delivery cannot drain with its legacy owner.");
+      const native = d.source === "send-claim" && route === "drain-legacy" ? claims.find(c => c.claim.id === d.claimId) : null;
+      if (d.source === "send-claim" && route === "drain-legacy" && (!native?.result || native.result.outcome === "uncertain"))
+        fail("HELD", "A direct drain needs a definite recorded native result. Permission to finish is not proof of finishing; reconcile with verified handling evidence instead.");
+      const nativeReceipt = native ? `claim:${native.claim.id}` : null;
+      const who = `${actor.kind}:${actor.id}`;
+      await this.scopedTransaction(migrationUuid(migrationId, d.id, "resolve", route, evidence), status, [{ kind: "delivery-disposition", value: { ...d, version: d.version + 1, route,
+        reason: `${d.reason} Resolved by ${who}: ${route}, evidence ${evidence.ref}.`, resolvedBy: { actor: who, evidenceRef: evidence.ref, evidenceDigest: evidence.digest, previousRoute: d.route },
+        ...(nativeReceipt ? { receipts: { ...d.receipts, send: nativeReceipt }, removal: { state: "not-queued" as const, receipt: nativeReceipt } }
+          : d.removal.state === "not-queued" ? { removal: { state: "not-queued" as const, receipt: `${route}:${evidence.ref}`.slice(0, 1024) } } : {}) } }]);
+      if (route === "drain-legacy" && d.source === "watch-queue")
+        await this.gate.allowDrain(m.planId, itemFingerprint({ source: "watch", id: watchId(d.original.watch!), payloadHash: d.payloadHash }), d.id);
+    });
   }
 
   /** Verify everything still matches, then record the barrier. Any unaccounted delivery refuses, resolvably. */
   async barrier(migrationId: string): Promise<MigrationReceipt> {
     this.enabled();
     await this.reinventory(migrationId);
-    let status = await this.options.store.read();
-    const m = this.migration(status, migrationId);
-    if (m.state !== "prepared") return m;
-    const prepared = await this.gate.sidecar(m.planId, "prepared") ?? await this.publishPrepared(m.planId, (await this.options.store.requestReceipt(migrationId))!.hash);
-    await this.verify(m, status);
-    status = await this.options.store.read();
-    const next = { ...m, version: m.version + 1, state: "barrier" as const, sidecars: { ...m.sidecars, prepared: prepared.hash } };
-    await this.scopedTransaction(migrationUuid(migrationId, "barrier"), status, [{ kind: "migration", value: next }]);
-    await this.boundary("barrier");
-    return next;
+    return this.gate.run(async () => {
+      let status = await this.options.store.read();
+      const m = this.migration(status, migrationId);
+      if (m.state !== "prepared") {
+        if (m.state === "barrier") await this.verify(m, status, 1);
+        return m;
+      }
+      const prepared = await this.gate.sidecar(m.planId, "prepared") ?? await this.publishPrepared(m.planId, (await this.options.store.requestReceipt(migrationId))!.hash);
+      await this.verify(m, status);
+      status = await this.options.store.read();
+      const next = { ...m, version: m.version + 1, state: "barrier" as const, sidecars: { ...m.sidecars, prepared: prepared.hash } };
+      await this.scopedTransaction(migrationUuid(migrationId, "barrier"), status, [{ kind: "migration", value: next }]);
+      await this.boundary("barrier");
+      return next;
+    });
   }
-  private async verify(m: MigrationReceipt, status: SupervisionStatus): Promise<void> {
+  private async verify(m: MigrationReceipt, status: SupervisionStatus, transactionsNeeded = 2): Promise<void> {
     const freeze = await this.gate.sidecar(m.planId, "freeze");
     if (!freeze || freeze.migrationId !== m.id || freeze.sourceHash !== m.source.sourceHash) fail("HELD", "Freeze sidecar does not match this migration.");
     if (digest(await this.sourceFiles(m.planId)) !== m.source.sourceHash) fail("HELD", "Legacy source changed during the freeze; reinspect it, then release (abort) the cutover. It stays held meanwhile.");
     const rows = (status.dispositions ?? []).filter(d => d.migrationId === m.id);
+    const claims = await this.gate.claims(), target = this.target(m.planId, freeze.tokens);
+    this.assertNoLiveClaims(claims, target, rows);
+    for (const d of rows.filter(row => row.source === "send-claim" && row.route === "drain-legacy")) {
+      const native = claims.find(c => c.claim.id === d.claimId);
+      if (!native?.result || native.result.outcome === "uncertain" || d.receipts.send !== `claim:${native.claim.id}`)
+        fail("HELD", `Direct drain ${d.id} has no definite native result receipt; permission to finish is not proof of finishing.`);
+    }
     const unaccounted = rows.filter(d => d.route === "hold" || ["pending", "mismatch"].includes(d.removal.state) || (d.route === "transfer-fact" && !d.destination?.outboxId));
     if (unaccounted.length) fail("HELD", `Unaccounted legacy deliveries (resolve each hold with evidence, or release the cutover): ${unaccounted.map(d => `${d.source}:${d.id} (${d.route}, ${d.removal.state})`).join(", ")}.`);
-    // A claim named by a disposition is accounted by it; any other open claim for the plan was re-inventoried as a hold.
+    // Live claims block even when a disposition names them. Other unresolved claims still need a hold or evidence.
     // Re-verified here, not only at the freeze: the barrier, the commit and the release reserve must still fit.
-    if (status.sequence + 2 + MIGRATION_LIMITS.abortReserve > SUPERVISION_INDEX_LIMITS.transactions)
+    if (status.sequence + transactionsNeeded + MIGRATION_LIMITS.abortReserve > SUPERVISION_INDEX_LIMITS.transactions)
       fail("HELD", `Journal headroom fell below what the barrier and commit need (sequence ${status.sequence}); release the cutover (abort) with the reserved transaction.`);
-    const target = this.target(m.planId, freeze.tokens);
-    const open = (await this.gate.claims()).filter(c => !c.result && !rows.some(d => d.claimId === c.claim.id) && c.claim.items.some(i => CutoverGate.classify(claimItem(i), target)));
+    const open = claims.filter(c => !c.result && !rows.some(d => d.claimId === c.claim.id) && c.claim.items.some(i => CutoverGate.classify(claimItem(i), target)));
     if (open.length) fail("HELD", `Legacy send claims are unaccounted: ${open.map(c => c.claim.id).join(", ")}.`);
   }
   private async sourceFiles(plan: string) {
@@ -556,23 +611,26 @@ export class SupervisionMigrator {
   /** Publish the committed sidecar, then activate the one scoped backend with its imported attempts. */
   async commit(migrationId: string): Promise<MigrationReceipt> {
     this.enabled();
-    const status = await this.options.store.read(), m = this.migration(status, migrationId);
-    if (m.state === "committed") return m;
-    if (m.state !== "barrier") fail("HELD", "Commit follows a verified barrier.");
-    if (digest(await this.sourceFiles(m.planId)) !== m.source.sourceHash) fail("HELD", "Legacy source changed during the freeze; reinspect it, then release (abort) the cutover.");
-    const freeze = (await this.gate.sidecar(m.planId, "freeze"))!, { hash: _h, ...body } = freeze;
-    const barrier = await this.options.store.requestReceipt(migrationUuid(migrationId, "barrier"));
-    const committed = await this.gate.sidecar(m.planId, "committed") ?? await this.gate.publishSidecar({ ...body, stage: "committed", transaction: barrier!.hash });
-    await this.boundary("committed-sidecar");
-    const scope = status.scopes.find(s => s.id === m.scopeId)!, backend = status.backends.find(b => b.planId === m.planId)!;
-    const next = { ...m, version: m.version + 1, state: "committed" as const, sidecars: { ...m.sidecars, committed: committed.hash } };
-    await this.scopedTransaction(migrationUuid(migrationId, "commit"), status, [
-      { kind: "migration", value: next },
-      { kind: "backend", value: { ...backend, version: backend.version + 1, state: "active" } },
-      { kind: "scope", value: { ...scope, version: scope.version + 1, state: "active" } },
-      ...this.importedAttempts(m, status).map(value => ({ kind: "attempt" as const, value }))]);
-    await this.boundary("committed");
-    return next;
+    return this.gate.run(async () => {
+      const status = await this.options.store.read(), m = this.migration(status, migrationId);
+      if (m.state === "committed") return m;
+      if (m.state !== "barrier") fail("HELD", "Commit follows a verified barrier.");
+      await this.verify(m, status, 1);
+      if (digest(await this.sourceFiles(m.planId)) !== m.source.sourceHash) fail("HELD", "Legacy source changed during the freeze; reinspect it, then release (abort) the cutover.");
+      const freeze = (await this.gate.sidecar(m.planId, "freeze"))!, { hash: _h, ...body } = freeze;
+      const barrier = await this.options.store.requestReceipt(migrationUuid(migrationId, "barrier"));
+      const committed = await this.gate.sidecar(m.planId, "committed") ?? await this.gate.publishSidecar({ ...body, stage: "committed", transaction: barrier!.hash });
+      await this.boundary("committed-sidecar");
+      const scope = status.scopes.find(s => s.id === m.scopeId)!, backend = status.backends.find(b => b.planId === m.planId)!;
+      const next = { ...m, version: m.version + 1, state: "committed" as const, sidecars: { ...m.sidecars, committed: committed.hash } };
+      await this.scopedTransaction(migrationUuid(migrationId, "commit"), status, [
+        { kind: "migration", value: next },
+        { kind: "backend", value: { ...backend, version: backend.version + 1, state: "active" } },
+        { kind: "scope", value: { ...scope, version: scope.version + 1, state: "active" } },
+        ...this.importedAttempts(m, status).map(value => ({ kind: "attempt" as const, value }))]);
+      await this.boundary("committed");
+      return next;
+    });
   }
   /** Scoped attempt rows for the imported history, so scoped worker guards (S06 board, S08 sources) recognize
    * migrated workers. Spend and worker identity are the legacy record's; no launch effect is invented. */
@@ -690,11 +748,13 @@ export class SupervisionMigrator {
     const stage = await this.gate.sidecar(plan, "aborted") ? "aborted" : await this.gate.sidecar(plan, "committed") ? "committed" :
       await this.gate.sidecar(plan, "prepared") ? "prepared" : await this.gate.sidecar(plan, "freeze") ? "freeze" : null;
     const freeze = await this.gate.sidecar(plan, "freeze");
-    const openClaims = freeze ? (await this.gate.claims()).filter(c => !c.result && !rows.some(d => d.claimId === c.claim.id) &&
-      c.claim.items.some(i => CutoverGate.classify(claimItem(i), this.target(plan, freeze.tokens)) === "identity")).map(c => c.claim.id) : [];
+    const openClaims = freeze ? (await this.gate.claims()).filter(c =>
+      (liveClaims().has(c.claim.id) || (!c.result && !rows.some(d => d.claimId === c.claim.id))) &&
+      (rows.some(d => d.claimId === c.claim.id) || c.claim.items.some(i => CutoverGate.classify(claimItem(i), this.target(plan, freeze.tokens))))).map(c => c.claim.id) : [];
     const legacyDeliveryPossible = [
       ...rows.filter(d => d.route === "transfer-fact" && !d.receipts.ack).map(d => `transfer ${d.id} awaits its owner's result`),
       ...rows.filter(d => d.route === "hold").map(d => `hold ${d.source}:${d.id}`),
+      ...rows.filter(d => d.source === "send-claim" && d.route === "drain-legacy" && !d.receipts.send).map(d => `direct drain ${d.id} awaits a native result receipt`),
       ...rows.filter(d => d.source === "worker-callback" && !d.resolvedBy).map(d => `worker callback ${d.original.attemptId} unaccounted`),
       ...openClaims.map(c => `open claim ${c}`),
     ];

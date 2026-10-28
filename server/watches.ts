@@ -30,14 +30,15 @@
  * watch has already moved past nor forgets that a failure was reported.
  */
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { z } from "zod";
 
 import type { WatchResult, WatchSummary } from "../shared/fleet";
 import { watchRouting, type ManagedWatch } from "../shared/watch-routing";
 import { serialized } from "./serialize";
-import { digest } from "./submissions";
-import { CutoverRefusal, type CutoverGate, type GateItem } from "./supervision-gate";
+import { digest, publish } from "./submissions";
+import { CutoverRefusal, itemFingerprint, type CutoverGate, type GateItem } from "./supervision-gate";
 import { TEMPLATES, message } from "./templates";
 import { BUILT_IN_WATCHES, builtInStates, listWatches, seedWatches, type WatchFile } from "./watch-files";
 import { runWatchScript, type RunResult } from "./watch-run";
@@ -83,6 +84,15 @@ export interface QueuedNote {
   /** For a failure, what went wrong. */
   reason?: string;
 }
+
+const HeldWatchSchema = z.object({ format: z.literal("firstmate.held-watch/1"), fingerprint: z.string().regex(/^[0-9a-f]{64}$/),
+  owner: z.string().regex(/^[0-9a-f]{64}$/),
+  plan: z.string().regex(/^[a-z0-9][a-z0-9-]*$/), stage: z.string(), reason: z.string(),
+  note: z.object({ name: z.string(), ran: z.string(), kind: z.enum(["output", "failed"]), text: z.string(), reason: z.string().optional() }).strict()
+    .transform(({ reason, ...note }): QueuedNote => ({ ...note, ...(reason === undefined ? {} : { reason }) })) }).strict();
+export type HeldWatch = z.infer<typeof HeldWatchSchema>;
+const heldOwner = (gate: CutoverGate) => digest(process.platform === "win32" ? gate.root.toLowerCase() : gate.root);
+const heldFingerprint = (owner: string, note: QueuedNote) => digest({ owner, item: itemFingerprint(watchItem(note)) });
 
 interface RunnerState {
   watches: Record<string, WatchRecord>;
@@ -366,6 +376,47 @@ export class WatchRunner {
   /** The persisted queue, for a cutover inventory. Watch rows have no ids; their exact fields identify them. */
   async queued(): Promise<QueuedNote[]> { return structuredClone((await this.load()).queue); }
 
+  /** Refused producer evidence is separate from the bounded normal queue and is never trimmed. */
+  private heldDirectory(): string { return `${this.options.stateFile}.held`; }
+  async held(): Promise<HeldWatch[]> {
+    let names: string[];
+    try { names = await readdir(this.heldDirectory()); }
+    catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return []; throw error; }
+    const records: HeldWatch[] = [];
+    for (const name of names.filter(n => /^[0-9a-f]{64}\.json$/.test(n)).sort()) {
+      let text: string;
+      try { text = await readFile(join(this.heldDirectory(), name), "utf8"); }
+      catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") continue; throw error; }
+      const record = HeldWatchSchema.parse(JSON.parse(text));
+      if (name !== `${record.fingerprint}.json` || record.fingerprint !== heldFingerprint(record.owner, record.note))
+        throw new Error(`Held watch evidence ${name} does not match its payload.`);
+      records.push(record);
+    }
+    return records;
+  }
+
+  /** Only a checked release/abort lets a hold re-enter the queue. Commit is not release permission.
+   * Keep the spool copy until the exact note is actually sent, even if queue pressure or fitting cuts it. */
+  private async restoreReleasedHeld(): Promise<void> {
+    const held = await this.held();
+    if (!held.length) return;
+    const entry = await this.options.gate?.();
+    if (!entry) return;
+    await entry.gate.run(async () => {
+      const state = await this.load(); let changed = false;
+      for (const record of held) {
+        if (state.queue.length >= MAX_QUEUED) break;
+        if (record.owner !== heldOwner(entry.gate)) continue;
+        if (!await entry.gate.sidecar(record.plan, "aborted")) continue;
+        const item = watchItem(record.note);
+        if (!(await entry.gate.verdict(item, "enqueue")).admit) continue;
+        if (state.queue.some(note => heldFingerprint(record.owner, note) === record.fingerprint)) continue;
+        state.queue.push(record.note); changed = true;
+      }
+      if (changed) await this.persist(true);
+    });
+  }
+
   /** Puts back an entry a released cutover archived, exactly, unless one with its identity is already queued. */
   async restoreQueued(entry: QueuedNote): Promise<"restored" | "present"> {
     const state = await this.load();
@@ -396,13 +447,23 @@ export class WatchRunner {
 
   /** A route edit must not start an inspector while the same watch's earlier current-session note waits. */
   async pendingDelivery(name: string): Promise<boolean> {
-    return (await this.load()).queue.some((note) => note.name === name);
+    return (await this.load()).queue.some((note) => note.name === name) || (await this.held()).some(record => record.note.name === name);
   }
 
   private async enqueue(state: RunnerState, note: QueuedNote, gate?: CutoverGate): Promise<void> {
     if (gate) {
       const item = watchItem(note), verdict = await gate.verdict(item, "enqueue");
-      if (!verdict.admit) { await gate.refusal(item, verdict.reason); throw new CutoverRefusal(verdict.plan, verdict.stage, verdict.reason); }
+      if (!verdict.admit) {
+        const owner = heldOwner(gate), fingerprint = heldFingerprint(owner, note), path = join(this.heldDirectory(), `${fingerprint}.json`);
+        await mkdir(this.heldDirectory(), { recursive: true });
+        try { await publish(path, { format: "firstmate.held-watch/1", fingerprint, owner, note, plan: verdict.plan, stage: verdict.stage, reason: verdict.reason } satisfies HeldWatch); }
+        catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+          if (!(await this.held()).some(record => record.fingerprint === fingerprint)) throw error;
+        }
+        await gate.refusal(item, verdict.reason);
+        throw new CutoverRefusal(verdict.plan, verdict.stage, `${verdict.reason} Output retained durably in ${this.heldDirectory()}.`);
+      }
     }
     state.queue.push(note);
     while (state.queue.length > MAX_QUEUED) {
@@ -441,6 +502,7 @@ export class WatchRunner {
 
   private async flushOnce(): Promise<void> {
     if (this.aborter.signal.aborted) return;
+    await this.restoreReleasedHeld();
     const state = await this.load();
     if (state.queue.length === 0 && state.dropped === 0) return;
     let batch = [...state.queue];
@@ -483,6 +545,8 @@ export class WatchRunner {
     note.cut.forEach((queued) => settle(queued, "dropped"));
     note.sent.forEach((queued) => settle(queued, "delivered"));
     await this.persist();
+    if (entry) for (const delivered of note.sent)
+      await rm(join(this.heldDirectory(), `${heldFingerprint(heldOwner(entry.gate), delivered)}.json`), { force: true });
   }
 
   /** Every watch in the home as the board draws it. */
@@ -524,7 +588,7 @@ export class WatchRunner {
     return this.loading;
   }
 
-  private persist(): Promise<void> {
+  private persist(strict = false): Promise<void> {
     const state = this.state;
     if (state === null) return Promise.resolve();
     const path = this.options.stateFile;
@@ -535,6 +599,7 @@ export class WatchRunner {
       await rename(temporary, path);
     }).catch((error: unknown) => {
       console.error(`[firstmate] could not save ${path}:`, error);
+      if (strict) throw error;
     });
   }
 }

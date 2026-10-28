@@ -58,7 +58,7 @@ Lifecycle covers General's own launch, compaction and handover.
 | S2 | Plan notes `queuePlanNotes` (`workflow-service.ts:47`, 1 s timer) | `config.mateNotes` | Routine | **Enqueue** + cutover pre-skip | Drainable per scope |
 | S3 | Local steer relay burst (`crew.ts:203` → `mate.ts:356`) | `mateNotes[].burst` | Routine | **Enqueue** | Drainable; scoped workers refused by S08 |
 | S4 | Burst extend (`mate.ts`, `extendBurstNote`) | `burst.holdUntil` | Routine | **Enqueue**: verdict and refusal receipt under lock | F3 closed; refused extensions leave the captured payload unchanged |
-| S5 | Watch batch (`watches.ts`, `record` / `enqueuePrompt` / `flushOnce`) | `watches.json` queue | Routine | **Full at send; enqueue verdict and refusal receipt under lock** | F3 closed; frozen-plan output is refused before insertion; existing queued opaque output retains S07 dispositions |
+| S5 | Watch batch (`watches.ts`, `record` / `enqueuePrompt` / `flushOnce`) | `watches.json` queue; refused payloads in `watches.json.held/` | Routine | **Full at send; enqueue verdict, durable payload retention and refusal receipt under lock** | Frozen-plan output stays outside the normal queue in a checked, untrimmed spool. A valid release/abort and fresh admission can restore it; only actual delivery removes its spool copy. Existing queued opaque output retains S07 dispositions |
 | S6 | Watch-runtime fault note (`watch-service.ts:183-191`) | `config.mateNotes` | Routine | **Enqueue** | Drainable |
 | S7 | Inspection result to General (`watch-inspections.ts`, `deliver`; 15 s `tickPrompts`) | `watch-inspections/inspection-runs.json` | Routine, only for watches routed to an isolated session | **Full** (`inspection` claim, exact payload hash and saved opaque text) | F1 closed; plan mentions stay pending during freeze and after commit, with a refusal receipt. Pending runs are not transferred; reconcile explicitly |
 | S8 | Inspector prompts (`watch-inspections.ts`, `start` / `reconcile`) | same | Fleet inspection lifecycle, to the inspector agent | **None** | Out of per-plan drain scope: parentless read-only inspectors have no crew identity, plan ownership or finish subscription. General retains fleet inspection; S7 gates its results |
@@ -207,6 +207,9 @@ These procedures apply once activation exists. **Nothing here is authorised by t
 - A build that has armed this follow-up also needs readers for delivery claim sources `crew-action` and
   `inspection`, including inspection text retained for later inventory. A pre-follow-up migrator cannot read
   those claims. Keep the writing build or a compatible later one for reconciliation.
+- A build that has retained refused output also needs the `watches.json.held/` reader. Older runners ignore
+  that evidence; keep it intact and reconcile with a compatible reader rather than treating an empty queue as
+  proof that the producer had nothing to report.
 - Before the trigger, rollback to `9ed5dd84` stays safe, because this head writes no new legacy-store construct.
 
 **Plugin rollback (installation only, nothing armed).** Reinstall the retained previous directory source with
@@ -264,9 +267,20 @@ captain would see:
   rechecked at admission. An uncertain acknowledgement remains a durable migrator hold, including after a
   result file has been written; it never authorizes automatic replay. Recorded discussion retries still return
   their original record, including after cutover.
+  The review revision checks scoped live claims before inventory/disposition skips, every removal/result
+  receipt, and barrier/commit. A named or captain-permitted drain still blocks while its native call is live.
+  Commit rechecks under the gate lock; unknown direct drains need a definite native result receipt or separate
+  verified handling evidence. Old permission/resolution receipts remain immutable: reconciliation appends the
+  native result in `receipts.send`. The read-only report includes live named claims and unverified direct drains.
 - **F3 (implemented in the gating follow-up).** Script-output and prompt-watch insertions check the verdict
-  under the same gate lock as insertion. A refusal writes a deduplicated receipt before throwing, with no queue
-  mutation. Existing queued output still uses S07's explicit disposition flow; a foreign late insertion is still
+  under the same gate lock as insertion. Before throwing, a refusal retains the exact bounded output in an
+  exclusive, fingerprint-checked `watches.json.held/<fingerprint>.json` file and writes its deduplicated refusal
+  receipt. It never admits that payload to the normal queue while refused. `WatchRunner.held()` reads the full
+  evidence for deliberate reconciliation; a checked aborted sidecar plus a fresh enqueue verdict permits a
+  later flush to restore it in the originating absolute plan-store namespace. Another home's same-named abort
+  and commit alone do not release it. Spool copies survive reload, queue pressure and message fitting, and are
+  removed only for the exact notes actually sent. The refusal says delivery is held for reconciliation, rather
+  than claiming it stays queued. Existing queued output still uses S07's explicit disposition flow; a foreign late insertion is still
   re-inventoried as a hold. Burst extension records its refusal and leaves the payload unchanged, returning as
   before. Watch routing stays outside the gate, preserving the R12O N1 lock-order fix.
 - **F4 (rollback).** The rollback-binary rule above, with its trigger and target widened per R12-5.
@@ -292,8 +306,19 @@ its own unarmed check. Lost native acknowledgements stay uncertain without autom
 checks both worker and inspection uncertainty holds. `watch-lock-order.test.ts` retains the routed-watch lock
 cycle regression; existing scoped-worker tests retain S08 refusals.
 
-Follow-up local qualification (Windows, Node 24.22.1): typecheck passed; full CI-shaped two-worker suite
-passed 203 files / 3,011 tests with 3 skips and no failures, with the CI journal/diagnostic/pilot flags.
+Review recovery regressions (`server/legacy-delivery-gating.test.ts`, `server/supervision-migrate.test.ts`):
+
+- `R1 stateful watch output survives refusal, reload and abort after its baseline advances`: producer advances
+  its baseline before refusal, the normal queue stays empty, and the retained mixed result is delivered after
+  release even though the next run is silent. Queue-pressure/fitting, commit-without-release and foreign-home
+  abort cases retain evidence.
+- `R2 a blocked discussion callback cannot drain into an active scoped backend`: a real `sendThread` native
+  callback remains blocked after admission; migration refuses before activation. Recovered older named direct
+  drains also block re-inventory, resolution, barrier and commit until native settlement. Positive controls
+  retain the original permission record and append the actual result receipt before committing.
+
+Review-fix local qualification (Windows, Node 24.22.1): typecheck passed; full CI-shaped two-worker suite
+passed 203 files / 3,023 tests with 3 skips and no failures, with the CI journal/diagnostic/pilot flags.
 All five CI render commands passed: `docs/needs-you/render.mjs`, `docs/scoped-supervision/s05-ui/render.mjs`,
 `docs/attention-deck/render.mjs`, `docs/fm-ui-polish/render.mjs` and `docs/decision-ux-lists/render.mjs`.
 Artifacts remain in ignored `.local/`. These local checks qualify Windows only; hosted checks are tracked

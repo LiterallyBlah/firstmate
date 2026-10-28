@@ -176,7 +176,7 @@ export class CutoverGate {
       if (relation === "mention" && item.source === "inspection")
         return { admit: false, plan: target.plan, stage, reason: `Inspection output mentions ${target.plan} during or after its cutover; its saved result is held for reconciliation.` };
       if (relation === "mention" && item.source === "watch" && stage !== "committed" && !drained)
-        return { admit: false, plan: target.plan, stage, reason: `Opaque watch output mentions ${target.plan} during its cutover; it stays queued with its legacy owner.` };
+        return { admit: false, plan: target.plan, stage, reason: `Opaque watch output mentions ${target.plan} during its cutover; legacy delivery is held for reconciliation.` };
     }
     return { admit: true };
   }
