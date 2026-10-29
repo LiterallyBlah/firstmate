@@ -15,12 +15,12 @@ export function ConversationSwitcher({ theme, mates, current, counts, failed, on
   const label = mates.find(m => m.scope.id === current)?.name ?? (current === "general" ? "FirstMate" : "Selected conversation");
   const close = () => { setExpanded(false); trigger.current?.focus(); };
   useEffect(() => expanded ? bindWebKeys(root.current, key => { if (key !== "Escape") return false; close(); return true; }) : undefined, [expanded]);
-  const unread = Object.values(counts).reduce<number>((sum, count) => sum + (count ?? 0), 0);
+  const unread = Object.entries(counts).reduce((sum, [id, count]) => sum + (id === current ? 0 : count ?? 0), 0);
   return <View ref={root} onAccessibilityEscape={close} testID="conversation-switcher" style={{ paddingHorizontal: 10, borderBottomWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.surface0 }}>
-    <Pressable ref={trigger} accessibilityRole="button" accessibilityLabel={`Conversations: ${label}${unread ? `, ${unread} unread` : ""}`} accessibilityState={{ expanded }} onPress={() => { if (!expanded) onExpand(); setExpanded(v => !v); }}
+    <Pressable ref={trigger} accessibilityRole="button" accessibilityLabel={`Conversations: ${label}${unread ? `, ${unread} unread elsewhere` : ""}`} accessibilityState={{ expanded }} onPress={() => { if (!expanded) onExpand(); setExpanded(v => !v); }}
       style={{ minHeight: 44, flexDirection: "row", alignItems: "center", gap: 6 }}>
       <Icon name="MessagesSquare" size={16} color={theme.colors.foregroundMuted} />
-      <Text style={{ flex: 1, color: theme.colors.foreground, fontSize: 13 }}>{label}{unread ? ` · ${unread} unread` : ""}</Text>
+      <Text style={{ flex: 1, color: theme.colors.foreground, fontSize: 13 }}>{label}{unread ? ` · ${unread} unread elsewhere` : ""}</Text>
       <Icon name={expanded ? "ChevronUp" : "ChevronDown"} size={14} color={theme.colors.foregroundMuted} />
     </Pressable>
     {expanded ? <View>

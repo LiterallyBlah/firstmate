@@ -359,7 +359,7 @@ function GeneralMateChat({
     // Another open chat can clear or edit the stores before this render catches up.
     const text = drafts.get(mate.id);
     const attached = pendingAttachments.get(mate.id);
-    if (!hasContent(text, attached) || sending || /^\s*@\S*/.test(text)) return;
+    if (!hasContent(text, attached) || sending) return;
     // Through the stores only: this chat may be gone by the time the send fails, and the one on screen follows them.
     const sent = send(captainMessage(text, attached), () => {
       if (drafts.get(mate.id).trim() === "") drafts.set(mate.id, text);
@@ -618,7 +618,7 @@ function GeneralMateChat({
             </View>
           )}
           {mentions.panel}
-          {mentions.addressed ? <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>Choose a mate above, or remove @ to message FirstMate.</Text> : null}
+          {mentions.panel ? <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>To: FirstMate</Text> : null}
           <View style={styles.inputRow}>
             <GrowingChatInput
               ref={composer}
@@ -654,7 +654,7 @@ function GeneralMateChat({
                 compact={compact}
                 tone="accent"
                 theme={theme}
-                disabled={sending || mentions.addressed || !hasContent(draft, attachments)}
+                disabled={sending || !hasContent(draft, attachments)}
                 onPress={sendDraft}
               />
             </View>

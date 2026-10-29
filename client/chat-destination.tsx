@@ -17,7 +17,7 @@ import { conversationReadKey, conversationReads, mateConversations, sameConversa
 import { ConversationSwitcher } from "./conversation-switcher";
 import { ProjectSetup } from "./project-setup";
 
-export interface ScopeRequest { scopeId: string; homeId: string; navigationId?: string; target?: DiscussionTarget }
+export interface ScopeRequest { scopeId: string; homeId: string; navigationId?: string; target?: DiscussionTarget; compose?: boolean }
 const reads = conversationReads();
 
 /** The return is deliberate even for a refused/restored target. Never reroute a scoped draft. */
@@ -50,6 +50,7 @@ export function ChatDestination({ scopeRequest, imageContext, theme, compact, na
   const generalRead = useCallback((ids: readonly string[], visible: boolean, complete: boolean) => {
     setGeneralReplies(previous => JSON.stringify(previous) === JSON.stringify(ids) ? previous : ids);
     setGeneralComplete(complete);
+    if (complete) reads.observe(generalKey, ids);
     if (visible) reads.mark(generalKey, ids);
   }, [generalKey]);
   // Same cache and read transport as the named conversation. Only existing owners
@@ -67,6 +68,14 @@ export function ChatDestination({ scopeRequest, imageContext, theme, compact, na
     counts[m.scope.id] = ids && !scopes.error && !history.isError && !history.data?.problems.length ? reads.unread(conversationReadKey(host, snapshot!.homeId, m.scope.target), ids) : null;
   });
   useEffect(() => {
+    if (!active || !snapshot?.uiEnabled || scopes.error) return;
+    mates.forEach((m, i) => {
+      const history = histories[i];
+      if (history?.data && !history.isError && !history.data.problems.length) reads.observe(conversationReadKey(host, snapshot.homeId, m.scope.target),
+        history.data.threads.flatMap(t => (t.messages ?? []).filter(message => message.reply !== null).map(message => message.id)));
+    });
+  }, [active, snapshot, scopes.error, histories]);
+  useEffect(() => {
     if (!active || !contextual || !snapshot || scopes.error || request.homeId !== snapshot.homeId || !snapshot.uiEnabled) return;
     const index = mates.findIndex(m => m.scope.id === request.scopeId && (!request.target || sameConversationTarget(request.target, m.scope.target)));
     const history = histories[index];
@@ -81,12 +90,12 @@ export function ChatDestination({ scopeRequest, imageContext, theme, compact, na
       const previous = drafts.get(key);
       drafts.set(key, previous ? `${previous}\n\n${message}` : message);
     }
-    setLocal({ route, request: { scopeId: conversation.scope.id, homeId: snapshot.homeId, target: { ...conversation.scope.target } } });
+    setLocal({ route, request: { scopeId: conversation.scope.id, homeId: snapshot.homeId, target: { ...conversation.scope.target }, compose: message !== undefined } });
     setDismissed(null);
   }
   const back = () => { setDismissed(selectedRoute); onDismissScope?.(); };
   return <ConversationContext.Provider value={{ snapshot, failed: !!scopes.error, mates, open, refresh: () => { void scopes.refetch(); }, setup: () => setSetup(true), generalRead }}><View style={{ flex: 1, minHeight: 0 }}>
-    {mate ? <ConversationSwitcher theme={theme} mates={mates} current={contextual ? request.scopeId : "general"} counts={counts} failed={!!scopes.error || snapshot?.freshness === "held"}
+    {mate && (mates.length > 0 || contextual) ? <ConversationSwitcher theme={theme} mates={mates} current={contextual ? request.scopeId : "general"} counts={counts} failed={!!scopes.error || snapshot?.freshness === "held"}
       onSelect={m => open(m)} onBack={back} onExpand={() => { void scopes.refetch(); }} /> : null}
     <View style={{ flex: 1, minHeight: 0, display: contextual ? "none" : "flex" }} accessibilityElementsHidden={contextual} importantForAccessibility={contextual ? "no-hide-descendants" : "auto"}>
       {typeof children === "function" ? children(!contextual) : children}
@@ -134,7 +143,7 @@ function ContextualDiscussion({ request, imageContext, theme, compact, navigatio
       </Text>
       <IconButton icon="RefreshCw" label="Refresh conversation" showLabel compact theme={theme} disabled={scopes.isFetching} onPress={() => { void scopes.refetch(); }} />
     </View> : <ScopeDiscussion key={`${host}:${request.homeId}:${scopeId}`} snapshot={snapshot} offline={!!scopes.error}
-      hostId={host} theme={theme} compact={compact} navigation={navigation} generalMate={mate} initialScope={scopeId} onSelectScope={onSelectScope} onBackToFirstMate={onBack} capturedTarget={request.target} refresh={() => { void scopes.refetch(); }} />}
+      hostId={host} theme={theme} compact={compact} navigation={navigation} generalMate={mate} initialScope={scopeId} onSelectScope={onSelectScope} onBackToFirstMate={onBack} capturedTarget={request.target} focusComposer={request.compose} refresh={() => { void scopes.refetch(); }} />}
   </View>;
 }
 

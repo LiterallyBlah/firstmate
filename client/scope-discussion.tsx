@@ -23,7 +23,7 @@ function Button({ label, onPress, disabled = false, theme, selected = false, exp
     style={{ minHeight: 44, padding: 10, justifyContent: "center", borderWidth: 1, borderColor: selected ? theme.colors.accent : theme.colors.border,
       borderRadius: 7, backgroundColor: theme.colors.surface1, opacity: disabled ? 0.5 : 1 }}><Text style={{ color: theme.colors.foreground, fontSize: 13 }}>{label}</Text></Pressable>;
 }
-export function ScopeDiscussion({ snapshot, offline = false, hostId, theme, compact, navigation, refresh, initialScope, onSelectScope, generalControls, onBackToFirstMate, generalMate, capturedTarget }: {
+export function ScopeDiscussion({ snapshot, offline = false, hostId, theme, compact, navigation, refresh, initialScope, onSelectScope, generalControls, onBackToFirstMate, generalMate, capturedTarget, focusComposer = false }: {
   snapshot: ScopeSnapshot; offline?: boolean; hostId: string; theme: PluginTheme; compact: boolean;
   navigation?: PluginScreenProps["navigation"]; refresh(): void;
   initialScope?: string | undefined;
@@ -32,6 +32,7 @@ export function ScopeDiscussion({ snapshot, offline = false, hostId, theme, comp
   onBackToFirstMate?: (() => void) | undefined;
   generalMate?: AgentSummary | undefined;
   capturedTarget?: DiscussionTarget | undefined;
+  focusComposer?: boolean | undefined;
 }) {
   const read = useRpc(readScopeConversation), send = useRpc(discussScope), cache = useQueryClient();
   const selectionKey = JSON.stringify(["firstmate.scope-selection/1", hostId, snapshot.homeId]);
@@ -56,7 +57,7 @@ export function ScopeDiscussion({ snapshot, offline = false, hostId, theme, comp
   const replyTo = useSyncExternalStore(drafts.subscribe, () => drafts.get(replyKey) || null);
   const setReplyTo = (id: string | null) => drafts.set(replyKey, id ?? "");
   const draft = useSyncExternalStore(drafts.subscribe, () => drafts.get(draftKey));
-  useEffect(() => { composer.current?.focus(); }, [draftKey]);
+  useEffect(() => { if (focusComposer) composer.current?.focus(); }, [draftKey, focusComposer]);
   useEffect(() => { setValidationError(null); }, [draftKey, draft]);
   const refusedDraft = useSyncExternalStore(drafts.subscribe, () => drafts.get(`${draftKey}:refused`));
   let resolved: ReturnType<typeof resolveDiscussion<ScopeSummary>> | null = null, routeError: string | null = null;
@@ -119,7 +120,7 @@ export function ScopeDiscussion({ snapshot, offline = false, hostId, theme, comp
       </View>
       <Text accessibilityRole="header" style={{ color: colors.foreground, fontSize: 17, fontWeight: "600" }}>{snapshot.scopes.find(s => s.id === defaultScope)?.title ?? "Selected conversation"}</Text>
       <Text style={{ color: colors.foregroundMuted, fontSize: 13 }}>Separate from your FirstMate chat. Discussing work does not approve it.</Text>
-      {offline ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>Last updated {snapshot.asOf}. Refresh to check this conversation again.</Text> : snapshot.freshness !== "current" && snapshot.freshness !== "uninitialized" ?
+      {offline ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>Last updated {new Date(snapshot.asOf).toLocaleString()}. Refresh to check this conversation again.</Text> : snapshot.freshness !== "current" && snapshot.freshness !== "uninitialized" ?
         <Text accessibilityRole="alert" style={{ color: colors.statusWarning, fontSize: 12 }}>Some work couldn't be checked. Review Details before continuing.</Text> : null}
       {showStatus ? <Text selectable style={{ color: colors.foregroundMuted, fontSize: 12 }}>
         {offline ? "Offline · retained status" : `${snapshot.freshness} · sequence ${snapshot.sequence}`} · Reading starts no model turn

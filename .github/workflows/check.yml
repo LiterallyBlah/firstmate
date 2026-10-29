@@ -108,6 +108,7 @@ jobs:
       - run: node docs/smooth-pr6/render.mjs
       - run: node docs/smooth-pr6/live-render.mjs
       - run: node docs/smooth-pr11/render.mjs
+      - run: node docs/smooth-pr11/render.mjs --review
       - run: node docs/smooth-rollout/render.mjs
       - run: node docs/smooth-rollout/review-regressions.mjs
       - run: node docs/scoped-supervision/build-b-ui/render.mjs
@@ -131,6 +132,9 @@ jobs:
             .local/smooth-pr11/ui/*.png
             .local/smooth-pr11/ui/screenshots/*.png
             .local/smooth-pr11/ui/results.json
+            .local/smooth-pr11/review-ui/*.png
+            .local/smooth-pr11/review-ui/screenshots/*.png
+            .local/smooth-pr11/review-ui/results.json
             .local/smooth-rollout/screenshots/*.png
             .local/smooth-rollout/results.json
             .local/smooth-rollout-review/after/screenshots/*.png

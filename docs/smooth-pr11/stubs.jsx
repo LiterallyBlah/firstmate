@@ -3,10 +3,11 @@ import { scope, projects, homeId, clone, params, histories } from './data';
 export * from '../smooth-rollout/stubs';
 const methods = new Map();
 export function useRpc(contract) {
-  if (!['firstmate.scope.read', 'firstmate.scope.conversation', 'firstmate.scope.discuss', 'firstmate.projects.setup.read', 'firstmate.projects.setup.status'].includes(contract.name)) return original(contract);
+  if (!['firstmate.mate.ask', 'firstmate.scope.read', 'firstmate.scope.conversation', 'firstmate.scope.discuss', 'firstmate.projects.setup.read', 'firstmate.projects.setup.status'].includes(contract.name)) return original(contract);
   if (!methods.has(contract.name)) methods.set(contract.name, async input => {
     window.review.calls.push({ name: contract.name, input: clone(input) });
     switch (contract.name) {
+      case 'firstmate.mate.ask': return { agentId: 'first-mate' };
       case 'firstmate.scope.read':
         if (params.get('case') === 'error' || window.review.failRead) throw Error('Offline (synthetic fixture)');
         return clone(scope);

@@ -43,15 +43,17 @@ report has no numbered slice 11.
 | --- | --- |
 | 1: real project mates and plan helpers, short searchable mention list | `conversation-list.test.ts` checks filtering and names; real Home browser captures show both existing owners and omit uncreated New trial. Caret mentions exclude emails and code. |
 | 2: Message/Open choice, named send, FirstMate continuity | Message carries the words to the named composer for its existing Send/review; Open leaves that draft alone. Browser interactions send through `firstmate.scope.discuss` to the selected project agent, then restore General's words, attachments, earlier pages, reading offset and composer focus. Component coverage retains the existing transcript across enablement and failed/cross-home targets. |
-| 3: switcher and unread | Browser checks one actual plan reply becoming read only after visiting its conversation. The local read store survives plugin reevaluation and isolates host/home/owner. Failed unread reads show unavailable, never zero. The existing To control and switcher share selection. |
+| 3: switcher and unread | Browser checks a new plan reply becoming read only after visiting its conversation. First observation establishes the cold-session baseline; the local read store survives plugin reevaluation and isolates host/home/owner. The trigger says unread elsewhere; rows retain their own counts. Failed unread reads show unavailable, never zero. The existing To control and switcher share selection. |
 | 4: empty versus pending/failure and shared setup | Component tests distinguish pending/failed/complete-empty reads; the exact plain empty action opens the exported slice 6 ProjectSetup. Browser captures retain a real read failure without claiming there are no mates. |
-| 5–6: checked routing and opt-in safety | General still uses `useMateSender`; leading unresolved addresses are held. Scoped sends retain `discussionSender` and its exact outbox. Navigation pins home/scope/agent/epoch, while each send captures the fresh scope version. Changed owners refuse with retained drafts. The existing server services, Attach, flags, source/profile/capacity checks and first-send review are unchanged. |
+| 5–6: checked routing and opt-in safety | General still uses `useMateSender`. A suggestion alone does not change the destination: dismissed/unmatched @ prose stays ordinary FirstMate text. Only an explicit mate choice opens a scoped recipient. Scoped sends retain `discussionSender` and its exact outbox. Navigation pins home/scope/agent/epoch, while each send captures the fresh scope version. Changed owners refuse with retained drafts. The existing server services, Attach, flags, source/profile/capacity checks and first-send review are unchanged. |
 | 7: copy, themes, widths and input | 64 captures compare actual Home at `0e720c2` with this branch; two browser interaction flows cover wide/phone input. All new mention controls meet 44px; no page exceptions or document-width overflow. Manual both-theme inspection corrected dark action contrast; the mechanical design scan has no findings. Refresh stays silent; retained age is muted and appears only after a failed read. |
 
 Unread tracks replies visible through the existing scoped-conversation reader and
 FirstMate's native transcript. It is local to this app session, like the existing
 drafts; it does not claim a device-shared read receipt or include unseen native-only
-messages outside that reader. Navigation and discovery create no model turn.
+messages outside that reader. The first complete observation on a cold app starts
+the baseline rather than calling old replies unread. Subsequent replies count
+until the conversation is visited. Navigation and discovery create no model turn.
 
 Run `node docs/smooth-pr11/render.mjs` after installing `docs/board-list` dependencies.
 It writes captures, comparison sheets and JSON only to `.local/smooth-pr11/ui/`.
@@ -62,6 +64,34 @@ the preceding smooth-update slices. The fixture has synthetic host data and send
 it does not create live owners, sessions or projects. Physical phone keyboard and
 native screen-reader behavior have not been independently verified in this worktree.
 
-Validation: typecheck; 38 focused tests; 64 browser captures and two input/route
-flows; `git diff --check`; mechanical design scan (no findings). Full-suite and
+Validation: typecheck; 41 focused tests; the original 64-capture matrix plus the
+72-capture repair matrix and 18 input/route flows; `git diff --check`; mechanical
+design scan (no findings). Full-suite and
 hosted results are recorded in the PR after completion.
+
+## Independent-review repair
+
+The P2 reproduced at `4c12c54`: natural-order typing closed the picker after the
+first space while a separate leading-@ guard kept Send disabled. Regression tests
+were run red before the fix. The picker now retains and filters the leading token
+through the sentence. Dismissal applies to that token while the body is edited;
+Send remains usable. The composer says `To: FirstMate` while suggestions are open.
+Only Message/Open changes to the chosen named conversation.
+
+Cheap P3s addressed: unread elsewhere copy; cold-start baselining; no empty
+switcher on a never-enabled/no-mates Home; composer focus only for explicit
+Message (Open/switcher/history navigation stays read-only); localized stale time;
+existing chevrons and bordered actions make picker choices visibly actionable.
+
+P3-3's read remains: Home performs the shared read-only scope discovery needed to
+find existing conversations. No timer or writer is created by that read. P3-4's
+disclosed draft copy remains: clearing the original after a scoped send needs
+correlated receipt cleanup that also preserves later edits and uncertain sends.
+The P2 fix makes that retained draft usable on return.
+
+`node docs/smooth-pr11/render.mjs --review` compares the rejected `4c12c54` with
+the repair across nine states, both themes and widths (72 captures), then checks
+16 real-input/send cases and the two original continuity flows. It writes only to
+`.local/smooth-pr11/review-ui/`; CI uploads those results and images. Comparison
+sheets cover natural typing, dismissal, unmatched prose, actions, unread, stale
+time, empty/off Home and the named conversation.

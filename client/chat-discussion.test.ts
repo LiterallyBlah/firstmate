@@ -173,7 +173,7 @@ it("offers the existing mate from @, carries words into its named draft and pres
   await render();
   await act(async () => renderer.root.findByType("TextInput" as never).props.onChangeText("@reader Explain this"));
   await act(async () => renderer.root.findByType("TextInput" as never).props.onSelectionChange({ nativeEvent: { selection: { start: 7, end: 7 } } }));
-  expect(button("Send").props.disabled).toBe(true);
+  expect(button("Send").props.disabled).toBe(false);
   await act(async () => button("Reader mate. Project: Reader mate").props.onPress());
   await act(async () => button("Message Reader mate").props.onPress());
   expect(renderer.root.findByType("ScopeDiscussion" as never).props.initialScope).toBe("project-mate");
@@ -185,18 +185,65 @@ it("offers the existing mate from @, carries words into its named draft and pres
   expect(renderer.root.findByType("TextInput" as never).props.value).toBe("@reader Explain this");
 });
 
-it.each(["pending", "failed", "empty"])("keeps %s conversation discovery distinct and never sends an unresolved address", async kind => {
+it.each(["pending", "failed", "empty"])("keeps %s conversation discovery distinct while ordinary @ text can be sent to FirstMate", async kind => {
   state.scopes = kind === "empty" ? { ...structuredClone(scopeFixture), scopes: [] } : undefined;
   state.scopeError = kind === "failed" ? new Error("Offline") : null;
   await render();
   await act(async () => renderer.root.findByType("TextInput" as never).props.onChangeText("@"));
   await act(async () => button("Send").props.onPress());
-  expect(state.send).not.toHaveBeenCalled();
+  expect(state.send).toHaveBeenCalledOnce();
   expect(renderer.root.findAll(n => n.type === ("Pressable" as never) && n.props.accessibilityLabel === "No project mates yet. Set one up")).toHaveLength(kind === "empty" ? 1 : 0);
   if (kind === "empty") {
     await act(async () => button("No project mates yet. Set one up").props.onPress());
     expect(renderer.root.findAllByType("ProjectSetup" as never)).toHaveLength(1);
   }
+});
+
+it("keeps a filtered picker reachable through every keystroke of a leading @ sentence", async () => {
+  state.scopes = structuredClone(scopeFixture);
+  await render();
+  const words = "@reader check chapter three please";
+  for (let length = 1; length <= words.length; length++) {
+    await act(async () => renderer.root.findByType("TextInput" as never).props.onChangeText(words.slice(0, length)));
+    expect(button("Reader mate. Project: Reader mate")).toBeDefined();
+    expect(button("Send").props.disabled).toBe(false);
+  }
+  expect(JSON.stringify(renderer.toJSON())).not.toContain("Choose a mate above");
+  await act(async () => button("Reader mate. Project: Reader mate").props.onPress());
+  await act(async () => button("Message Reader mate").props.onPress());
+  expect(drafts.get(scopeDraftKey("local", "/home", "project-mate"))).toBe("check chapter three please");
+  expect(state.send).not.toHaveBeenCalled();
+});
+
+it.each(["Escape", "Close mentions", "Cancel mention", "unmatched", "no mates"])("sends @ prose to FirstMate after %s without a scoped fallback", async dismissal => {
+  state.scopes = { ...structuredClone(scopeFixture), ...(dismissal === "no mates" ? { scopes: [], uiEnabled: false } : {}) };
+  await render();
+  const text = dismissal === "unmatched" || dismissal === "no mates" ? "@sarah said the cover looks great" : "@reader check chapter three please";
+  await act(async () => renderer.root.findByType("TextInput" as never).props.onChangeText(text));
+  if (dismissal === "Escape") await act(async () => renderer.root.findByType("TextInput" as never).props.onKeyPress({ nativeEvent: { key: "Escape" }, preventDefault() {} }));
+  if (dismissal === "Close mentions") await act(async () => button("Close mentions").props.onPress());
+  if (dismissal === "Cancel mention") {
+    await act(async () => button("Reader mate. Project: Reader mate").props.onPress());
+    await act(async () => button("Cancel mention").props.onPress());
+  }
+  if (["Escape", "Close mentions", "Cancel mention"].includes(dismissal)) {
+    await act(async () => renderer.root.findByType("TextInput" as never).props.onChangeText(`${text}!`));
+    expect(renderer.root.findAllByProps({ testID: "mate-mentions" })).toHaveLength(0);
+    await act(async () => renderer.root.findByType("TextInput" as never).props.onChangeText(text));
+  }
+  expect(button("Send").props.disabled).toBe(false);
+  await act(async () => button("Send").props.onPress());
+  expect(state.send).toHaveBeenCalledOnce();
+  expect(state.send.mock.calls[0]![0]).toMatchObject({ text });
+  expect(renderer.root.findAllByType("ScopeDiscussion" as never)).toHaveLength(0);
+});
+
+it("leaves the empty never-enabled Home without conversation switcher chrome", async () => {
+  state.scopes = { ...structuredClone(scopeFixture), uiEnabled: false, scopes: [] };
+  await render();
+  expect(renderer.root.findAllByProps({ testID: "conversation-switcher" })).toHaveLength(0);
+  await act(async () => renderer.root.findByType("TextInput" as never).props.onChangeText("@"));
+  expect(button("No project mates yet. Set one up")).toBeDefined();
 });
 
 it("keeps a chosen owner pinned when its binding changes", async () => {

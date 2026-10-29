@@ -19,12 +19,13 @@ export function sameConversationTarget(a: DiscussionTarget, b: DiscussionTarget)
   return a.homeId === b.homeId && a.scopeId === b.scopeId && a.epoch === b.epoch && a.agentId === b.agentId;
 }
 
-/** A word beginning at the caret, never an email address or a mention in code. */
+/** Suggest at the caret, retaining a leading mention while its message is typed. */
 export function mentionAt(text: string, caret = text.length): { start: number; end: number; query: string } | null {
   const prefix = text.slice(0, caret);
   const match = /(?:^|\s)@([^\s@`]{0,80})$/.exec(prefix);
-  if (!match || (prefix.match(/```/g)?.length ?? 0) % 2 || (prefix.match(/`/g)?.length ?? 0) % 2) return null;
-  return { start: caret - match[1]!.length - 1, end: caret, query: match[1]! };
+  if (match && !((prefix.match(/```/g)?.length ?? 0) % 2) && !((prefix.match(/`/g)?.length ?? 0) % 2)) return { start: caret - match[1]!.length - 1, end: caret, query: match[1]! };
+  const leading = /^\s*@([^\s@`]{0,80})(?=\s|$)/.exec(text);
+  return leading ? { start: leading[0].length - leading[1]!.length - 1, end: leading[0].length, query: leading[1]! } : null;
 }
 
 export function conversationReadKey(host: string, home: string, target: Pick<DiscussionTarget, "scopeId" | "epoch" | "agentId">): string {
@@ -41,11 +42,18 @@ export function conversationReads(root: object = globalThis) {
   return {
     subscribe(listener: () => void) { state.listeners.add(listener); return () => { state.listeners.delete(listener); }; },
     version: () => state.version,
-    unread(key: string, replies: readonly string[]) { return replies.filter(id => !state.seen.get(key)?.has(id)).length; },
+    unread(key: string, replies: readonly string[]) { const seen = state.seen.get(key); return seen ? replies.filter(id => !seen.has(id)).length : 0; },
+    // A cold app starts from the first complete observation, so old replies do
+    // not reappear as new. An empty baseline still records an observation.
+    observe(key: string, replies: readonly string[]) {
+      if (state.seen.has(key)) return;
+      state.seen.set(key, new Set(replies)); state.version++;
+      state.listeners.forEach(listener => listener());
+    },
     mark(key: string, replies: readonly string[]) {
       const seen = state.seen.get(key) ?? new Set<string>();
       const fresh = replies.filter(id => !seen.has(id));
-      if (!fresh.length) return;
+      if (!fresh.length && state.seen.has(key)) return;
       for (const id of fresh) seen.add(id);
       state.seen.set(key, seen); state.version++;
       state.listeners.forEach(listener => listener());
