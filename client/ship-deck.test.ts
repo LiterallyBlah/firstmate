@@ -978,13 +978,13 @@ describe("the ship deck view", () => {
     await act(async () => renderer!.root.findByProps({ accessibilityLabel: "Open decision: Choose a store" }).props.onPress());
     expect(open).toHaveBeenCalledWith({ requestId: "plan-decision:voyage:choice", homeId: snapshot.homeId, recordRevision: 9 });
   });
-  it("keeps the server total but leaves stale detail to the header pill", async () => {
+  it("keeps the server total and its timestamp visible without relying on a header pill", async () => {
     const snapshot = attentionSnapshot([]);
     snapshot.actionCount = 6;
     snapshot.freshness.status = "stale";
     await act(async () => { renderer = create(createElement(ShipDeckView, { cards: fixture, theme, engine: viewEngine(), needsYou: snapshot })); });
     expect(text(renderer!)).toContain("6 need you");
-    expect(text(renderer!)).not.toContain("as of");
+    expect(text(renderer!)).toContain("as of");
     expect(text(renderer!)).not.toContain("Decision data is stale");
     expect(text(renderer!)).not.toContain("0 needs you");
   });

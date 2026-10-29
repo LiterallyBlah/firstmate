@@ -5,7 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import type { FleetCard } from "../shared/fleet";
 import type { BoardDensity } from "../shared/settings";
 import type { NeedsYouSnapshot } from "../shared/needs-you";
-import { decisionCountText } from "./needs-you-state";
+import { decisionCountText, indicatorState } from "./needs-you-state";
+import { useDecisionReadState } from "./decision-read-context";
 import { CrewCard } from "./card";
 import { converseKey, conversingWith } from "./converse-layout";
 import { activeDecisions, matchingDecisionMessage, presentedTasks, taskSourceKey, waitingOver30Minutes, OWNER_LABELS, TASK_TITLES, type TaskOwner } from "./task-presentation";
@@ -35,6 +36,8 @@ export interface TaskListProps {
 }
 export function TaskList(props: TaskListProps) {
   const { cards, snapshot, theme, compact } = props;
+  const read = useDecisionReadState();
+  const decisionState = indicatorState(snapshot, props.offline, read);
   const requests = activeDecisions(snapshot),
     tasks = presentedTasks(cards, snapshot);
   const heading = { color: theme.colors.foregroundMuted, fontSize: 13, fontWeight: "600" as const };
@@ -90,7 +93,7 @@ export function TaskList(props: TaskListProps) {
           {...webAttributes({ "aria-level": "2" })}
           style={[heading, { color: snapshot?.actionCount ? theme.colors.statusWarning : theme.colors.foregroundMuted }]}
         >
-          Needs you · {decisionCountText(snapshot, props.offline)}
+          Needs you · {decisionCountText(snapshot, props.offline, read)}
         </Text>
         <DecisionQueueNote theme={theme} snapshot={snapshot} offline={props.offline} filtered={props.filtered} />
         {requests.map((request) => {
@@ -109,7 +112,7 @@ export function TaskList(props: TaskListProps) {
           </View>;
         })}
         <PlanNeeds theme={theme} snapshot={snapshot} showUpcoming={false} showReviews={false} />
-        {snapshot?.actionCount === 0 && snapshot.freshness.status === "fresh" && !snapshot.planProblems?.length && !props.offline ? <Text style={heading}>Nothing needs a decision now.</Text> : null}
+        {decisionState.count === 0 && decisionState.fresh ? <Text style={heading}>Nothing needs a decision now.</Text> : null}
       </View>
       {matchingNotice ? <Text style={heading}>{matchingNotice}</Text> : null}
       <View testID="task-group-in-hand" style={{ gap: 8 }}>

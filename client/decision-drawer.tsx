@@ -32,11 +32,15 @@ import {
   boundAnswers,
   decisionQueue,
   decisionProblems,
+  indicatorState,
   decisionSession,
   decisionDraftKey,
   completeEmptyInbox,
   type DecisionDestination,
 } from "./needs-you-state";
+import { useDecisionReadState } from "./decision-read-context";
+import { ReadProgress } from "./read-progress";
+import { NEEDS_YOU_QUERY_KEY } from "./needs-you-query";
 import {
   decisionTitle,
   decisionClock,
@@ -199,6 +203,10 @@ export function DecisionDrawer({
   returnLabel?: string;
 }) {
   const snapshot = sourceSnapshot ? decisionCardSnapshot(sourceSnapshot) : undefined;
+  const read = useDecisionReadState();
+  offline = offline || read.error === true || read.readiness === "failed";
+  const cache = useQueryClient();
+  const presentation = indicatorState(sourceSnapshot, offline, { ...read, pending: loading || read.pending === true });
   const [scopeFilter, setScopeFilter] = useState<ScopeInboxFilter>({ kind: "all" });
   const allSnapshot = sourceSnapshot ? decisionCardSnapshot(filterScopeInbox(sourceSnapshot, sourceSnapshot.scopeFiltersEnabled ? scopeFilter : { kind: "all" })) : undefined;
   useEffect(() => { setScopeFilter({ kind: "all" }); }, [sourceSnapshot?.homeId]);
@@ -219,7 +227,7 @@ export function DecisionDrawer({
     .map((id) => snapshot?.requests.find((r) => r.id === id))
     .filter((r): r is NeedsYouRequest => r?.state === "new" || r?.state === "seen");
   const sameHome =
-    !destination.homeId || destination.homeId === snapshot?.homeId;
+    !snapshot || !destination.homeId || destination.homeId === snapshot.homeId;
   const request = sameHome
     ? snapshot?.requests.find((r) => r.id === destination.requestId) ?? (["next", "empty"].includes(destination.requestId) ? queue[0] : undefined)
     : undefined;
@@ -292,14 +300,16 @@ export function DecisionDrawer({
   const colors = theme.colors;
   const scopedRows = (snapshot?.quarantined ?? []).filter(row => all || !request || quarantinesSource([row], request.source));
   const problems = !all && request && !offline && snapshot?.freshness.status === "fresh"
-    ? scopedRows.map(row => row.problem) : decisionProblems(snapshot, offline);
+    ? scopedRows.map(row => row.problem) : decisionProblems(snapshot, offline, read);
   const failure =
-    !loading &&
     ((snapshot && snapshot.freshness.status !== "fresh") ||
       offline ||
       problems.length > 0);
   const chrome = (
     <>
+      <ReadProgress theme={theme} pending={presentation.loading} pendingSince={read.pendingSince} failed={presentation.failed} fetching={read.fetching === true}
+        label="Loading decisions…" onRetry={() => { void cache.refetchQueries({ queryKey: NEEDS_YOU_QUERY_KEY }, { cancelRefetch: false }); }} />
+      {presentation.updating ? <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>{presentation.label}</Text> : null}
       {filtered ? (
         <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>
           Filters don’t hide decisions
@@ -552,7 +562,7 @@ export function DecisionDrawer({
           style={{ flex: 1 }}
         >
           {failure ? chrome : null}
-          {sameHome && completeEmptyInbox(sourceSnapshot, offline, loading) ? <View style={{ gap: 12 }}>
+          {sameHome && presentation.fresh && completeEmptyInbox(sourceSnapshot, offline, loading) ? <View style={{ gap: 12 }}>
             <Text style={{ color: colors.foreground }}>No decisions right now</Text>
             <DecisionButton theme={theme} compact label={onBackToFirstMate ? "Back to FirstMate" : `Back to ${returnLabel}`} onPress={onBackToFirstMate ?? onClose} />
           </View> : null}
@@ -646,14 +656,11 @@ export function DecisionDrawer({
           <Text style={{ color: colors.foreground }}>
             {!sameHome
               ? "This decision belongs to another FirstMate home. Open its original host and home."
-              : loading
+              : presentation.loading
                 ? "Loading decisions…"
                 : destination.requestId === "next" ||
                     destination.requestId === "empty"
-                  ? snapshot?.actionCount === 0 &&
-                    snapshot.freshness.status === "fresh" &&
-                    !snapshot.planProblems?.length &&
-                    !offline
+                  ? presentation.count === 0 && presentation.fresh
                     ? "✓ Nothing needs you. Answered, snoozed and past decisions are in All."
                     : "Open All to review the last known decisions."
                   : "This decision is no longer available. Its answer has not been replayed."}

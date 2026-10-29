@@ -52,6 +52,7 @@ import { answeredReplies, bubblePlacement, repliesByCard, type DeckRegion } from
 import { DECK_STATES, deckScene, type DeckSailor, type DeckState } from "./deck-scene";
 import { DecisionCountBubble, NeedsYouBubbles, ReplyOptions, SuggestionBubbles } from "./reply-bubble";
 import { indicatorState } from "./needs-you-state";
+import { useDecisionReadState } from "./decision-read-context";
 import { webAttributes } from "./web";
 
 
@@ -472,8 +473,10 @@ function DeckView({
   const hidden = scene.hidden?.workers ? hiddenWorkersText(scene.hidden.workers, scene.hidden.hosts) : null;
   const lost = scene.stale === 0 ? "" : decisionStale ? ", decisions from the last good read" : stale ? ", feed lost: last known" : `, ${scene.stale} out of reach: last known`;
   const words = (state: (typeof DECK_STATES)[number]) => needsYou === undefined ? state : places[state] || state;
-  const decisionLabel = deckDecisionLabel(needsYou, stale);
-  const total = needsYou === undefined ? "" : `${decisionLabel}. `;
+  const decisionRead = useDecisionReadState();
+  const decisionLabel = deckDecisionLabel(needsYou, stale, true, decisionRead);
+  const hasDecisionRead = needsYou !== undefined || decisionRead.pending || decisionRead.fetching || decisionRead.error || decisionRead.readiness !== undefined;
+  const total = hasDecisionRead ? `${decisionLabel}. ` : "";
   const summary = `${total}${legendStates.map((state) => `${scene.counts[state]} ${words(state)}`).join(", ")}${lost}${hidden === null ? "" : `. ${hidden}`}`;
   const note = deckStatusText(status, presentation);
   const hovered = hover === null || status.kind !== "drawing" || open || popover !== null
@@ -590,13 +593,13 @@ function DeckView({
         )}
       </View>
       <View style={{ gap: 4 }}>
-        {needsYou === undefined ? null : <View testID="firstmate-deck-decision-legend" style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8, paddingVertical: 4 }}>
-          <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{deckDecisionLabel(needsYou, false, false)} ·</Text>
-            <Pressable accessibilityRole="button" accessibilityLabel={needsYou.actionCount ? "Answer the next" : "Open decisions"} onPress={() => onOpenDecision?.(deckDecisionDestination(needsYou, "next"))} disabled={onOpenDecision === undefined}
-            style={{ paddingVertical: 6, minHeight: 28, justifyContent: "center" }}>
-            <Text style={{ color: colors.foreground, fontSize: 12 }}>{needsYou.actionCount ? "Answer the next" : "Open decisions"}</Text>
+        {hasDecisionRead ? <View testID="firstmate-deck-decision-legend" style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8, paddingVertical: 4 }}>
+          <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{decisionLabel} ·</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel={needsYou?.actionCount ? "Answer the next" : "Open decisions"} onPress={() => onOpenDecision?.(deckDecisionDestination(needsYou, "next"))} disabled={onOpenDecision === undefined}
+            style={{ paddingVertical: 6, minHeight: 44, minWidth: 44, justifyContent: "center" }}>
+            <Text style={{ color: colors.foreground, fontSize: 12 }}>{needsYou?.actionCount ? "Answer the next" : "Open decisions"}</Text>
           </Pressable>
-        </View>}
+        </View> : null}
         <View style={{ flexDirection: "row", flexWrap: "wrap", columnGap: 12, rowGap: 4 }}>
           {legendStates.map((state) => (
             <View

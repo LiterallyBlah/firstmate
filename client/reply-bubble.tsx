@@ -11,6 +11,7 @@ import type { Suggestion } from "../shared/fleet";
 import type { NeedsYouSnapshot } from "../shared/needs-you";
 import { decisionCardSnapshot, planReviewFor } from "../shared/plan-decisions";
 import { decisionQueue, indicatorState, type DecisionDestination } from "./needs-you-state";
+import { useDecisionReadState } from "./decision-read-context";
 import { deckDecisionDestination } from "./deck-decisions";
 import type { DeckHover } from "./deck-hover";
 import { useWorkflowPlans } from "./workflow-plans";
@@ -46,7 +47,8 @@ export function DecisionCountBubble({ snapshot, anchor, theme, holdRef, open, di
   snapshot: NeedsYouSnapshot; anchor: DeckHover; theme: PluginTheme; holdRef: Ref<View>;
   open: boolean; disabled: boolean; onPress(): void;
 }) {
-  const state = indicatorState(snapshot), { colors } = theme;
+  const read = useDecisionReadState();
+  const state = indicatorState(snapshot, false, read), { colors } = theme;
   if (anchor.key !== FIRST_MATE_KEY || state.count === null || state.count === 0) return null;
   const width = Math.max(32, String(state.count).length * 8 + 18);
   return <Pressable ref={holdRef} accessibilityRole="button" accessibilityLabel={state.accessibilityLabel}
@@ -56,7 +58,7 @@ export function DecisionCountBubble({ snapshot, anchor, theme, holdRef, open, di
       top: Math.max(4, anchor.top - 38), width, alignItems: "center", paddingVertical: 5,
       borderWidth: 1, borderRadius: 8, borderStyle: state.stale ? "dashed" : "solid",
       borderColor: colors.accent, backgroundColor: colors.surface0 }}>
-    <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>{state.count}</Text>
+    <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>{state.badge}</Text>
     <SpeechTail theme={theme} left={width / 2 - 4} />
   </Pressable>;
 }
@@ -67,6 +69,8 @@ export function NeedsYouBubbles({ snapshot, place, theme, holdRef, onClose, onOp
   onClose(): void; onOpen(destination: DecisionDestination): void;
 }) {
   const plans = useWorkflowPlans();
+  const read = useDecisionReadState();
+  const state = indicatorState(snapshot, false, read);
   const projected = decisionCardSnapshot(snapshot);
   const requests = decisionQueue(projected.requests).filter(request => request.state === "new" || request.state === "seen");
   // The server also counts unreadable held tasks that cannot become ordinary decision rows.
@@ -85,7 +89,7 @@ export function NeedsYouBubbles({ snapshot, place, theme, holdRef, onClose, onOp
       <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>{remaining} more {remaining === 1 ? "item" : "items"} · open Needs you</Text>
       <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>Open Needs you for the rest.</Text>
     </Pressable>}
-    {requests.length || remaining ? null : <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>Nothing needs you right now.</Text>}
+    {requests.length || remaining ? null : <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{state.count === 0 && state.fresh ? "Nothing needs you right now." : state.label}</Text>}
   </DeckPopover>;
 }
 

@@ -19,19 +19,25 @@ function Button({ label, onPress, disabled = false, theme, selected = false, exp
     style={{ minHeight: 44, padding: 10, justifyContent: "center", borderWidth: 1, borderColor: selected ? theme.colors.accent : theme.colors.border,
       borderRadius: 7, backgroundColor: theme.colors.surface1, opacity: disabled ? 0.5 : 1 }}><Text style={{ color: theme.colors.foreground, fontSize: 13 }}>{label}</Text></Pressable>;
 }
-export function ScopeDiscussion({ snapshot, offline = false, hostId, theme, compact, navigation, refresh, initialScope, generalControls }: {
+export function ScopeDiscussion({ snapshot, offline = false, hostId, theme, compact, navigation, refresh, initialScope, onSelectScope, generalControls }: {
   snapshot: ScopeSnapshot; offline?: boolean; hostId: string; theme: PluginTheme; compact: boolean;
   navigation?: PluginScreenProps["navigation"]; refresh(): void;
   initialScope?: string | undefined;
+  onSelectScope?: ((id: string) => void) | undefined;
   generalControls?: ReactNode;
 }) {
   const read = useRpc(readScopeConversation), send = useRpc(discussScope), cache = useQueryClient();
   const selectionKey = JSON.stringify(["firstmate.scope-selection/1", hostId, snapshot.homeId]);
-  const selected = useSyncExternalStore(drafts.subscribe, () => drafts.get(selectionKey) || initialScope || "shared");
+  const savedSelection = useSyncExternalStore(drafts.subscribe, () => drafts.get(selectionKey));
+  // The explicit route wins over an old preference, but deliberate recovery/reply
+  // navigation must still be able to change the recipient within this discussion.
+  const route = JSON.stringify([selectionKey, initialScope]);
+  const [selection, setSelection] = useState({ route, id: initialScope });
+  const selected = initialScope ? (selection.route === route ? selection.id! : initialScope) : savedSelection || "shared";
   const [showStatus, setShowStatus] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
-  const select = (id: string) => drafts.set(selectionKey, id);
-  useEffect(() => { if (initialScope) select(initialScope); }, [initialScope, selectionKey]);
+  const select = (id: string) => { setSelection({ route, id }); drafts.set(selectionKey, id); onSelectScope?.(id); };
+  useEffect(() => { if (initialScope) drafts.set(selectionKey, initialScope); }, [initialScope, selectionKey]);
   const defaultScope = selected === "shared" ? "general" : selected;
   const draftKey = scopeDraftKey(hostId, snapshot.homeId, selected);
   const replyKey = JSON.stringify(["firstmate.scope-reply/1", draftKey]);
@@ -87,10 +93,10 @@ export function ScopeDiscussion({ snapshot, offline = false, hostId, theme, comp
       <Text accessibilityRole="header" style={{ color: colors.foreground, fontSize: 17, fontWeight: "600" }}>Discussion</Text>
       <Text style={{ color: colors.foregroundMuted, fontSize: 13 }}>@mate selects one recipient. #project adds context. Shared messages without @ go to FirstMate.</Text>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-        <OptionPicker inline label="Discussion scope" title="Choose a discussion" value={selected} options={[
+        {!initialScope ? <OptionPicker inline label="Discussion scope" title="Choose a discussion" value={selected} options={[
           { value: "shared", label: "Shared stream", detail: "Untagged messages go to FirstMate" },
           ...snapshot.scopes.map(s => ({ value: s.id, label: s.title, detail: `${s.kind} · ${s.id} · ${s.session}` }))
-        ]} onSelect={select} theme={theme} compact={compact} />
+        ]} onSelect={select} theme={theme} compact={compact} /> : null}
         <Button label="Refresh" theme={theme} onPress={() => { refresh(); void conversations.refetch(); }} />
         <Button label={showStatus ? "Hide details" : "Details"} expanded={showStatus} theme={theme} onPress={() => setShowStatus(v => !v)} />
       </View>

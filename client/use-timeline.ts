@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 
 import type { TimelinePage, TimelineEntry } from "./transcript-rows";
 import { mergeTimelineHistory } from "./timeline-history";
+import { chatReturnState } from "./chat-return";
 
 /** Wait for a pause in the stream before re-reading, so one burst is one read. */
 const QUIET_MS = 300;
@@ -35,16 +36,17 @@ export interface AgentTimeline {
  * during it coalesce into a single follow-up, and the ceiling keeps a turn
  * that streams without pause from freezing the pane.
  */
-export function useAgentTimeline(agentId: string | null, revision = "", limit = 150): AgentTimeline {
+export function useAgentTimeline(agentId: string | null, revision = "", limit = 150, returnKey?: string): AgentTimeline {
   const paseo = usePaseo();
+  const saved = returnKey ? chatReturnState(returnKey) : undefined;
   /** The current subscription's re-read, for the revision effect below. */
   const reread = useRef<() => void>(() => {});
   const older = useRef<(beforeCommit?: BeforeHistoryCommit) => void>(() => {});
-  const [entries, setEntries] = useState<TimelineEntry[]>([]);
-  const [agent, setAgent] = useState<TimelinePage["agent"]>(null);
-  const [hasOlder, setHasOlder] = useState(false);
+  const [entries, setEntries] = useState<TimelineEntry[]>(() => saved?.timeline?.entries ?? []);
+  const [agent, setAgent] = useState<TimelinePage["agent"]>(() => saved?.timeline?.agent ?? null);
+  const [hasOlder, setHasOlder] = useState(saved?.timeline?.hasOlder ?? false);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(agentId !== null);
   const [loadingOlder, setLoadingOlder] = useState(false);
 
   useEffect(() => {
@@ -58,8 +60,8 @@ export function useAgentTimeline(agentId: string | null, revision = "", limit = 
       return;
     }
     const timeline = paseo.agents.ref(agentId).timeline;
-    let kept: TimelinePage | null = null;
-    let keepHistory = false;
+    let kept: TimelinePage | null = saved?.timeline ?? null;
+    let keepHistory = saved?.history ?? false;
     let alive = true;
     let inFlight = false;
     let queued = false;
@@ -96,6 +98,7 @@ export function useAgentTimeline(agentId: string | null, revision = "", limit = 
         if (before && (page.staleCursor || page.reset || page.gap || page.epoch !== kept?.epoch)) {
           kept = null;
           keepHistory = false;
+          if (saved) { delete saved.timeline; delete saved.history; }
           queued = true;
           return;
         }
@@ -108,6 +111,7 @@ export function useAgentTimeline(agentId: string | null, revision = "", limit = 
           );
         }
         kept = keepHistory ? mergeTimelineHistory(kept, page) : page;
+        if (saved) { saved.timeline = kept; saved.history = keepHistory; }
         setEntries(kept.entries);
         if (page.agent !== null) setAgent(page.agent);
         setHasOlder(kept.hasOlder);
@@ -150,7 +154,7 @@ export function useAgentTimeline(agentId: string | null, revision = "", limit = 
       unsubscribe();
       older.current = () => {};
     };
-  }, [paseo, agentId, limit]);
+  }, [paseo, agentId, limit, returnKey]);
 
   /**
    * A second way in, for whatever the stream did not say: the caller passes

@@ -33,7 +33,8 @@ import {
   restoreFailed,
   type PendingAttachment,
 } from "./attachments";
-import { drafts, scopeUiKey } from "./draft";
+import { drafts } from "./draft";
+import { chatReturnKey, chatReturnState } from "./chat-return";
 import { discussionRequest, type DecisionDiscussion } from "./decision-discussion";
 import { lookupIn, recentCandidates } from "./file-links";
 import { useFollowEnd } from "./follow-end";
@@ -50,8 +51,7 @@ import { ATTACHMENTS_ONLY, transcriptRows, type TranscriptRow } from "./transcri
 import { IconButton, JumpToEnd, MONOSPACE, Spinner, errorText } from "./ui";
 import { useKeyboardOverlap } from "./keyboard";
 import { useAgentTimeline } from "./use-timeline";
-import { ScopeDiscussion } from "./scope-discussion";
-import { useScopeSnapshot } from "./scope-query";
+import { ChatDestination, type ScopeRequest } from "./chat-destination";
 import { useWorkspaceFileLink } from "./workspace-file-link";
 import { cacheSentImages, canAttachFiles, pickFiles, receiveFiles, type OfferedFile } from "./web";
 
@@ -106,23 +106,10 @@ function useHomeFileLinks(rows: readonly TranscriptRow[]) {
   return useMemo(() => lookupIn(answer ?? {}), [answer]);
 }
 
-/** The separate read-only gate enables this UI. Restoration retains scoped intent even
- * when both the component and query cache were lost; an unavailable target cannot become General. */
+/** Feature availability never selects a conversation. Only an explicit route can. */
 export function MateChat(props: Parameters<typeof GeneralMateChat>[0]) {
-  const hostId = props.imageContext?.serverId ?? "local", homeId = props.imageContext?.home ?? props.scopeRequest?.homeId ?? "";
-  const scopes = useScopeSnapshot(hostId, homeId);
-  const enabled = useSyncExternalStore(drafts.subscribe, () => drafts.get(scopeUiKey(hostId, homeId)));
-  if (scopes.data?.uiEnabled || enabled || props.scopeRequest) {
-    if (!scopes.data) return <View style={{ padding: 16, gap: 12 }}>
-      <Text style={{ color: props.theme.colors.statusDanger }}>Scopes unavailable. Refresh before sending.</Text>
-      <IconButton icon="RefreshCw" label="Refresh discussion scopes" showLabel theme={props.theme} disabled={scopes.isFetching} onPress={() => { void scopes.refetch(); }} />
-    </View>;
-    if (props.scopeRequest && props.scopeRequest.homeId !== scopes.data.homeId) return <Text style={{ color: props.theme.colors.statusDanger }}>This discussion belongs to a different home. Open its original host and home.</Text>;
-    if (!scopes.data.uiEnabled) return <Text style={{ color: props.theme.colors.foregroundMuted }}>Scoped discussion controls are disabled pending activation.</Text>;
-    return <ScopeDiscussion key={`${props.imageContext?.serverId}:${scopes.data.homeId}`} snapshot={scopes.data} offline={!!scopes.error}
-      hostId={props.imageContext?.serverId ?? "local"} theme={props.theme} compact={props.compact} navigation={props.navigation} initialScope={props.scopeRequest?.scopeId} refresh={() => { void scopes.refetch(); }} />;
-  }
-  return <GeneralMateChat {...props} />;
+  const key = chatReturnKey(props.imageContext?.serverId ?? "local", props.imageContext?.home ?? "", props.mate.id);
+  return <ChatDestination {...props}>{active => <GeneralMateChat key={key} {...props} active={active && props.active !== false} />}</ChatDestination>;
 }
 
 function GeneralMateChat({
@@ -137,6 +124,7 @@ function GeneralMateChat({
   discussion = null,
   onReturnDecision,
   onDismissDiscussion,
+  active = true,
 }: {
   mate: AgentSummary;
   /** When this first mate took the helm; decisions raised before it are not its own. */
@@ -152,7 +140,9 @@ function GeneralMateChat({
   discussion?: DecisionDiscussion | null;
   onReturnDecision?: () => void;
   onDismissDiscussion?: () => void;
-  scopeRequest?: { scopeId: string; homeId: string } | undefined;
+  scopeRequest?: ScopeRequest | undefined;
+  onDismissScope?: (() => void) | undefined;
+  active?: boolean;
 }) {
   const toast = useToast();
   const [toolbarWidth, setToolbarWidth] = useState(0);
@@ -160,15 +150,22 @@ function GeneralMateChat({
   const workspaceLinks = useWorkspaceFileLink(theme, navigation, imageContext ?? {});
   /** Shared with the surface's suggestion buttons: one message on its way at a time — see `./mate-send`. */
   const { sending, send, command: sendMateCommand } = useMateSender(mate.id);
-  const timeline = useAgentTimeline(mate.id, `${mate.updatedAt}:${mate.pendingPermissions}`);
+  const returnKey = chatReturnKey(imageContext?.serverId ?? "local", imageContext?.home ?? "", mate.id);
+  const returnState = chatReturnState(returnKey);
+  const timeline = useAgentTimeline(mate.id, `${mate.updatedAt}:${mate.pendingPermissions}`, 150, returnKey);
   /** Decisions the first mate raised show once, as cards from the Needs-you snapshot — see `./decision-raised`. */
   const decisions = useNeedsYou();
   const plans = useWorkflowPlans();
   const discussing = discussionRequest(discussion, decisions.data, mate.id, decisions.error !== null);
   const composer = useRef<TextInput>(null);
+  const wasActive = useRef(active);
   useEffect(() => {
-    if (discussion?.mateId === mate.id) composer.current?.focus();
-  }, [discussion, mate.id]);
+    if (active && !wasActive.current) composer.current?.focus();
+    wasActive.current = active;
+  }, [active]);
+  useEffect(() => {
+    if (active && discussion?.mateId === mate.id) composer.current?.focus();
+  }, [discussion, mate.id, active]);
   // Stable ledger versions keep derived references in place across polls and reconnects.
   const rows = useMemo(
     () => withPlanReviews(withRaisedDecisions(transcriptRows(timeline.entries), timeline.entries, decisions.data, mateSince), timeline.entries, plans.snapshot, mateSince),
@@ -178,7 +175,7 @@ function GeneralMateChat({
   useSyncExternalStore(sentImages.subscribe, sentImages.version);
   const groups = useMemo(() => groupRows(rows), [rows]);
   const files = useHomeFileLinks(rows);
-  const follow = useFollowEnd();
+  const follow = useFollowEnd(returnState);
   /** What the first mate is waiting on — a question, a permission, a plan. */
   const { pending, respond } = usePendingRequests(mate.id, timeline.agent?.pendingPermissions, follow.pin);
 
@@ -210,7 +207,8 @@ function GeneralMateChat({
   }, [mate.id]);
   /** A drag carrying files is over the chat. */
   const [dragging, setDragging] = useState(false);
-  const [openGroups, setOpenGroups] = useState<ReadonlySet<string>>(new Set());
+  const [openGroups, setOpenGroups] = useState<ReadonlySet<string>>(() => returnState.openGroups ?? new Set());
+  useEffect(() => { returnState.openGroups = openGroups; }, [returnState, openGroups]);
   const pane = useRef<View>(null);
   /** The keyboard's cover over this pane; padding it away lifts the composer above the keyboard. */
   const keyboard = useKeyboardOverlap(pane);
@@ -494,7 +492,7 @@ function GeneralMateChat({
     <View ref={pane} style={[styles.pane, { paddingBottom: keyboard }]}>
       {workspaceLinks.dialog}
       <View style={styles.transcript}>
-        <ScrollView {...follow.scrollProps} style={styles.scroller} contentContainerStyle={styles.transcriptBody}>
+        <ScrollView testID="firstmate-transcript" {...follow.scrollProps} style={styles.scroller} contentContainerStyle={styles.transcriptBody}>
           {timeline.hasOlder ? (
             <IconButton
               theme={theme}

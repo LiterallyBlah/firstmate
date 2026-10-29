@@ -1,0 +1,44 @@
+import { act, createElement } from "react";
+import { create, type ReactTestRenderer } from "react-test-renderer";
+import { afterEach, expect, it, vi } from "vitest";
+import { attentionTheme } from "../test/attention-deck-fixture";
+import { ReadProgress } from "./read-progress";
+import { visibleText } from "../test/visible-text";
+vi.mock("react-native", () => ({ View: "View", Text: "Text", Pressable: "Pressable" }));
+let tree: ReactTestRenderer;
+afterEach(async () => { await act(async () => tree?.unmount()); vi.useRealTimers(); });
+it("announces neutral 1/8/30 second transitions once and offers only an explicit read retry", async () => {
+  vi.useFakeTimers(); const retry = vi.fn();
+  const render = (failed = false, fetching = true) => createElement(ReadProgress, { theme: attentionTheme, pending: !failed, failed, fetching, onRetry: retry });
+  await act(async () => { tree = create(render()); });
+  await act(async () => vi.advanceTimersByTime(1000));
+  expect(visibleText(tree.toJSON())).toContain("Getting FirstMate ready…");
+  expect(tree.root.findAllByProps({ accessibilityLiveRegion: "polite" })).toHaveLength(1);
+  await act(async () => vi.advanceTimersByTime(7000));
+  expect(visibleText(tree.toJSON())).toContain("taking a little longer");
+  expect(tree.root.findAllByProps({ accessibilityLabel: "Try again" })).toHaveLength(0);
+  await act(async () => vi.advanceTimersByTime(22000));
+  expect(visibleText(tree.toJSON())).not.toContain("Can't connect");
+  expect(tree.root.findByProps({ accessibilityLabel: "Try again" }).props.disabled).toBe(false);
+  expect(retry).not.toHaveBeenCalled();
+  await act(async () => tree.update(render(true, false)));
+  expect(visibleText(tree.toJSON())).toContain("Can't connect to FirstMate right now. Try again.");
+  await act(async () => tree.root.findByProps({ accessibilityLabel: "Try again" }).props.onPress());
+  expect(retry).toHaveBeenCalledOnce();
+});
+
+it("inherits a pending source's deadlines when mounted late or reopened", async () => {
+  vi.useFakeTimers(); vi.setSystemTime(100000);
+  const render = () => createElement(ReadProgress, { theme: attentionTheme, pending: true, pendingSince: 100000, quietInitially: true, onRetry() {} });
+  await act(async () => { tree = create(render()); });
+  expect(tree.toJSON()).toBeNull();
+  await act(async () => vi.advanceTimersByTime(8000));
+  expect(visibleText(tree.toJSON())).toContain("taking a little longer");
+  expect(tree.root.findAllByProps({ accessibilityLabel: "Try again" })).toHaveLength(0);
+  await act(async () => tree.unmount());
+  await act(async () => vi.advanceTimersByTime(22000));
+  await act(async () => { tree = create(render()); });
+  expect(tree.root.findByProps({ accessibilityLabel: "Try again" }).props.disabled).toBe(false);
+  expect(tree.root.findAllByProps({ accessibilityLiveRegion: "polite" })).toHaveLength(1);
+  expect(visibleText(tree.toJSON())).not.toContain("Can't connect");
+});

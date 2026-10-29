@@ -2,6 +2,7 @@ import { decisionClock } from "./decision-copy";
 import type { NeedsYouRequest, NeedsYouSnapshot } from "../shared/needs-you";
 import type { Suggestion } from "../shared/fleet";
 import type { DecisionIntent } from "./decision-discussion";
+import type { DecisionReadState } from "./decision-read-state";
 
 export type DecisionDestination = {
   /** A server request id, or the client destinations next, empty and all. */
@@ -42,7 +43,11 @@ export function routeDecision(
 export function indicatorState(
   snapshot: NeedsYouSnapshot | undefined,
   offline = false,
+  read: DecisionReadState = {},
 ) {
+  offline = offline || read.error === true || read.readiness === "failed";
+  const loading = !offline && (!snapshot || read.readiness === "loading");
+  const updating = !offline && !!snapshot && read.fetching === true;
   const recordedCount =
     snapshot?.freshness.status === "unknown" ||
     snapshot?.freshness.status === "disabled"
@@ -51,12 +56,12 @@ export function indicatorState(
   const partialPlans = recordedCount === null && (snapshot?.planNow?.length ?? 0) > 0;
   const partialScoped = recordedCount === null ? (snapshot?.scopedDecisions?.filter(r => r.ready).length ?? 0) + new Set(snapshot?.scopedHolds?.map(h => h.planId)).size : 0;
   const partialCount = partialPlans || partialScoped > 0;
-  const unavailablePlans = !!snapshot?.planProblems?.length || snapshot?.scopedComplete === false;
+  const unavailablePlans = !!snapshot?.planProblems?.length || snapshot?.scopedComplete === false || read.readiness === "partial";
   const count = partialCount ? (partialPlans ? snapshot!.planNow!.length : 0) + partialScoped : unavailablePlans && recordedCount === 0 ? null : recordedCount;
-  const fresh = !offline && snapshot?.freshness.status === "fresh" && !unavailablePlans;
+  const fresh = !offline && !loading && !updating && snapshot?.freshness.status === "fresh" && !unavailablePlans;
   const newCount = snapshot?.newCount ?? 0;
   const status = offline ? "stale" : (snapshot?.freshness.status ?? "unknown");
-  const problems = decisionProblems(snapshot, offline);
+  const problems = decisionProblems(snapshot, offline, read);
   const explanation =
     problems.slice(0, 3).join(" ") +
     (problems.length > 3
@@ -70,7 +75,7 @@ export function indicatorState(
         : ""
       : status === "disabled"
         ? "disabled"
-        : count === null
+        : count === null && !loading
           ? "unavailable"
           : "",
     snapshot?.pendingAnswerCount
@@ -84,29 +89,36 @@ export function indicatorState(
     .filter(Boolean)
     .join(" · ");
   return {
+    loading,
+    updating,
+    partialPlans,
+    partialScoped,
+    failed: offline,
     count,
     newCount,
     fresh,
     amber: count !== null && count > 0,
     filled: fresh && newCount > 0,
     stale: !fresh && count !== null,
-    unavailable: count === null,
+    unavailable: count === null && !loading,
     label:
-      count === null
+      loading && count === null ? "Loading decisions…" : count === null
         ? "Can't read decisions"
         : count === 0 && fresh
           ? "Nothing needs you"
-          : `Needs you · ${count}${unavailablePlans ? "+ · some plans unavailable" : partialScoped ? "+ · known actions only" : partialPlans ? "+ · plans only" : ""}${!fresh && snapshot?.freshness.asOf != null ? ` · as of ${decisionClock(snapshot.freshness.asOf)}` : ""}`,
-    badge: count === null ? "!" : `${count}${partialCount || unavailablePlans ? "+" : ""}`,
+          : `Needs you · ${count}${unavailablePlans ? "+ · some plans unavailable" : partialScoped ? "+ · known actions only" : partialPlans ? "+ · plans only" : ""}${!fresh && snapshot?.freshness.asOf != null ? ` · as of ${decisionClock(snapshot.freshness.asOf)}` : ""}${offline ? " · offline" : updating ? " · Updating…" : loading ? " · checking the rest" : ""}`,
+    badge: count === null ? loading ? "…" : "!" : `${count}${partialCount || unavailablePlans ? "+" : ""}`,
     extra,
-    accessibilityLabel: `Needs you, ${count === null ? "count unavailable" : unavailablePlans ? `at least ${count} items; some plans unavailable` : partialScoped ? `at least ${count} known actions; other decisions unavailable` : partialPlans ? `at least ${count} plan actions; other decisions unavailable` : `${count} items`}${extra ? `, ${extra}` : ""}${!fresh && count !== null && snapshot?.freshness.asOf != null ? `, as of ${decisionClock(snapshot.freshness.asOf)}` : ""}. ${explanation}${explanation ? " " : ""}Open decisions`,
+    accessibilityLabel: `Needs you, ${loading && count === null ? "loading decisions" : count === null ? "count unavailable" : unavailablePlans ? `at least ${count} items; some plans unavailable` : partialScoped ? `at least ${count} known actions; other decisions unavailable` : partialPlans ? `at least ${count} plan actions; other decisions unavailable` : `${count} items`}${extra ? `, ${extra}` : ""}${!fresh && count !== null && snapshot?.freshness.asOf != null ? `, as of ${decisionClock(snapshot.freshness.asOf)}` : ""}${updating ? ", updating" : ""}. ${explanation}${explanation ? " " : ""}Open decisions`,
   };
 }
 
 export function decisionProblems(
   snapshot: NeedsYouSnapshot | undefined,
   offline = false,
+  read: DecisionReadState = {},
 ): string[] {
+  offline = offline || read.error === true || read.readiness === "failed";
   return [
     ...new Set([
       ...(snapshot?.planProblems ?? []),
@@ -126,7 +138,7 @@ export function decisionProblems(
               : "FirstMate cannot confirm the backlog. The last known decisions are read-only.",
           ]
         : []),
-      ...(!snapshot ? ["Decision data is unavailable from the host."] : []),
+      ...(!snapshot && offline ? ["Decision data is unavailable from the host."] : []),
     ]),
   ];
 }
@@ -143,18 +155,12 @@ export function completeEmptyInbox(snapshot: NeedsYouSnapshot | undefined, offli
 export function decisionCountText(
   snapshot: NeedsYouSnapshot | undefined,
   offline = false,
+  read: DecisionReadState = {},
 ): string {
-  if (snapshot?.planProblems?.length || (snapshot?.actionCount == null && snapshot?.planNow?.length)) {
-    const state = indicatorState(snapshot, offline);
-    return state.count === null ? "unavailable" : `${state.badge} · ${snapshot?.planProblems?.length ? "some plans unavailable" : "plans only"}`;
-  }
-  if (
-    snapshot?.actionCount == null ||
-    snapshot.freshness.status === "unknown" ||
-    snapshot.freshness.status === "disabled"
-  )
-    return "unavailable";
-  return `${snapshot.actionCount}${offline || snapshot.freshness.status !== "fresh" ? " · stale" : ""}`;
+  const state = indicatorState(snapshot, offline, read);
+  if (state.count === null) return state.loading ? "Loading decisions…" : "unavailable";
+  const aged = state.failed || state.loading || state.updating || snapshot?.freshness.status !== "fresh";
+  return `${state.badge}${snapshot?.planProblems?.length || snapshot?.scopedComplete === false || read.readiness === "partial" ? " · some plans unavailable" : state.partialScoped ? " · known actions only" : state.partialPlans ? " · plans only" : ""}${aged && snapshot?.freshness.asOf != null ? ` · as of ${decisionClock(snapshot.freshness.asOf)}` : aged ? " · stale" : ""}${state.updating ? " · Updating…" : ""}`;
 }
 /** Queue is unfiltered and never changes an already selected ID. */
 export function decisionQueue(requests: readonly NeedsYouRequest[]) {

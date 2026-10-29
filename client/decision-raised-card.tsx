@@ -16,6 +16,8 @@ import { raisedChoices, raisedStatus, raisedWarning } from "./decision-raised";
 import { useMateSender } from "./mate-send";
 import { useDecisionChanged } from "./needs-you-query";
 import { decisionDraftKey, decisionSession } from "./needs-you-state";
+import { useDecisionReadState } from "./decision-read-context";
+import { decisionClock } from "./decision-copy";
 
 function submissionId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
@@ -51,6 +53,8 @@ export function DecisionRaisedCard({
   const submission = useRef<{ text: string; id: string } | null>(null);
   const [notice, setNotice] = useState("");
   const colors = theme.colors;
+  const read = useDecisionReadState();
+  offline = offline || read.error === true || read.readiness === "failed";
   const status = raisedStatus(request);
   const warning = raisedWarning(snapshot, request, offline);
   const fresh =
@@ -135,6 +139,7 @@ export function DecisionRaisedCard({
       <Text style={{ color: status.settled ? colors.foregroundMuted : colors.statusWarning, fontSize: 12 }}>
         {status.label}
       </Text>
+      {read.fetching && !offline ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>Updating…{snapshot.freshness.asOf != null ? ` · as of ${decisionClock(snapshot.freshness.asOf)}` : ""}</Text> : null}
       <Text
         selectable
         style={{

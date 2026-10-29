@@ -11,6 +11,7 @@ import { createFirstMateMotion, firstMateFigure, moveFirstMate } from "./deck-fi
 import { walkable } from "./deck-geometry";
 import { deckDecisionLabel } from "./deck-decisions";
 import { SettingManifestSchema } from "../shared/deck-setting";
+import { planDecisionNeed } from "../test/plan-decision-fixture";
 
 describe("the Deck's daemon-owned decisions", () => {
   it("puts an actionable running worker at the bow, failures/permissions/review at the wheel, and leaves work and parked crew in their places", () => {
@@ -102,6 +103,13 @@ describe("the Deck's daemon-owned decisions", () => {
     expect(snapped.moving).toBe(false);
   });
   it("keeps clear, stale and unavailable totals explicit without empty new-count copy", () => {
+    expect(deckDecisionLabel(undefined, false, true, { pending: true })).toBe("Loading decisions…");
+    expect(deckDecisionLabel(undefined, false, true, { error: true })).toBe("Can't read decisions");
+    expect(deckDecisionLabel(attentionSnapshot(), false, true, { fetching: true })).toContain("Updating…");
+    expect(deckDecisionLabel({ ...attentionSnapshot(), scopedComplete: false })).toContain("2+");
+    const plansOnly = { ...attentionSnapshot([]), actionCount: null, planNow: [planDecisionNeed()] };
+    plansOnly.freshness.status = "disabled";
+    expect(deckDecisionLabel(plansOnly)).toContain("1+ · plans only");
     expect(deckDecisionLabel(attentionSnapshot())).toBe("2 need you");
     expect(deckDecisionLabel(attentionSnapshot([]))).toBe("Nothing needs you");
     const stale = attentionSnapshot(); stale.freshness.status = "stale";

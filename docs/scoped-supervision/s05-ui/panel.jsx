@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { MateChat } from "../../../client/chat";
+import { useScopeSnapshot } from "../../../client/scope-query";
 import { ScopeDiscussion } from "../../../client/scope-discussion";
 import { ScopedNeeds } from "../../../client/scoped-needs";
 import { ScopeInboxFilters } from "../../../client/scope-inbox-filters";
@@ -16,6 +17,10 @@ const light = { colors: { surface0: "#ffffff", surface1: "#f4f6f5", surface2: "#
   accent: "#17603b", accentForeground: "#ffffff", statusWarning: "#79551f", statusDanger: "#a32d25", statusSuccess: "#24653d" } };
 const params = new URLSearchParams(location.search), theme = params.get("theme") === "light" ? light : dark, phone = innerWidth < 600;
 const client = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false }, mutations: { retry: false } } });
+function DiscussionFixture({ navigation }) {
+  const scopes = useScopeSnapshot("local", homeId);
+  return scopes.data ? <ScopeDiscussion snapshot={scopes.data} hostId="local" theme={theme} compact={phone} refresh={() => { void scopes.refetch(); }} navigation={navigation} /> : null;
+}
 function App() {
   const [generation, remount] = useState(0), read = useRpc(readScopeNeeds);
   const [filter, setFilter] = useState({ kind: "all" });
@@ -23,9 +28,11 @@ function App() {
   window.dropScopeCache = () => { client.removeQueries({ queryKey: ["firstmate", "scope-read"] }); remount(v => v + 1); };
   const decisions = useQuery({ queryKey: NEEDS_YOU_QUERY_KEY, queryFn: () => read({}) });
   const navigation = { openAgent: input => window.scopeActions.push({ name: "navigation.openAgent", input }) };
-  const chat = params.has("absent") ? <ScopeDiscussion key={generation} snapshot={{ ...snapshot, scopes: snapshot.scopes.map(s => s.id === "general" ? { ...s, target: { ...s.target, agentId: null }, session: "not-created" } : s) }}
-    hostId="local" theme={theme} compact={phone} refresh={() => {}} navigation={navigation} /> :
-    <MateChat key={generation} mate={fleet.mate} theme={theme} compact={phone} onChanged={() => {}} onOpenFile={() => {}} imageContext={{ serverId: "local", home: params.has("restored") ? homeId.toUpperCase() : homeId }} navigation={navigation} />;
+  // Scoped adapter cases mount it explicitly. General's default transcript is covered by smooth-rollout.
+  const chat = !params.has("restored") && !params.has("before") ? params.has("absent") ? <ScopeDiscussion key={generation} snapshot={{ ...snapshot, scopes: snapshot.scopes.map(s => s.id === "general" ? { ...s, target: { ...s.target, agentId: null }, session: "not-created" } : s) }}
+    hostId="local" theme={theme} compact={phone} refresh={() => {}} navigation={navigation} /> : <DiscussionFixture key={generation} navigation={navigation} /> :
+    <MateChat key={generation} mate={fleet.mate} theme={theme} compact={phone} onChanged={() => {}} onOpenFile={() => {}}
+      scopeRequest={params.has("restored") ? { homeId, scopeId: "00000000-0000-4000-8000-000000000101" } : undefined} imageContext={{ serverId: "local", home: homeId.toUpperCase() }} navigation={navigation} />;
   return <div style={{ height: "100vh", width: "100%", display: "flex", background: theme.colors.surface0, color: theme.colors.foreground }}>
     {params.has("decisions") ? <div style={{ width: "100%", maxWidth: 760, margin: "auto", padding: 16, overflow: "auto", maxHeight: "100vh" }}>
       {params.has("maintenance") && decisions.data ? <><ScopeInboxFilters snapshot={decisions.data} value={filter} onChange={setFilter} theme={theme} compact={phone} />

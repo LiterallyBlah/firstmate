@@ -7,6 +7,7 @@ import { emptyLedger, mutateNeedsYou, needsYouSnapshot, reconcileNeedsYou } from
 import type { NeedsYouSnapshot } from "../shared/needs-you";
 import { attentionTheme } from "../test/attention-deck-fixture";
 import { decisionDraftKey, decisionSession } from "./needs-you-state";
+import { DecisionReadContext } from "./decision-read-context";
 
 vi.mock("react-native", () => ({ Pressable: "Pressable", Text: "Text", View: "View" }));
 vi.mock("@getpaseo/plugin/client/react-native", () => ({ useToast: () => ({ show() {}, error() {} }) }));
@@ -69,6 +70,18 @@ async function render(snapshot: NeedsYouSnapshot, offline = false) {
 }
 const text = (tree: ReactTestRenderer) => JSON.stringify(tree.toJSON());
 const warning = (tree: ReactTestRenderer) => tree.root.findAll((node) => node.props.testID === "decision-raised-warning");
+
+it("retains the question and timestamp during refresh, and disables answers after a confirmed read failure", async () => {
+  const snapshot = snapshotWithChoice();
+  const tree = (error: boolean) => createElement(QueryClientProvider, { client }, createElement(DecisionReadContext.Provider, { value: { fetching: !error, error } },
+    createElement(DecisionRaisedCard, { theme: attentionTheme, request: snapshot.requests[0]!, snapshot, mateId: "mate", compact: true })));
+  await act(async () => { renderer = create(tree(false)); });
+  expect(text(renderer!)).toContain("Updating…"); expect(text(renderer!)).toContain("as of");
+  expect(text(renderer!)).toContain("Light or Atlas?");
+  await act(async () => renderer!.update(tree(true)));
+  expect(renderer!.root.findByProps({ accessibilityLabel: "Choose: Atlas" }).props.disabled).toBe(true);
+  expect(rpc.answer).not.toHaveBeenCalled();
+});
 
 describe("a raised decision's card, when its data may be out of date", () => {
   it("warns beside the retained question when this task's line could not be read, and disables its answers", async () => {

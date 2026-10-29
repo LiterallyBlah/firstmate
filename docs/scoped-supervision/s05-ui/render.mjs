@@ -31,17 +31,16 @@ async function choose(page, label) {
 // R05 reproductions use the real components; remove query state, not durable draft/selection state.
 async function restoredScope(page, theme, device) {
   await page.goto(`${origin}/?restored&theme=${theme}`); await page.getByTestId("scope-discussion").waitFor();
-  await choose(page, "Reader pass");
   const composer = page.getByRole("textbox", { name: "Message recipient" });
   await composer.fill("@reader-pass Please explain this plan");
   await page.evaluate(() => { window.failScopeRead = true; window.dropScopeCache(); });
-  await page.getByText("Scopes unavailable. Refresh before sending.", { exact: true }).waitFor();
+  await page.getByText("This conversation couldn't be checked. Try again before sending.", { exact: true }).waitFor();
   assert.equal(await page.getByRole("textbox", { name: "Message the first mate" }).count(), 0);
   assert.equal(await page.evaluate(() => window.fixtureCalls.filter(c => c.name === "firstmate.mate.ask").length), 0);
   assert.equal(await page.evaluate(() => window.scopeActions.filter(a => /discuss|answer|activate/.test(a.name)).length), 0);
   await page.screenshot({ path: resolve(out, `${theme}-${device}-restored-unavailable.png`) });
   await page.evaluate(() => { window.failScopeRead = false; });
-  await page.getByRole("button", { name: "Refresh discussion scopes", exact: true }).click();
+  await page.getByRole("button", { name: "Refresh conversation", exact: true }).click();
   await composer.waitFor(); assert.equal(await composer.inputValue(), "@reader-pass Please explain this plan");
   await page.getByText("To Reader pass", { exact: true }).waitFor();
   await page.getByRole("button", { name: "Send", exact: true }).click();

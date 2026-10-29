@@ -8,6 +8,7 @@ import { useEffect } from "react";
 import { FLEET_SCREEN_ID } from "./screen";
 import { NeedsYouBadge } from "./needs-you";
 import { useNeedsYou } from "./needs-you-query";
+import { decisionReadState } from "./decision-read-state";
 import {
   decisionRoute,
   decisionSession,
@@ -43,6 +44,7 @@ export function FleetSidebarItem({
           theme={theme}
           snapshot={query.data}
           offline={query.error !== null}
+          readState={decisionReadState(query)}
         />
       }
       onPress={() =>

@@ -9,8 +9,18 @@ import type { TimelineEntry } from "./transcript-rows";
 import { compactPlansFixture } from "../test/compact-plans-fixture";
 import { drafts } from "./draft";
 import { pendingAttachments } from "./attachments";
+import type { ScopeSnapshot } from "../shared/supervision-rpc";
+import { scopeUiKey } from "./draft";
+const scopeFixture: ScopeSnapshot = { homeId: "/home", sequence: 1, freshness: "current", asOf: "2026-10-29T09:00:00Z", uiEnabled: true, executionEnabled: true, problems: [], projects: [], scopes: [{
+  id: "project-mate", kind: "project", title: "Reader mate", aliases: [], planId: null, discussionOnly: true,
+  target: { homeId: "/home", scopeId: "project-mate", scopeVersion: 1, epoch: 1, agentId: "project-agent" },
+  hostId: "local", workspaceId: "project-workspace", state: "active", coverage: "complete", session: "dormant", observedAt: null,
+  lastEffectFailure: null, goals: [], activeWorkers: 0, activeEffects: 0, uncertainEffects: 0,
+}] };
 
-const state = vi.hoisted(() => ({ snapshot: null as NeedsYouSnapshot | null, plans: undefined as WorkflowSnapshot | undefined, entries: [] as TimelineEntry[], openPlan: vi.fn(), send: vi.fn(), focus: vi.fn() }));
+const state = vi.hoisted(() => ({ snapshot: null as NeedsYouSnapshot | null, plans: undefined as WorkflowSnapshot | undefined, entries: [] as TimelineEntry[], scopes: undefined as ScopeSnapshot | undefined, scopeError: null as Error | null, keyboard: 0, keepAtEnd: vi.fn(), openPlan: vi.fn(), send: vi.fn(), focus: vi.fn() }));
+vi.mock("./scope-query", () => ({ useScopeSnapshot: () => ({ data: state.scopes, error: state.scopeError, refetch: vi.fn() }) }));
+vi.mock("./scope-discussion", () => ({ ScopeDiscussion: (props: object) => createElement("ScopeDiscussion", props) }));
 vi.mock("react-native", () => ({ Platform: { OS: "web" }, ...Object.fromEntries(["View", "Text", "Pressable", "ScrollView", "SafeAreaView", "Image"].map(name => [name, name])) }));
 vi.mock("@getpaseo/plugin/client", () => ({ useRpc: () => async () => ({}), openExternalUrl() {} }));
 vi.mock("@getpaseo/plugin/client/react-native", () => ({ TextInput: "TextInput", Icon: () => null, useToast: () => ({ error() {} }) }));
@@ -18,8 +28,8 @@ vi.mock("./needs-you-query", () => ({ useNeedsYou: () => ({ data: state.snapshot
 vi.mock("./use-timeline", () => ({ useAgentTimeline: () => ({ entries: state.entries, error: null, hasOlder: false, loading: false }) }));
 vi.mock("./workflow-plans", () => ({ useWorkflowPlans: () => ({ snapshot: state.plans, open: state.openPlan }) }));
 vi.mock("./permission-card", () => ({ usePendingRequests: () => ({ pending: [], respond() {} }), PermissionCard: () => null }));
-vi.mock("./follow-end", () => ({ useFollowEnd: () => ({ scrollProps: {}, away: false, pin() {} }) }));
-vi.mock("./keyboard", () => ({ useKeyboardOverlap: () => 0 }));
+vi.mock("./follow-end", () => ({ useFollowEnd: () => ({ scrollProps: {}, away: false, pin() {}, keepAtEnd: state.keepAtEnd }) }));
+vi.mock("./keyboard", () => ({ useKeyboardOverlap: () => state.keyboard }));
 vi.mock("./workspace-file-link", () => ({ useWorkspaceFileLink: () => ({ dialog: null }) }));
 vi.mock("./mate-send", () => ({ useMateSender: () => ({ send: state.send, sending: false, command: state.send }) }));
 vi.mock("./mate-controls", () => ({ MateControls: () => null }));
@@ -54,6 +64,9 @@ afterEach(async () => {
   await act(async () => renderer?.unmount()); client?.clear();
   drafts.set(mate.id, ""); pendingAttachments.set(mate.id, []); vi.clearAllMocks();
   state.plans = undefined; state.entries = [];
+  state.scopes = undefined; state.scopeError = null;
+  state.keyboard = 0;
+  drafts.set(scopeUiKey("local", "/home"), "");
 });
 
 it.each([false, true])("opens one compact plan-ready reference from the actual chat (compact %s)", async compact => {
@@ -95,5 +108,57 @@ it("removes the return action when the reference becomes stale without changing 
   await act(async () => renderer.update(createElement(QueryClientProvider, { client }, createElement(MateChat, props))));
   expect(renderer.root.findAllByProps({ accessibilityLabel: "Back to the decision: release" })).toHaveLength(0);
   expect(renderer.root.findByType("TextInput" as never).props.value).toBe("About «release»: ");
+  expect(state.send).not.toHaveBeenCalled();
+});
+
+it("keeps the original chat through late enablement and old scope preference, then returns from only an explicit target", async () => {
+  drafts.set(mate.id, "Unfinished General draft");
+  const file = { id: "f", kind: "file" as const, fileName: "notes.txt", mimeType: "text/plain", size: 5, data: "aGVsbG8=" };
+  pendingAttachments.set(mate.id, [file]);
+  await render();
+  const inputValue = renderer.root.findByType("TextInput" as never).props.value;
+  state.scopes = structuredClone(scopeFixture) as ScopeSnapshot;
+  state.scopes.uiEnabled = true;
+  const contextual = state.scopes.scopes.find(s => s.kind !== "general")!;
+  const chatProps = { ...props, discussion: null, imageContext: { serverId: "local", home: "/home" } };
+  const tree = (scopeRequest?: { homeId: string; scopeId: string; navigationId?: string }) => createElement(QueryClientProvider, { client }, createElement(MateChat, { ...chatProps, scopeRequest }));
+  drafts.set(scopeUiKey("local", "/home"), "enabled");
+  await act(async () => renderer.update(tree()));
+  expect(renderer.root.findAllByType("ScopeDiscussion" as never)).toHaveLength(0);
+  expect(renderer.root.findByType("TextInput" as never).props.value).toBe(inputValue);
+  await act(async () => renderer.update(tree({ homeId: state.scopes!.homeId, scopeId: contextual.id })));
+  expect(renderer.root.findByType("ScopeDiscussion" as never).props.initialScope).toBe(contextual.id);
+  // General stays mounted, preserving attachments, disclosures, pagination and scroll refs.
+  expect(renderer.root.findByType("TextInput" as never).props.value).toBe("Unfinished General draft");
+  await act(async () => renderer.root.findByProps({ accessibilityLabel: "Back to FirstMate" }).props.onPress());
+  expect(renderer.root.findAllByType("ScopeDiscussion" as never)).toHaveLength(0);
+  expect(state.focus).toHaveBeenCalled();
+  expect(pendingAttachments.get(mate.id)).toEqual([file]);
+  await act(async () => renderer.update(tree({ homeId: state.scopes!.homeId, scopeId: contextual.id, navigationId: "second-explicit-open" })));
+  expect(renderer.root.findByType("ScopeDiscussion" as never).props.initialScope).toBe(contextual.id);
+  expect(state.send).not.toHaveBeenCalled();
+});
+
+it.each(["unavailable", "cross-home"])("keeps a restored %s route scoped until an explicit return", async kind => {
+  await render();
+  state.scopes = structuredClone(scopeFixture) as ScopeSnapshot;
+  state.scopes.uiEnabled = true;
+  const request = { scopeId: "missing-recipient", homeId: kind === "cross-home" ? "other-home" : state.scopes.homeId };
+  const tree = () => createElement(QueryClientProvider, { client }, createElement(MateChat, { ...props, scopeRequest: request }));
+  await act(async () => renderer.update(tree()));
+  expect(renderer.root.findAllByProps({ testID: "contextual-chat" })).toHaveLength(1);
+  expect(renderer.root.findAllByType("ScopeDiscussion" as never)).toHaveLength(0);
+  await act(async () => renderer.unmount());
+  await act(async () => { renderer = create(tree()); });
+  expect(renderer.root.findAllByProps({ testID: "contextual-chat" })).toHaveLength(1);
+  expect(state.send).not.toHaveBeenCalled();
+});
+it("keeps the phone composer above the keyboard and leaves Enter for a newline", async () => {
+  await render();
+  state.keyboard = 280;
+  await act(async () => renderer.update(createElement(QueryClientProvider, { client }, createElement(MateChat, { ...props, compact: true }))));
+  expect(renderer.root.findAll(node => node.type === ("View" as never) && Array.isArray(node.props.style) && node.props.style.some((style: { paddingBottom?: number }) => style?.paddingBottom === 280))).toHaveLength(1);
+  expect(state.keepAtEnd).toHaveBeenCalledOnce();
+  expect(renderer.root.findByType("TextInput" as never).props.onKeyPress).toBeUndefined();
   expect(state.send).not.toHaveBeenCalled();
 });

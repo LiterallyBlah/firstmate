@@ -5,6 +5,7 @@ import { TextInput as NativeTextInput } from "react-native-web";
 export { FlatList, ScrollView } from "react-native-web";
 import { icons } from "lucide-react";
 import { fleet, snapshot, entries } from "./fixtures";
+import { FirstmateConfigSchema } from "../../shared/fleet";
 
 export const defineRpc = (contract) => contract;
 export const defineSettings = (contract) => contract;
@@ -65,7 +66,9 @@ export function useRpc(contract) {
       switch (contract.name) {
         case "firstmate.config.read":
           return {
-            config: { migration: window.fixtureMigration ?? null, previousMateIds: window.fixtureHistory ?? [] },
+            resolvedHome: fleet.home,
+            config: { ...FirstmateConfigSchema.parse({ home: fleet.home, mateAgentId: fleet.mate?.id ?? "" }),
+              migration: window.fixtureMigration ?? null, previousMateIds: window.fixtureHistory ?? [] },
           };
         case "firstmate.mate.targets":
           return {
@@ -140,7 +143,11 @@ export function useSettings(contract) {
 }
 const paseo = {
   agents: {
-    ref: () => ({
+    ref: (id) => ({
+      refresh: async () => {
+        const agent = fleet.mate?.id === id ? fleet.mate : fleet.cards.find(card => card.agent?.id === id)?.agent;
+        return { agent: agent ? { ...agent, pendingPermissions: [], archivedAt: null } : null };
+      },
       timeline: {
         refetch: async () => ({
           entries,

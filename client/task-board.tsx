@@ -4,7 +4,8 @@ import type { FleetCard } from "../shared/fleet";
 import type { BoardDensity } from "../shared/settings";
 import type { NeedsYouSnapshot } from "../shared/needs-you";
 import { moveTaskColumn, orderedTaskColumns, type TaskColumn, type TaskLayout } from "../shared/task-layout";
-import { decisionCountText } from "./needs-you-state";
+import { decisionCountText, indicatorState } from "./needs-you-state";
+import { useDecisionReadState } from "./decision-read-context";
 import { CrewCard } from "./card";
 import { converseKey, conversingWith } from "./converse-layout";
 import { activeDecisions, matchingDecisionMessage, presentedTasks, waitingOver30Minutes, OWNER_LABELS, TASK_TITLES, type TaskOwner } from "./task-presentation";
@@ -30,6 +31,8 @@ export function TaskBoard(props: {
 }) {
   const { theme, snapshot, compact, layout } = props,
     colors = theme.colors;
+  const read = useDecisionReadState();
+  const decisionState = indicatorState(snapshot, props.offline, read);
   const tasks = presentedTasks(props.cards, snapshot),
     requests = activeDecisions(snapshot);
   const order = orderedTaskColumns(layout.order);
@@ -70,9 +73,9 @@ export function TaskBoard(props: {
   function column(id: TaskColumn) {
     const folded = layout.collapsed.includes(id),
       entries = tasks.filter((entry) => entry.summary.group === id);
-    const count = id === "needs-you" ? (snapshot?.freshness.status === "fresh" && !snapshot.planProblems?.length && !props.offline ? snapshot.actionCount ?? "unavailable" : decisionCountText(snapshot, props.offline)) : entries.length;
+    const count = id === "needs-you" ? decisionCountText(snapshot, props.offline, read) : entries.length;
     const ink =
-      id === "needs-you" && ((folded && typeof count === "number" && count > 0) || !!snapshot?.newCount)
+      id === "needs-you" && ((folded && (decisionState.count ?? 0) > 0) || !!snapshot?.newCount)
         ? colors.statusWarning
         : colors.foregroundMuted;
     const body =
@@ -94,7 +97,7 @@ export function TaskBoard(props: {
             />
           ))}
           <PlanNeeds theme={theme} snapshot={snapshot} showUpcoming={false} showReviews={false} />
-          {count === 0 ? <Text style={{ color: ink }}>Nothing needs a decision now.</Text> : null}
+          {decisionState.count === 0 && decisionState.fresh ? <Text style={{ color: ink }}>Nothing needs a decision now.</Text> : null}
         </>
       ) : entries.length === 0 ? (
         <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>
