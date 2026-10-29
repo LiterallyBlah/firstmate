@@ -454,7 +454,7 @@ export function refuseScopedRemoteMutation(status: SupervisionStatus, serverId: 
  * epoch, correlated to the turn that read them, and admitted to that scope's inbox — never to General. */
 export class ScopedBoardSteer {
   constructor(readonly store: SupervisionStore, readonly sources: SupervisionSources,
-    private readonly send: typeof sendWithoutInterrupting = sendWithoutInterrupting, private readonly options: { now?: () => Date } = {}) {}
+    private readonly send: typeof sendWithoutInterrupting = sendWithoutInterrupting, private readonly options: { now?: () => Date; refuseDelivery?: boolean } = {}) {}
   private now() { return SupervisionUtc.parse((this.options.now?.() ?? new Date()).toISOString()); }
 
   /** The exact current scoped attempt of a local agent. Labels and titles are not consulted. */
@@ -485,6 +485,12 @@ export class ScopedBoardSteer {
         { kind: "board-submission", value: submission }], resultIds: [id],
         pins: [inboxRef(s, "attempt", attempt.id), inboxRef(s, "task", task.id), inboxRef(s, "binding", task.ownerScopeId), inboxRef(s, "scope", task.ownerScopeId)] };
     }));
+    // Observation/correlation does not authorize an additional paid worker turn.
+    // Operating B has no counted board-turn adapter, so it records a definite refusal.
+    if (this.options.refuseDelivery) {
+      await this.settle(submission.id, "failed");
+      throw new SupervisionError("HELD", "Scoped board delivery requires checked, counted worker-turn admission. Use the owning plan supervisor; this message was retained but not sent.");
+    }
     let state: BoardSubmission["state"];
     try { await this.send(paseo, agentId, words, { messageId }, { channel: "crew-steer", actor: "captain" }); state = "accepted"; }
     catch { state = "uncertain"; }
@@ -546,7 +552,7 @@ export class ScopedBoardSteer {
   async turnEnded(event: Pick<PluginLifecycleEvents["agent.turn_ended"], "agent" | "turnId" | "outcome" | "timeline">, paseo?: PaseoApi) {
     if (event.outcome.kind === "canceled") return [];
     const status = await this.store.read();
-    const open = status.sources.submissions.filter(x => x.agentId === event.agent.id && (!x.correlation || x.correlation.certainty === "inferred"));
+    const open = status.sources.submissions.filter(x => x.state !== "failed" && x.agentId === event.agent.id && (!x.correlation || x.correlation.certainty === "inferred"));
     if (!open.length) return [];
     const { entries, epoch, gap } = await this.turnItems(event, open, paseo);
     const admitted: string[] = [];

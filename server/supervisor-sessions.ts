@@ -1,3 +1,4 @@
+import type { PlanRuleRef } from "../shared/plan-rules";
 /** S04 plan-supervisor lifecycle: reserved/unprompted -> verified -> active -> send, and manual transfer.
  * Disabled by default; no RPC, timer, lease, executor or automatic takeover. A supervisor is a home
  * guest bound to one scope epoch: it never holds or borrows the global first-mate role (role.mjs).
@@ -19,6 +20,7 @@ export interface SupervisorOptions {
   unverifiedUiAttach?: boolean;
   /** Fixture-supplied caps; the durable policy source for them is an integration item. */
   limits: GatewayLimits;
+  ruleRef?: (status: SupervisionStatus, scopeId: string) => PlanRuleRef | undefined;
   limitsFor?: (status: SupervisionStatus, scopeId: string) => GatewayLimits;
   reservationQueue?: <T>(run: () => Promise<T>) => Promise<T>;
   preflightTurn?: (scopeId: string) => Promise<void>;
@@ -144,6 +146,7 @@ export class SupervisorSessions {
         profileDigest: profileBlob.id, state: "prepared", checkpointHash: opening.id, acknowledgedSeq: old?.acknowledgedSeq ?? 0, heartbeatDue: null,
         purpose: old?.purpose === "discussion" || input.purpose === "discussion" ? "discussion" : "work" };
       const base = { requestId: input.requestId, requestHash: digest(input), scopeId: scope.id, epoch, attemptId: null, planRevision: null,
+        ...(this.options.ruleRef ? { planRules: this.options.ruleRef(status, scope.id) } : {}),
         subjectHash: digest({ scope: scope.id, epoch }), policyVector: [], evidenceVector: [], approvalId: null, state: "reserved" as const, receiptRef: null, version: 1 };
       const effects: SupervisionEffect[] = [
         { ...base, id: ids.workspace, logicalKey: key("workspace.open"), operation: "workspace.open", resourceIds: [`workspace-intent:${intent.key}`], receiverKey: intent.key },
@@ -239,7 +242,7 @@ export class SupervisorSessions {
         const effect: SupervisionEffect = { id, logicalKey: key, requestId: input.requestId, requestHash: digest(input), scopeId: scope.id, epoch: binding.epoch,
           attemptId: null, operation: "agent.send", planRevision: null, subjectHash: digest({ turn: input.causation }), policyVector: [],
           evidenceVector: [], approvalId: null, resourceIds: [`turn:${binding.agentId}`], state: "reserved", receiverKey: sendMessageId(id), receiptRef: null, version: 1,
-          payloadDigest: blob.id, ...(input.maintenanceIncident ? { maintenanceIncident: input.maintenanceIncident } : {}) };
+          payloadDigest: blob.id, ...(this.options.ruleRef ? { planRules: this.options.ruleRef(status, scope.id) } : {}), ...(input.maintenanceIncident ? { maintenanceIncident: input.maintenanceIncident } : {}) };
         const mutations: SupervisionMutation[] = [...(extend?.(status) ?? []),
           { kind: "binding", value: { ...binding, observation: { state: "unknown", at: new Date().toISOString() } } }, { kind: "effect", value: effect },
           ...(status.versions.some(v => v.kind === "blob" && v.id === blob.id) ? [] : [{ kind: "blob" as const, value: blob }])];

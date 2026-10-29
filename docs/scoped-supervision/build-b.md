@@ -134,3 +134,40 @@ Verification uses Node 24, isolated temporary homes, synthetic providers and
 real temporary git worktrees. It makes no live activation, install, provider or
 rollout claim. U1–U3, full-access confinement, live callback transfer, measured
 latency/cost and the captain's later bounded live trial remain unqualified.
+
+## Independent review corrections F1-F4
+
+The review at `6b51338d` reproduced four P2 findings. `plan-runtime-review.test.ts`
+retains each reproduction and covers their alternate native-admission boundaries.
+
+- F1: the selected create identity keeps its capacity slot through creation,
+  verification and pending opening. Final native admission checks headroom again,
+  excluding only that effect's already charged reservation. Another occupied slot
+  holds the effect before its claim; missing observations never free capacity.
+- F2: the existing workflow clock can obtain a supported SDK connection at idle
+  startup, before any view or agent event. The operator must explicitly configure
+  `FIRSTMATE_PLAN_BOOTSTRAP_URL` as a loopback WebSocket endpoint with an explicit
+  port and `/ws` path (for example `ws://127.0.0.1:6767/ws` for that daemon).
+  `FIRSTMATE_PLAN_BOOTSTRAP_PASSWORD` supplies its password when required; neither
+  credentials nor connection errors enter the journal. The read-only bootstrap
+  verifies the configured General's exact identity and home, then reuses the
+  existing coordinator/gateway for retained obligations. Missing configuration,
+  authentication failure or changed ownership holds work and backs off for a
+  minute. Shutdown closes the connection. No Attach, provisioning, extra workflow
+  clock or paid bootstrap turn is added. `@getpaseo/client@0.11.0` is now a real
+  runtime dependency; the existing host-import guard remains unchanged.
+- F3: B conservatively refuses scoped board delivery until a checked, counted
+  worker-turn adapter exists. It retains the exact S08 submission as failed,
+  sends nothing and charges no new turn. Failed submissions cannot acquire an
+  inferred or verified read correlation. Existing historical correlation remains.
+- F4: B initiative and C discussion effects pin the effective rule record's exact
+  id, version and digest. Reservation and final dispatch recheck its current source
+  references, supersession and confined file bytes. Changed record/source authority
+  holds paid effects even when numeric caps match. An already reserved turn stays
+  counted; transcript uncertainty and exact accepted replay remain intact.
+
+Additional regression evidence: `plan-bootstrap` checks qualified endpoints,
+General/home identity, authentication-error redaction and connection cleanup;
+`plan-runtime-review` checks idle resumption, failed-bootstrap backoff, default-off
+inertness and no duplicate native create after an uncertain startup effect. These
+map F1 to A08/A20, F2 to A06/A10/A18, F3 to A05/A20, and F4 to A05/A11/A20.

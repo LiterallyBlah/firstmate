@@ -1,3 +1,5 @@
+import { connectPlanBootstrap } from "./plan-bootstrap";
+import { checkPlanSupervisorAuthority, planSupervisorAuthority } from "./plan-supervisor-authority";
 /** Default-off production composition over Build A's single owned home runtime. */
 import { z } from "zod";
 import type { PluginServerContext } from "@getpaseo/plugin/server";
@@ -20,7 +22,7 @@ import { registerSupervisionLifecycle, SupervisionLifecycle } from "./supervisio
 import { ghPullRequestReader, registerScopedBoardIngress, ScopedBoardSteer, SupervisionSources, type PullRequestReader } from "./supervision-sources";
 import { processScopeRequests } from "./scope-requests";
 import { workflowStore } from "./workflow-service";
-import { acceptPolicyInventory, checkPolicySource, currentPolicyVector } from "./supervision-policy";
+import { acceptPolicyInventory, currentPolicyVector } from "./supervision-policy";
 import { PlanRules } from "./plan-rules";
 import { workflowHomeIdentity } from "./workflow-ownership";
 import { serialized } from "./serialize";
@@ -40,7 +42,8 @@ import { checkPlanAllocation } from "./plan-allocation";
 const Import = z.object({ sources: z.array(PolicySourceSchema).max(64), rules: z.array(PolicyRuleSchema).max(64),
   reviewedHolds: z.array(z.object({ id: z.uuid(), version: z.number().int().positive() }).strict()).max(64).optional() }).strict();
 export interface PlanRuntimeOptions { enabled?: boolean; config?: typeof readFirstmateConfig;
-  receiver?: (paseo: PaseoApi, store: SupervisionStore) => GatewayReceiver; slots?: number; headroom?: number; readPr?: PullRequestReader }
+  receiver?: (paseo: PaseoApi, store: SupervisionStore) => GatewayReceiver; slots?: number; headroom?: number; readPr?: PullRequestReader;
+  bootstrap?: (home: string, generalId: string) => Promise<{ paseo: PaseoApi; close(): Promise<void> }> }
 type Components = ReturnType<PlanRuntime["compose"]>;
 type LifecycleHook = (event: unknown, context: unknown) => unknown;
 export class PlanRuntime {
@@ -50,6 +53,8 @@ export class PlanRuntime {
   private readonly lifecycleHooks = new Map<SupervisionStore, Map<string, LifecycleHook[]>>();
   private readonly disposers: (() => void)[] = [];
   private closed = false;
+  private bootstrapConnection: { paseo: PaseoApi; close(): Promise<void> } | null = null;
+  private bootstrapAttemptAt = -Infinity;
   constructor(readonly runtime: SupervisionRuntime, private readonly options: PlanRuntimeOptions = {}) {
     const slots = options.slots ?? 4, headroom = options.headroom ?? 1;
     if (!Number.isSafeInteger(slots) || !Number.isSafeInteger(headroom) || headroom < 1 || slots <= headroom)
@@ -100,13 +105,12 @@ export class PlanRuntime {
       const c = input.command, node = c.op === "implicit" ? c.launch.id : "node" in c ? c.node : null;
       checkPlanAllocation(s, input.scopeId, true, s.tasks.find(t => t.ownerScopeId === input.scopeId && t.nodeId === node)?.projectId);
     };
-    const sources = new SupervisionSources(store), board = new ScopedBoardSteer(store, sources);
+    const sources = new SupervisionSources(store), board = new ScopedBoardSteer(store, sources, undefined, { refuseDelivery: true });
     const admissionCheck = async (s: SupervisionStatus, scopeId: string) => {
       await this.guard(home, generalId);
       const scope = s.scopes.find(v => v.id === scopeId);
       if (scope?.projectIds.some(id => s.projects?.projects.find(p => p.id === id)?.state === "stopped")) refuse("HELD", "This project's new effects are stopped.");
-      for (const record of s.planRules?.filter(r => r.scopeId === scopeId && s.plans.some(p => p.scopeId === scopeId && p.plan.revision === r.revision)) ?? [])
-        for (const ref of record.sources) { const source = s.policySources.find(v => v.id === ref.id); if (!source) refuse("HELD", "Rule source is unavailable."); await checkPolicySource(home, source); }
+      if (scope?.kind === "plan") await checkPlanSupervisorAuthority(home, s, scopeId);
     };
     const gateway = new SupervisionGateway(store, commands, home, receiver, { enabled: true, rules, recovery: true,
       reserveStart: run => withScopeAdmission(store.homeId, run),
@@ -133,15 +137,21 @@ export class PlanRuntime {
       },
       admissionCheck: async (s, e) => {
         await admissionCheck(s, e.scopeId);
-        if (e.attemptId && !["agent.interrupt", "agent.archive"].includes(e.operation)) checkPlanAllocation(s, e.scopeId, false);
+        if (e.attemptId && !["agent.interrupt", "agent.archive"].includes(e.operation)) {
+          checkPlanAllocation(s, e.scopeId, false);
+          await checkGeneralHeadroom(s, receiver, this.options.slots ?? 4, this.options.headroom ?? 1, e.id);
+        }
         const scope = s.scopes.find(v => v.id === e.scopeId);
         if (scope?.projectIds.some(id => s.projects?.projects.find(p => p.id === id)?.state === "stopped")) refuse("HELD", "This project's new effects are stopped.");
         if (e.attemptId === null && e.operation === "agent.send" && scope?.kind === "plan") {
+          const authority = planSupervisorAuthority(s, e.scopeId);
+          if (digest(e.planRules ?? null) !== digest(authority)) refuse("STALE", "The supervisor effect's reserved rule authority changed.");
           const caps = planSupervisorLimits(s, e.scopeId);
           if (!caps.limits || caps.spent.turns > caps.limits.turns || caps.spent.sessions > caps.limits.sessions) refuse("HELD", "Counted supervisor limits are unavailable or exhausted.");
         }
       } });
     const sessions = new SupervisorSessions(store, gateway, receiver, { enabled: true,
+      ruleRef: (s, scopeId) => s.scopes.some(v => v.id === scopeId && v.kind === "plan") ? planSupervisorAuthority(s, scopeId) : undefined,
       budgetRefused: scopeId => rules.budgetDecision(scopeId),
       reservationQueue: run => withScopeAdmission(store.homeId, run),
       preflightTurn: async () => { await this.guard(home, generalId); await checkGeneralHeadroom(await store.read(), receiver, this.options.slots ?? 4, this.options.headroom ?? 1); },
@@ -179,11 +189,22 @@ export class PlanRuntime {
     return { rules, receiver, commands, sources, board, gateway, sessions, ingress, inbox, lifecycle, projectJudgments: new ProjectJudgments(store), recovered: false, recoveredAt: 0, routesHash: "" };
   }
   async tick() {
-    if (!this.options.enabled || this.closed || !this.paseo) return;
-    const config = await this.config(), home = resolveHome(config), paseo = this.paseo;
+    if (!this.options.enabled || this.closed) return;
+    const config = await this.config(), home = resolveHome(config);
     if (config.migration || config.mateLaunch || !config.mateAgentId) return;
     const read = await this.runtime.read(home);
     if (read.freshness !== "current" || !read.bindings.some(b => b.state === "active")) return;
+    if (!this.paseo) {
+      if (Date.now() - this.bootstrapAttemptAt < 60000) return;
+      this.bootstrapAttemptAt = Date.now();
+      const connection = await (this.options.bootstrap ?? connectPlanBootstrap)(home, config.mateAgentId);
+      try { await this.guard(home, config.mateAgentId); }
+      catch (error) { await connection.close(); throw error; }
+      this.bootstrapConnection = connection;
+      // A lifecycle event may have supplied the host API while the connection was opening.
+      this.paseo ??= connection.paseo;
+    }
+    const paseo = this.paseo;
     await this.runtime.mutate(home, async store => {
       let c = this.components.get(store);
       if (!c) { c = this.compose(store, home, config.mateAgentId, paseo); this.components.set(store, c); }
@@ -294,5 +315,8 @@ export class PlanRuntime {
     });
     return true;
   }
-  async stop() { this.closed = true; this.disposers.splice(0).forEach(dispose => dispose()); this.components.clear(); this.lifecycleHooks.clear(); }
+  async stop() {
+    this.closed = true; this.disposers.splice(0).forEach(dispose => dispose()); this.components.clear(); this.lifecycleHooks.clear();
+    const connection = this.bootstrapConnection; this.bootstrapConnection = null; await connection?.close();
+  }
 }
