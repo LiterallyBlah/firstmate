@@ -58,6 +58,13 @@ it("applies only the reviewed project dependencies, immediately, without a sessi
   expect(text()).toContain("Your settings are saved and applied here."); expect(text()).toContain("Turn off project mates");
 });
 
+it.each(["plans", "checks"] as const)("enables only %s and its reviewed dependencies", async kind => {
+  await mount(); await press(HELP[kind].action); await press("Save help settings");
+  expect(state.set.mock.calls[0]![0].change.requested).toEqual(kind === "plans" ? {
+    ...FEATURES_OFF, planSupervisors: true, scopedActivation: true, scopeUi: true, scopeExecution: true,
+  } : { ...FEATURES_OFF, maintenance: true });
+});
+
 it("preserves all 64 independent pilot combinations until an explicit exact save", () => {
   for (let mask = 0; mask < 64; mask++) {
     const keys = Object.keys(FEATURES_OFF) as (keyof typeof FEATURES_OFF)[];

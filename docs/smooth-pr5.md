@@ -79,9 +79,9 @@ and native keyboard/screen-reader matrix remain slice 10 release validation.
 - Typecheck passes.
 - Full local suite: 244 files, 3,410 tests passed; four skipped. The known
   intermittent Windows `server/launch-tool.test.ts` flake did not occur.
-- Focused policy/UI run: 56 tests passed, one skipped; includes 15 new settings
+- Focused policy/UI run: 58 tests passed, one skipped; includes 17 new settings
   behavior tests. Server policy/storage/effect guards are unchanged.
-- `node docs/smooth-pr5/render.mjs`: 64 captures/assertion cases, light/dark,
+- `node docs/smooth-pr5/render.mjs`: 72 captures/assertion cases, light/dark,
   1440×1000 and 390×844; no page exceptions or document overflow. Review controls
   also pass 44×44 target and clipping checks at 200% text. Escape returns focus.
 - The Impeccable mechanical scan found no issues in changed settings components.

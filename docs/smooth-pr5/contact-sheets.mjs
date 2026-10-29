@@ -21,7 +21,7 @@ try {
     await page.setContent(`<style>body{margin:16px;background:${theme === 'light' ? '#eef2ef' : '#151a17'};color:${theme === 'light' ? '#16241b' : '#f1f3f1'};font:14px system-ui}main{display:flex;gap:16px}figure{margin:0;width:${width}px}img{display:block;width:100%}figcaption{margin-bottom:8px}</style><h2>FirstMate settings · ${theme} · ${device}</h2><p>Actual settings components; isolated synthetic host. Viewing or canceling starts no work.</p><main>${pair.join('')}</main>`);
     await page.screenshot({ path: resolve(evidence, `${theme}-${device}-comparison.png`), fullPage: true }); await page.close();
     const reviewPage = await browser.newPage({ viewport: { width: width * 2 + 48, height: 1000 } }), rows = [];
-    for (const names of [['project-review', 'off-review'], ['partial-review', 'save-failure'], ['capacity', 'stale'], ['project-text200', 'off-review-text200']]) {
+    for (const names of [['project-review', 'off-review'], ['plan-review', 'checks-review'], ['partial-review', 'save-failure'], ['capacity', 'stale'], ['project-text200', 'off-review-text200']]) {
       const figures = [];
       for (const name of names) figures.push(`<figure><figcaption>${name}</figcaption><img src="${await data(`${theme}-${device}-${name}`)}"></figure>`);
       rows.push(`<main>${figures.join('')}</main>`);

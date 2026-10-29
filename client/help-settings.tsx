@@ -109,7 +109,7 @@ export function HelpSettings({ theme, home, hostId, online = true }: { theme: Pl
     </View> : null}
     {snapshot?.state === "held" ? <Text accessibilityRole="alert" style={text}>Help settings couldn't be checked. Refresh settings; if this continues, review Advanced work details before changing anything.</Text> : null}
     {snapshot && !snapshot.runtimeEnforced ? <Text style={text}>This host can't apply help changes yet. Update FirstMate on this host, then refresh settings.</Text> : null}
-    {capacityRepair ? <HelpButton theme={theme} label="Review capacity" onPress={() => begin("capacity")} /> : null}
+    {capacityRepair ? <HelpButton theme={theme} label="Review capacity" disabled={busy || !!review?.request} onPress={() => begin("capacity")} /> : null}
     {snapshot?.state === "ready" && snapshot.runtimeEnforced && !snapshot.writesAvailable ? <Text style={text}>This host can't save help changes right now. Refresh settings before continuing.</Text> : null}
     {notice ? <Text accessibilityLiveRegion="polite" style={text}>{notice}</Text> : null}
     {snapshot?.pause ? <Text style={text}>{snapshot.pause}. Saved history and uncertain deliveries are retained.</Text> : null}
