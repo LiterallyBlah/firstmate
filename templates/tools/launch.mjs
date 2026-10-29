@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 // Optional first-mate tool. Local creation stays in the lead's own MCP calls.
 import { execFile } from "node:child_process";
-import { createHash, randomUUID } from "node:crypto";
-import { readFile, writeFile, mkdir, readdir, realpath, lstat, open, link, rename, rm } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { readFile, writeFile, mkdir, readdir, realpath, lstat, open, rm } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve, sep, win32 } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
+import { fileTarget, withFileLock, replaceLocked } from "./file-save.mjs";
 import { submit as workflowCommand } from "./workflow.mjs";
 
 const config = {{launchConfigJson}};
@@ -20,7 +21,7 @@ const now = () => new Date().toISOString();
 const ID = /^[a-z0-9][a-z0-9-]{0,63}$/;
 const manual = "Use the charter's manual §6; panels: remote.mjs --request-file / create_agent in the existing workspace; promotion: send_agent_prompt / remote send; relaunch: charter §7.";
 const uncertainty = "Paseo may still be creating the worker; registration has no time bound. Never retry by any route. Inspect, then wait and run status, or abandon with inspection evidence and accepted duplicate risk.";
-const backlogWarning = "Best-effort: an edit between compare and rename can be overwritten without detection. Never batch this tool with other backlog edits; restore the exact line from the launch record if needed.";
+const backlogWarning = "Files and launch share a save lock and keep previous copies under recall/files/data/backlog.md/. Other editors do not use this lock; inspect conflicts before trying again.";
 function fail(code, message) { throw Object.assign(new Error(message), { code }); }
 function strict(value, keys, name) {
   if (!value || typeof value !== "object" || Array.isArray(value)) fail("invalid-request", `${name} must be an object`);
@@ -75,16 +76,23 @@ async function remote(host, args) {
 }
 const query = (record, args) => record.host === "local" ? cli(args) : remote(record.host, [...args, "--json"]);
 function rows(value) { if (!Array.isArray(value)) fail("invalid-response", "Expected a Paseo list; absence is not established"); return value; }
-async function write(path, bytes) {
-  await role(); const target = await inside(path);
-  await mkdir(dirname(target), { recursive: true }); await writeFile(await inside(path), bytes, { mode: 0o600 });
+async function write(path, bytes, expectedHash) {
+  await role(); const target = await fileTarget(config.home, path);
+  return withFileLock(target.absolute, async () => {
+    let expected = expectedHash;
+    if (expected === undefined) {
+      // A newly assembled brief/request has no retained editor draft. Read its previous copy
+      // inside the same lock as Files, then preserve those exact bytes before replacing it.
+      try { expected = hash(await readFile(target.absolute)); }
+      catch (error) { if (error.code !== "ENOENT") throw error; expected = null; }
+    }
+    await role();
+    await replaceLocked(config.home, target.path, bytes, expected, { actor: "launch", force: false });
+  });
 }
-async function atomic(path, value, exclusive = false) {
-  await role(); const target = await inside(path), temporary = `${target}.${randomUUID()}.tmp`;
-  const file = await open(temporary, "wx", 0o600);
-  try { await file.writeFile(JSON.stringify(value, null, 2) + "\n"); await file.sync(); } finally { await file.close(); }
-  try { if (exclusive) await link(temporary, target); else await rename(temporary, target); }
-  finally { await rm(temporary, { force: true }); }
+async function atomic(path, value, exclusive = false, expectedHash) {
+  if (!exclusive && typeof expectedHash !== "string") fail("record-changed", "A launch record update needs its original file version");
+  return write(path, JSON.stringify(value, null, 2) + "\n", exclusive ? null : expectedHash);
 }
 function alive(pid) { try { process.kill(pid, 0); return true; } catch (error) { return error.code !== "ESRCH"; } }
 async function locked(path, action) {
@@ -111,11 +119,11 @@ function handover(record, recorder) {
 }
 async function update(record, changes) {
   return locked(`${directory(record.id)}/.lock`, async () => {
-    const current = await load(record.id, record.attempt);
+    const previousBytes = await read(recordPath(record.id, record.attempt)), current = json(previousBytes);
     if (current.revision !== record.revision) fail("record-changed", "Launch record changed; inspect status before continuing");
     const actor = handover(current, await role());
     const next = { ...current, ...changes, ...actor, revision: current.revision + 1, updatedAt: now(), history: [...current.history, { at: now(), state: changes.state ?? current.state, ...actor }] };
-    await atomic(recordPath(record.id, record.attempt), next);
+    await atomic(recordPath(record.id, record.attempt), next, false, hash(previousBytes));
     if (next.workflow && ["unresolved", "failed", "abandoned"].includes(changes.state)) await workflowCommand({ op: "record", plan: next.workflow.plan, node: next.workflow.node, attempt: next.workflow.attempt,
       state: changes.state === "failed" ? "failed" : "unresolved", evidence: changes.reason ?? changes.error ?? "Launch outcome requires inspection; no create may be repeated blindly." });
     return next;
@@ -166,21 +174,16 @@ export function backlogEdit(bytes, id, line, section) {
   lines.splice(index + 1, 0, { raw: line + ending });
   return Buffer.from(parsed.bom + lines.map(item => item.raw).join(""));
 }
-/** Hooks allow deterministic verification of the two observable conflict boundaries. */
+/** Call under the shared backlog lock; hooks exercise outside writers at transaction boundaries. */
 export async function replaceBacklog(path, before, after, line, hooks = {}) {
-  const temporary = `${path}.${randomUUID()}.tmp`;
-  await writeFile(temporary, after, { flag: "wx", mode: 0o600 });
-  try {
-    await hooks.beforeCompare?.();
-    if (!(await readFile(path)).equals(before)) { await readFile(path); fail("backlog-changed", "Backlog changed before compare; re-read once, no overwrite"); }
-    // Another writer can land here and be overwritten without detection. This is NOT CAS.
-    await rename(temporary, path);
-    await hooks.afterRename?.();
-    if (!backlogLines(await readFile(path)).lines.some(item => item.content === line)) fail("backlog-line-missing", "Backlog line missing after rename; restore it from the launch record");
-  } finally { await rm(temporary, { force: true }); }
+  await hooks.beforeCompare?.();
+  await replaceLocked(config.home, "data/backlog.md", after, hash(before), { ...hooks, actor: "launch", force: false });
+  if (!backlogLines(await readFile(path)).lines.some(item => item.content === line)) fail("backlog-line-missing", "Backlog changed after saving; inspect the current file and saved previous copies");
 }
 async function backlog(record, section, agent) {
-  return locked("data/.backlog.lock", async () => {
+  await role();
+  const target = await fileTarget(config.home, "data/backlog.md");
+  return withFileLock(target.absolute, async () => {
     const bytes = await read("data/backlog.md"), old = itemFor(bytes, record.id);
     if (section === "Queued") {
       if (record.queuedPreimage !== (old?.content ?? null)) fail("backlog-changed", "Task changed since validation; reconcile manually");

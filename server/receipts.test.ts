@@ -255,7 +255,7 @@ describe("the record ledger", () => {
     let wrote = 0;
     expect(await observedWrite({ absolute: join(home(), "a.md"), path: "a.md" }, newAction("test"), async () => { wrote++; return "done"; })).toBe("done");
     expect(wrote).toBe(1);
-    await writeTextFile(home(), { path: "data/b.md", content: "b", expectedModifiedMs: null, force: false });
+    await writeTextFile(home(), { path: "data/b.md", content: "b", expectedHash: null, force: false });
     await expect(readdir(join(scratch, "paseo"))).rejects.toMatchObject({ code: "ENOENT" });
   });
 
@@ -263,10 +263,10 @@ describe("the record ledger", () => {
     process.env[RECEIPT_JOURNAL_ENV] = "1";
     await mkdir(join(home(), "data"), { recursive: true });
     const save = newAction("files.save", "captain");
-    await writeTextFile(home(), { path: "data/backlog.md", content: "one\n", expectedModifiedMs: null, force: false }, { origin: save });
+    await writeTextFile(home(), { path: "data/backlog.md", content: "one\n", expectedHash: null, force: false }, { origin: save });
     const opened = await readTextFile(home(), "data/backlog.md");
-    await writeTextFile(home(), { path: "data/backlog.md", content: "two\n", expectedModifiedMs: opened.modifiedMs, force: false }, { origin: save });
-    await writeTextFile(home(), { path: "data/backlog.md", content: "two\n", expectedModifiedMs: null, force: true }); // Unchanged: no revision.
+    await writeTextFile(home(), { path: "data/backlog.md", content: "two\n", expectedHash: opened.hash, force: false }, { origin: save });
+    await writeTextFile(home(), { path: "data/backlog.md", content: "two\n", expectedHash: (await readTextFile(home(), "data/backlog.md")).hash, force: true }); // Unchanged: no revision.
     const removal = newAction("suggestion.remove", "captain");
     await replaceTextIfUnchanged(home(), "data/backlog.md", "two\n", "three\n", { origin: removal });
     await expect(replaceTextIfUnchanged(home(), "data/backlog.md", "stale\n", "four\n", { origin: removal })).rejects.toThrow("changed since it was read");

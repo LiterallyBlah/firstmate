@@ -119,6 +119,7 @@ export async function prepareHome(home: string, config: FirstmateConfig, origin:
     paseoHomeJson: JSON.stringify(paseoHome()), homeJson: JSON.stringify(home),
     configSchemaJson: JSON.stringify(z.toJSONSchema(FirstmateConfigSchema, { io: "input" })),
   }));
+  await homeWrite(home, TEMPLATES.fileSaveHelper, origin, await readTemplate(TEMPLATES.fileSaveHelper));
   await homeWrite(home, TEMPLATES.launchHelper, origin, await renderLaunchTool(home));
   await homeWrite(home, TEMPLATES.workflowHelper, origin, await readTemplate(TEMPLATES.workflowHelper));
   await syncFeatureHelpers(home, origin);

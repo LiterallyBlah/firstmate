@@ -38,24 +38,25 @@ export const readHomeFile = defineRpc({
     tooLarge: z.boolean(),
     size: z.number(),
     modifiedMs: z.number(),
+    /** SHA-256 of the exact bytes returned as text; null when it cannot be edited. */
+    hash: z.string().nullable(),
   }),
 });
 
 /**
- * Saves a file. `expectedModifiedMs` is the modification time the editor
- * opened it at: a file changed since — the first mate writes these files too
- * — is refused unless `force`, so neither side silently loses the other's
- * edit. `null` creates a new file, and refuses one that already exists.
+ * Every save, including an explicit replacement, must match the bytes reviewed.
+ * Null creates a new file only. Force records intent; it never skips the check.
  */
 export const writeHomeFile = defineRpc({
   name: "firstmate.files.write",
   input: z.object({
     path: z.string().min(1),
     content: z.string().max(MAX_EDITABLE_BYTES),
-    expectedModifiedMs: z.number().nullable(),
+    expectedHash: z.string().regex(/^[a-f0-9]{64}$/).nullable(),
     force: z.boolean().default(false),
+    reviewedLosses: z.array(z.string()).default([]),
   }),
-  output: z.object({ path: z.string(), size: z.number(), modifiedMs: z.number() }),
+  output: z.object({ path: z.string(), size: z.number(), modifiedMs: z.number(), hash: z.string() }),
 });
 
 /** How many paths one `firstmate.files.find` call checks; a longer conversation links its latest mentions. */

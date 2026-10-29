@@ -76,6 +76,7 @@ export const TEMPLATES = {
   watchHelper: "tools/watch.mjs",
   roleHelper: "tools/role.mjs",
   launchHelper: "tools/launch.mjs",
+  fileSaveHelper: "tools/file-save.mjs",
   workflowHelper: "tools/workflow.mjs",
   projectHelper: "tools/projects.mjs",
   maintenanceHelper: "tools/maintenance.mjs",

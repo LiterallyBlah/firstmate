@@ -158,10 +158,11 @@ function importedSpecifiers(source: string): string[] {
   return [...found];
 }
 
-/** Relative imports are extensionless here, so only those forms are tried. */
+/** TypeScript imports are extensionless; the shared home/daemon helper uses explicit ESM. */
 function resolveRelative(fromFile: string, specifier: string): string | null {
   const base = resolve(dirname(fromFile), specifier);
   const candidates = [
+    ...(specifier.endsWith(".mjs") ? [base] : []),
     `${base}.ts`,
     `${base}.tsx`,
     join(base, "index.ts"),

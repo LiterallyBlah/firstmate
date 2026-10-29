@@ -631,8 +631,8 @@ it("exports a separate scoped projection bound to its preimage; backlog bytes an
   await expect(exportScopedProjection(home, receipt, await store.read(), null)).rejects.toMatchObject({ code: "STALE" });
   expect((await exportScopedProjection(home, receipt, await store.read(), first.text)).preimage).toBe(sha(first.text));
   expect(await readFile(join(home, "data/backlog.md"), "utf8")).toBe(backlog);
-  await expect(writeTextFile(home, { path: first.path, content: "edited", expectedModifiedMs: null, force: true })).rejects.toThrow(/projection/);
-  await writeTextFile(home, { path: "data/scoped/proposals/scheduler.md", content: "Proposal", expectedModifiedMs: null, force: true });
+  await expect(writeTextFile(home, { path: first.path, content: "edited", expectedHash: null, force: true })).rejects.toThrow(/projection/);
+  await writeTextFile(home, { path: "data/scoped/proposals/scheduler.md", content: "Proposal", expectedHash: null, force: true });
 });
 
 it("RR8 migration never lends another payload the accepted receipt of the same watch ID", async () => {

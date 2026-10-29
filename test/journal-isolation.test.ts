@@ -6,7 +6,7 @@ import { fileURLToPath, URL } from "node:url";
 import { promisify } from "node:util";
 import { expect, it } from "vitest";
 
-import { writeTextFile } from "../server/files";
+import { readTextFile, writeTextFile } from "../server/files";
 import { readReceiptJournal, receiptJournal, receiptJournalRoot, recordGeneration } from "../server/receipts";
 
 // Capture at import time: a beforeEach hook would be too late for module-level work.
@@ -24,8 +24,8 @@ it("keeps receipt writes in a disposable home", async () => {
 
   const home = join(importedHome!, "home");
   await mkdir(home);
-  const save = (content: string) => writeTextFile(home, {
-    path: "probe.md", content, expectedModifiedMs: null, force: true,
+  const save = async (content: string) => writeTextFile(home, {
+    path: "probe.md", content, expectedHash: await readTextFile(home, "probe.md").then(file => file.hash).catch(() => null), force: true,
   });
   await save("journal off");
   recordGeneration("adopt", "mate", "");

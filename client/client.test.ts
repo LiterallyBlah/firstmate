@@ -436,15 +436,16 @@ describe("errorText", () => {
 });
 
 describe("markSaved", () => {
-  const sent = { path: "data/backlog.md", content: "mine", modifiedMs: 2000 };
+  const sent = { path: "data/backlog.md", content: "mine", modifiedMs: 2000, hash: "new-hash" };
 
   it("keeps what was typed while the save was in flight, still unsaved", () => {
-    const current: OpenFile = { kind: "text", path: "data/backlog.md", modifiedMs: 1000, saved: "old", draft: "mine, and more" };
+    const current: OpenFile = { kind: "text", path: "data/backlog.md", modifiedMs: 1000, hash: "old-hash", saved: "old", draft: "mine, and more" };
     const next = markSaved(current, sent);
     expect(next).toEqual({
       kind: "text",
       path: "data/backlog.md",
       modifiedMs: 2000,
+      hash: "new-hash",
       saved: "mine",
       draft: "mine, and more",
     });
@@ -454,7 +455,7 @@ describe("markSaved", () => {
   });
 
   it("leaves a file opened meanwhile, or none, alone", () => {
-    const other: OpenFile = { kind: "text", path: "AGENTS.md", modifiedMs: 5, saved: "a", draft: "b" };
+    const other: OpenFile = { kind: "text", path: "AGENTS.md", modifiedMs: 5, hash: "other-hash", saved: "a", draft: "b" };
     expect(markSaved(other, sent)).toBe(other);
     expect(markSaved(null, sent)).toBeNull();
   });

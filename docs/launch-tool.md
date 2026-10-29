@@ -141,13 +141,19 @@ After inspection, `unlock <id>` releases a per-task lock only when its pid is
 gone; `--backlog` selects `data/.backlog.lock` instead. A live or unreadable
 identity is refused. PID reuse can conservatively keep a stale lock held.
 
-Backlog writes preserve the BOM, line endings and other lines. They stage,
-compare with the initial bytes, rename, then check that the line is present.
-A change before compare produces `backlog-changed`; removal after rename
-produces `backlog-line-missing`. The exact intended line is saved first in the
-launch record so it can be restored manually. **Another writer between compare
-and rename can be overwritten without detection.** This is best-effort, not
-compare-and-swap. Never run the helper in a batch with other backlog edits.
+Backlog writes preserve the BOM, line endings and other lines. Files and launch share
+`data/.backlog.lock` and reread inside it. Exact previous bytes and an always-on audit
+are kept under `recall/files/data/backlog.md/`; at most 50 content copies and 100 audit
+entries are retained per file. Final-boundary edits are captured and checked before
+an exclusive install; conflicts keep the outside edit and the previous copies.
+See [safe save and recovery](files-safe-save/README.md) for the remaining outside-writer
+limit and recovery after a process stops during capture.
+
+Generated briefs, remote request files and launch JSON revisions use the same
+checked save and recovery path. A JSON update carries the hash of the exact bytes
+read for that revision; changing the file through Files without increasing its
+revision number cannot slip past the final check. New attempt publication and
+`render --out` are exclusive creates, so they cannot replace an existing file.
 
 ## Message templates
 

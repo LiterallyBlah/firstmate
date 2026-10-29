@@ -1,6 +1,6 @@
 /** The file open in the Files view. Pure, so the save bookkeeping is testable. */
 export type OpenFile =
-  | { kind: "text"; path: string; modifiedMs: number; saved: string; draft: string }
+  | { kind: "text"; path: string; modifiedMs: number; hash: string; saved: string; draft: string }
   | { kind: "unreadable"; path: string; reason: "binary" | "tooLarge"; size: number };
 
 /**
@@ -11,10 +11,10 @@ export type OpenFile =
  */
 export function markSaved(
   current: OpenFile | null,
-  saved: { path: string; content: string; modifiedMs: number },
+  saved: { path: string; content: string; modifiedMs: number; hash: string },
 ): OpenFile | null {
   if (current?.kind !== "text" || current.path !== saved.path) return current;
-  return { ...current, modifiedMs: saved.modifiedMs, saved: saved.content };
+  return { ...current, modifiedMs: saved.modifiedMs, hash: saved.hash, saved: saved.content };
 }
 
 /** Whether the open file has text its last save did not include. */

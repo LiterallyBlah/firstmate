@@ -13,6 +13,8 @@ import {
   writeTextFile,
 } from "./files";
 import { listWatches } from "./watch-files";
+import { fileHash } from "./file-save.mjs";
+import { fileLosses } from "../shared/file-losses";
 
 const tempDirs: string[] = [];
 afterEach(async () => {
@@ -64,6 +66,15 @@ describe("listDirectory", () => {
 });
 
 describe("readTextFile", () => {
+  it("hashes the exact BOM and line-ending bytes shown and refuses invalid UTF-8", async () => {
+    const dir = await home(), path = join(dir, "data/backlog.md");
+    const bytes = Buffer.from("\uFEFF## In flight\r\n"); await writeFile(path, bytes);
+    const opened = await readTextFile(dir, "data/backlog.md");
+    expect(Buffer.from(opened.content!)).toEqual(bytes);
+    expect(opened.hash).toBe(fileHash(bytes));
+    await writeFile(path, Buffer.from([0xc3, 0x28]));
+    expect(await readTextFile(dir, "data/backlog.md")).toMatchObject({ binary: true, content: null, hash: null });
+  });
   it("reads text and flags a binary file instead of sending it", async () => {
     const dir = await home();
     expect(await readTextFile(dir, "data/backlog.md")).toMatchObject({ content: "## In flight\n", binary: false });
@@ -73,13 +84,83 @@ describe("readTextFile", () => {
 });
 
 describe("writeTextFile", () => {
-  it("saves over the version it opened, and refuses one that changed since unless forced", async () => {
+  it("keeps an hour of newer tasks and Done work until the exact losses are reviewed", async () => {
+    const dir = await home(), path = join(dir, "data/backlog.md");
+    const original = "## In flight\n- [ ] pr9 - Review nine\n- [ ] pr10 - Review ten\n## Done\n";
+    const current = "## In flight\n" + Array.from({ length: 10 }, (_, n) => `- [ ] new${n} - New task ${n}\n`).join("") + "## Done\n- [x] pr9 - Review nine\n- [x] pr10 - Review ten\n";
+    await writeFile(path, original);
+    const hourAgo = new Date(Date.now() - 3_600_000); await utimes(path, hourAgo, hourAgo);
+    const opened = await readTextFile(dir, "data/backlog.md");
+    await writeFile(path, current);
+    for (const force of [false, true]) await expect(writeTextFile(dir, {
+      path: "data/backlog.md", content: original, expectedHash: opened.hash, force,
+    })).rejects.toBeInstanceOf(FileChangedError);
+    const reviewed = await readTextFile(dir, "data/backlog.md");
+    const losses = fileLosses(current, original);
+    expect(losses).toHaveLength(12);
+    await expect(writeTextFile(dir, { path: "data/backlog.md", content: original, expectedHash: reviewed.hash, force: true })).rejects.toThrow(/Review what will change/);
+    expect(await readFile(path, "utf8")).toBe(current);
+    await writeTextFile(dir, { path: "data/backlog.md", content: original, expectedHash: reviewed.hash, force: true, reviewedLosses: losses });
+    const recovery = join(dir, "recall/files/data/backlog.md");
+    expect(await readFile(join(recovery, `${fileHash(current)}.bin`), "utf8")).toBe(current);
+    const events = await Promise.all((await readdir(join(recovery, "history"))).map(name => readFile(join(recovery, "history", name), "utf8").then(JSON.parse)));
+    expect(events).toContainEqual(expect.objectContaining({ before: fileHash(current), after: fileHash(original), actor: "files", force: true, status: "saved" }));
+    // A later save invalidates the reviewed current copy, even with the old acknowledgement.
+    await writeFile(path, current + "- [ ] newest - Do not lose me\n");
+    await expect(writeTextFile(dir, { path: "data/backlog.md", content: original, expectedHash: reviewed.hash, force: true, reviewedLosses: losses })).rejects.toBeInstanceOf(FileChangedError);
+  });
+
+  it("refuses different bytes with the same millisecond timestamp", async () => {
+    const dir = await home(), path = join(dir, "data/backlog.md");
+    const opened = await readTextFile(dir, "data/backlog.md");
+    const sameTime = new Date(opened.modifiedMs);
+    await writeFile(path, "a different version\n"); await utimes(path, sameTime, sameTime);
+    await expect(writeTextFile(dir, { path: "data/backlog.md", content: "old draft", expectedHash: opened.hash, force: false })).rejects.toBeInstanceOf(FileChangedError);
+    expect(await readFile(path, "utf8")).toBe("a different version\n");
+  });
+
+  it.each(["beforeCapture", "beforeInstall"] as const)("preserves an outside edit at %s and keeps exact previous bytes", async boundary => {
+    const dir = await home(), path = join(dir, "data/backlog.md");
+    const opened = await readTextFile(dir, "data/backlog.md");
+    const external = Buffer.from("\uFEFF## In flight\r\n- [ ] latest - Latest work\r\n");
+    await expect(writeTextFile(dir, { path: "data/backlog.md", content: "my draft", expectedHash: opened.hash, force: false }, {
+      [boundary]: () => writeFile(path, external),
+    })).rejects.toBeInstanceOf(FileChangedError);
+    expect(await readFile(path)).toEqual(external);
+    const recovery = join(dir, "recall/files/data/backlog.md");
+    expect(await readFile(join(recovery, `${opened.hash}.bin`), "utf8")).toBe(opened.content);
+    if (boundary === "beforeCapture") expect(await readFile(join(recovery, `${fileHash(external)}.bin`))).toEqual(external);
+    expect((await readdir(join(dir, "data"))).sort()).toEqual(["backlog.md", "fix-login"]);
+  });
+
+  it("bounds recovery copies to 50 and keeps a bounded before/after audit without the optional journal", async () => {
+    const dir = await home();
+    for (let n = 0; n < 53; n++) {
+      const opened = await readTextFile(dir, "data/backlog.md");
+      await writeTextFile(dir, { path: "data/backlog.md", content: `version ${n}`, expectedHash: opened.hash, force: false });
+    }
+    const recovery = join(dir, "recall/files/data/backlog.md");
+    expect((await readdir(recovery)).filter(name => name.endsWith(".bin"))).toHaveLength(50);
+    expect(await readFile(join(recovery, `${fileHash("version 51")}.bin`), "utf8")).toBe("version 51");
+    expect(await readdir(join(recovery, "history"))).toHaveLength(100);
+  });
+
+  it("stops before replacing a record if its previous bytes cannot be saved", async () => {
+    const dir = await home(), path = join(dir, "data/backlog.md");
+    const opened = await readTextFile(dir, "data/backlog.md");
+    await writeFile(join(dir, "recall"), "a file blocks the recovery directory");
+    await expect(writeTextFile(dir, { path: "data/backlog.md", content: "my draft", expectedHash: opened.hash, force: false })).rejects.toThrow();
+    expect(await readFile(path, "utf8")).toBe(opened.content);
+    expect((await readdir(join(dir, "data"))).sort()).toEqual(["backlog.md", "fix-login"]);
+  });
+
+  it("saves over the version it opened, and refuses one that changed since even when forced", async () => {
     const dir = await home();
     const opened = await readTextFile(dir, "data/backlog.md");
     const saved = await writeTextFile(dir, {
       path: "data/backlog.md",
       content: "mine",
-      expectedModifiedMs: opened.modifiedMs,
+      expectedHash: opened.hash,
       force: false,
     });
     expect(await readFile(join(dir, "data", "backlog.md"), "utf8")).toBe("mine");
@@ -89,11 +170,13 @@ describe("writeTextFile", () => {
     const later = new Date(saved.modifiedMs + 5000);
     await utimes(join(dir, "data", "backlog.md"), later, later);
     await expect(
-      writeTextFile(dir, { path: "data/backlog.md", content: "mine again", expectedModifiedMs: saved.modifiedMs, force: false }),
+      writeTextFile(dir, { path: "data/backlog.md", content: "mine again", expectedHash: saved.hash, force: false }),
     ).rejects.toThrow(/changed since you opened it/);
     expect(await readFile(join(dir, "data", "backlog.md"), "utf8")).toBe("theirs");
 
-    await writeTextFile(dir, { path: "data/backlog.md", content: "mine again", expectedModifiedMs: saved.modifiedMs, force: true });
+    await expect(writeTextFile(dir, { path: "data/backlog.md", content: "mine again", expectedHash: saved.hash, force: true })).rejects.toBeInstanceOf(FileChangedError);
+    const reviewed = await readTextFile(dir, "data/backlog.md");
+    await writeTextFile(dir, { path: "data/backlog.md", content: "mine again", expectedHash: reviewed.hash, force: true });
     expect(await readFile(join(dir, "data", "backlog.md"), "utf8")).toBe("mine again");
   });
 
@@ -103,7 +186,7 @@ describe("writeTextFile", () => {
     const opened = await readTextFile(dir, "data/backlog.md");
     const save = writeTextFile(
       dir,
-      { path: "data/backlog.md", content: "mine", expectedModifiedMs: opened.modifiedMs, force: false },
+      { path: "data/backlog.md", content: "mine", expectedHash: opened.hash, force: false },
       {
         afterStaging: async () => {
           await writeFile(path, "theirs");
@@ -123,7 +206,7 @@ describe("writeTextFile", () => {
     const path = join(dir, "notes.md");
     const save = writeTextFile(
       dir,
-      { path: "notes.md", content: "mine", expectedModifiedMs: null, force: false },
+      { path: "notes.md", content: "mine", expectedHash: null, force: false },
       { afterStaging: () => writeFile(path, "theirs") },
     );
     await expect(save).rejects.toThrow(/already exists/);
@@ -139,7 +222,7 @@ describe("writeTextFile", () => {
     const contents = ["first", "second"];
     const results = await Promise.allSettled(
       contents.map((content) =>
-        writeTextFile(dir, { path: "data/backlog.md", content, expectedModifiedMs: opened.modifiedMs, force: false }),
+        writeTextFile(dir, { path: "data/backlog.md", content, expectedHash: opened.hash, force: false }),
       ),
     );
     // Either may reach the queue first; exactly one wins, and the file is the winner's.
@@ -163,7 +246,7 @@ describe("writeTextFile", () => {
     await writeTextFile(dir, {
       path: "watches/demo",
       content: "#!/usr/bin/env node\n// schedule: * * * * *\n// echo two\n",
-      expectedModifiedMs: opened.modifiedMs,
+      expectedHash: opened.hash,
       force: false,
     });
     expect(await readFile(script, "utf8")).toContain("echo two");
@@ -171,23 +254,23 @@ describe("writeTextFile", () => {
     expect((await listWatches(dir))[0]).toMatchObject({ name: "demo", invalid: null });
 
     const backlog = await readTextFile(dir, "data/backlog.md");
-    await writeTextFile(dir, { path: "data/backlog.md", content: "x", expectedModifiedMs: backlog.modifiedMs, force: false });
+    await writeTextFile(dir, { path: "data/backlog.md", content: "x", expectedHash: backlog.hash, force: false });
     expect((await stat(join(dir, "data", "backlog.md"))).mode & 0o777).toBe(backlogMode);
 
     // A new file gets the default, which is never executable.
-    await writeTextFile(dir, { path: "watches/new", content: "#!/bin/sh\n", expectedModifiedMs: null, force: false });
+    await writeTextFile(dir, { path: "watches/new", content: "#!/bin/sh\n", expectedHash: null, force: false });
     expect((await stat(join(dir, "watches", "new"))).mode & 0o111).toBe(0);
   });
 
   it("creates a new file, folders and all, but never over an existing one", async () => {
     const dir = await home();
-    await writeTextFile(dir, { path: "notes/today.md", content: "hi", expectedModifiedMs: null, force: false });
+    await writeTextFile(dir, { path: "notes/today.md", content: "hi", expectedHash: null, force: false });
     expect(await readFile(join(dir, "notes", "today.md"), "utf8")).toBe("hi");
     await expect(
-      writeTextFile(dir, { path: "AGENTS.md", content: "x", expectedModifiedMs: null, force: false }),
+      writeTextFile(dir, { path: "AGENTS.md", content: "x", expectedHash: null, force: false }),
     ).rejects.toThrow(/already exists/);
     await expect(
-      writeTextFile(dir, { path: "../escape.md", content: "x", expectedModifiedMs: null, force: false }),
+      writeTextFile(dir, { path: "../escape.md", content: "x", expectedHash: null, force: false }),
     ).rejects.toThrow(/outside the home/);
   });
 });
