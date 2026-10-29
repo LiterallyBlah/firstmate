@@ -34,6 +34,9 @@ The S05 harness now opens its scoped adapter explicitly and gives its restored
 case an exact route. It continues to check the same sender, identity, uncertain
 delivery, refusal and answer-transport boundaries. General continuity is checked
 by this harness rather than relying on enabling scope UI to replace Home.
+The merged slice 2 discussion-copy captures likewise supply an explicit named
+route in their host fixture, preserving their pinned baseline and all copy,
+navigation-without-effects, disclosure and 200% text assertions.
 
 The independent-review regressions run through the same production Home, chat,
 discussion and drawer, with controlled promise settlement and a fake browser clock:
