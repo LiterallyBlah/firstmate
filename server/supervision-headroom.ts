@@ -16,7 +16,8 @@ export async function checkGeneralHeadroom(status: SupervisionStatus, receiver: 
     const attempt = status.attempts.find(a => a.id === attemptId);
     return attempt?.worker?.agentId ?? status.effects.find(e => e.id === attempt?.launchEffectId && e.operation === "agent.create")?.receiverKey ?? null;
   };
-  for (const attempt of status.attempts.filter(a => !["done", "landed", "failed", "cancelled"].includes(a.state))) {
+  // Checked release proves non-admission; its retained identity/spend is not physical occupancy.
+  for (const attempt of status.attempts.filter(a => !["done", "landed", "failed", "cancelled", "released-uncreated"].includes(a.state))) {
     const id = workerIdentity(attempt.id);
     if (id) identities.set(id, status.tasks.find(t => t.id === attempt.taskId)?.ownerScopeId ?? "");
   }

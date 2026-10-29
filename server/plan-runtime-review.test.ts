@@ -59,7 +59,7 @@ async function fixture(slots = 10, budget = 6) {
   const service = new PlanRuntime(runtime, { enabled: true, config, receiver: () => f.receiver, slots, bootstrap });
   const components = service.compose(f.store, f.home, "general", api);
   const input = async (index: number) => ({ ...await f.input(scopes[index]!, { op: "start" as const, plan: scopes[index]!.planId, node: scopes[index]!.nodes[0]! }), planRules: ruleRef(records[index]!) });
-  return { ...f, scopes, records, runtime, service, components, api, nativeSend, input, bootstrap, closeBootstrap };
+  return { ...f, rawInput: f.input, scopes, records, runtime, service, components, api, nativeSend, input, bootstrap, closeBootstrap };
 }
 
 it("F1: successful create before verification must keep its reserved General-headroom slot", async () => {
@@ -214,4 +214,34 @@ it("F2: default-off startup neither connects nor progresses retained work", asyn
     await disabled.tick(); expect(bootstrap).not.toHaveBeenCalled(); expect(f.receiver.calls).toEqual([]);
     expect((await f.store.read()).effects.find(e => e.id === start.effects!.workspace)!.state).toBe("reserved");
   } finally { await disabled.stop(); await f.service.stop(); await f.runtime.stop(); }
+});
+
+it("F5: checked release of an uncreated attempt frees physical capacity for an independent plan, retaining spend", async () => {
+  const f = await fixture(2);
+  try {
+    const a = await f.components.gateway.startWorker(await f.input(0), f.scopes[0]!.owner);
+    await expect(f.components.gateway.startWorker(await f.input(1), f.scopes[1]!.owner)).rejects.toThrow("capacity");
+    const before = await f.store.read(), release = await f.rawInput(f.scopes[0]!, { op: "release", plan: f.scopes[0]!.planId,
+      node: f.scopes[0]!.nodes[0]!, attempt: a.attemptId!, evidence: "All creation effects are unclaimed; no native call occurred." });
+    const receipt = await f.components.commands.planCommand(release, f.scopes[0]!.owner);
+    expect(await f.components.commands.planCommand(release, f.scopes[0]!.owner)).toEqual(receipt);
+    const released = await f.store.audit(), attempt = released.attempts.find(v => v.id === a.attemptId)!;
+    expect(attempt).toMatchObject({ state: "released-uncreated", spentAgents: 1, spentTurns: 1, worker: null });
+    expect(released.effects.filter(e => e.attemptId === a.attemptId)).toHaveLength(3);
+    expect(released.effects.filter(e => e.attemptId === a.attemptId).every(e => e.state === "cancelled")).toBe(true);
+    expect(released.effects.find(e => e.id === a.effects!.create)!.receiverKey).toBe(before.effects.find(e => e.id === a.effects!.create)!.receiverKey);
+    expect(f.receiver.calls).toHaveLength(0);
+    const b = await f.components.gateway.startWorker(await f.input(1), f.scopes[1]!.owner);
+    expect(b.attemptId).not.toBe(a.attemptId);
+    const after = await f.store.read();
+    expect(after.attempts.find(v => v.id === a.attemptId)).toEqual(attempt);
+    expect(after.attempts.reduce((sum, v) => sum + v.spentAgents, 0)).toBe(2);
+    expect(after.attempts.reduce((sum, v) => sum + v.spentTurns, 0)).toBe(2);
+    expect(f.receiver.calls).toHaveLength(0);
+    await f.components.gateway.dispatch(b.effects!.workspace); await f.components.gateway.dispatch(b.effects!.create);
+    await f.components.gateway.verifyWorker(b.attemptId!); await f.components.gateway.dispatch(b.effects!.send);
+    expect(f.receiver.sends).toHaveLength(1);
+    expect(f.receiver.calls.some(c => c.target === released.effects.find(e => e.id === a.effects!.create)!.receiverKey)).toBe(false);
+    expect((await f.store.read()).attempts.find(v => v.id === a.attemptId)).toEqual(attempt);
+  } finally { await f.service.stop(); await f.runtime.stop(); }
 });

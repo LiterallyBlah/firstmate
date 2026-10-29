@@ -186,3 +186,19 @@ answers and uncertain deliveries. Flags remain independent and default-off.
 The installed compiler harness now checks parsed class declarations/expressions,
 with positive and negative controls, before Hermes compilation. D's legitimate
 object properties named `class` no longer trigger the old token-only assertion.
+
+## Re-review correction F5
+
+Checked release's `released-uncreated` state establishes definite non-admission
+and cancels unclaimed effects. Headroom excludes that attempt from physical
+occupancy while its selected identities, effects, history and cumulative agent/
+turn spend remain retained. Missing receiver lookup still proves no absence;
+reserved, uncertain, created and running work continue to occupy capacity.
+
+`supervision-headroom` and `plan-runtime-review` reproduce release of A before
+any native call, followed by admission of independently sponsored B with two
+slots and one General reserve. Both cases failed before this correction. The
+production case also dispatches B's opening and checks that A remains unchanged;
+four direct controls retain capacity and refuse checked release for uncertain
+or admitted work. F1's create/verification regression remains required. This
+maps F5 to A05/A08/A15/A20 and changes no authority, budget or default-off switch.
