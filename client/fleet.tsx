@@ -46,8 +46,8 @@ import { Board } from "./board";
 import { CrewCard, converseButtonId, watchOpener } from "./card";
 import { FilesView, type FilesRequest } from "./files";
 import { MateChat } from "./chat";
-import { ScopeDiscussion } from "./scope-discussion";
-import { useScopeSnapshot } from "./scope-query";
+import { ChatDestination } from "./chat-destination";
+import { ReadProgress } from "./read-progress";
 import { captainMessage } from "./attachments";
 import { ConverseDrawer } from "./converse";
 import { DRAWER_WIDTH, converseKey, conversingWith, converseTarget, drawerDocks } from "./converse-layout";
@@ -188,7 +188,11 @@ function FleetViewBody({
     <NeedsYouIndicator theme={theme} snapshot={decisions.data} offline={decisions.error !== null} compact={compact} />
   );
   const data = fleet.data ?? null;
-  const scopes = useScopeSnapshot(host?.id ?? "local", data?.home ?? "");
+  const discussionRoute = JSON.stringify([params?.discussionScope, params?.discussionHome, params?.discussionHandoff]);
+  const [dismissedScope, setDismissedScope] = useState<string | null>(null);
+  const scopeRequest = (params?.discussionScope !== undefined || params?.discussionHome !== undefined) && dismissedScope !== discussionRoute
+    ? { scopeId: params?.discussionScope ?? "", homeId: params?.discussionHome ?? "", ...(params?.discussionHandoff ? { navigationId: params.discussionHandoff } : {}) } : undefined;
+  const dismissScope = () => setDismissedScope(discussionRoute);
   const homeWorkspaceId = homeWorkspace(data);
   const crewView = home ? values.crewView : view === "crew" ? "list" : "board";
   const remoteHosts = useRemotes().data?.hosts ?? [];
@@ -425,6 +429,7 @@ function FleetViewBody({
    */
   const markSeen = useRpc(markMateSeen);
   const unseen =
+    !scopeRequest &&
     chatIsVisible(view ?? "home", compact, tab, values.chatCollapsed) &&
     mate !== null &&
     mate.requiresAttention &&
@@ -546,7 +551,7 @@ function FleetViewBody({
   if (home && plans.navigationNotice) {
     banners.push(<Text key="workflow-navigation" accessibilityRole="alert" style={{ color: theme.colors.foregroundMuted }}>{plans.navigationNotice}</Text>);
   }
-  if (fleet.error !== null) {
+  if (fleet.error !== null && data !== null) {
     banners.push(<Banner key="error" theme={theme} tone="danger" text={errorText(fleet.error)} action={retryFleet} />);
   }
   if (data?.agentTools === false) {
@@ -786,9 +791,12 @@ function FleetViewBody({
       <View style={styles.screen} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
         {header}
         {banners.length === 0 ? null : <View style={styles.banners}>{banners}</View>}
-        {fleet.error === null ? <Text style={styles.loading}>Mustering the crew…</Text> : home || view === "chat" ? (
+        <ReadProgress theme={theme} pending={!fleet.error} failed={!!fleet.error} fetching={fleet.isFetching}
+          details={fleet.error ? errorText(fleet.error) : undefined} onRetry={() => { void fleet.refetch({ cancelRefetch: false }); }} />
+        {home || view === "chat" ? <ChatDestination scopeRequest={scopeRequest} onDismissScope={dismissScope}
+          imageContext={{ serverId: host?.id }} theme={theme} compact={compact} navigation={navigation}>
           <FleetLoadRecovery theme={theme} compact={compact} navigation={navigation} serverId={host?.id} onChanged={refresh} />
-        ) : null}
+        </ChatDestination> : null}
       </View>
     );
   }
@@ -797,12 +805,10 @@ function FleetViewBody({
     return (
       <View style={styles.screen} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
         {header}
-        {scopes.data?.uiEnabled ? params?.discussionHome && params.discussionHome !== scopes.data.homeId ? <Text style={{ color: theme.colors.statusDanger }}>This discussion belongs to another home. Open its original host and home.</Text> : <ScopeDiscussion snapshot={scopes.data} offline={!!scopes.error} hostId={host?.id ?? "local"} theme={theme} compact={compact}
-          navigation={navigation} initialScope={params?.discussionHome === scopes.data.homeId ? params.discussionScope : undefined} refresh={() => { void scopes.refetch(); }}
-          generalControls={<LaunchPanel theme={theme} compact={compact} home={data.home} onLaunched={refresh} />} /> : <ScrollView automaticallyAdjustKeyboardInsets>
+        <ChatDestination scopeRequest={scopeRequest} onDismissScope={dismissScope} imageContext={{ serverId: host?.id, home: data.home }} theme={theme} compact={compact} navigation={navigation}><ScrollView automaticallyAdjustKeyboardInsets>
           {banners.length === 0 ? null : <View style={styles.banners}>{banners}</View>}
           <LaunchPanel theme={theme} compact={compact} home={data.home} onLaunched={refresh} />
-        </ScrollView>}
+        </ScrollView></ChatDestination>
       </View>
     );
   }
@@ -923,8 +929,9 @@ function FleetViewBody({
       onChanged={refresh}
       onOpenFile={openFile}
       navigation={navigation}
-        discussion={handoff.discussion}
-        scopeRequest={params?.discussionScope && params.discussionHome ? { scopeId: params.discussionScope, homeId: params.discussionHome } : undefined}
+      discussion={handoff.discussion}
+      scopeRequest={scopeRequest}
+      onDismissScope={dismissScope}
       onReturnDecision={() => {
         if (handoff.resume() && home && compact) setTab(discussionReturnTab.current);
       }}

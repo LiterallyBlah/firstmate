@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { decisionClock } from "./decision-copy";
 import {
   emptyLedger,
   needsYouSnapshot,
@@ -52,17 +53,17 @@ it("explains quarantined lines and never labels an unknown or stale total as a c
   const problem = "Line 12, task blocked: Could not read metadata; check parentheses.";
   data.freshness.problems = [problem];
   expect(indicatorState(data).accessibilityLabel).toContain(problem);
-  expect(decisionCountText(undefined)).toBe("unavailable");
+  expect(decisionCountText(undefined)).toBe("Loading decisions…");
   for (const status of ["unknown", "disabled", "stale"] as const) {
     const unavailable = { ...data, actionCount: 0, freshness: { ...data.freshness, status } };
-    expect(decisionCountText(unavailable)).toBe(status === "stale" ? "0 · stale" : "unavailable");
+    expect(decisionCountText(unavailable)).toBe(status === "stale" ? `0 · as of ${decisionClock(1000)}` : "unavailable");
     expect(indicatorState(unavailable).fresh).toBe(false);
   }
-  expect(decisionCountText(data, true)).toBe("1 · stale");
+  expect(decisionCountText(data, true)).toBe(`1 · as of ${decisionClock(1000)}`);
   expect(decisionCountText(data)).toBe("1");
 });
 it("distinguishes zero, disabled, unknown, stale and pending at zero with accessible names", () => {
-  expect(indicatorState(undefined).label).toBe("Can't read decisions");
+  expect(indicatorState(undefined).label).toBe("Loading decisions…");
   const data = snapshot();
   expect(
     indicatorState({ ...data, actionCount: 0, pendingAnswerCount: 1 })
@@ -79,6 +80,21 @@ it("distinguishes zero, disabled, unknown, stale and pending at zero with access
       freshness: { ...data.freshness, status: "disabled" },
     }).extra,
   ).toBe("disabled");
+});
+it("separates pending, failed, updating and bounded readiness without inventing a zero", () => {
+  for (const read of [{ pending: true, fetching: true }, { readiness: "loading" as const }]) {
+    expect(indicatorState(undefined, false, read)).toMatchObject({ count: null, loading: true, unavailable: false, badge: "…" });
+    expect(indicatorState(undefined, false, read).accessibilityLabel).not.toContain("unavailable");
+    expect(decisionCountText(undefined, false, read)).toBe("Loading decisions…");
+  }
+  expect(indicatorState(undefined, false, { error: true })).toMatchObject({ loading: false, unavailable: true, badge: "!" });
+  const data = snapshot();
+  expect(decisionCountText(data, false, { readiness: "failed" })).toContain("as of");
+  expect(indicatorState(data, false, { fetching: true }).label).toContain(`as of ${decisionClock(1000)}`);
+  expect(indicatorState(data, false, { fetching: true }).label).toContain("Updating…");
+  expect(indicatorState({ ...data, actionCount: 0 }, false, { readiness: "partial" }).count).toBeNull();
+  expect(indicatorState(data, false, { readiness: "partial" }).badge).toBe("1+");
+  expect(indicatorState({ ...data, actionCount: 0 }, false, { readiness: "complete" }).label).toBe("Nothing needs you");
 });
 it("orders new first, then longest waiting, then stable IDs without mutating input", () => {
   const first = snapshot().requests[0]!;

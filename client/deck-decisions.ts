@@ -2,6 +2,8 @@
 import type { FleetCard } from "../shared/fleet";
 import type { DecisionSource, NeedsYouRequest, NeedsYouSnapshot } from "../shared/needs-you";
 import type { DecisionDestination } from "./needs-you-state";
+import { indicatorState } from "./needs-you-state";
+import type { DecisionReadState } from "./decision-read-state";
 
 /** Bind the shared drawer to the ledger home and revision that the Deck is displaying. */
 export function deckDecisionDestination(snapshot: NeedsYouSnapshot | undefined, requestId: string): DecisionDestination {
@@ -57,10 +59,12 @@ export function deckDecisions(cards: readonly FleetCard[], snapshot: NeedsYouSna
 }
 
 /** Ledger total, never the number of figures at the bow. */
-export function deckDecisionLabel(snapshot: NeedsYouSnapshot | undefined, offline = false, includeFreshness = true): string {
+export function deckDecisionLabel(snapshot: NeedsYouSnapshot | undefined, offline = false, includeFreshness = true, read: DecisionReadState = {}): string {
+  const state = indicatorState(snapshot, offline, read);
+  if (state.loading || state.updating || state.partialPlans || state.partialScoped || snapshot?.scopedComplete === false || snapshot?.planProblems?.length || read.readiness === "partial") return state.label;
   if (snapshot?.freshness.status === "disabled") return "Decisions are off";
   if (!snapshot || snapshot.actionCount === null || snapshot.freshness.status === "unknown") return "Can't read decisions";
   const label = snapshot.actionCount === 0 ? "Nothing needs you" : `${snapshot.actionCount} ${snapshot.actionCount === 1 ? "needs" : "need"} you`;
-  return includeFreshness && (offline || snapshot.freshness.status === "stale")
+  return includeFreshness && (state.failed || snapshot.freshness.status === "stale")
     ? `${label} · as of ${snapshot.freshness.asOf === null ? "last good read" : new Date(snapshot.freshness.asOf).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : label;
 }

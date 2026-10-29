@@ -26,6 +26,8 @@ import { MIN_SPLIT_WIDTH } from "./resize-layout";
 import { decisionCardSnapshot } from "../shared/plan-decisions";
 import { discussionRequest, prepareDiscussion, routeDiscussion, type DecisionDiscussion } from "./decision-discussion";
 import { useWorkflowPlans } from "./workflow-plans";
+import { DecisionReadContext } from "./decision-read-context";
+import { decisionReadState } from "./decision-read-state";
 
 const DecisionHandoffContext = createContext<{
   discussion: DecisionDiscussion | null;
@@ -210,7 +212,7 @@ export function DecisionSurface({
       />
     ) : null;
   return (
-    <DecisionActionContext.Provider value={open}>
+    <DecisionReadContext.Provider value={decisionReadState(query)}><DecisionActionContext.Provider value={open}>
       <DecisionHandoffContext.Provider value={{ discussion, boardRequest,
         revealTask: () => { setDestination(null); setDiscussion(null); },
         dismiss: () => { setDiscussion(null); if (suspended) setDestination(null); },
@@ -268,6 +270,6 @@ export function DecisionSurface({
         </View>
       </DecisionPaneContext.Provider>
       </DecisionHandoffContext.Provider>
-    </DecisionActionContext.Provider>
+    </DecisionActionContext.Provider></DecisionReadContext.Provider>
   );
 }

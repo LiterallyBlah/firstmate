@@ -15,7 +15,7 @@ import type { FleetShell } from "./shell";
 
 const state = vi.hoisted(() => ({ values: {} as DisplaySettings, fleet: null as Fleet | null, error: null as Error | null,
   fetching: false, refetch: vi.fn(), save: vi.fn(async () => true) }));
-vi.mock("react-native", () => ({ Platform: { OS: "web" }, View: "View", Text: "Text", ScrollView: "ScrollView" }));
+vi.mock("react-native", () => ({ Platform: { OS: "web" }, View: "View", Text: "Text", ScrollView: "ScrollView", Pressable: "Pressable" }));
 vi.mock("@getpaseo/plugin/client", () => ({
   useSettings: () => ({ status: "ready", values: state.values, revision: 1, save: state.save }),
   useRpc: () => async () => { throw new Error("Unexpected daemon action"); },
@@ -94,18 +94,34 @@ afterEach(async () => {
   state.error = null; state.fetching = false;
 });
 
-it("offers Retry on a failed first load, keeps independent chat recovery and disables Retry in flight", async () => {
+it("offers a read-only retry on a failed first load, keeps independent chat recovery and disables retry in flight", async () => {
   await mount(1440, { route: {} });
   state.fleet = null; state.error = new Error("Fleet unavailable");
   await resize(900);
-  const retry = () => renderer.root.findByType("Banner" as never).props.action;
-  expect(retry().label).toBe("Retry");
+  const retry = () => renderer.root.findByProps({ accessibilityLabel: "Try again" }).props;
   expect(renderer.root.findAllByType("FleetLoadRecovery" as never)).toHaveLength(1);
   await act(async () => retry().onPress());
   expect(state.refetch).toHaveBeenCalledExactlyOnceWith({ cancelRefetch: false });
   state.fetching = true;
   await resize(1440);
   expect(retry().disabled).toBe(true);
+});
+it("starts known-agent recovery during a pending fleet read", async () => {
+  await mount(390, { route: {} });
+  state.fleet = null; state.fetching = true;
+  await resize(900);
+  expect(renderer.root.findAllByType("FleetLoadRecovery" as never)).toHaveLength(1);
+  expect(JSON.stringify(renderer.toJSON())).toContain("Getting FirstMate ready…");
+  expect(JSON.stringify(renderer.toJSON())).not.toContain("Mustering");
+});
+it("keeps incomplete contextual routes explicit and accepts a fresh handoff after returning", async () => {
+  await mount(1440, { route: { discussionScope: "missing", discussionHandoff: "1" } });
+  expect(chat().scopeRequest).toEqual({ scopeId: "missing", homeId: "", navigationId: "1" });
+  await act(async () => chat().onDismissScope!());
+  expect(chat().scopeRequest).toBeUndefined();
+  const props = renderer.root.findByType(FleetSurface).props as ComponentProps<typeof FleetSurface>;
+  await act(async () => renderer.update(createElement(QueryClientProvider, { client }, createElement(FleetSurface, { ...props, params: { discussionScope: "missing", discussionHandoff: "2" } }))));
+  expect(chat().scopeRequest).toEqual({ scopeId: "missing", homeId: "", navigationId: "2" });
 });
 
 it.each([900, 1440])("unfolds Home's existing chat while keeping the selected decision at %s points", async width => {

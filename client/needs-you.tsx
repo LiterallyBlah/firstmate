@@ -8,6 +8,8 @@ import { indicatorState, decisionSession } from "./needs-you-state";
 import { webAttributes, webSurfaceVisible } from "./web";
 import { useOpenDecision, type OpenDecision } from "./decision-action";
 import { decisionSignalInk } from "./decision-copy";
+import { useDecisionReadState } from "./decision-read-context";
+import type { DecisionReadState } from "./decision-read-state";
 
 /** Keep visible decision surfaces quiet even when they have no header indicator. */
 export function useDecisionVisibility(enabled = true) {
@@ -30,17 +32,20 @@ export function NeedsYouIndicator({
   offline = false,
   compact = false,
   onOpen,
+  readState,
 }: {
   theme: PluginTheme;
   snapshot?: NeedsYouSnapshot | undefined;
   offline?: boolean;
   compact?: boolean;
   onOpen?: OpenDecision;
+  readState?: DecisionReadState;
 }) {
   const action = useOpenDecision();
   const ref = useDecisionVisibility();
   const id = `needs-you-${useId()}`;
-  const state = indicatorState(snapshot, offline);
+  const read = useDecisionReadState();
+  const state = indicatorState(snapshot, offline, readState ?? read);
   // Drawn like the header's buttons (`IconButton`): 8-point corners, a 12-point label. The
   // signal is the outline, the fill and the icon; the words keep the foreground colour.
   const signal = state.unavailable
@@ -74,7 +79,7 @@ export function NeedsYouIndicator({
         alignItems: "center",
         gap: 6,
         flexShrink: 0,
-        minHeight: compact ? 44 : 28,
+        minHeight: 44,
         paddingHorizontal: compact ? 12 : 10,
         paddingVertical: 5,
         borderWidth: 1,
@@ -90,7 +95,7 @@ export function NeedsYouIndicator({
       }}
     >
       <Icon
-        name={state.unavailable ? "TriangleAlert" : state.amber ? "Bell" : "Check"}
+        name={state.loading || state.updating ? "Clock" : state.unavailable ? "TriangleAlert" : state.amber ? "Bell" : "Check"}
         size={14}
         color={state.filled ? ink : (signal ?? theme.colors.foregroundMuted)}
       />
@@ -113,12 +118,15 @@ export function NeedsYouBadge({
   theme,
   snapshot,
   offline = false,
+  readState,
 }: {
   theme: PluginTheme;
   snapshot?: NeedsYouSnapshot | undefined;
   offline?: boolean;
+  readState?: DecisionReadState;
 }) {
-  const state = indicatorState(snapshot, offline);
+  const read = useDecisionReadState();
+  const state = indicatorState(snapshot, offline, readState ?? read);
   if (state.count === 0 && state.fresh && !snapshot?.freshness.problems.length)
     return null;
   return (

@@ -17,6 +17,8 @@ import { DecisionSurface, DecisionPane, useDecisionHandoff } from "./decision-su
 import type { FleetShell } from "./shell";
 import { drafts } from "./draft";
 import { pendingAttachments } from "./attachments";
+import { DecisionReadContext } from "./decision-read-context";
+import type { DecisionReadState } from "./decision-read-state";
 
 const rpc = vi.hoisted(() => ({
   snapshot: null as NeedsYouSnapshot | null,
@@ -643,4 +645,25 @@ it.each(["List", "Board"])("shows one review row within the real %s Needs-you to
   expect(renderer.root.findAllByType(DecisionTask)).toHaveLength(2);
   expect(button("Review plan: Storage proposal")).toBeTruthy();
   expect(rpc.calls).not.toContain("firstmate.workflow.act");
+});
+
+it.each(["List", "Board", "Drawer"])("keeps %s pending neutral, partial counts held, and retained totals dated", async view => {
+  rpc.calls = [];
+  client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const props = { cards: [], allCards: [], offline: false, theme: attentionTheme, compact: true, density: "comfortable" as const,
+    conversing: null, onConverse() {}, onChanged() {}, showDone: false, onShowDone() {}, layout: DEFAULT_TASK_LAYOUT, layoutDisabled: false, onLayout() {} };
+  const render = (snapshot: NeedsYouSnapshot | undefined, read: DecisionReadState) => createElement(QueryClientProvider, { client },
+    createElement(DecisionReadContext.Provider, { value: read }, view === "List" ? createElement(TaskList, { ...props, snapshot }) : view === "Board" ? createElement(TaskBoard, { ...props, snapshot }) : createElement(DecisionDrawer, {
+      theme: attentionTheme, snapshot, offline: !!read.error, destination: { requestId: "all", homeId: "sample-home" }, onSelect() {}, onClose() {}, mateId: null, suggestions: [], compact: true,
+    })));
+  await act(async () => { renderer = create(render(undefined, { pending: true, fetching: true })); });
+  expect(words()).toContain("Loading decisions…"); expect(words()).not.toContain("unavailable"); expect(words()).not.toContain("Can't read");
+  expect(words()).not.toContain("Nothing needs");
+  const partial = { ...attentionSnapshot([]), scopedComplete: false, scopedProblems: ["Some work could not be checked"] };
+  await act(async () => renderer.update(render(partial, { readiness: "partial" })));
+  expect(words()).not.toContain("Nothing needs"); expect(words()).not.toContain("Needs you · 0");
+  const old = attentionSnapshot(); old.freshness.status = "stale";
+  await act(async () => renderer.update(render(old, { error: true })));
+  expect(words()).toContain(view === "Drawer" ? "Showing the list from" : "as of");
+  expect(rpc.calls.filter(name => !name.endsWith(".read"))).toEqual([]);
 });

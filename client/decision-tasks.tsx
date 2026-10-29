@@ -11,6 +11,8 @@ import { decisionSignalInk, decisionTitle, relativeDecisionTime } from "./decisi
 import { Tag } from "./ui";
 import { planReviewFor } from "../shared/plan-decisions";
 import { useWorkflowPlans } from "./workflow-plans";
+import { indicatorState } from "./needs-you-state";
+import { useDecisionReadState } from "./decision-read-context";
 
 /** One ledger request, even when several workers represent the same task. */
 export function DecisionTask({
@@ -134,16 +136,18 @@ export function DecisionQueueNote({
   offline?: boolean | undefined;
   filtered?: boolean | undefined;
 }) {
-  if (!filtered && !offline && snapshot?.freshness.status === "fresh") return null;
+  const read = useDecisionReadState();
+  const state = indicatorState(snapshot, offline, read);
+  if (!filtered && state.fresh) return null;
   return (
     <View style={{ gap: 4, paddingBottom: 4 }}>
       {filtered ? <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>
         Filters don't hide decisions
       </Text> : null}
-      {offline || snapshot?.freshness.status !== "fresh" ? (
-        <Text accessibilityRole="alert" style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>
+      {state.failed || state.loading || snapshot?.freshness.status !== "fresh" ? (
+        <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>
           {snapshot?.actionCount === null || !snapshot
-            ? "Decision data unavailable"
+            ? state.loading ? "Loading decisions…" : "Decision data unavailable"
             : "Last confirmed decisions; source is stale"}
         </Text>
       ) : null}

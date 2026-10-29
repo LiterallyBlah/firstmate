@@ -27,7 +27,7 @@ export function ScopeDiscussion({ snapshot, offline = false, hostId, theme, comp
 }) {
   const read = useRpc(readScopeConversation), send = useRpc(discussScope), cache = useQueryClient();
   const selectionKey = JSON.stringify(["firstmate.scope-selection/1", hostId, snapshot.homeId]);
-  const selected = useSyncExternalStore(drafts.subscribe, () => drafts.get(selectionKey) || initialScope || "shared");
+  const selected = useSyncExternalStore(drafts.subscribe, () => initialScope || drafts.get(selectionKey) || "shared");
   const [showStatus, setShowStatus] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const select = (id: string) => drafts.set(selectionKey, id);
@@ -87,10 +87,10 @@ export function ScopeDiscussion({ snapshot, offline = false, hostId, theme, comp
       <Text accessibilityRole="header" style={{ color: colors.foreground, fontSize: 17, fontWeight: "600" }}>Discussion</Text>
       <Text style={{ color: colors.foregroundMuted, fontSize: 13 }}>@mate selects one recipient. #project adds context. Shared messages without @ go to FirstMate.</Text>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-        <OptionPicker inline label="Discussion scope" title="Choose a discussion" value={selected} options={[
+        {!initialScope ? <OptionPicker inline label="Discussion scope" title="Choose a discussion" value={selected} options={[
           { value: "shared", label: "Shared stream", detail: "Untagged messages go to FirstMate" },
           ...snapshot.scopes.map(s => ({ value: s.id, label: s.title, detail: `${s.kind} · ${s.id} · ${s.session}` }))
-        ]} onSelect={select} theme={theme} compact={compact} />
+        ]} onSelect={select} theme={theme} compact={compact} /> : null}
         <Button label="Refresh" theme={theme} onPress={() => { refresh(); void conversations.refetch(); }} />
         <Button label={showStatus ? "Hide details" : "Details"} expanded={showStatus} theme={theme} onPress={() => setShowStatus(v => !v)} />
       </View>

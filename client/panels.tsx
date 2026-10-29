@@ -30,6 +30,7 @@ import { IconButton, errorText } from "./ui";
 import { homeWorkspace, type FleetShell } from "./shell";
 import { NeedsYouIndicator } from "./needs-you";
 import { useNeedsYou } from "./needs-you-query";
+import { decisionReadState } from "./decision-read-state";
 import { taskPresentation } from "./task-presentation";
 
 type Navigation = PluginWorkspacePanelProps["navigation"];
@@ -129,6 +130,7 @@ function PanelBody({
         compact={compact}
         snapshot={decisions.data}
         offline={decisions.error !== null}
+        readState={decisionReadState(decisions)}
         onOpen={(destination) => shell.openDecision(destination)}
       />
       <Text style={styles.muted}>{summary}</Text>

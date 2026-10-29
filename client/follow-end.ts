@@ -7,6 +7,7 @@
  * arriving at the end is brought into view whole.
  */
 import { useRef, useState } from "react";
+import type { ChatReturnState } from "./chat-return";
 import type {
   LayoutChangeEvent,
   LayoutRectangle,
@@ -34,24 +35,29 @@ export function isAtEnd(offsetY: number, viewportHeight: number, liveHeight: num
   return offsetY + viewportHeight >= end - END_SLACK;
 }
 
-export function useFollowEnd() {
+export function useFollowEnd(returnState?: ChatReturnState) {
   const scroller = useRef<ScrollView>(null);
-  const pinnedToEnd = useRef(true);
+  const pinnedToEnd = useRef(returnState?.scroll?.pinned ?? true);
   /** The transcript's visible height, to tell whether a card fits in it. */
   const viewport = useRef(0);
   /** Cards already brought into view, so one is scrolled to once, not on every re-layout. */
   const revealed = useRef(new Set<string>());
   /** The content height last reported by `onContentSizeChange` — what the end was last followed to. */
   const knownHeight = useRef(0);
-  const offset = useRef(0);
+  const offset = useRef(returnState?.scroll?.offset ?? 0);
+  const restoring = useRef(returnState?.scroll !== undefined);
   const prepend = useRef<{ height: number; offset: number } | null>(null);
   /** Whether the reader is away from the end, for the button that brings them back. */
-  const [away, setAway] = useState(false);
+  const [away, setAway] = useState(!pinnedToEnd.current);
+  function remember(): void {
+    if (returnState) returnState.scroll = { offset: offset.current, pinned: pinnedToEnd.current };
+  }
 
   /** Follow the end again — the reader just sent something, or answered something. */
   function pin(): void {
     prepend.current = null;
     pinnedToEnd.current = true;
+    remember();
   }
 
   /** Back to the end, now, whatever the reader was doing — the button's press. */
@@ -59,6 +65,7 @@ export function useFollowEnd() {
     prepend.current = null;
     pinnedToEnd.current = true;
     setAway(false);
+    remember();
     scroller.current?.scrollToEnd({ animated: false });
   }
 
@@ -98,16 +105,28 @@ export function useFollowEnd() {
     scrollEventThrottle: 100,
     onScroll(event: NativeSyntheticEvent<NativeScrollEvent>): void {
       const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+      if (layoutMeasurement.height <= 0 || restoring.current) return;
       offset.current = contentOffset.y;
       pinnedToEnd.current = isAtEnd(contentOffset.y, layoutMeasurement.height, contentSize.height, knownHeight.current);
       setAway(!pinnedToEnd.current);
+      remember();
     },
     onContentSizeChange(_width: number, height: number): void {
+      if (height <= 0) return;
+      if (restoring.current) {
+        restoring.current = false;
+        knownHeight.current = height;
+        if (pinnedToEnd.current) keepAtEnd();
+        else scroller.current?.scrollTo({ y: offset.current, animated: false });
+        return;
+      }
       if (prepend.current !== null) {
         const anchor = prepend.current;
         prepend.current = null;
         knownHeight.current = height;
-        scroller.current?.scrollTo({ y: Math.max(0, anchor.offset + height - anchor.height), animated: false });
+        offset.current = Math.max(0, anchor.offset + height - anchor.height);
+        remember();
+        scroller.current?.scrollTo({ y: offset.current, animated: false });
         return;
       }
       knownHeight.current = height;
@@ -122,6 +141,7 @@ export function useFollowEnd() {
     prepend.current = { height: knownHeight.current, offset: offset.current };
     pinnedToEnd.current = false;
     setAway(true);
+    remember();
   }
   return { pin, keepAtEnd, reveal, away, jumpToEnd, scrollProps, preserveOnPrepend };
 }
