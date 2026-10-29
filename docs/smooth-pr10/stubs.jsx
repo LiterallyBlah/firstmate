@@ -13,6 +13,9 @@ export function useRpc(contract) {
   if (!methods.has(contract.name)) methods.set(contract.name, async input => {
     window.review.calls.push({ name: contract.name, input: clone(input) });
     if (contract.name === 'firstmate.maintenance.read') {
+      if (params.has('delay-routine')) return new Promise((_resolve, reject) => {
+        (window.review.pendingRoutineReads ??= []).push(reject);
+      });
       const data = { ...clone(maintenance), enabled: window.review.features.effective.maintenance };
       if (params.get('case') === 'held') Object.assign(data, { freshness: 'held', problems: ['Fixture: saved work hash mismatch.'] });
       if (params.get('case') === 'offline') throw Error('Offline fixture');

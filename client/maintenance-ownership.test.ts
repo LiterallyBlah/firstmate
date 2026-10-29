@@ -72,7 +72,7 @@ it.each(["held", "offline", "wrong-home"])("%s reads cannot authorize checks cre
   if (reason === "wrong-home") {
     await act(async () => { renderer = create(createElement(QueryClientProvider, { client: cache }, createElement(RoutineCheckSetup,
       { theme, compact: true, homeId: data.homeId, hostId: "local", online: true, canEnable: true, onEnable: vi.fn(), onClose: vi.fn() }))); });
-    await vi.waitFor(async () => { await act(async () => { await new Promise(done => setTimeout(done, 0)); }); expect(JSON.stringify(renderer!.toJSON())).toContain("Can't check routine checks"); });
+    await vi.waitFor(async () => { await act(async () => { await new Promise(done => setTimeout(done, 0)); }); expect(JSON.stringify(renderer!.toJSON())).toContain("Can't connect to FirstMate right now"); });
   } else { await setup({ online: reason !== "offline" }); expect(button("Review checks profile").props.disabled).toBe(true); }
   expect(mocks.admit).not.toHaveBeenCalled();
 });

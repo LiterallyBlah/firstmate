@@ -22,6 +22,7 @@ jobs:
       - run: node docs/smooth-pr2/contact-sheets.mjs
       - run: node docs/smooth-pr5/render.mjs
       - run: node docs/smooth-pr10/render.mjs
+      - run: node docs/smooth-pr10/render-delayed.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: deck-before-after
@@ -43,6 +44,8 @@ jobs:
             .local/smooth-pr5/ui/screenshots/*.png
             .local/smooth-pr10/ui/results.json
             .local/smooth-pr10/ui/screenshots/*.png
+            .local/smooth-pr10/delayed/*.png
+            .local/smooth-pr10/delayed/results.json
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 30

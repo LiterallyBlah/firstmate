@@ -2,25 +2,37 @@
 import type { PluginTheme } from "@getpaseo/plugin";
 import { useRpc } from "@getpaseo/plugin/client";
 import { Modal } from "@getpaseo/plugin/client/react-native";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Text, View } from "react-native";
 import { readMaintenance, readMaintenanceTimers, MaintenanceCensusSchema, MaintenanceRuntimeSnapshotSchema,
   type MaintenanceRuntimeSnapshot } from "../shared/maintenance-runtime";
 import { MaintenanceAdmissionConfirmation } from "./maintenance-ownership";
 import { SetupButton } from "./setup-button";
+import { ReadProgress } from "./read-progress";
+import { errorText } from "./format";
 
 type Owner = MaintenanceRuntimeSnapshot["owners"][number];
+// Like Needs-you, the cached source owns the wait across closing/reopening.
+const initialReadWaits = new WeakMap<object, number>();
 export function RoutineCheckSetup({ theme, compact, homeId, hostId, online, canEnable, onEnable, onClose }: {
   theme: PluginTheme; compact: boolean; homeId: string; hostId: string; online: boolean; canEnable: boolean; onEnable(): void; onClose(): void;
 }) {
-  const read = useRpc(readMaintenance);
-  const query = useQuery({ queryKey: ["firstmate", "routine-check-setup", hostId, homeId], retry: false, refetchInterval: 5000,
+  const read = useRpc(readMaintenance), cache = useQueryClient();
+  const queryKey = ["firstmate", "routine-check-setup", hostId, homeId];
+  const query = useQuery({ queryKey, retry: false, refetchInterval: 5000,
     queryFn: async () => {
+      const source = cache.getQueryCache().find({ queryKey, exact: true });
+      if (source && source.state.data === undefined && !initialReadWaits.has(source)) initialReadWaits.set(source, Date.now());
       const data = MaintenanceRuntimeSnapshotSchema.parse(await read({}));
       if (data.homeId !== homeId) throw new Error("FirstMate's home changed. Reopen settings for the current home.");
       return data;
     } });
+  const source = cache.getQueryCache().find({ queryKey, exact: true });
+  if (source) {
+    if (!query.isPending) initialReadWaits.delete(source);
+    else if (!initialReadWaits.has(source)) initialReadWaits.set(source, Date.now());
+  }
   const [admission, setAdmission] = useState<Owner | "new" | null>(null), [details, setDetails] = useState(false);
   const data = query.data, mutable = !!data && online && !query.isError && data.enabled && data.freshness !== "held" && !data.problems.length;
   const text = { color: theme.colors.foreground, fontSize: 14, lineHeight: 21 }, note = { ...text, color: theme.colors.foregroundMuted };
@@ -31,8 +43,11 @@ export function RoutineCheckSetup({ theme, compact, homeId, hostId, online, canE
         <Text style={note}>Project mates and plan help work without routine checks. Creating a checks conversation does not create jobs, change timers or repair projects.</Text>
         <Text accessibilityRole="header" style={{ ...text, fontSize: 16, fontWeight: "600" }}>Review before anything starts</Text>
         <Text style={note}>Choose a name, model, permissions and total turn limit. Jobs, computers and schedules need a separate checked setup.</Text>
-        {query.isPending ? <Text accessibilityLiveRegion="polite" style={note}>Loading routine checks…</Text> : null}
-        {query.isError ? <Text accessibilityRole="alert" style={text}>Can't check routine checks right now. Your saved setup stays in place. Reconnect and refresh before creating a conversation.</Text> : null}
+        <ReadProgress theme={theme} pending={query.isPending} pendingSince={source && query.isPending ? initialReadWaits.get(source) : undefined}
+          failed={query.isError} fetching={query.isFetching} label="Loading routine checks…"
+          details={`${query.isError ? `Routine checks couldn't be read. ${errorText(query.error)}` : "Waiting for the host to read saved routine-check status."} Checking again only reads status; it never creates a conversation or resends an opening.`}
+          onRetry={() => { void query.refetch({ cancelRefetch: false }); }} />
+        {query.isError ? <Text style={text}>Your saved setup stays in place. Check the connection and try reading again before creating a conversation.</Text> : null}
         {!online ? <Text accessibilityRole="alert" style={text}>This host is offline. Reconnect and refresh before continuing.</Text> : null}
         {data?.pause ? <Text style={note}>{data.pause}</Text> : null}
         {data?.freshness === "held" || data?.problems.length ? <Text accessibilityRole="alert" style={text}>Some saved checks couldn't be checked. Review Details before continuing.</Text> : null}

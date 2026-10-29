@@ -35,3 +35,11 @@ Use the installed Node/npm CLI workaround on Windows. Run `npm run typecheck`, f
 The before bundle is pinned to `9c3485e8` and asserts that the new routine setup is absent. Host RPCs and model catalog results are synthetic. The introduction preview supplies an illustrative setup callback; no fixture creates real sessions or reads the live home.
 
 The first default-concurrency local full suite completed 3,403 passing / 29 failing / 4 skipped, with broad 5-second Windows timeouts, temporary-directory cleanup fallout and the known `server/launch-tool.test.ts` EPERM rename flake. A run using hosted worker/time settings and the final hosted checks are recorded in the PR. No unrelated timeout or supervision test has been weakened.
+
+## Independent review follow-up: delayed routine-check reads (D8)
+
+The review reproduced an indefinite loading sentence at `de4dac1`. Routine setup now consumes slice 1's existing `ReadProgress`, with a cached query owning its original pending timestamp. At eight seconds it explains the delay; at thirty seconds it offers an enabled read-only retry and connection details. Closing and reopening does not restart the deadline. Retry uses `cancelRefetch: false` to share the outstanding read. Only an actual query error shows failure; pending time never declares an operation failed or permits creation.
+
+`client/routine-check-loading.test.ts` first reproduced three failures at the old head, then passed all four cases after the fix. It covers the 1/8/30-second states, duplicate read retry coalescing, continued pending source state, reopen, independent host/home clocks, actual rejection, and success ending the delayed state. Admission and feature enablement are never called. The review's original two `d8.test.ts` checks also pass unchanged from an ignored scratch copy.
+
+`node docs/smooth-pr10/render-delayed.mjs` mounts the real SettingsScreen and records 32 before/after captures against `de4dac1`: light/dark, desktop/phone, 1s/8s/30s and actual read failure. It closes at 8s and reopens at 30s, then checks the coalesced retry, read-only details and absent creation action. All captures have no page error, document-width overflow or effects. The four labeled comparison sheets accompany the PR; this remains browser evidence, not native accessibility or a human update test.
