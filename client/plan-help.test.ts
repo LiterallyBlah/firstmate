@@ -4,8 +4,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { PluginTheme } from "@getpaseo/plugin";
 import type { PlanHelpReview as Review } from "../shared/plan-help";
-const mocks = vi.hoisted(() => ({ read: vi.fn(), backup: vi.fn(), save: vi.fn(), migrate: vi.fn(), context: {} as any }));
-vi.mock("@getpaseo/plugin/client", () => ({ useRpc: (rpc: { name: string }) => rpc.name.endsWith("plan-help.read") ? mocks.read : rpc.name.endsWith("backup.read") ? mocks.backup : rpc.name.endsWith("backup.set") ? mocks.save : mocks.migrate }));
+const mocks = vi.hoisted(() => ({ read: vi.fn(), evidence: vi.fn(), backup: vi.fn(), save: vi.fn(), migrate: vi.fn(), context: {} as any }));
+vi.mock("@getpaseo/plugin/client", () => ({ useRpc: (rpc: { name: string }) => rpc.name.endsWith("plan-help.evidence") ? mocks.evidence : rpc.name.endsWith("plan-help.read") ? mocks.read : rpc.name.endsWith("backup.read") ? mocks.backup : rpc.name.endsWith("backup.set") ? mocks.save : mocks.migrate }));
 vi.mock("react-native", () => ({ Pressable: "Pressable", ScrollView: "ScrollView", Text: "Text", View: "View" }));
 vi.mock("@getpaseo/plugin/client/react-native", () => ({ TextInput: "TextInput", Modal: Object.assign(({ children }: { children: ReactNode }) => children, { Content: "Content" }) }));
 vi.mock("./workflow-plans", () => ({ workflowRequestId: () => "00000000-0000-4000-8000-000000000009", useWorkflowPlans: () => mocks.context }));
@@ -14,7 +14,7 @@ import { PlanHelpAction, PlanHelpReview, PlanHelpSurface } from "./plan-help";
 import { compactPlansFixture } from "../test/compact-plans-fixture";
 import { visibleText } from "../test/visible-text";
 const uuid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
-const review = (): Review => ({ homeId: "home", plan: "reader", title: "Reader", planHash: "a".repeat(64), reviewHash: "b".repeat(64), currentOwner: "FirstMate", projectId: uuid(1), scopeId: uuid(2), migrationId: uuid(3), supervisorId: uuid(4), budget: { agents: 2, turns: 2 }, spent: { agents: 1, turns: 1 }, problems: [], sourcePaths: ["data/orders.md"], backupRevision: 1, preparation: null });
+const review = (): Review => ({ homeId: "home", plan: "reader", title: "Reader", planHash: "a".repeat(64), reviewHash: "b".repeat(64), currentOwner: "FirstMate", projectId: uuid(1), scopeId: uuid(2), migrationId: uuid(3), supervisorId: uuid(4), budget: { agents: 2, turns: 2 }, spent: { agents: 1, turns: 1 }, problems: [], sourcePaths: ["data/orders.md"], backupRevision: 1, preparation: null, canCorrectPreparation: false });
 const backup = { homeId: "home", revision: 1, requestId: uuid(5), source: "saved", backup: { destination: "C:/Backups", retention: "Keep 30 days" }, problems: [] };
 const theme = { colors: { foreground: "#fff", foregroundMuted: "#aaa", border: "#444", surface1: "#222" } } as PluginTheme;
 let renderer: ReactTestRenderer | null, cache: QueryClient;
@@ -28,7 +28,25 @@ afterEach(async () => { await act(async () => renderer?.unmount()); cache.clear(
 async function render() { await act(async () => { renderer = create(createElement(QueryClientProvider, { client: cache }, createElement(PlanHelpReview, { theme, homeId: "home", planId: "reader", onClose: vi.fn() }))); }); await act(async () => { await new Promise(r => setTimeout(r, 20)); }); }
 const button = (label: string) => renderer!.root.find(n => n.type === "Pressable" as never && n.props.accessibilityLabel === label);
 const press = async (label: string) => { await act(async () => button(label).props.onPress()); };
-async function fill() { await press("Handover evidence"); for (const [label, text] of [["Reviewed delivery inventory", "inventory"], ["Compatible rollback build", "build"], ["Accepted permission import", "policy"]]) await act(async () => renderer!.root.find(n => n.type === "TextInput" as never && n.props.accessibilityLabel === label).props.onChangeText(text)); }
+async function fill() { await press("Advanced evidence references"); for (const [label, text] of [["Reviewed delivery inventory", "inventory"], ["Compatible rollback build", "build"], ["Accepted permission import", "policy"]]) await act(async () => renderer!.root.find(n => n.type === "TextInput" as never && n.props.accessibilityLabel === label).props.onChangeText(text)); }
+it("R4: ordinary evidence review selects actual files and checked sources without typing operator references", async () => {
+  mocks.evidence.mockImplementation(async (input: any) => ({ homeId: "home", plan: "reader", reviewHash: review().reviewHash, folder: "data", entries: [{ name: "rollback.md", path: "data/rollback.md", kind: "file" }], problems: [],
+    inventory: { hash: "c".repeat(64), summary: ["0 pending or recorded deliveries checked."], problems: [] },
+    policy: { hash: "d".repeat(64), sources: [{ path: "data/orders.md", lines: "1–1", content: "Reviewed project permissions." }] },
+    rollback: input.rollbackPath ? { path: input.rollbackPath, hash: "e".repeat(64), content: "Retained build and tested recovery evidence." } : null }));
+  await render();
+  expect(renderer!.root.findAll(n => n.props.accessibilityLabel === "Compatible rollback build")).toHaveLength(0);
+  await press("Check handover evidence"); await act(async () => { await new Promise(done => setTimeout(done, 20)); });
+  await press("I reviewed pending deliveries"); await press("I reviewed accepted permissions");
+  await press("Read rollback.md"); await act(async () => { await new Promise(done => setTimeout(done, 20)); });
+  expect(visibleText(renderer!.toJSON())).toContain("Retained build and tested recovery evidence.");
+  await press("Use this rollback report"); await press("Use reviewed evidence");
+  expect(button("Review handover").props.disabled).toBe(false);
+  await press("Review handover");
+  expect(mocks.migrate).not.toHaveBeenCalled(); // Review and file selection do not prepare or attach.
+  mocks.migrate.mockRejectedValue(new Error("test stops before mutation")); await press("Confirm this handover step");
+  expect(mocks.migrate.mock.calls[0]![0].evidence.rollback).toEqual({ path: "data/rollback.md", hash: "e".repeat(64) });
+});
 it("view, evidence disclosure and cancel cause no mutation or Attach; review explains retained owner/spend", async () => {
   await render(); await fill(); await press("Review handover"); await press("Keep current owner");
   expect(mocks.migrate).not.toHaveBeenCalled(); expect(mocks.save).not.toHaveBeenCalled();
@@ -56,6 +74,18 @@ it("an invalid backup save keeps its draft and can be corrected after a fresh se
   await press("Review corrected backup settings");
   const field = renderer!.root.find(n => n.type === "TextInput" as never && n.props.accessibilityLabel === "Backup folder");
   expect(field.props.editable).toBe(true); expect(field.props.value).toBe("C:/Backups");
+});
+it("R3: only a fresh proof of no freeze lets the captain clear a refused request for explicit correction", async () => {
+  mocks.read.mockResolvedValue({ ...review(), canCorrectPreparation: true }); mocks.migrate.mockRejectedValue(new Error("refused before freeze"));
+  await render(); await fill(); await press("Review handover"); await press("Confirm this handover step");
+  expect(mocks.migrate).toHaveBeenCalledTimes(1);
+  await press("Review corrected handover");
+  expect(renderer!.root.findAll(n => n.props.accessibilityLabel === "Retry this handover request")).toHaveLength(0);
+  expect(mocks.migrate).toHaveBeenCalledTimes(1); expect(button("Review handover").props.disabled).toBe(false);
+  // A different client may have frozen it since the error; the fresh read must retain the exact request.
+  await press("Review handover"); await press("Confirm this handover step");
+  mocks.read.mockResolvedValue({ ...review(), canCorrectPreparation: false }); await press("Review corrected handover");
+  expect(button("Retry this handover request")).toBeDefined();
 });
 it("only a committed handover exposes the existing Attach board; uncertain setup is never ready", async () => {
   mocks.context.activation.migrations = [{ id: uuid(3), planId: "reader", state: "prepared" }];

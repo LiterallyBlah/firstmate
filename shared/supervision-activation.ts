@@ -30,10 +30,14 @@ export type ResumeSupervisorInput = z.infer<typeof ResumeSupervisorInputSchema>;
 export const attachSupervisorFromUi = defineRpc({ name: "firstmate.supervision.attach-ui",
   input: z.union([AttachSupervisorInputSchema, ResumeSupervisorInputSchema]), output: ActivationSnapshotSchema });
 const base = { homeId: z.string(), migrationId: SupervisionUuid };
+export const HandoverEvidenceSchema = z.object({ inventory: SupervisionHash, policy: SupervisionHash,
+  rollback: z.object({ path: z.string().min(1).max(900), hash: SupervisionHash }).strict() }).strict();
 export const MigrationCommandSchema = z.discriminatedUnion("op", [
   z.object({ ...base, op: z.enum(["prepare", "resume"]), plan: PlanId, scopeId: SupervisionUuid, projectId: SupervisionUuid,
     prerequisites: MigrationReceiptSchema.shape.prerequisites,
-    reviewHash: SupervisionHash.optional() }).strict(),
+    reviewHash: SupervisionHash.optional(),
+    /** Explicitly supersede an unstarted guided review; frozen/accepted handovers cannot use it. */
+    replacesReview: SupervisionHash.optional(), evidence: HandoverEvidenceSchema.optional() }).strict(),
   z.object({ ...base, op: z.enum(["reconcile", "barrier", "commit"]) }).strict(),
   z.object({ ...base, op: z.literal("abort"), reason: z.string().trim().min(1).max(2000) }).strict(),
   z.object({ ...base, op: z.literal("resolve-hold"), dispositionId: SupervisionUuid, route: z.enum(["drain-legacy", "already-handled"]),

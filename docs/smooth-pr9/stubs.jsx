@@ -12,7 +12,7 @@ const receiptBase={format:'firstmate.migration-receipt/1',version:1,compatibilit
  capacity:{sequenceAtFreeze:1,transactionsNeeded:12,ceiling:256,preparedMutations:4,commitMutations:3},aborted:null};
 const methods=new Map();
 export function useRpc(contract){
- if(!/^firstmate\.supervision\.(backup\.|plan-help\.read|migrate)/.test(contract.name))return original(contract);
+ if(!/^firstmate\.supervision\.(backup\.|plan-help\.|migrate)/.test(contract.name))return original(contract);
  if(!methods.has(contract.name))methods.set(contract.name,async input=>{
   window.review.calls.push({name:contract.name,input:clone(input)});
   if(contract.name.endsWith('backup.read'))return clone(backup);
@@ -22,7 +22,8 @@ export function useRpc(contract){
    Object.assign(backup,{revision:backup.revision+1,source:'saved',requestId:input.requestId,backup:clone(input.backup)});
    return clone(backup);
   }
-  if(contract.name.endsWith('plan-help.read'))return {homeId,plan:plan.definition.id,title:plan.definition.title,planHash:plan.hash,reviewHash:'b'.repeat(64),currentOwner:plan.owner==='firstmate'?'FirstMate':'Captain',projectId:uuid(1),scopeId:uuid(2),migrationId:uuid(3),supervisorId:uuid(4),budget:plan.definition.budget,spent:{agents:1,turns:1},backupRevision:backup.revision,sourcePaths:['data/orders.md'],preparation,problems:[...(!backup.backup?['Choose a separate backup folder and how long to keep its files below.']:[]),...(scenario==='held'?['Decisions haven’t all been checked. Refresh Needs you before handing over this plan.']:[])]};
+  if(contract.name.endsWith('plan-help.evidence'))return {homeId,plan:plan.definition.id,reviewHash:'b'.repeat(64),folder:'data',entries:[{name:'rollback.md',path:'data/rollback.md',kind:'file'}],problems:[],inventory:{hash:'c'.repeat(64),summary:['0 pending or recorded deliveries checked.','No message will be resent.'],problems:[]},policy:{hash:'d'.repeat(64),sources:[{path:'data/orders.md',lines:'1–1',content:'Previously accepted project permissions.'}]},rollback:input.rollbackPath?{path:input.rollbackPath,hash:'e'.repeat(64),content:'Illustrative retained-build report. The real-RPC harness reads an actual confined file and verifies its digest.'}:null};
+  if(contract.name.endsWith('plan-help.read'))return {homeId,plan:plan.definition.id,title:plan.definition.title,planHash:plan.hash,reviewHash:'b'.repeat(64),currentOwner:plan.owner==='firstmate'?'FirstMate':'Captain',projectId:uuid(1),scopeId:uuid(2),migrationId:uuid(3),supervisorId:uuid(4),budget:plan.definition.budget,spent:{agents:1,turns:1},backupRevision:backup.revision,sourcePaths:['data/orders.md'],preparation,canCorrectPreparation:false,problems:[...(!backup.backup?['Choose a separate backup folder and how long to keep its files below.']:[]),...(scenario==='held'?['Decisions haven’t all been checked. Refresh Needs you before handing over this plan.']:[])]};
   if(contract.name.endsWith('migrate')){
    if(scenario==='lost'&&!window.review.lost){window.review.lost=true;throw new Error('Synthetic lost handover reply');}
    if(input.op==='prepare'){

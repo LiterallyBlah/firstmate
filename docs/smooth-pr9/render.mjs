@@ -39,8 +39,13 @@ try{
     await page.keyboard.press('Escape');assert.equal(await entry.evaluate(el=>el===document.activeElement),true,'focus return');await entry.click();
     await page.getByLabel('Backup folder',{exact:true}).fill('C:/Independent backups');await page.getByLabel('Backup retention',{exact:true}).fill('Keep for 30 days; retain manually until reviewed.');
     await page.getByRole('button',{name:'Save backup settings',exact:true}).click();await page.waitForFunction(()=>window.review.calls.some(c=>c.name.endsWith('backup.set')));
-    await page.getByRole('button',{name:'Handover evidence',exact:true}).click();
-    for(const [name,value]of [['Reviewed delivery inventory','reviewed-deliveries'],['Compatible rollback build','reviewed-build'],['Accepted permission import','reviewed-permission-import']])await page.getByLabel(name,{exact:true}).fill(value);
+    await page.getByRole('button',{name:'Check handover evidence',exact:true}).click();
+    await page.getByRole('button',{name:'I reviewed pending deliveries',exact:true}).click();
+    await page.getByRole('button',{name:'I reviewed accepted permissions',exact:true}).click();
+    await page.getByRole('button',{name:'Read rollback.md',exact:true}).click();
+    await page.getByRole('button',{name:'Use this rollback report',exact:true}).click();
+    await capture(page,`${theme}-${device}-evidence`);
+    await page.getByRole('button',{name:'Use reviewed evidence',exact:true}).click();
     await page.getByRole('button',{name:'Review handover',exact:true}).click();await capture(page,`${theme}-${device}-confirm`);assert.equal((await writes(page)).length,1);
     await page.getByRole('button',{name:'Confirm this handover step',exact:true}).click();await page.getByRole('button',{name:'Check handover deliveries',exact:true}).waitFor();await capture(page,`${theme}-${device}-prepared`);
     for(const label of ['Check handover deliveries','Review handover checks','Review ownership change']){

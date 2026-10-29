@@ -19,7 +19,7 @@ try{
   const style=`<style>body{margin:16px;background:${theme==='light'?'#eef2ef':'#151a17'};color:${theme==='light'?'#16241b':'#f1f3f1'};font:14px system-ui}main{display:flex;gap:16px;margin:20px 0}figure{margin:0;width:${width}px}img{display:block;width:100%}figcaption{margin-bottom:8px}</style>`;
   await page.setContent(`${style}<h2>Plan help · ${theme} · ${device}</h2><p>Actual components; isolated host fixture. Viewing and canceling create nothing.</p><main>${figures.join('')}</main>`);await page.screenshot({path:resolve(evidence,`${theme}-${device}-comparison.png`),fullPage:true});
   const rows=[];
-  for(const pair of [['review','confirm'],['prepared','committed'],['attach-review','held'],['invalid','invalid-text200']]){
+  for(const pair of [['review','evidence'],['confirm','prepared'],['committed','attach-review'],['held','invalid-text200']]){
    const cols=[];for(const name of pair)cols.push(`<figure><figcaption>${name}</figcaption><img src="${await data(`${theme}-${device}-${name}`)}"></figure>`);rows.push(`<main>${cols.join('')}</main>`);
   }
   await page.setContent(`${style}<h2>Plan help reviews · ${theme} · ${device}</h2><p>Actual controls, illustrative data. Handover never attaches; the captain's existing Attach review is a separate step.</p>${rows.join('')}`);await page.screenshot({path:resolve(evidence,`${theme}-${device}-reviews.png`),fullPage:true});await page.close();

@@ -21,6 +21,7 @@ import { NeedsYouService, readConfiguredDecisionHome } from "./needs-you-service
 import { workflowHomeIdentity } from "./workflow-ownership";
 import type { PaseoApi } from "./host-types";
 import { askMate } from "./mate";
+import { evidenceReferences } from "../shared/plan-help";
 vi.setConfig({ testTimeout: 30000 });
 const root = process.env.PASEO_HOME!;
 let home: string, activation: SupervisionActivation, receiver: SyntheticReceiver, ledger: NeedsYouService, clock: number;
@@ -124,6 +125,61 @@ it("an interrupted freeze retains a named app recovery entry and resumes its exa
     expect(next.migrations).toHaveLength(1); expect(next.migrations[0]?.id).toBe(command.migrationId);
     expect(next.plans[0]?.scopeId).toBe(command.scopeId); expect(next.audits).toEqual([]); expect(receiver.calls).toEqual([]);
   } finally { await activation.stop(); await resumed?.stop(); await runtime.stop(); }
+});
+it("R3: an explicit corrected review after preflight refuses retains old evidence and can prepare before freeze", async () => {
+  const { runtime } = await guided();
+  try {
+    const review = await activation.planHelp(prepare.homeId, "scheduler");
+    const command = { ...prepare, scopeId: review.scopeId, projectId: review.projectId!, migrationId: review.migrationId, reviewHash: review.reviewHash };
+    const failure = vi.spyOn(SupervisionStore.prototype, "validate").mockRejectedValueOnce(new Error("temporary preflight hold"));
+    await expect(activation.migrate(command)).rejects.toThrow("temporary preflight hold"); failure.mockRestore();
+    expect(await workflowStore(home).cutover("scheduler")).toBe(null);
+    expect((await activation.read()).migrations).toEqual([]);
+    const originalPath = join(pluginDir(), "plan-help-preparations");
+    const original = await readdir(originalPath, { recursive: true });
+    const originalBytes = await Promise.all(original.filter(f => f.endsWith(".json")).map(f => readFile(join(originalPath, f), "utf8")));
+    const originalReview = await activation.planHelp(prepare.homeId, "scheduler");
+    expect(originalReview.migrationId).not.toBe(command.migrationId);
+    const backupRoot = (await activation.readBackup(prepare.homeId)).backup!.destination;
+    expect(await readFile(join(backupRoot, command.migrationId, "manifest.json"), "utf8")).toContain(command.migrationId);
+    await activation.saveBackup({ homeId: prepare.homeId, expectedRevision: 1, requestId: randomUUID(), backup: { destination: (await activation.readBackup(prepare.homeId)).backup!.destination, retention: "Keep indefinitely" } });
+    const fresh = await activation.planHelp(prepare.homeId, "scheduler");
+    expect(fresh.problems).toEqual([]); expect(fresh.reviewHash).not.toBe(command.reviewHash);
+    await expect(activation.migrate({ ...command, op: "resume" })).rejects.toMatchObject({ code: "STALE" });
+    const corrected = { ...command, migrationId: fresh.migrationId, reviewHash: fresh.reviewHash, replacesReview: command.reviewHash };
+    expect((await activation.migrate(corrected)).migrations).toHaveLength(1);
+    expect(await readdir(originalPath, { recursive: true })).toEqual(expect.arrayContaining(original));
+    expect(await Promise.all(original.filter(f => f.endsWith(".json")).map(f => readFile(join(originalPath, f), "utf8")))).toEqual(originalBytes);
+    expect(await readdir(backupRoot)).toEqual(expect.arrayContaining([command.migrationId, fresh.migrationId]));
+    expect(receiver.calls).toEqual([]);
+    // Once frozen/accepted, a newly reviewed body cannot replace the saved preparation.
+    await expect(activation.migrate({ ...corrected, prerequisites: { ...corrected.prerequisites, inventory: "different" }, replacesReview: fresh.reviewHash })).rejects.toMatchObject({ code: "CONFLICT" });
+  } finally { await activation.stop(); await runtime.stop(); }
+});
+it("R4: selected real rollback report, current inventory and accepted sources are read-only and rechecked before freeze", async () => {
+  const { runtime } = await guided();
+  try {
+    const report = "Retained FirstMate build: isolated tested build; location: reviewed test archive.\nRecovery test: exact S07 history and external-effect reconciliation verified.\n";
+    await writeFile(join(home, "data/rollback.md"), report);
+    const before = await runtime.read(home), evidence = await activation.evidence({ homeId: prepare.homeId, plan: "scheduler", folder: "data", rollbackPath: "data/rollback.md" });
+    expect(evidence.problems).toEqual([]); expect(evidence.inventory?.problems).toEqual([]);
+    expect(evidence.entries).toContainEqual({ name: "rollback.md", path: "data/rollback.md", kind: "file" });
+    expect(evidence.rollback?.content).toBe(report); expect(evidence.policy?.sources[0]?.content).toBe("Reviewed project permissions.");
+    expect((await runtime.read(home)).sequence).toBe(before.sequence); expect(await workflowStore(home).cutover("scheduler")).toBe(null); expect(receiver.calls).toEqual([]);
+    const review = await activation.planHelp(prepare.homeId, "scheduler");
+    const selected = { inventory: evidence.inventory!.hash, policy: evidence.policy!.hash, rollback: { path: evidence.rollback!.path, hash: evidence.rollback!.hash } };
+    const command = { ...prepare, migrationId: review.migrationId, scopeId: review.scopeId, projectId: review.projectId!, reviewHash: review.reviewHash,
+      evidence: selected, prerequisites: evidenceReferences(selected) };
+    await writeFile(join(home, "data/rollback.md"), `${report}Changed after selection.\n`);
+    await expect(activation.migrate(command)).rejects.toMatchObject({ code: "STALE" });
+    expect(await workflowStore(home).cutover("scheduler")).toBe(null);
+    await writeFile(join(home, "data/rollback.md"), report);
+    const prepared = await activation.migrate(command);
+    expect(prepared.migrations).toHaveLength(1); expect(receiver.calls).toEqual([]);
+    expect(await readFile(join(prepared.migrations[0]!.prerequisites.snapshot!.path, "handover/rollback-report.txt"), "utf8")).toBe(report);
+    const missing = await activation.evidence({ homeId: prepare.homeId, plan: "scheduler", folder: "data", rollbackPath: "../outside.md" });
+    expect(missing.rollback).toBe(null); expect(missing.problems.join(" ")).toContain("Choose a text report");
+  } finally { await activation.stop(); await runtime.stop(); }
 });
 it("the shared runtime supports production migration and the existing Attach beyond the pilot history ceiling", async () => {
   const runtime = new SupervisionRuntime(pluginDir());
@@ -274,7 +330,7 @@ it("strict RPCs accept no actor/source and no attach operation exists on migrati
   expect(MigrationCommandSchema.safeParse({ ...prepare, op: "attach" }).success).toBe(false);
   const handlers: string[] = [];
   registerSupervisionActivation({ handle: (rpc: { name: string }) => { handlers.push(rpc.name); } } as never, activation);
-  expect(handlers).toEqual(["firstmate.supervision.backup.read", "firstmate.supervision.backup.set", "firstmate.supervision.plan-help.read", "firstmate.supervision.activation", "firstmate.supervision.migrate", "firstmate.supervision.attach-ui"]);
+  expect(handlers).toEqual(["firstmate.supervision.plan-help.evidence", "firstmate.supervision.backup.read", "firstmate.supervision.backup.set", "firstmate.supervision.plan-help.read", "firstmate.supervision.activation", "firstmate.supervision.migrate", "firstmate.supervision.attach-ui"]);
   for (const file of await readdir("templates/tools")) {
     const source = await readFile(join("templates/tools", file), "utf8");
     expect(source).not.toMatch(/attach-ui|attachSupervisorFromUi|attachFromUnverifiedUi/);

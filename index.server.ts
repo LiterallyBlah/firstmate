@@ -38,6 +38,7 @@ import { SupervisionActivation, registerSupervisionActivation } from "./server/s
 import { SupervisionRuntime } from "./server/supervision-runtime";
 import { PlanRuntime } from "./server/plan-runtime";
 import { MigrationSettings } from "./server/migration-settings";
+import { workflowHomeIdentity } from "./server/workflow-ownership";
 import { ProjectRuntime, registerProjectRuntime } from "./server/project-runtime";
 import { MaintenanceRuntime, registerMaintenanceRuntime } from "./server/maintenance-runtime";
 import { nativeSchedules } from "./server/archive-inventory";
@@ -171,7 +172,7 @@ export default function contribute(server: PluginServerContext) {
   });
   const activation = new SupervisionActivation(pluginDir(), {
     runtime: supervisionRuntime,
-    backupSettings: new MigrationSettings(pluginDir(), readFirstmateConfig().then(c => ({ homeId: workflowHomeId(resolveHome(c)),
+    backupSettings: new MigrationSettings(pluginDir(), readFirstmateConfig().then(c => ({ homeId: workflowHomeIdentity(resolveHome(c)),
       destination: legacyEnvironment.FIRSTMATE_MIGRATION_BACKUP_ROOT ?? "", retention: legacyEnvironment.FIRSTMATE_MIGRATION_RETENTION ?? "" }))),
     adapters: () => legacyAdapters(watches.runner, () => decisions.read()),
   });

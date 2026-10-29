@@ -9,5 +9,5 @@ export const MigrationSettingsSnapshotSchema = z.object({ homeId: z.string(), re
   backup: z.object({ destination: z.string().max(2048), retention: z.string().max(2048) }).strict().nullable(), source: z.enum(["default", "legacy-environment", "saved"]),
   requestId: z.uuid().nullable(), problems: z.array(z.string()) }).strict();
 export type MigrationSettingsSnapshot = z.infer<typeof MigrationSettingsSnapshotSchema>;
-export const readMigrationSettings = defineRpc({ name: "firstmate.supervision.backup.read", input: z.object({ homeId: z.string() }).strict(), output: MigrationSettingsSnapshotSchema });
+export const readMigrationSettings = defineRpc({ name: "firstmate.supervision.backup.read", input: z.object({ homeId: z.string(), workflowHomeId: z.string().optional() }).strict(), output: MigrationSettingsSnapshotSchema });
 export const setMigrationSettings = defineRpc({ name: "firstmate.supervision.backup.set", input: MigrationSettingsInputSchema, output: MigrationSettingsSnapshotSchema });

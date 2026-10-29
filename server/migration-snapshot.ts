@@ -32,7 +32,7 @@ export class MigrationSnapshots {
     }
     return root;
   }
-  async capture(store: SupervisionStore, legacyRoot: string, home: string, migrationId: string, planId: string): Promise<Reference> {
+  async capture(store: SupervisionStore, legacyRoot: string, home: string, migrationId: string, planId: string, rollback?: { path: string; hash: string }): Promise<Reference> {
     z.uuid().parse(migrationId);
     if (!isAbsolute(this.approvedRoot) || !this.retention.trim()) refuse("HELD", "Configure an approved independent snapshot destination and retention before migration.");
     const root = await this.approved(), destination = join(root, migrationId);
@@ -65,12 +65,14 @@ export class MigrationSnapshots {
         if (!before.isFile() || files.length >= 50000 || total + before.size > 256 * 1024 * 1024) refuse("HELD", "Migration snapshot inventory exceeds its reviewed bounds.");
         const bytes = await readFile(source), after = await lstat(source);
         if (["size", "mtimeMs", "ctimeMs", "ino"].some(k => before[k as keyof typeof before] !== after[k as keyof typeof after])) refuse("STALE", "Snapshot source changed during capture.");
+        if (name === "handover/rollback-report.txt" && sha(bytes) !== rollback?.hash) refuse("STALE", "The selected rollback report changed. Review it again before handover.");
         const target = join(destination, ...name.split("/")); await mkdir(dirname(target), { recursive: true });
         await publishBytes(target, bytes);
         files.push({ name, bytes: bytes.length, digest: sha(bytes) }); total += bytes.length;
       };
       await copy(store.root, "journal"); await copy(legacyRoot, "legacy");
       for (const source of status.policySources) await copy((await resolveInHome(home, source.path)).absolute, `policy/${source.id}`);
+      if (rollback) await copy((await resolveInHome(home, rollback.path)).absolute, "handover/rollback-report.txt");
       const body = { format: "firstmate.migration-snapshot/1" as const, homeId: store.homeId, migrationId, planId, sequence: status.sequence,
         journalHash: status.hash, retention: this.retention, at: new Date().toISOString(),
         restore: "External effects since this sequence require explicit reconciliation; this snapshot grants no restore or budget-reset authority." as const, files };

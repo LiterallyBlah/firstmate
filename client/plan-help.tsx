@@ -5,26 +5,28 @@ import { Modal, TextInput } from "@getpaseo/plugin/client/react-native";
 import { useQuery } from "@tanstack/react-query";
 import { createContext, useContext, useRef, useState, type ReactNode } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
-import { readPlanHelp } from "../shared/plan-help";
+import { readPlanHelp, evidenceReferences } from "../shared/plan-help";
 import { readMigrationSettings, setMigrationSettings, type MigrationSettingsInput } from "../shared/migration-settings";
 import { migrateSupervisionPlan, ActivationSnapshotSchema, type MigrationCommand } from "../shared/supervision-activation";
 import { planFinished, type WorkflowPlan } from "../shared/workflow-plans";
 import { workflowRequestId, useWorkflowPlans } from "./workflow-plans";
 import { SupervisionActivationBoard } from "./supervision-activation";
 import { errorText } from "./format";
+import { PlanHelpEvidence } from "./plan-help-evidence";
 const OpenHelp = createContext<((plan: string, title: string) => void) | null>(null);
 /** Lives above plan rows: a freeze can remove a row without losing its open review. */
 export function PlanHelpSurface({ theme, children }: { theme: PluginTheme; children: ReactNode }) {
-  const { snapshot, activation } = useWorkflowPlans(), [selected, setSelected] = useState<{ homeId: string; plan: string; title: string } | null>(null);
-  const open = (plan: string, title: string) => { if (snapshot) setSelected({ homeId: snapshot.homeId, plan, title }); };
-  const homeId = snapshot?.homeId;
+  const { snapshot, activation } = useWorkflowPlans(), [selected, setSelected] = useState<{ homeId: string; workflowHomeId: string; plan: string; title: string } | null>(null);
+  // Workflow actions retain their historical hashed ID. Supervision RPCs use the absolute-home identity.
+  const homeId = activation?.homeId;
+  const open = (plan: string, title: string) => { if (snapshot && homeId) setSelected({ homeId, workflowHomeId: snapshot.homeId, plan, title }); };
   const retained = activation && activation.homeId === homeId ? activation.migrations.filter(m => ["prepared", "barrier"].includes(m.state) && !snapshot?.plans.some(p => p.definition.id === m.planId)) : [];
   const handovers = [...new Map([...(snapshot?.planHelpPending ?? []), ...retained.map(m => ({ plan: m.planId, title: activation?.plans.find(p => p.plan === m.planId)?.title ?? m.planId }))].map(p => [p.plan, p])).values()];
   return <OpenHelp.Provider value={open}>
     {handovers.length ? <View style={{ gap: 8, padding: 12 }}>{handovers.map(p => <HelpButton key={p.plan} theme={theme} label={`Continue handover: ${p.title}`} onPress={() => open(p.plan, p.title)} />)}</View> : null}
     {children}
-    {selected && selected.homeId === homeId ? <Modal title={`Help with ${selected.title}`} open onOpenChange={value => { if (!value) setSelected(null); }}><Modal.Content>
-      <PlanHelpReview key={`${homeId}:${selected.plan}`} theme={theme} homeId={selected.homeId} planId={selected.plan} onClose={() => setSelected(null)} />
+    {selected && selected.homeId === homeId && selected.workflowHomeId === snapshot?.homeId ? <Modal title={`Help with ${selected.title}`} open onOpenChange={value => { if (!value) setSelected(null); }}><Modal.Content>
+      <PlanHelpReview key={`${homeId}:${selected.plan}`} theme={theme} homeId={selected.homeId} workflowHomeId={selected.workflowHomeId} planId={selected.plan} onClose={() => setSelected(null)} />
     </Modal.Content></Modal> : null}
   </OpenHelp.Provider>;
 }
@@ -44,14 +46,16 @@ export function HelpButton({ theme, label, onPress, disabled = false }: { theme:
     <Text style={{ color: theme.colors.foreground, flexShrink: 1 }}>{label}</Text>
   </Pressable>;
 }
-export function PlanHelpReview({ theme, homeId, planId, onClose }: { theme: PluginTheme; homeId: string; planId: string; onClose(): void }) {
+export function PlanHelpReview({ theme, homeId, workflowHomeId, planId, onClose }: { theme: PluginTheme; homeId: string; workflowHomeId?: string; planId: string; onClose(): void }) {
   const read = useRpc(readPlanHelp), readBackup = useRpc(readMigrationSettings), saveBackup = useRpc(setMigrationSettings), migrate = useRpc(migrateSupervisionPlan);
   const { activation, activationError, updateActivation, refreshActivation, scope } = useWorkflowPlans();
-  const query = useQuery({ queryKey: ["firstmate", "plan-help", scope, homeId, planId], queryFn: () => read({ homeId, plan: planId }), retry: false });
-  const backup = useQuery({ queryKey: ["firstmate", "plan-backup", scope, homeId], queryFn: () => readBackup({ homeId }), retry: false });
+  const captured = workflowHomeId === undefined ? {} : { workflowHomeId };
+  const query = useQuery({ queryKey: ["firstmate", "plan-help", scope, homeId, workflowHomeId, planId], queryFn: () => read({ homeId, plan: planId, ...captured }), retry: false });
+  const backup = useQuery({ queryKey: ["firstmate", "plan-backup", scope, homeId, workflowHomeId], queryFn: () => readBackup({ homeId, ...captured }), retry: false });
   const data = query.data, migration = activation?.homeId === homeId ? activation.migrations.find(m => m.planId === planId) : undefined;
   const [destination, setDestination] = useState<string | null>(null), [retention, setRetention] = useState<string | null>(null);
   const [inventory, setInventory] = useState(""), [rollbackBuild, setRollback] = useState(""), [policy, setPolicy] = useState("");
+  const [evidence, setEvidence] = useState<{ reviewHash: string; value: NonNullable<Extract<MigrationCommand, { op: "prepare" | "resume" }>["evidence"]> } | null>(null);
   const [reason, setReason] = useState(""), [details, setDetails] = useState(false), [review, setReview] = useState<MigrationCommand | null>(null);
   const [busy, setBusy] = useState(false), [error, setError] = useState<string | null>(null), [uncertain, setUncertain] = useState(false);
   const saved = useRef<MigrationSettingsInput | null>(null), pending = useRef<MigrationCommand | null>(null), gate = useRef(false);
@@ -100,7 +104,9 @@ export function PlanHelpReview({ theme, homeId, planId, onClose }: { theme: Plug
       {saved.current ? <HelpButton theme={theme} label="Check saved backup settings" disabled={busy} onPress={() => { void backup.refetch().then(result => { if (result.data?.requestId === saved.current?.requestId) { saved.current = null; setError(null); void refresh(); } }); }} /> : null}
       {saved.current ? <HelpButton theme={theme} label="Review corrected backup settings" disabled={busy} onPress={() => { void backup.refetch().then(result => { if (result.data && !result.error) { saved.current = null; setError(null); setDestination(result.data.backup?.destination ?? destination); setRetention(result.data.backup?.retention ?? retention); } }); }} /> : null}
       <HelpButton theme={theme} label={saved.current ? "Retry this backup save" : "Save backup settings"} disabled={busy || !backup.data || !!backup.error || !(destination ?? backup.data.backup?.destination)?.trim() || !(retention ?? backup.data.backup?.retention)?.trim()} onPress={() => { void save(); }} />
-      <HelpButton theme={theme} label={details ? "Hide handover evidence" : "Handover evidence"} onPress={() => setDetails(!details)} />
+      {data ? <PlanHelpEvidence key={data.reviewHash} theme={theme} homeId={homeId} plan={planId} reviewHash={data.reviewHash} disabled={busy || !!pending.current} onChoose={value => { setEvidence({ reviewHash: data.reviewHash, value }); setDetails(false); }} /> : null}
+      {evidence && evidence.reviewHash === data?.reviewHash ? <Text style={foreground}>Handover evidence is selected. Review the handover below before anything changes.</Text> : null}
+      <HelpButton theme={theme} label={details ? "Hide advanced evidence references" : "Advanced evidence references"} onPress={() => setDetails(!details)} />
       {details ? <View style={{ gap: 8 }}>
         <Text style={muted}>Keep the references from the reviewed delivery inventory, compatible rollback build and accepted permission import. These references grant no new permission. Missing or changed sources must be reviewed first.</Text>
         <TextInput accessibilityLabel="Reviewed delivery inventory" value={inventory} onChangeText={setInventory} placeholder="Reviewed delivery inventory reference" editable={!busy && !pending.current} style={fieldStyle} />
@@ -108,9 +114,16 @@ export function PlanHelpReview({ theme, homeId, planId, onClose }: { theme: Plug
         <TextInput accessibilityLabel="Accepted permission import" value={policy} onChangeText={setPolicy} placeholder="Accepted permission import reference" editable={!busy && !pending.current} style={fieldStyle} />
         <Text selectable style={muted}>{data?.sourcePaths.join("\n")}</Text>
       </View> : null}
-      <HelpButton theme={theme} label="Review handover" disabled={busy || held || !inventory.trim() || !rollbackBuild.trim() || !policy.trim()} onPress={() => { if (data?.projectId) choose({ op: "prepare", homeId, plan: planId, migrationId: data.migrationId, scopeId: data.scopeId, projectId: data.projectId, reviewHash: data.reviewHash,
-        prerequisites: { inventory: inventory.trim(), rollbackBuild: rollbackBuild.trim(), policy: policy.trim() } }); }} />
+      <HelpButton theme={theme} label="Review handover" disabled={busy || held || !!pending.current || !(evidence?.reviewHash === data?.reviewHash || details && inventory.trim() && rollbackBuild.trim() && policy.trim())} onPress={() => { if (data?.projectId) {
+        const chosen = evidence?.reviewHash === data.reviewHash ? evidence.value : null;
+        choose({ op: "prepare", homeId, plan: planId, migrationId: data.migrationId, scopeId: data.scopeId, projectId: data.projectId, reviewHash: data.reviewHash,
+          ...(data.canCorrectPreparation && data.preparation && "reviewHash" in data.preparation && data.preparation.reviewHash ? { replacesReview: data.preparation.reviewHash } : {}),
+          ...(chosen ? { evidence: chosen } : {}), prerequisites: chosen ? evidenceReferences(chosen) : { inventory: inventory.trim(), rollbackBuild: rollbackBuild.trim(), policy: policy.trim() } });
+      } }} />
       {data?.preparation ? <HelpButton theme={theme} label="Review saved handover" disabled={busy || held} onPress={() => choose({ ...data.preparation!, op: "resume" } as MigrationCommand)} /> : null}
+      {(data?.preparation || uncertain) && data?.canCorrectPreparation ? <HelpButton theme={theme} label="Review corrected handover" disabled={busy} onPress={() => { void query.refetch().then(result => {
+        if (result.data?.canCorrectPreparation && !result.error) { pending.current = null; setReview(null); setUncertain(false); setError(null); setEvidence(null); }
+      }); }} /> : null}
     </View> : <View style={{ gap: 8 }}>
       <Text style={foreground}>{migration.state === "committed" ? "Handover is complete. The captain can now review Attach below." : migration.state === "aborted" ? "Handover was canceled. Its history and spending are retained." : "Handover is saved. Check pending deliveries before changing ownership."}</Text>
       {holds.map(h => <Text key={h.id} style={foreground}>Held for review: {h.reason} {h.source === "decision-submission" ? "This answer requires the original captain-authorized resolution; this app cannot clear it." : "Inspect the evidence in Advanced work details before continuing."}</Text>)}
@@ -132,7 +145,7 @@ export function PlanHelpReview({ theme, homeId, planId, onClose }: { theme: Plug
     </View> : null}
     {error ? <Text accessibilityRole="alert" style={foreground}>{error}</Text> : null}
     <HelpButton theme={theme} label="Refresh plan help" disabled={busy} onPress={() => { void refresh(); }} />
-    <Text style={muted}>Advanced work details in FirstMate settings retains original preparation JSON, saved identities, audits and specialist recovery controls.</Text>
+    <Text style={muted}>For specialist recovery, open Advanced work details in FirstMate settings.</Text>
     <HelpButton theme={theme} label="Back to plan" disabled={busy} onPress={onClose} />
   </ScrollView>;
 }
