@@ -12,7 +12,7 @@ const theme = params.get('theme') === 'light' ? { colors: { ...dark.colors, surf
 window.fixtureTheme = theme;
 const stage = params.get('stage'), surface = params.get('surface'), compact = innerWidth < 638;
 window.review.cache = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false }, mutations: { retry: false } } });
-const isFleet = ['home','plans','discussion','needs','board'].includes(surface);
+const isFleet = ['home','plans','discussion','needs','board','list'].includes(surface);
 bindSettingsOpener(() => window.review.navigation.push('settings'));
 const shell = { openHome() {}, openView() {}, openDecision() {}, openScope() {}, openTask() {} };
 const route = surface === 'needs' ? { decision: 'all', decisionHome: homeId } : { chat: 'show' };
@@ -21,7 +21,7 @@ document.body.style.background = theme.colors.surface0;
 createRoot(document.getElementById('root')).render(<QueryClientProvider client={window.review.cache}>
   <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: theme.colors.surface0, color: theme.colors.foreground }}>
     <div style={{ padding: '10px 16px', fontSize: 12, borderBottom: `1px solid ${theme.colors.border}` }}>FirstMate · isolated fixture · no live effects{surface === 'introduction' ? ' · introduction preview; production gate remains closed' : ''}</div>
-    {isFleet ? <FleetSurface theme={theme} layout={{ compact }} host={{ id: 'local', label: 'Local', online: true }} workspaceId="sample" params={route} view={{ plans: 'plans', discussion: 'chat', needs: 'crew', board: 'board' }[surface]} shell={shell} navigation={{ openAgent() {} }} /> :
+    {isFleet ? <FleetSurface theme={theme} layout={{ compact }} host={{ id: 'local', label: 'Local', online: true }} workspaceId="sample" params={route} view={{ plans: 'plans', discussion: 'chat', needs: 'crew', board: 'board', list: 'crew' }[surface]} shell={shell} navigation={{ openAgent() {} }} /> :
       <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: compact ? 12 : 24 }}>
         {surface === 'introduction' ? <>
           <p>Your conversation with FirstMate stays here.</p>

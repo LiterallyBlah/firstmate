@@ -984,7 +984,7 @@ describe("the ship deck view", () => {
     snapshot.freshness.status = "stale";
     await act(async () => { renderer = create(createElement(ShipDeckView, { cards: fixture, theme, engine: viewEngine(), needsYou: snapshot })); });
     expect(text(renderer!)).toContain("6 need you");
-    expect(text(renderer!)).toContain("as of");
+    expect(text(renderer!)).toContain("Last updated");
     expect(text(renderer!)).not.toContain("Decision data is stale");
     expect(text(renderer!)).not.toContain("0 needs you");
   });

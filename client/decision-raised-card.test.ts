@@ -76,7 +76,7 @@ it("retains the question and timestamp during refresh, and disables answers afte
   const tree = (error: boolean) => createElement(QueryClientProvider, { client }, createElement(DecisionReadContext.Provider, { value: { fetching: !error, error } },
     createElement(DecisionRaisedCard, { theme: attentionTheme, request: snapshot.requests[0]!, snapshot, mateId: "mate", compact: true })));
   await act(async () => { renderer = create(tree(false)); });
-  expect(text(renderer!)).toContain("Updating…"); expect(text(renderer!)).toContain("as of");
+  expect(text(renderer!)).not.toContain("Updating…"); expect(text(renderer!)).not.toContain("as of"); expect(text(renderer!)).not.toContain("Last updated");
   expect(text(renderer!)).toContain("Light or Atlas?");
   await act(async () => renderer!.update(tree(true)));
   expect(renderer!.root.findByProps({ accessibilityLabel: "Choose: Atlas" }).props.disabled).toBe(true);
@@ -99,7 +99,7 @@ describe("a raised decision's card, when its data may be out of date", () => {
     const stale = snapshotWithChoice();
     stale.freshness = { status: "stale", asOf: new Date(2026, 9, 21, 9, 5).getTime(), checkedAt: 9000, problems: ["Backlog changed while it was read."] };
     let tree = await render(stale);
-    expect(text(tree)).toContain("Showing this decision as of 09:05. You can answer once FirstMate can read the backlog again.");
+    expect(text(tree)).toContain("This decision may be out of date. You can answer once FirstMate can read the backlog again.");
     expect(text(tree)).toContain("Backlog changed while it was read.");
     await act(async () => renderer!.unmount());
     tree = await render(snapshotWithChoice(), true);

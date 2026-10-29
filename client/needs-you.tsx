@@ -95,7 +95,7 @@ export function NeedsYouIndicator({
       }}
     >
       <Icon
-        name={state.loading || state.updating ? "Clock" : state.unavailable ? "TriangleAlert" : state.amber ? "Bell" : "Check"}
+        name={state.loading ? "Clock" : state.unavailable ? "TriangleAlert" : state.amber ? "Bell" : "Check"}
         size={14}
         color={state.filled ? ink : (signal ?? theme.colors.foregroundMuted)}
       />
@@ -110,6 +110,7 @@ export function NeedsYouIndicator({
       >
         {state.label}
         {state.fresh && state.newCount > 0 ? ` · ${state.newCount} new` : ""}
+        {state.lastUpdated ? <Text style={{ color: theme.colors.foregroundMuted }}> · {state.lastUpdated}</Text> : null}
       </Text>
     </Pressable>
   );

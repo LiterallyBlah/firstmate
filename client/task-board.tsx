@@ -161,6 +161,7 @@ export function TaskBoard(props: {
                 {TASK_TITLES[id]} · {count} {folded ? "›" : "⌄"}
               </Text>
             </Pressable>
+            {id === "needs-you" && !folded && decisionState.lastUpdated ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{decisionState.lastUpdated}</Text> : null}
           </View>
           {folded || id === "needs-you" ? null : (
             <>

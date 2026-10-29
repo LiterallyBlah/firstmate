@@ -95,6 +95,7 @@ export function TaskList(props: TaskListProps) {
         >
           Needs you · {decisionCountText(snapshot, props.offline, read)}
         </Text>
+        {decisionState.lastUpdated ? <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>{decisionState.lastUpdated}</Text> : null}
         <DecisionQueueNote theme={theme} snapshot={snapshot} offline={props.offline} filtered={props.filtered} />
         {requests.map((request) => {
           const reveal = revealed && taskSourceKey(revealed) === request.source.key ? props.reveal?.request : undefined;

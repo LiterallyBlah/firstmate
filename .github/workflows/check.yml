@@ -26,6 +26,7 @@ jobs:
       - run: git fetch origin de4dac1be70736cf0a0f417244f9ab895ed5354d
       - run: node docs/smooth-pr10/render-delayed.mjs
       - run: node docs/smooth-pr10/render-drawer.mjs
+      - run: node docs/smooth-pr10/render-quiet.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: deck-before-after
@@ -51,6 +52,8 @@ jobs:
             .local/smooth-pr10/delayed/results.json
             .local/smooth-pr10/drawer/*.png
             .local/smooth-pr10/drawer/results.json
+            .local/smooth-pr10/quiet/*.png
+            .local/smooth-pr10/quiet/results.json
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 30

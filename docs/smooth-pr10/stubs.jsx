@@ -3,6 +3,7 @@ import { useRpc as original } from '../smooth-pr5/stubs';
 import { clone, homeId, maintenance, params } from '../smooth-pr2/data';
 export * from '../smooth-pr5/stubs';
 const methods = new Map();
+let quietReadCount = 0;
 if (params.get('case') === 'saved') { window.review.features.requested.maintenance = true; window.review.features.effective.maintenance = true; }
 if (params.has('drawer-diagnostics')) {
   window.review.features.requested.maintenance = true; window.review.features.effective.maintenance = true;
@@ -19,6 +20,19 @@ if (params.get('features') === 'ui-only') {
   window.review.features.requested.scopeUi = true; window.review.features.effective.scopeUi = true;
 }
 export function useRpc(contract) {
+  if (params.has('quiet-refresh') && contract.name === 'firstmate.needs-you.read') {
+    if (!methods.has(contract.name)) methods.set(contract.name, async input => {
+      window.review.calls.push({ name: contract.name, input: clone(input) });
+      quietReadCount++;
+      const mode = params.get('quiet-refresh');
+      if (quietReadCount > 1 && mode === 'background') return new Promise(() => {});
+      if (quietReadCount > 1 && mode === 'failed') throw new Error('Synthetic failed decision refresh');
+      return { ...clone(window.review.decisions), actionCount: 7, newCount: 0, requests: [], parked: [], quarantined: [],
+        scopedComplete: true, scopedProblems: [], planProblems: [],
+        freshness: { status: quietReadCount > 1 && mode === 'stale' ? 'stale' : 'fresh', asOf: Date.parse('2026-10-29T18:10:00Z'), checkedAt: Date.now(), problems: [] } };
+    });
+    return methods.get(contract.name);
+  }
   if (!contract.name.startsWith('firstmate.maintenance.') && !contract.name.startsWith('firstmate.introduction.')) return original(contract);
   if (!methods.has(contract.name)) methods.set(contract.name, async input => {
     window.review.calls.push({ name: contract.name, input: clone(input) });

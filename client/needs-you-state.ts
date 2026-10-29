@@ -58,7 +58,8 @@ export function indicatorState(
   const partialCount = partialPlans || partialScoped > 0;
   const unavailablePlans = !!snapshot?.planProblems?.length || snapshot?.scopedComplete === false || read.readiness === "partial";
   const count = partialCount ? (partialPlans ? snapshot!.planNow!.length : 0) + partialScoped : unavailablePlans && recordedCount === 0 ? null : recordedCount;
-  const fresh = !offline && !loading && !updating && snapshot?.freshness.status === "fresh" && !unavailablePlans;
+  const fresh = !offline && !loading && snapshot?.freshness.status === "fresh" && !unavailablePlans;
+  const lastUpdated = decisionLastUpdated(snapshot, offline, read);
   const newCount = snapshot?.newCount ?? 0;
   const status = offline ? "stale" : (snapshot?.freshness.status ?? "unknown");
   const problems = decisionProblems(snapshot, offline, read);
@@ -91,6 +92,7 @@ export function indicatorState(
   return {
     loading,
     updating,
+    lastUpdated,
     partialPlans,
     partialScoped,
     failed: offline,
@@ -106,11 +108,17 @@ export function indicatorState(
         ? "Can't read decisions"
         : count === 0 && fresh
           ? "Nothing needs you"
-          : `Needs you · ${count}${unavailablePlans ? "+ · some plans unavailable" : partialScoped ? "+ · known actions only" : partialPlans ? "+ · plans only" : ""}${!fresh && snapshot?.freshness.asOf != null ? ` · as of ${decisionClock(snapshot.freshness.asOf)}` : ""}${offline ? " · offline" : updating ? " · Updating…" : loading ? " · checking the rest" : ""}`,
+          : `Needs you · ${count}${unavailablePlans ? "+ · some plans unavailable" : partialScoped ? "+ · known actions only" : partialPlans ? "+ · plans only" : ""}${offline ? " · offline" : loading ? " · checking the rest" : ""}`,
     badge: count === null ? loading ? "…" : "!" : `${count}${partialCount || unavailablePlans ? "+" : ""}`,
     extra,
-    accessibilityLabel: `Needs you, ${loading && count === null ? "loading decisions" : count === null ? "count unavailable" : unavailablePlans ? `at least ${count} items; some plans unavailable` : partialScoped ? `at least ${count} known actions; other decisions unavailable` : partialPlans ? `at least ${count} plan actions; other decisions unavailable` : `${count} items`}${extra ? `, ${extra}` : ""}${!fresh && count !== null && snapshot?.freshness.asOf != null ? `, as of ${decisionClock(snapshot.freshness.asOf)}` : ""}${updating ? ", updating" : ""}. ${explanation}${explanation ? " " : ""}Open decisions`,
+    accessibilityLabel: `Needs you, ${loading && count === null ? "loading decisions" : count === null ? "count unavailable" : unavailablePlans ? `at least ${count} items; some plans unavailable` : partialScoped ? `at least ${count} known actions; other decisions unavailable` : partialPlans ? `at least ${count} plan actions; other decisions unavailable` : `${count} items`}${extra ? `, ${extra}` : ""}${lastUpdated ? `, ${lastUpdated}` : ""}. ${explanation}${explanation ? " " : ""}Open decisions`,
   };
+}
+
+/** A background fetch is silent. Only source staleness or an actual read failure ages the display. */
+export function decisionLastUpdated(snapshot: NeedsYouSnapshot | undefined, offline = false, read: DecisionReadState = {}): string | null {
+  return snapshot?.freshness.asOf != null && (offline || read.error === true || read.readiness === "failed" || snapshot.freshness.status === "stale")
+    ? `Last updated ${decisionClock(snapshot.freshness.asOf)}` : null;
 }
 
 export function decisionProblems(
@@ -151,7 +159,7 @@ export function completeEmptyInbox(snapshot: NeedsYouSnapshot | undefined, offli
     !snapshot.pendingAnswerCount && !snapshot.scopedPendingAnswerCount && !snapshot.snoozedCount;
 }
 
-/** Every count surface uses the server total and explicitly labels an old count. */
+/** Every count surface uses the server total; stale timestamps render as a separate muted note. */
 export function decisionCountText(
   snapshot: NeedsYouSnapshot | undefined,
   offline = false,
@@ -159,8 +167,7 @@ export function decisionCountText(
 ): string {
   const state = indicatorState(snapshot, offline, read);
   if (state.count === null) return state.loading ? "Loading decisions…" : "unavailable";
-  const aged = state.failed || state.loading || state.updating || snapshot?.freshness.status !== "fresh";
-  return `${state.badge}${snapshot?.planProblems?.length || snapshot?.scopedComplete === false || read.readiness === "partial" ? " · some plans unavailable" : state.partialScoped ? " · known actions only" : state.partialPlans ? " · plans only" : ""}${aged && snapshot?.freshness.asOf != null ? ` · as of ${decisionClock(snapshot.freshness.asOf)}` : aged ? " · stale" : ""}${state.updating ? " · Updating…" : ""}`;
+  return `${state.badge}${snapshot?.planProblems?.length || snapshot?.scopedComplete === false || read.readiness === "partial" ? " · some plans unavailable" : state.partialScoped ? " · known actions only" : state.partialPlans ? " · plans only" : ""}`;
 }
 /** Queue is unfiltered and never changes an already selected ID. */
 export function decisionQueue(requests: readonly NeedsYouRequest[]) {

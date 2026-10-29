@@ -56,10 +56,10 @@ it("explains quarantined lines and never labels an unknown or stale total as a c
   expect(decisionCountText(undefined)).toBe("Loading decisions…");
   for (const status of ["unknown", "disabled", "stale"] as const) {
     const unavailable = { ...data, actionCount: 0, freshness: { ...data.freshness, status } };
-    expect(decisionCountText(unavailable)).toBe(status === "stale" ? `0 · as of ${decisionClock(1000)}` : "unavailable");
+    expect(decisionCountText(unavailable)).toBe(status === "stale" ? "0" : "unavailable");
     expect(indicatorState(unavailable).fresh).toBe(false);
   }
-  expect(decisionCountText(data, true)).toBe(`1 · as of ${decisionClock(1000)}`);
+  expect(decisionCountText(data, true)).toBe("1");
   expect(decisionCountText(data)).toBe("1");
 });
 it("distinguishes zero, disabled, unknown, stale and pending at zero with accessible names", () => {
@@ -89,12 +89,23 @@ it("separates pending, failed, updating and bounded readiness without inventing 
   }
   expect(indicatorState(undefined, false, { error: true })).toMatchObject({ loading: false, unavailable: true, badge: "!" });
   const data = snapshot();
-  expect(decisionCountText(data, false, { readiness: "failed" })).toContain("as of");
-  expect(indicatorState(data, false, { fetching: true }).label).toContain(`as of ${decisionClock(1000)}`);
-  expect(indicatorState(data, false, { fetching: true }).label).toContain("Updating…");
+  expect(indicatorState(data, false, { readiness: "failed" }).lastUpdated).toBe(`Last updated ${decisionClock(1000)}`);
+  expect(indicatorState(data, false, { fetching: true }).label).toBe("Needs you · 1");
+  expect(indicatorState(data, false, { fetching: true })).toMatchObject({ fresh: true, stale: false, lastUpdated: null });
   expect(indicatorState({ ...data, actionCount: 0 }, false, { readiness: "partial" }).count).toBeNull();
   expect(indicatorState(data, false, { readiness: "partial" }).badge).toBe("1+");
   expect(indicatorState({ ...data, actionCount: 0 }, false, { readiness: "complete" }).label).toBe("Nothing needs you");
+});
+it("dates only actual failed or source-stale reads, never a background request or partial source", () => {
+  const data = snapshot();
+  const before = indicatorState(data);
+  expect(indicatorState(data, false, { fetching: true })).toMatchObject({ label: before.label, accessibilityLabel: before.accessibilityLabel, fresh: true, stale: false, lastUpdated: null });
+  expect(indicatorState(data, false, { readiness: "partial" }).lastUpdated).toBeNull();
+  for (const state of [indicatorState(data, true), indicatorState(data, false, { error: true }), indicatorState({ ...data, freshness: { ...data.freshness, status: "stale" } })]) {
+    expect(state).toMatchObject({ count: data.actionCount, fresh: false, lastUpdated: `Last updated ${decisionClock(1000)}` });
+    expect(state.label).not.toMatch(/Updating|as of/);
+  }
+  expect(indicatorState({ ...data, freshness: { ...data.freshness, asOf: null } }, true).lastUpdated).toBeNull();
 });
 it("orders new first, then longest waiting, then stable IDs without mutating input", () => {
   const first = snapshot().requests[0]!;

@@ -433,10 +433,10 @@ it.each(["stale", "offline"])("puts the %s warning before the selected card and 
   await mount(["backlog"], true, snapshot => {
     if (state === "stale") snapshot.freshness.status = "stale";
   }, { offline: state === "offline" });
-  expect(words()).toContain("Showing the list from");
-  expect(words().indexOf("Showing the list from")).toBeLessThan(words().indexOf("Spoiler and foreshadowing checks"));
+  expect(words()).toContain("Last updated");
+  expect(words().indexOf("Last updated")).toBeLessThan(words().indexOf("Spoiler and foreshadowing checks"));
   await press("All decisions");
-  expect(words().indexOf("Showing the list from")).toBeLessThan(words().indexOf("Waiting for you"));
+  expect(words().indexOf("Last updated")).toBeLessThan(words().indexOf("Waiting for you"));
 });
 
 it("retains a refusal after a refreshed subject remounts the plan card", async () => {
@@ -665,13 +665,28 @@ it.each(["List", "Board", "Drawer"])("keeps %s pending neutral, partial counts h
   const partial = { ...attentionSnapshot([]), scopedComplete: false, scopedProblems: ["Some work could not be checked"] };
   await act(async () => renderer.update(render(partial, { readiness: "partial" })));
   expect(words()).not.toContain("Nothing needs"); expect(words()).not.toContain("Needs you · 0");
-  for (const read of [{ fetching: true }, { readiness: "loading" }, { readiness: "partial" }] satisfies DecisionReadState[]) {
+  for (const read of [{ readiness: "loading" }, { readiness: "partial" }] satisfies DecisionReadState[]) {
     await act(async () => renderer.update(render(attentionSnapshot([]), read)));
     expect(words()).not.toContain("No decisions right now");
     expect(words()).not.toContain("Nothing needs");
   }
   const old = attentionSnapshot(); old.freshness.status = "stale";
   await act(async () => renderer.update(render(old, { error: true })));
-  expect(words()).toContain(view === "Drawer" ? "Showing the list from" : "as of");
+  expect(words()).toContain("Last updated");
   expect(rpc.calls.filter(name => !name.endsWith(".read"))).toEqual([]);
+});
+
+it.each(["List", "Board", "Drawer"])("keeps %s unchanged during a successful snapshot's background refresh", async view => {
+  client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const snapshot = attentionSnapshot([]);
+  const props = { cards: [], allCards: [], snapshot, offline: false, theme: attentionTheme, compact: true, density: "comfortable" as const,
+    conversing: null, onConverse() {}, onChanged() {}, showDone: false, onShowDone() {}, layout: DEFAULT_TASK_LAYOUT, layoutDisabled: false, onLayout() {} };
+  const render = (fetching: boolean) => createElement(QueryClientProvider, { client }, createElement(DecisionReadContext.Provider, { value: { fetching } },
+    view === "List" ? createElement(TaskList, props) : view === "Board" ? createElement(TaskBoard, props) : createElement(DecisionDrawer, {
+      theme: attentionTheme, snapshot, offline: false, destination: { requestId: "all", homeId: "sample-home" }, onSelect() {}, onClose() {}, mateId: null, suggestions: [], compact: true,
+    })));
+  await act(async () => { renderer = create(render(false)); });
+  const before = words();
+  await act(async () => renderer.update(render(true)));
+  expect(words()).toBe(before); expect(words()).not.toMatch(/Updating|as of|Last updated/);
 });

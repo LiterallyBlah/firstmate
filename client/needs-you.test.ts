@@ -63,7 +63,7 @@ it.each([false, true])("keeps other views' empty and counted pills clickable (co
     client.clear();
   }
 });
-it("shows neutral loading on both header and sidebar, then a genuine failure and retained updating count", async () => {
+it("shows neutral loading on header and sidebar, keeps background reads quiet, and dates genuine failures in muted text", async () => {
   const client = new QueryClient(); let tree!: ReactTestRenderer;
   const render = (error = false, snapshot?: ReturnType<typeof attentionSnapshot>) => createElement(QueryClientProvider, { client },
     createElement(NeedsYouIndicator, { theme: attentionTheme, ...(snapshot ? { snapshot } : {}), readState: { pending: !snapshot, fetching: !error, error } }),
@@ -75,6 +75,10 @@ it("shows neutral loading on both header and sidebar, then a genuine failure and
     await act(async () => tree.update(render(true)));
     json = JSON.stringify(tree.toJSON()); expect(json).toContain("Can't read decisions"); expect(json).toContain('"!"');
     await act(async () => tree.update(render(false, attentionSnapshot())));
-    json = JSON.stringify(tree.toJSON()); expect(json).toContain("Updating…"); expect(json).toContain("as of");
+    json = JSON.stringify(tree.toJSON()); expect(json).not.toContain("Updating…"); expect(json).not.toContain("as of"); expect(json).not.toContain("Last updated");
+    expect(json).not.toContain('"name":"Clock"');
+    await act(async () => tree.update(render(true, attentionSnapshot())));
+    const timestamp = tree.root.find(n => n.type === "Text" as never && n.children.some(child => typeof child === "string" && child.includes("Last updated")));
+    expect(timestamp.props.style.color).toBe(attentionTheme.colors.foregroundMuted);
   } finally { await act(async () => tree?.unmount()); client.clear(); }
 });

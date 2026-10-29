@@ -105,7 +105,7 @@ describe("the Deck's daemon-owned decisions", () => {
   it("keeps clear, stale and unavailable totals explicit without empty new-count copy", () => {
     expect(deckDecisionLabel(undefined, false, true, { pending: true })).toBe("Loading decisions…");
     expect(deckDecisionLabel(undefined, false, true, { error: true })).toBe("Can't read decisions");
-    expect(deckDecisionLabel(attentionSnapshot(), false, true, { fetching: true })).toContain("Updating…");
+    expect(deckDecisionLabel(attentionSnapshot(), false, true, { fetching: true })).toBe("2 need you");
     expect(deckDecisionLabel({ ...attentionSnapshot(), scopedComplete: false })).toContain("2+");
     const plansOnly = { ...attentionSnapshot([]), actionCount: null, planNow: [planDecisionNeed()] };
     plansOnly.freshness.status = "disabled";
@@ -113,7 +113,7 @@ describe("the Deck's daemon-owned decisions", () => {
     expect(deckDecisionLabel(attentionSnapshot())).toBe("2 need you");
     expect(deckDecisionLabel(attentionSnapshot([]))).toBe("Nothing needs you");
     const stale = attentionSnapshot(); stale.freshness.status = "stale";
-    expect(deckDecisionLabel(stale)).toContain("2 need you · as of");
+    expect(deckDecisionLabel(stale)).toContain("2 need you · Last updated");
     stale.actionCount = null;
     expect(deckDecisionLabel(stale)).toBe("Can't read decisions");
   });
