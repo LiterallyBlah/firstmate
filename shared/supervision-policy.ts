@@ -14,7 +14,8 @@ export const PilotOperation = z.enum(["plan.start", "plan.review", "plan.stop", 
 export const PolicySourceSchema = z.object({
   id: SupervisionUuid, version, path: label, lineStart: version, lineEnd: version,
   fileHash: SupervisionHash, excerptHash: SupervisionHash,
-  provenance: SupervisionActorSchema.refine(a => a.kind === "captain-ui" || a.kind === "mate-chat", "Explicit reviewed source required"),
+  provenance: SupervisionActorSchema.refine(a => a.kind === "captain-ui" || a.kind === "mate-chat" ||
+    a.kind === "plugin-ui-unverified" && a.id === "unauthenticated-plugin-call" && a.source === "project setup review (unverified)", "Explicit reviewed source required"),
   supersedes: z.array(SupervisionUuid).max(64),
 }).strict().refine(s => s.lineEnd >= s.lineStart);
 export const PolicyRuleSchema = z.object({
@@ -75,6 +76,17 @@ export const OperationHoldSchema = z.object({
 /** Durable app request, retained before any provisioning effects are reserved. Context, never a grant. */
 export const ProjectProvisionInputSchema = z.object({ homeId: z.string(), requestId: SupervisionUuid,
   projectId: SupervisionUuid, projectVersion: version }).strict();
+/** Exact app review retained before admission; admission and native receipts remain separate. */
+export const ProjectSetupInputSchema = z.object({ homeId: z.string(), requestId: SupervisionUuid, reviewDigest: SupervisionHash,
+  review: z.object({ homeId: z.string(), registryDigest: SupervisionHash, generalAgentId: label, projectId: SupervisionUuid,
+    name: label, projectVersion: z.number().int().nonnegative(), aliases: z.array(label).max(16), source: PolicySourceSchema,
+    profile: AgentProfileSchema, budget: z.object({ agents: version, turns: version }).strict(),
+    limits: z.object({ supervisorSessions: z.literal(1), supervisorTurns: version }).strict(),
+    policyHash: SupervisionHash, sourceVector: z.array(SupervisionVersionRefSchema).min(1).max(64), opening: z.string().min(1).max(128 * 1024),
+    capacity: z.object({ slots: version, generalHeadroom: version }).strict(),
+    spent: z.object({ sessions: z.number().int().nonnegative(), turns: z.number().int().nonnegative() }).strict(),
+  }).strict(),
+}).strict();
 /** Exact captain-app maintenance admission, retained for fresh-client resume. Never a helper command. */
 export const MaintenanceAdmissionInputSchema = z.object({ homeId: z.string(), requestId: SupervisionUuid, scopeId: SupervisionUuid,
   name: z.string().min(1).max(120), profile: AgentProfileSchema,
@@ -82,6 +94,7 @@ export const MaintenanceAdmissionInputSchema = z.object({ homeId: z.string(), re
 export const ScopedCommandResultSchema = z.object({
   planId: PlanId.nullable(), planHash: SupervisionHash.nullable(), decisionId: SupervisionUuid.nullable(), outboxId: SupervisionUuid.nullable(),
   projectProvision: ProjectProvisionInputSchema.optional(),
+  projectSetup: ProjectSetupInputSchema.optional(),
   maintenanceAdmission: MaintenanceAdmissionInputSchema.optional(),
   /** Build D transport identity only; preserves exact accepted replay before mutable timer/owner checks. */
   maintenanceRequest: z.object({ inputHash: SupervisionHash }).strict().optional(),

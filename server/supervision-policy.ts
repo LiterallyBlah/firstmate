@@ -109,10 +109,12 @@ export async function checkPolicy(home: string, status: SupervisionStatus, input
  * not proof of an authenticated human. Raw worker/quoted/memory proposals cannot use this adapter.
  */
 export async function acceptPolicyInventory(store: SupervisionStore, home: string, requestId: string, actor: SupervisionActor,
-  input: { sources: PolicySource[]; rules: PolicyRule[]; reviewedHolds?: { id: string; version: number }[] }, enabled = false) {
+  input: { sources: PolicySource[]; rules: PolicyRule[]; reviewedHolds?: { id: string; version: number }[] }, enabled = false, projectSetupUi = false) {
   const data = structuredClone({ sources: input.sources.map(s => PolicySourceSchema.parse(s)), rules: input.rules.map(r => PolicyRuleSchema.parse(r)), reviewedHolds: input.reviewedHolds ?? [] });
   if (!enabled) throw new SupervisionError("UNSUPPORTED", "Pilot policy import is disabled.");
-  if (!["captain-ui", "mate-chat"].includes(actor.kind)) throw new SupervisionError("UNSUPPORTED", "Reviewed source acceptance requires explicit UI/chat provenance.");
+  if (!["captain-ui", "mate-chat"].includes(actor.kind) && !(projectSetupUi && actor.kind === "plugin-ui-unverified" && actor.id === "unauthenticated-plugin-call" &&
+    actor.source === "project setup review (unverified)" && !data.rules.length && data.sources.length === 1 && !data.reviewedHolds.length))
+    throw new SupervisionError("UNSUPPORTED", "Reviewed source acceptance requires explicit UI/chat provenance.");
   return store.transactCommand(requestId, digest(data), actor, async status => {
     if (workflowHomeIdentity(home) !== status.homeId) refuse("CONFLICT", "Policy source and store homes differ.");
     for (const source of data.sources) {

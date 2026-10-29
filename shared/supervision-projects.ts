@@ -11,7 +11,9 @@ const count = z.number().int().min(0).max(1_000_000);
 const text = (max = 256) => z.string().min(1).max(max).refine(s => !!s.trim() && !/[\x00-\x1f\x7f]/.test(s), "Plain one-line text");
 const uniqueIds = (min: number) => z.array(SupervisionUuid).min(min).max(64).refine(v => new Set(v).size === v.length, "Repeated identity");
 /** Explicit captain/mate adapters only; cooperative provenance, not an authenticated human. */
-const reviewed = SupervisionActorSchema.refine(a => a.kind === "captain-ui" || a.kind === "mate-chat", "Explicit captain or mate-recorded provenance required");
+const reviewed = SupervisionActorSchema.refine(a => a.kind === "captain-ui" || a.kind === "mate-chat" ||
+  a.kind === "plugin-ui-unverified" && a.id === "unauthenticated-plugin-call" && a.source === "project setup review (unverified)",
+  "Explicit captain, mate-recorded or unverified project-setup provenance required");
 export const MemoryKey = z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/);
 export const normalizedName = (name: string) => name.trim().toLowerCase().replace(/\s+/g, " ");
 

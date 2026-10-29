@@ -87,7 +87,7 @@ function authorizeGrantRecorder(status: SupervisionStatus, actor: SupervisionAct
 export type IntentOutcome = { outcome: "claimed" | "duplicate"; intentId: string } | { outcome: "conflict"; intentId: string; conflictId: string | null };
 
 export class SupervisionProjects {
-  constructor(readonly store: SupervisionStore, private readonly options: { enabled?: boolean; now?: () => string; sourceCheck?: (source: PolicySource) => Promise<void> } = {}) {}
+  constructor(readonly store: SupervisionStore, private readonly options: { enabled?: boolean; now?: () => string; sourceCheck?: (source: PolicySource) => Promise<void>; projectSetupUi?: boolean } = {}) {}
   private now() { return this.options.now?.() ?? new Date().toISOString(); }
   private enabled() { if (!this.options.enabled) refuse("UNSUPPORTED", "S09 project coordination is disabled."); }
   private async command(requestId: string, input: unknown, actorInput: SupervisionActor,
@@ -106,7 +106,9 @@ export class SupervisionProjects {
   recordProject(requestId: string, actor: SupervisionActor, raw: z.input<typeof ProjectInputSchema>) {
     const input = ProjectInputSchema.parse(raw);
     return this.command(requestId, { op: "project", input }, actor, async (status, a) => {
-      if (!reviewedActor(a)) refuse("UNSUPPORTED", "Project admission and allocation are the captain's, recorded through the UI or chat.");
+      if (!reviewedActor(a) && !(this.options.projectSetupUi && a.kind === "plugin-ui-unverified" && a.id === "unauthenticated-plugin-call" &&
+        a.source === "project setup review (unverified)" && input.expectedVersion === 0 && input.state === "admitted"))
+        refuse("UNSUPPORTED", "Project admission and allocation are the captain's, recorded through the UI or chat.");
       const old = rowsOf(status).projects.find(p => p.id === input.projectId);
       if (versionOf(status, "project", input.projectId) !== input.expectedVersion) refuse("STALE", "The project record changed; reread it.");
       // Only the admitted -> stopped transition is exempt from the admission bound (rollback must stay possible).

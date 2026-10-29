@@ -8,7 +8,8 @@ import type { SupervisionActor, SupervisionStatus } from "../shared/supervision"
 import type { WorkflowPlan } from "../shared/workflow-plans";
 import { ProjectAdminSchema, ProjectRuntimeSnapshotSchema, administerProject, provisionProjectFromUi, readProjectMemory,
   readProjectRuntime, recoverProjectRuntimeFromUi, abortProjectProvisionFromUi, type ProjectAdmin, type ProjectRuntimeSnapshot } from "../shared/project-runtime";
-import { ProjectProvisionInputSchema } from "../shared/supervision-policy";
+import { ProjectProvisionInputSchema, type ProjectSetupInputSchema } from "../shared/supervision-policy";
+import { registerProjectSetup } from "./project-setup";
 import { normalizedName, type ProjectRecord } from "../shared/supervision-projects";
 import type { GatewayReceiver } from "../shared/supervision-effects";
 import { readFirstmateConfig, resolveHome } from "./config";
@@ -90,7 +91,9 @@ export class ProjectRuntime {
     if (!Number.isSafeInteger(this.slots) || !Number.isSafeInteger(this.headroom) || this.headroom < 1 || this.slots <= this.headroom)
       throw new Error("Project slots must leave at least one configured General slot.");
   }
-  private capacity(home: string) { return this.runtime.features?.capacity(home) ?? Promise.resolve({ slots: this.slots, generalHeadroom: this.headroom }); }
+  capacity(home: string) { return this.runtime.features?.capacity(home) ?? Promise.resolve({ slots: this.slots, generalHeadroom: this.headroom }); }
+  setupReceiver(paseo: PaseoApi) { return this.options.receiver?.(paseo) ?? new SupervisionUiReceiver(paseo, this.runtime.root, { projectMates: true }); }
+  get setupEnabled() { return !!this.options.enabled; }
   private config() { return (this.options.config ?? readFirstmateConfig)(); }
   private async checkedConfig(homeId: string, generalId?: string, settlement = false) {
     if (!this.options.enabled && !this.runtime.features) refuse("UNSUPPORTED", "Project mates are disabled; no store or session was created.");
@@ -132,9 +135,9 @@ export class ProjectRuntime {
       }
     });
   }
-  private async inputs() {
+  async inputs(observed?: SupervisionStatus) {
     const config = await this.config(), home = resolveHome(config), problems: string[] = [];
-    const status = await this.runtime.read(home);
+    const status = observed ?? await this.runtime.read(home);
     let catalog: { digest: string | null; rows: RegistryEntry[] } = { digest: null, rows: [] };
     try { catalog = await registry(home); } catch (error) { problems.push(String(error)); }
     let legacy: WorkflowPlan[] = [];
@@ -274,13 +277,13 @@ export class ProjectRuntime {
     }, false, settlement, true);
     return this.read();
   }
-  private async admit(home: string, store: SupervisionStore, requestId: string, actor: SupervisionActor, input: Extract<ProjectAdmin, { op: "admit" }>, generalId: string) {
+  private async admit(home: string, store: SupervisionStore, requestId: string, actor: SupervisionActor, input: Extract<ProjectAdmin, { op: "admit" }>, generalId: string, app = false) {
     const catalog = await registry(home);
     if (catalog.digest !== input.registryDigest) refuse("STALE", "Project registry changed; review the current census.");
     const entry = catalog.rows.find(p => normalizedName(p.name) === normalizedName(input.name));
     if (!entry || entry.reason || !entry.projectId || !entry.scopeId || !entry.directory) refuse("HELD", entry?.reason ?? "Project is not in the current registry.");
-    if (digest(input.source.provenance) !== digest(actor)) refuse("CONFLICT", "Reviewed source must retain the adapter's unverified mate-chat provenance.");
-    await acceptPolicyInventory(store, home, stableId("project-source", requestId), actor, { sources: [input.source], rules: [], reviewedHolds: [] }, true);
+    if (digest(input.source.provenance) !== digest(actor)) refuse("CONFLICT", "Reviewed source must retain its adapter provenance.");
+    await acceptPolicyInventory(store, home, stableId("project-source", requestId), actor, { sources: [input.source], rules: [], reviewedHolds: [] }, true, app);
     await store.transactCommand(stableId("project-scopes", requestId), digest(input), actor, async status => {
       await this.checkedConfig(store.homeId, generalId);
       const mutations = [], general = status.scopes.filter(s => s.kind === "general");
@@ -292,7 +295,7 @@ export class ProjectRuntime {
       return { mutations, expectedVersions: expected(status, mutations), result };
     });
     const before = await store.read(), old = before.projects?.projects.find(p => p.id === entry.projectId);
-    if (!old) await new SupervisionProjects(store, { enabled: true, sourceCheck: source => checkPolicySource(home, source) }).recordProject(stableId("project-admission", requestId), actor, {
+    if (!old) await new SupervisionProjects(store, { enabled: true, projectSetupUi: app, sourceCheck: source => checkPolicySource(home, source) }).recordProject(stableId("project-admission", requestId), actor, {
       projectId: entry.projectId, scopeId: entry.scopeId, expectedVersion: 0, name: input.name, aliases: input.aliases, state: "admitted", budget: input.budget,
       sourceVector: [policyRef("policy-source", input.source)] });
     await store.transactCommand(requestId, digest(input), actor, async status => {
@@ -303,6 +306,19 @@ export class ProjectRuntime {
         generalAgentId: generalId, profile: input.profile, limits: input.limits } };
       const mutations = [{ kind: "project" as const, value }]; return { mutations, expectedVersions: expected(status, mutations), result };
     });
+  }
+  /** The app review is durable before admission. It never impersonates General or captain-ui. */
+  async admitSetup(input: z.infer<typeof ProjectSetupInputSchema>, actor: SupervisionActor, validate: (status?: SupervisionStatus) => Promise<void>) {
+    await this.mutate(input.homeId, async (home, store, config) => {
+      await validate(await store.read());
+      await store.transactCommand(stableId("project-setup-input", input.requestId), digest(input), actor,
+        async () => ({ mutations: [], expectedVersions: [], result: { ...result, projectSetup: input } }));
+      const project = (await store.read()).projects?.projects.find(p => p.id === input.review.projectId);
+      if (!project?.owner) await this.admit(home, store, stableId("project-setup-admit", input.requestId), actor, {
+        op: "admit", registryDigest: input.review.registryDigest, name: input.review.name, aliases: input.review.aliases,
+        source: input.review.source, profile: input.review.profile, budget: input.review.budget, limits: input.review.limits,
+      }, config.mateAgentId, true);
+    }, true, false, true);
   }
   async memory(input: { homeId: string; projectId: string }) {
     const config = await this.config(), home = resolveHome(config);
@@ -323,12 +339,15 @@ export class ProjectRuntime {
     if ((await reader.read()).hash !== status.hash) refuse("STALE", "Memory review changed; reload it.");
     return { ...context, proposals };
   }
-  async provision(input: { homeId: string; requestId: string; projectId: string; projectVersion: number }, paseo: PaseoApi) {
+  async provision(input: { homeId: string; requestId: string; projectId: string; projectVersion: number }, paseo: PaseoApi,
+    setup?: { opening: string; validate(status?: SupervisionStatus): Promise<void> }) {
     ProjectProvisionInputSchema.parse(input);
     await serialized(`firstmate.project-provision:${input.homeId}:${input.projectId}`, () => this.mutate(input.homeId, async (home, store, config) => {
       let status = await store.read();
       const project = status.projects?.projects.find(p => p.id === input.projectId);
       if (!project?.owner) refuse("HELD", "Reviewed project with durable profile and caps required.");
+      if (!setup && status.commands.some(c => c.result.projectSetup?.review.projectId === project.id))
+        refuse("HELD", "Use Check saved setup to continue this project's exact app review.");
       const retained = recordedProvision(status, project.id);
       if (retained && retained.requestId !== input.requestId) return;
       if (status.commands.some(c => c.id === stableId("project-provision-abort", input.requestId))) refuse("HELD", "Provisioning was stopped; its identity and spend remain reserved.");
@@ -340,6 +359,7 @@ export class ProjectRuntime {
         if (recorded.create?.requestId === input.requestId && [recorded.workspace, recorded.create, recorded.send].every(e => e?.state === "succeeded")) return;
       }
       if (project.state !== "admitted") refuse("HELD", "Project admissions are stopped.");
+      await setup?.validate(status);
       if (accepted && project.version !== input.projectVersion) refuse("HELD", "The retained provisioning's project version changed; reconcile its existing effects before proceeding.");
       if (!accepted && project.version !== input.projectVersion) refuse("STALE", "Project allocation or ownership changed; refresh before provisioning.");
       await store.transactCommand(stableId("project-provision-input", input.requestId), digest(input), UI,
@@ -353,6 +373,7 @@ export class ProjectRuntime {
       const receiver = this.options.receiver?.(paseo) ?? new SupervisionUiReceiver(paseo, this.runtime.root, { projectMates: true });
       const commands = new SupervisionCommands(store, home, { enabled: true }), gateway = new SupervisionGateway(store, commands, home, receiver, { enabled: true, policyFence: this.runtime.features?.gateway(home, "projectMates", () => store.read()),
         admissionCheck: async (current, effect) => {
+          await setup?.validate(current);
           await this.checkedConfig(input.homeId, config.mateAgentId);
           const owner = current.projects?.projects.find(p => p.id === project.id);
           if (owner?.version !== input.projectVersion || owner.state !== "admitted") refuse("STALE", "Project admission changed before dispatch.");
@@ -371,14 +392,15 @@ export class ProjectRuntime {
         reserveBoundary: run => this.runtime.features ? this.runtime.features.boundary(home, run) : run(), limits: project.owner.limits,
         globalMateId: async () => (await this.checkedConfig(input.homeId, config.mateAgentId)).config.mateAgentId || null,
         reserveCheck: async current => {
+          await setup?.validate(current);
           await this.checkedConfig(input.homeId, config.mateAgentId);
           const owner = current.projects?.projects.find(p => p.id === project.id);
           if (owner?.version !== input.projectVersion || owner.state !== "admitted" || current.commands.some(c => c.id === stableId("project-provision-abort", input.requestId)))
             refuse("HELD", "Project provisioning admission changed before reservation.");
         } });
       if (!binding) {
-        const context = await readProjectContext(store, project.id);
-        const opening = await message(TEMPLATES.projectMateOpening, { project: project.name, scopeId: project.scopeId,
+        const context = setup ? null : await readProjectContext(store, project.id);
+        const opening = setup?.opening ?? await message(TEMPLATES.projectMateOpening, { project: project.name, scopeId: project.scopeId,
           context: JSON.stringify({ ...context, directory: project.owner.directory, limits: project.owner.limits }).replace(/</g, "\\u003c") });
         await withScopeAdmission(input.homeId, async () => {
           await this.checkedConfig(input.homeId, config.mateAgentId);
@@ -408,6 +430,7 @@ export class ProjectRuntime {
   }
 }
 export function registerProjectRuntime(server: Pick<PluginServerContext, "handle">, projects: ProjectRuntime) {
+  registerProjectSetup(server, projects);
   server.handle(readProjectRuntime, () => projects.read());
   server.handle(administerProject, input => projects.admin(input));
   server.handle(provisionProjectFromUi, (input, { paseo }) => projects.provision(input, paseo));
