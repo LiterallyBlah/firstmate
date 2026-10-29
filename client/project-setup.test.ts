@@ -20,8 +20,14 @@ let renderer: ReactTestRenderer | null, cache: QueryClient, data: ProjectSetupCa
 const rpc = (suffix: string) => calls.get(`firstmate.projects.setup.${suffix}`)!;
 const text = () => JSON.stringify(renderer?.toJSON());
 const button = (name: string) => renderer!.root.findAllByType("Pressable" as ElementType).find(n => n.props.accessibilityLabel === name)!;
-async function press(name: string) { await act(async () => { const b = button(name); expect(b, name).toBeDefined(); expect(b.props.disabled).toBe(false); b.props.onPress(); }); }
-async function settle() { await act(async () => { await new Promise(done => setTimeout(done, 5)); }); }
+async function press(name: string) { await act(async () => { const b = button(name); expect(b, name).toBeDefined(); expect(b.props.disabled).toBe(false); b.props.onPress(); }); await settle(); }
+async function settle() {
+  await vi.waitFor(async () => {
+    await act(async () => { await new Promise(done => setTimeout(done, 0)); });
+    expect(cache.isFetching()).toBe(0);
+  }, { timeout: 1000, interval: 1 });
+  await act(async () => { await new Promise(done => setTimeout(done, 0)); });
+}
 async function mount() {
   await act(async () => { renderer = create(createElement(QueryClientProvider, { client: cache }, createElement(ProjectSetup, { theme, compact: false, home, hostId: "local", open: true, onClose: closed }))); }); await settle();
 }
