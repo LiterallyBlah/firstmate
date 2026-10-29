@@ -113,7 +113,8 @@ export interface GatewayOptions {
 export interface StartedAttempt { attemptId: string | null; effects: { workspace: string; create: string; send: string } | null }
 type Call = { run: () => Promise<string>; after?: (status: SupervisionStatus) => SupervisionMutation[] };
 interface Preflight { capabilities: ReceiverCapabilities; observed: AgentObservation | null; text: string | null; inventoryKey: string | null; validate?: ((status: SupervisionStatus) => void) | undefined;
-  reusedObserved?: AgentObservation | null | undefined }
+  reusedObserved?: AgentObservation | null | undefined;
+  workspace?: { intentHash: string; start: () => Promise<WorkspaceReceipt> } | undefined }
 
 export class SupervisionGateway {
   constructor(readonly store: SupervisionStore, readonly commands: SupervisionCommands, readonly home: string,
@@ -272,12 +273,19 @@ export class SupervisionGateway {
     const text = operation === "agent.send" ? await this.payload(effect) : null;
     const inventoryKey = operation === "agent.archive" && target ? await this.checkInventory(capabilities, target, effect.receiverKey) : null;
     const validate = operation === "agent.interrupt" || operation === "agent.archive" ? undefined : await this.options.prepareAdmission?.(effect);
+    // Production filesystem/project preparation can yield. Finish it before the fence,
+    // then use only a native-initiating function under the claim/policy boundary.
+    let workspace: Preflight["workspace"];
+    if (operation === "workspace.open" && !effect.reusedWorkspace && this.receiver.prepareWorkspace) {
+      const intent = effect.attemptId === null ? supervisorWorkspaceIntent(effect.scopeId, effect.epoch, effect.id) : workerIntentFor(pre, effect);
+      workspace = { intentHash: digest(intent), start: await this.receiver.prepareWorkspace(intent) };
+    }
     const claimAndStart = async () => {
       let claimed: SupervisionEffect | null = null, call: Call | null = null;
       await this.store.transactCommand(stableId("dispatch-claim", effect.id), digest({ claim: effect.id, version: effect.version }), GATEWAY, async status => {
         const current = status.effects.find(e => e.id === effect.id);
         if (!current || current.version !== effect.version || current.state !== "reserved") refuse("STALE", "The effect changed before its claim; reread.");
-        call = await this.admit(status, current, operation, { capabilities, observed, text, inventoryKey, validate, reusedObserved });
+        call = await this.admit(status, current, operation, { capabilities, observed, text, inventoryKey, validate, reusedObserved, workspace });
         claimed = { ...current, state: "dispatching", version: current.version + 1 };
         const mutations: SupervisionMutation[] = [{ kind: "effect", value: claimed }];
         const plan = planOf(status, current);
@@ -286,7 +294,7 @@ export class SupervisionGateway {
       // A replayed claim means an earlier dispatcher already crossed (or may have crossed) the boundary.
       if (!claimed || !call) refuse("UNCERTAIN", "This effect was already claimed for dispatch; reconcile it, never resend.");
       const admitted: Call = call;
-      const pending = admitted.run();
+      const pending = admitted.run(); // New-work calls initiate the native API before their first await.
       // Attach a handler before releasing the fence; settlement below owns the outcome.
       void pending.catch(() => undefined);
       return { claimed, admitted, pending };
@@ -353,7 +361,8 @@ export class SupervisionGateway {
       case "workspace.open": {
         if (effect.reusedWorkspace) return { run: async () => JSON.stringify({ workspaceId: effect.reusedWorkspace!.workspaceId, directory: effect.reusedWorkspace!.directory }) };
         const intent = supervisor ? supervisorWorkspaceIntent(scope.id, effect.epoch, effect.id) : workerIntentFor(status, effect);
-        return { run: async () => JSON.stringify(WorkspaceReceiptSchema.parse(await this.receiver.openWorkspace(intent))) };
+        if (fresh.workspace && fresh.workspace.intentHash !== digest(intent)) refuse("STALE", "Workspace intent changed during preparation; no native call was started.");
+        return { run: async () => JSON.stringify(WorkspaceReceiptSchema.parse(await (fresh.workspace ? fresh.workspace.start() : this.receiver.openWorkspace(intent)))) };
       }
       case "agent.create": {
         if (!fresh.capabilities.selectedAgentIds) refuse("UNSUPPORTED", "Receiver no longer supports caller-selected IDs; the reservation stays as it is.");

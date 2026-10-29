@@ -16,19 +16,21 @@ export class SupervisionWorkerReceiver extends SupervisionUiReceiver {
   override async capabilities() {
     return { ...await super.capabilities(), receiver: "paseo-sdk/cooperative-local-worker", workspaceIntentLookup: true };
   }
-  override async openWorkspace(intent: WorkspaceIntent) {
-    if (intent.purpose === "supervisor") return super.openWorkspace(intent);
+  override async prepareWorkspace(intent: WorkspaceIntent) {
+    if (intent.purpose === "supervisor") return super.prepareWorkspace(intent);
     if (intent.hostId !== "local" || !/^ws-[0-9a-f-]{36}$/.test(intent.key) || !/^fm\/[a-z0-9][a-z0-9-]*$/.test(intent.branch))
       throw new ReceiverRejected("Only reserved isolated local worker worktrees are supported.");
     const directory = await realpath(await this.projectDirectory(intent.project));
-    const workspace = await this.api.workspaces.create({ workspaceId: intent.key, idempotencyKey: intent.key,
-      source: { kind: "worktree", cwd: directory, action: "branch-off", refName: intent.baseBranch, baseBranch: intent.baseBranch,
-        branchName: intent.branch, worktreeSlug: intent.key } });
-    if (workspace.id !== intent.key) throw new Error("Receiver returned another workspace identity; retain uncertainty.");
-    const path = workspace.directory ?? (await workspace.refresh())?.workspaceDirectory;
-    if (!path) throw new Error("Reserved workspace has no observable worktree; retain uncertainty.");
-    await this.verifyWorktree(path, directory, intent.branch);
-    return { workspaceId: workspace.id, directory: path };
+    return async () => {
+      const workspace = await this.api.workspaces.create({ workspaceId: intent.key, idempotencyKey: intent.key,
+        source: { kind: "worktree", cwd: directory, action: "branch-off", refName: intent.baseBranch, baseBranch: intent.baseBranch,
+          branchName: intent.branch, worktreeSlug: intent.key } });
+      if (workspace.id !== intent.key) throw new Error("Receiver returned another workspace identity; retain uncertainty.");
+      const path = workspace.directory ?? (await workspace.refresh())?.workspaceDirectory;
+      if (!path) throw new Error("Reserved workspace has no observable worktree; retain uncertainty.");
+      await this.verifyWorktree(path, directory, intent.branch);
+      return { workspaceId: workspace.id, directory: path };
+    };
   }
   override async findWorkspace(intent: WorkspaceIntent) {
     if (intent.purpose === "supervisor") return super.findWorkspace(intent);
