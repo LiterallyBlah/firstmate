@@ -12,17 +12,17 @@ import { updateFirstmateConfig } from "../server/config";
 import type { PaseoApi } from "../server/host-types";
 import type { ProjectRuntimeSnapshot } from "../shared/project-runtime";
 import { attentionTheme as theme } from "../test/attention-deck-fixture";
-const state = vi.hoisted(() => ({ data: null as ProjectRuntimeSnapshot | null, read: vi.fn(), provision: vi.fn(), recover: vi.fn(), abort: vi.fn() }));
+const state = vi.hoisted(() => ({ data: null as ProjectRuntimeSnapshot | null, read: vi.fn(), provision: vi.fn(), recover: vi.fn(), abort: vi.fn(), discuss: vi.fn(), canDiscuss: false }));
 vi.mock("@getpaseo/plugin/client", () => ({ useRpc: (rpc: { name: string }) => rpc.name.endsWith("provision-ui") ? state.provision : rpc.name.endsWith("recover-ui") ? state.recover : rpc.name.endsWith("abort-ui") ? state.abort : state.read }));
 vi.mock("react-native", () => ({ Pressable: "Pressable", ScrollView: "ScrollView", Text: "Text", View: "View" }));
 vi.mock("@getpaseo/plugin/client/react-native", () => ({ Modal: Object.assign(({ open, children }: { open: boolean; children: ReactNode }) => open ? children : null, { Content: "Content" }) }));
-vi.mock("./workflow-plans", () => ({ useWorkflowPlans: () => ({}), workflowRequestId: () => "00000000-0000-4000-8000-000000000099" }));
+vi.mock("./workflow-plans", () => ({ useWorkflowPlans: () => ({ discussScope: state.discuss, canDiscussScope: () => state.canDiscuss }), workflowRequestId: () => "00000000-0000-4000-8000-000000000099" }));
 import { ProjectOwnershipBoard } from "./project-ownership";
 import { visibleText } from "../test/visible-text";
 let renderer: ReactTestRenderer | undefined, cache: QueryClient;
 beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-  vi.clearAllMocks(); cache = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  vi.clearAllMocks(); state.discuss.mockReset(); state.canDiscuss = false; cache = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   state.data = { enabled: true, homeId: "fixture", registryDigest: "a".repeat(64), sequence: 10, hash: "a".repeat(64), freshness: "current", problems: [],
     general: { agentId: "general", scopeId: null, slots: 4, headroom: 1, providerAvailability: "unknown" }, projects: [{ name: "Alpha", projectId: "00000000-0000-4000-8000-000000000001", scopeId: "00000000-0000-4000-8000-000000000002", hostId: "local", directory: "C:/Alpha", state: "admitted", reason: null, version: 2, aliases: [], agentId: null, workspaceId: null, provisionRequestId: null,
       sessions: 0, turns: 0, uncertain: 0, memoryPending: 0, profile: { provider: "codex/test", modeId: "full-access" }, limits: { supervisorSessions: 1, supervisorTurns: 5 }, plans: [] }] };
@@ -30,8 +30,8 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => renderer?.unmount()); cache.clear(); });
 const button = (label: string) => renderer!.root.find(n => n.type === "Pressable" as never && n.props.accessibilityLabel === label);
-async function mount() {
-  await act(async () => { renderer = create(createElement(QueryClientProvider, { client: cache }, createElement(ProjectOwnershipBoard, { theme, compact: true }))); });
+async function mount(extra: Partial<Parameters<typeof ProjectOwnershipBoard>[0]> = {}) {
+  await act(async () => { renderer = create(createElement(QueryClientProvider, { client: cache }, createElement(ProjectOwnershipBoard, { theme, compact: true, ...extra }))); });
   await vi.waitFor(async () => {
     await act(async () => { await new Promise(done => setTimeout(done, 0)); });
     expect(button("Project mates and plans")).toBeDefined();
@@ -63,6 +63,29 @@ it("feature-off history keeps a stopped project without an agent inspectable", a
   await act(async () => button("Project mates and plans").props.onPress());
   expect(visibleText(renderer!.toJSON())).toContain("identity and spend retained");
   expect(state.provision).not.toHaveBeenCalled(); expect(state.abort).not.toHaveBeenCalled();
+});
+it("F1: dismisses details after a checked discussion route and keeps it open if eligibility changed", async () => {
+  const order: string[] = [], onNavigate = vi.fn(() => order.push("dismiss"));
+  state.canDiscuss = true; state.discuss.mockImplementation(() => order.push("discuss"));
+  await mount({ onNavigate }); await act(async () => button("Project mates and plans").props.onPress());
+  const discuss = button("Discuss Alpha scope").props.onPress;
+  state.canDiscuss = false;
+  await act(async () => discuss());
+  expect(state.discuss).not.toHaveBeenCalled(); expect(onNavigate).not.toHaveBeenCalled();
+  state.canDiscuss = true;
+  await act(async () => discuss());
+  expect(state.discuss).toHaveBeenCalledExactlyOnceWith(state.data!.projects[0]!.scopeId, "fixture");
+  expect(order).toEqual(["discuss", "dismiss"]);
+  expect(state.provision).not.toHaveBeenCalled(); expect(state.recover).not.toHaveBeenCalled(); expect(state.abort).not.toHaveBeenCalled();
+});
+it("F1: native conversation navigation preserves the host and agent before dismissing details", async () => {
+  Object.assign(state.data!.projects[0]!, { agentId: "recorded-agent", workspaceId: "recorded-workspace" });
+  const order: string[] = [], openAgent = vi.fn(() => order.push("open")), onNavigate = vi.fn(() => order.push("dismiss"));
+  await mount({ hostId: "other-host", navigation: { openAgent, openWorkspace: vi.fn() }, onNavigate });
+  await act(async () => button("Project mates and plans").props.onPress());
+  await act(async () => button("Open Alpha conversation").props.onPress());
+  expect(openAgent).toHaveBeenCalledExactlyOnceWith({ agentId: "recorded-agent", serverId: "other-host" });
+  expect(order).toEqual(["open", "dismiss"]); expect(state.provision).not.toHaveBeenCalled();
 });
 
 it.each(["mounted", "remounted", "stop"])("review F2: %s app repairs through the production RPC and resumes the same recorded input", async mode => {

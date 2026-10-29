@@ -32,7 +32,8 @@ export function workflowRequestId() {
   return globalThis.crypto?.randomUUID?.() ?? "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => { const n = Math.floor(Math.random() * 16); return (c === "x" ? n : (n & 3) | 8).toString(16); });
 }
 type PlansContext = {
-  activation?: ActivationSnapshot | undefined; activationError?: boolean | undefined; updateActivation?(snapshot: ActivationSnapshot): void;
+  activation?: ActivationSnapshot | undefined; activationError?: boolean | undefined; activationFetching?: boolean;
+  refreshActivation?(): void; updateActivation?(snapshot: ActivationSnapshot): void;
   snapshot?: WorkflowSnapshot; loading: boolean; error: string | null; refresh(): void; open(id: string): void;
   scope?: string | null; fleet?: Fleet | undefined; fleetOffline?: boolean; canNavigate?: boolean;
   planFilter?: string | null; setPlanFilter?(id: string | null): void;
@@ -94,7 +95,8 @@ export function WorkflowSurface({ theme, children, hostId, view, shell, params =
     finally { gate.current = false; setBusy(false); }
   }
   return <Plans.Provider value={{ ...(snapshot ? { snapshot } : {}), loading: query.isPending, error: query.error ? errorText(query.error) : null, refresh: () => { void query.refetch(); }, open,
-    activation: scopeRead.data?.activation, activationError: !!scopeRead.error,
+    activation: scopeRead.data?.activation, activationError: !!scopeRead.error, activationFetching: scopeRead.isFetching,
+    refreshActivation: () => { void scopeRead.refetch({ cancelRefetch: false }); },
     updateActivation: next => cache.setQueryData([...SCOPE_QUERY_KEY, hostId ?? "local", data?.home ?? ""], (current: typeof scopeRead.data) => current ? { ...current, activation: next } : current),
     scope, fleet: data, fleetOffline: !!fleet.error, canNavigate: !!scope && (!view || !!shell?.openTask), planFilter,
     discussPlan, canDiscussPlan: id => !!discussionScope(id),

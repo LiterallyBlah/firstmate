@@ -79,3 +79,32 @@ problems, discussion details, empty All and the settings destination.
 
 Enlarged text: [light](smooth-pr2/evidence/light-phone-text200.png),
 [dark](smooth-pr2/evidence/dark-phone-text200.png).
+
+## Independent review corrections
+
+The independent review at `e76f84a` reproduced three P2 failures. After rebasing
+the unchanged slice onto `cb464d1`, the new regression suite first reproduced all
+three failures, then verified these corrections:
+
+| Finding | Correction and regression evidence |
+| --- | --- |
+| F1: Discuss opened behind Work details | A checked discussion or native conversation link dismisses its containing dialog after navigation. Unit tests retain the exact scope/home or native host/agent, verify navigation happens before dismissal, and keep details open if discussion eligibility changes. The production registered Home/shell browser case verifies the named discussion is uncovered without a send. |
+| F2: advertised recovery performed no read | Opening/reopening and Refresh details call the current owning scope query through WorkflowSurface, plus the project/check readers. Refetches coalesce with an in-flight read. A cold failure needs no enabled-activation polling timer to recover. First metadata for the same home leaves the result visible; changed or inconsistent known home identity still closes the dialog. Browser tests restore the failed RPC, verify a new read and successful current-home query, then fail/recover again through the explicit control. |
+| F3: bottom control clipped at 200% text | Contained project, routine-check, attachment and migration actions have bounded width and shrinkable labels. Browser tests scroll to the bottom of both enabled and disabled-problem dialogs at doubled text size, then compare every action against the dialog and each horizontal clipping ancestor. Document overflow alone is no longer the acceptance check. Minimum 44px height is also asserted. |
+
+`node docs/smooth-pr2/regressions.mjs` checks 32 before/after production-entry
+cases across both themes and desktop/phone widths. Its baseline is `58f56fe`,
+the reviewed UI rebased unchanged onto slice 3; it remains an ancestor for CI.
+All navigation and retry cases assert zero mutation RPCs. The first run failed
+on F1/F2/F3 before the fixes. The corrected run passes, as do typecheck, 42
+focused component tests, all 146 original matrix captures and the existing four
+S05 discussion/answer browser cases. Hosted checks remain the full-suite gate.
+The full local run after the rebase passed 237 files and 3,358 tests, with four
+skipped and no failures. The known launch-tool flake did not occur in this run.
+
+The new comparison sheets include the scrolled 200% controls:
+
+| | Desktop | Phone |
+| --- | --- | --- |
+| Light | [Reviewed / fixed](smooth-pr2/evidence/light-desktop-review-fixes.png) | [Reviewed / fixed](smooth-pr2/evidence/light-phone-review-fixes.png) |
+| Dark | [Reviewed / fixed](smooth-pr2/evidence/dark-desktop-review-fixes.png) | [Reviewed / fixed](smooth-pr2/evidence/dark-phone-review-fixes.png) |

@@ -23,8 +23,8 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => renderer?.unmount()); renderer = undefined; cache.clear(); });
 const button = (label: string) => renderer!.root.find(n => n.type === "Pressable" as never && n.props.accessibilityLabel === label);
-async function mount() {
-  await act(async () => { renderer = create(createElement(QueryClientProvider, { client: cache }, createElement(MaintenanceOwnershipBoard, { theme, compact: true, advanced: true }))); });
+async function mount(extra: Partial<Parameters<typeof MaintenanceOwnershipBoard>[0]> = {}) {
+  await act(async () => { renderer = create(createElement(QueryClientProvider, { client: cache }, createElement(MaintenanceOwnershipBoard, { theme, compact: true, advanced: true, ...extra }))); });
   await vi.waitFor(async () => { await act(async () => { await new Promise(done => setTimeout(done, 0)); }); expect(button("Create maintenance owner")).toBeDefined(); });
 }
 it("fresh-home app reads/opening create nothing; explicit confirmation retains exact admission after a lost reply", async () => {
@@ -51,4 +51,13 @@ it("a fresh client resumes the recorded maintenance request and a failed refresh
   expect(mocks.admit.mock.calls[0]![0]).toEqual({ homeId: data.homeId, requestId: id, resume: true });
   mocks.read.mockRejectedValue(new Error("offline")); await act(async () => { await cache.refetchQueries(); await new Promise(done => setTimeout(done, 20)); });
   expect(button("Retry recorded maintenance admission").props.disabled).toBe(true);
+});
+it("F1: inspecting a retained checks conversation dismisses details without starting any work", async () => {
+  data.enabled = false;
+  data.owners = [{ scopeId: id, state: "retired", agentId: "saved-checks", epoch: 2, sessions: 1, turns: 1, uncertain: 1, admission: null, opening: "uncertain" }];
+  const order: string[] = [], openAgent = vi.fn(() => order.push("open")), onNavigate = vi.fn(() => order.push("dismiss"));
+  await mount({ navigation: { openAgent, openWorkspace: vi.fn() }, onNavigate });
+  await act(async () => button("Open maintenance owner").props.onPress());
+  expect(openAgent).toHaveBeenCalledExactlyOnceWith({ agentId: "saved-checks" });
+  expect(order).toEqual(["open", "dismiss"]); expect(mocks.admit).not.toHaveBeenCalled(); expect(mocks.answer).not.toHaveBeenCalled();
 });

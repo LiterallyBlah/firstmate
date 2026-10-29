@@ -12,12 +12,12 @@ import { projectHasHistory, projectHasProblem, projectSetupAvailable } from "./o
 type Project = ProjectRuntimeSnapshot["projects"][number];
 function Action({ theme, label, onPress, disabled = false }: { theme: PluginTheme; label: string; onPress(): void; disabled?: boolean }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress}
-    style={{ minHeight: 44, paddingHorizontal: 12, paddingVertical: 8, justifyContent: "center", borderWidth: 1, borderColor: theme.colors.border, borderRadius: 7, opacity: disabled ? 0.5 : 1 }}>
-    <Text style={{ color: theme.colors.foreground, fontSize: 13 }}>{label}</Text>
+    style={{ minHeight: 44, maxWidth: "100%", minWidth: 0, flexShrink: 1, paddingHorizontal: 12, paddingVertical: 8, justifyContent: "center", borderWidth: 1, borderColor: theme.colors.border, borderRadius: 7, opacity: disabled ? 0.5 : 1 }}>
+    <Text style={{ color: theme.colors.foreground, fontSize: 13, flexShrink: 1 }}>{label}</Text>
   </Pressable>;
 }
-export function ProjectOwnershipBoard({ theme, compact, navigation, hostId = "local", advanced = false }: {
-  theme: PluginTheme; compact: boolean; navigation?: PluginScreenProps["navigation"]; hostId?: string; advanced?: boolean;
+export function ProjectOwnershipBoard({ theme, compact, navigation, hostId = "local", advanced = false, onNavigate }: {
+  theme: PluginTheme; compact: boolean; navigation?: PluginScreenProps["navigation"]; hostId?: string; advanced?: boolean; onNavigate?(): void;
 }) {
   const read = useRpc(readProjectRuntime), provision = useRpc(provisionProjectFromUi);
   const plans = useWorkflowPlans();
@@ -66,8 +66,8 @@ export function ProjectOwnershipBoard({ theme, compact, navigation, hostId = "lo
     <ProjectOwnershipView theme={theme} compact={compact} data={data} readError={query.isError} onRefresh={() => { void query.refetch(); }}
       {...(!selected ? { onRecover: () => { void repair(); }, recoveryBusy: busy } : {})}
       onProvision={p => { pending.current = null; setError(null); select(p); }}
-      onDiscuss={p => { if (p.scopeId) plans.discussScope?.(p.scopeId, data.homeId); }} canDiscuss={p => !!p.scopeId && !!plans.canDiscussScope?.(p.scopeId, data.homeId)}
-      onOpen={navigation ? p => { if (p.agentId) navigation.openAgent({ agentId: p.agentId, ...(hostId === "local" ? {} : { serverId: hostId }) }); } : undefined} />
+      onDiscuss={p => { if (p.scopeId && plans.canDiscussScope?.(p.scopeId, data.homeId) && plans.discussScope) { plans.discussScope(p.scopeId, data.homeId); onNavigate?.(); } }} canDiscuss={p => !!p.scopeId && !!plans.canDiscussScope?.(p.scopeId, data.homeId)}
+      onOpen={navigation ? p => { if (p.agentId) { navigation.openAgent({ agentId: p.agentId, ...(hostId === "local" ? {} : { serverId: hostId }) }); onNavigate?.(); } } : undefined} />
     {!selected && error ? <Text accessibilityRole="alert" style={{ color: theme.colors.statusDanger }}>{error}</Text> : null}
     {selected ? <Modal title={`${selected.provisionRequestId ? "Resume" : "Create"} project mate for ${selected.name}?`} open onOpenChange={open => { if (!open && !busy) select(null); }}>
       <Modal.Content><View style={{ gap: 12 }}>
