@@ -14,8 +14,8 @@ import { GrowingChatInput } from "./growing-chat-input";
 import { errorText } from "./format";
 import { OptionPicker } from "./option-picker";
 
-function Button({ label, onPress, disabled = false, theme, selected = false }: { label: string; onPress(): void; disabled?: boolean; theme: PluginTheme; selected?: boolean }) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled, selected }} disabled={disabled} onPress={onPress}
+function Button({ label, onPress, disabled = false, theme, selected = false, expanded }: { label: string; onPress(): void; disabled?: boolean; theme: PluginTheme; selected?: boolean; expanded?: boolean }) {
+  return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled, selected, ...(expanded === undefined ? {} : { expanded }) }} disabled={disabled} onPress={onPress}
     style={{ minHeight: 44, padding: 10, justifyContent: "center", borderWidth: 1, borderColor: selected ? theme.colors.accent : theme.colors.border,
       borderRadius: 7, backgroundColor: theme.colors.surface1, opacity: disabled ? 0.5 : 1 }}><Text style={{ color: theme.colors.foreground, fontSize: 13 }}>{label}</Text></Pressable>;
 }
@@ -54,7 +54,7 @@ export function ScopeDiscussion({ snapshot, offline = false, hostId, theme, comp
       const scopes = snapshot.scopes.filter(s => selected === "shared" || s.id === selected);
       const results = await Promise.allSettled(scopes.map(s => read({ homeId: snapshot.homeId, scopeId: s.id, conversationId: "main" })));
       return { threads: results.flatMap(r => r.status === "fulfilled" ? [r.value] : []), problems: results.flatMap((r, i) => r.status === "rejected" ? [`${scopes[i]!.title}: ${errorText(r.reason)}`] : []) };
-    } });
+    }, refetchInterval: offline ? false : 5000 });
   useEffect(() => {
     for (const thread of conversations.data?.threads ?? []) gate.reconcile(thread);
   }, [conversations.data, gate]);
@@ -80,6 +80,8 @@ export function ScopeDiscussion({ snapshot, offline = false, hostId, theme, comp
       refresh();
     })) { drafts.set(draftKey, ""); setReplyTo(null); }
   }
+  // A fresh home has one setup task; no unavailable General recipient/composer alongside it.
+  if (unavailableGeneral && generalControls) return <ScrollView automaticallyAdjustKeyboardInsets>{generalControls}</ScrollView>;
   return <View testID="scope-discussion" style={{ flex: 1, minHeight: 0, backgroundColor: colors.surface0 }}>
     <ScrollView contentContainerStyle={{ padding: compact ? 12 : 16, gap: 12 }}>
       <Text accessibilityRole="header" style={{ color: colors.foreground, fontSize: 17, fontWeight: "600" }}>Discussion</Text>
@@ -89,12 +91,14 @@ export function ScopeDiscussion({ snapshot, offline = false, hostId, theme, comp
           { value: "shared", label: "Shared stream", detail: "Untagged messages go to FirstMate" },
           ...snapshot.scopes.map(s => ({ value: s.id, label: s.title, detail: `${s.kind} · ${s.id} · ${s.session}` }))
         ]} onSelect={select} theme={theme} compact={compact} />
-        <Button label="Refresh status and replies" theme={theme} onPress={() => { refresh(); void conversations.refetch(); }} />
-        <Button label={showStatus ? "Hide stored status" : "Show stored status"} theme={theme} onPress={() => setShowStatus(v => !v)} />
+        <Button label="Refresh" theme={theme} onPress={() => { refresh(); void conversations.refetch(); }} />
+        <Button label={showStatus ? "Hide details" : "Details"} expanded={showStatus} theme={theme} onPress={() => setShowStatus(v => !v)} />
       </View>
-      <Text style={{ color: offline || snapshot.freshness !== "current" ? colors.statusWarning : colors.foregroundMuted, fontSize: 12 }}>
+      {offline ? <Text style={{ color: colors.statusWarning, fontSize: 12 }}>Offline · last updated {snapshot.asOf}. Refresh to check again.</Text> : snapshot.freshness !== "current" && snapshot.freshness !== "uninitialized" ?
+        <Text accessibilityRole="alert" style={{ color: colors.statusWarning, fontSize: 12 }}>Some work couldn't be checked. Review Details before continuing.</Text> : null}
+      {showStatus ? <Text selectable style={{ color: colors.foregroundMuted, fontSize: 12 }}>
         {offline ? "Offline · retained status" : `${snapshot.freshness} · sequence ${snapshot.sequence}`} · as of {snapshot.asOf} · Reading starts no model turn
-      </Text>
+      </Text> : null}
       {snapshot.problems.map((p, i) => <Text key={i} style={{ color: colors.statusDanger }}>{p}</Text>)}
       {showStatus && snapshot.bearings ? <Text selectable style={{ color: colors.foregroundMuted, fontSize: 13 }}>{snapshot.bearings}</Text> : null}
       {unconfirmed.map(state => <View key={state.pending!.id} style={{ gap: 4 }}>
@@ -112,6 +116,7 @@ export function ScopeDiscussion({ snapshot, offline = false, hostId, theme, comp
       </View>) : null}
       {conversations.isPending ? <Text style={{ color: colors.foregroundMuted }}>Loading discussion records…</Text> : null}
       {[...(conversations.data?.problems ?? []), ...(conversations.error ? [errorText(conversations.error)] : [])].map((p, i) => <Text key={i} style={{ color: colors.statusDanger }}>{p}</Text>)}
+      {!conversations.isPending && !conversations.isError && !conversations.data?.problems.length && !rows.length ? <Text style={{ color: colors.foregroundMuted }}>Start a conversation.</Text> : null}
       {rows.map(({ message: m }) => <View key={`${m.route?.target.scopeId}:${m.id}`} style={{ gap: 6, paddingVertical: 8 }}>
         <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>You → {m.route?.recipient ?? "Unknown recipient"}{m.route?.projectIds.length ? ` · context ${m.route.projectIds.map(id => snapshot.projects.find(p => p.id === id)?.name ?? id).join(", ")}` : ""}{m.route?.replyTo ? ` · reply to ${m.route.replyTo}` : ""}</Text>
         <Text style={{ color: colors.foreground, fontSize: 14 }}>{m.text}</Text>
@@ -125,7 +130,7 @@ export function ScopeDiscussion({ snapshot, offline = false, hostId, theme, comp
     </ScrollView>
     <View style={{ gap: 8, padding: compact ? 12 : 16, borderTopWidth: 1, borderColor: colors.border }}>
       <Text style={{ color: colors.foreground, fontSize: 13 }}>To {recipient?.title ?? "Unavailable recipient"}{resolved?.projectIds.length ? ` · project context: ${resolved.projectIds.map(id => snapshot.projects.find(p => p.id === id)?.name ?? id).join(", ")}` : ""}{replyTo ? " · replying" : ""}</Text>
-      {recipient ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{recipient.session === "not-created" ? "Not yet created" : recipient.session === "unknown" ? "Activity unknown" : recipient.session}{recipient.discussionOnly ? " · discussion only" : ""}</Text> : null}
+      {recipient ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{recipient.session === "not-created" ? "Not yet created" : recipient.session === "unknown" ? "Status unavailable. Refresh to check again." : recipient.session}{recipient.discussionOnly ? " · discussion only" : ""}</Text> : null}
       {!snapshot.executionEnabled ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>Discussion execution is disabled pending activation.</Text> : unavailableGeneral ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>FirstMate has no session. Use the existing launch controls.</Text> : recipient?.session === "not-created" ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>First Send creates a persistent discussion session. Reading does not.</Text> : null}
       {routeError || validationError || sending.error ? <Text accessibilityRole="alert" style={{ color: colors.statusDanger }}>{routeError ?? validationError ?? sending.error}</Text> : null}
       {unsupported ? <Text style={{ color: colors.foregroundMuted }}>{remote ? "This remote scope is read-only here. Open its original host; no discussion receiver is qualified." : "This maintenance scope is read-only; no discussion adapter is qualified."}</Text> : null}

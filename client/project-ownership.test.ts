@@ -18,6 +18,7 @@ vi.mock("react-native", () => ({ Pressable: "Pressable", ScrollView: "ScrollView
 vi.mock("@getpaseo/plugin/client/react-native", () => ({ Modal: Object.assign(({ open, children }: { open: boolean; children: ReactNode }) => open ? children : null, { Content: "Content" }) }));
 vi.mock("./workflow-plans", () => ({ useWorkflowPlans: () => ({}), workflowRequestId: () => "00000000-0000-4000-8000-000000000099" }));
 import { ProjectOwnershipBoard } from "./project-ownership";
+import { visibleText } from "../test/visible-text";
 let renderer: ReactTestRenderer | undefined, cache: QueryClient;
 beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -53,6 +54,15 @@ it("a failed refresh disables a pending explicit confirmation", async () => {
   await act(async () => { await cache.refetchQueries(); });
   await act(async () => { await new Promise(done => setTimeout(done, 20)); });
   expect(button("Create project mate").props.disabled).toBe(true); expect(state.provision).not.toHaveBeenCalled();
+});
+it("feature-off history keeps a stopped project without an agent inspectable", async () => {
+  state.data!.enabled = false;
+  Object.assign(state.data!.projects[0]!, { state: "stopped", sessions: 1, turns: 1, uncertain: 1,
+    reason: "Provisioning stopped; identity and spend retained. Inspect any uncertain operation." });
+  await mount();
+  await act(async () => button("Project mates and plans").props.onPress());
+  expect(visibleText(renderer!.toJSON())).toContain("identity and spend retained");
+  expect(state.provision).not.toHaveBeenCalled(); expect(state.abort).not.toHaveBeenCalled();
 });
 
 it.each(["mounted", "remounted", "stop"])("review F2: %s app repairs through the production RPC and resumes the same recorded input", async mode => {

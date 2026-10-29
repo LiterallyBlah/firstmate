@@ -24,7 +24,7 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => renderer?.unmount()); renderer = undefined; cache.clear(); });
 const button = (label: string) => renderer!.root.find(n => n.type === "Pressable" as never && n.props.accessibilityLabel === label);
 async function mount() {
-  await act(async () => { renderer = create(createElement(QueryClientProvider, { client: cache }, createElement(MaintenanceOwnershipBoard, { theme, compact: true }))); });
+  await act(async () => { renderer = create(createElement(QueryClientProvider, { client: cache }, createElement(MaintenanceOwnershipBoard, { theme, compact: true, advanced: true }))); });
   await vi.waitFor(async () => { await act(async () => { await new Promise(done => setTimeout(done, 0)); }); expect(button("Create maintenance owner")).toBeDefined(); });
 }
 it("fresh-home app reads/opening create nothing; explicit confirmation retains exact admission after a lost reply", async () => {

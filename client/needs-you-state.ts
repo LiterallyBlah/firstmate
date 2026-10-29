@@ -131,6 +131,14 @@ export function decisionProblems(
   ];
 }
 
+/** Reassurance needs a complete fresh global read, including every optional source. */
+export function completeEmptyInbox(snapshot: NeedsYouSnapshot | undefined, offline = false, loading = false): boolean {
+  return !!snapshot && !offline && !loading && snapshot.freshness.status === "fresh" && snapshot.actionCount === 0 &&
+    snapshot.scopedComplete !== false && !decisionProblems(snapshot).length && !snapshot.requests.length && !snapshot.parked.length &&
+    !snapshot.planNow?.length && !snapshot.comingUp?.length && !snapshot.scopedDecisions?.length && !snapshot.scopedHolds?.length &&
+    !snapshot.pendingAnswerCount && !snapshot.scopedPendingAnswerCount && !snapshot.snoozedCount;
+}
+
 /** Every count surface uses the server total and explicitly labels an old count. */
 export function decisionCountText(
   snapshot: NeedsYouSnapshot | undefined,

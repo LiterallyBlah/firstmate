@@ -137,7 +137,7 @@ try {
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
   }
   await page.goto(url + "/?no-mate");
-  await page.getByRole("button", { name: "Launch the first mate", exact: true }).waitFor();
+  await page.getByRole("button", { name: "Set up FirstMate", exact: true }).waitFor();
   assert.equal(await input(chat).count(), 0);
   if (process.env.CHAT_PARITY === "1") {
     const { checkParity } = await import("../chat-parity/check.mjs");

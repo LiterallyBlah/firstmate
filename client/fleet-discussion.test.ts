@@ -37,6 +37,7 @@ vi.mock("./web", () => ({ webAttributes: () => ({}), focusWebElement() {} }));
 vi.mock("./needs-you", () => ({ NeedsYouIndicator: () => null, useDecisionVisibility: () => ({ current: null }) }));
 vi.mock("./workflow-plans", () => ({ WorkflowSurface: ({ children }: { children: ReactNode }) => children, useWorkflowPlans: () => ({ snapshot: { plans: [] } }), PlansControl: () => null }));
 vi.mock("./workflow-plan-browser", () => ({ WorkflowPlansView: () => null }));
+vi.mock("./work-details", () => ({ WorkDetails: () => null }));
 vi.mock("./mate-send", () => ({ useMateSender: () => ({ send: vi.fn(), sending: false }) }));
 vi.mock("./remotes", () => ({ useRemotes: () => ({ data: { hosts: [] } }) }));
 vi.mock("./task-layout", () => ({ useTaskLayout: () => ({ values: DEFAULT_TASK_LAYOUT, save() {}, disabled: false }) }));

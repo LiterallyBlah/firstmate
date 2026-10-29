@@ -8,6 +8,7 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { ProjectRuntimeSnapshotSchema, provisionProjectFromUi, recoverProjectRuntimeFromUi, abortProjectProvisionFromUi, readProjectMemory, readProjectRuntime, type ProjectRuntimeSnapshot } from "../shared/project-runtime";
 import { workflowRequestId, useWorkflowPlans } from "./workflow-plans";
 import { errorText } from "./format";
+import { projectHasHistory, projectHasProblem, projectSetupAvailable } from "./ownership-state";
 type Project = ProjectRuntimeSnapshot["projects"][number];
 function Action({ theme, label, onPress, disabled = false }: { theme: PluginTheme; label: string; onPress(): void; disabled?: boolean }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress}
@@ -15,8 +16,8 @@ function Action({ theme, label, onPress, disabled = false }: { theme: PluginThem
     <Text style={{ color: theme.colors.foreground, fontSize: 13 }}>{label}</Text>
   </Pressable>;
 }
-export function ProjectOwnershipBoard({ theme, compact, navigation, hostId = "local" }: {
-  theme: PluginTheme; compact: boolean; navigation?: PluginScreenProps["navigation"]; hostId?: string;
+export function ProjectOwnershipBoard({ theme, compact, navigation, hostId = "local", advanced = false }: {
+  theme: PluginTheme; compact: boolean; navigation?: PluginScreenProps["navigation"]; hostId?: string; advanced?: boolean;
 }) {
   const read = useRpc(readProjectRuntime), provision = useRpc(provisionProjectFromUi);
   const plans = useWorkflowPlans();
@@ -26,7 +27,9 @@ export function ProjectOwnershipBoard({ theme, compact, navigation, hostId = "lo
   const gate = useRef(false), pending = useRef<Parameters<typeof provision>[0] | null>(null), homeId = query.data?.homeId;
   useEffect(() => { select(null); pending.current = null; setError(null); }, [hostId, homeId]);
   const data = query.data;
-  if (!data || !data.enabled && !data.projects.some(p => p.agentId)) return null;
+  if (!data) return query.isError ? <Text accessibilityRole="alert" style={{ color: theme.colors.statusWarning }}>Project status could not be read. Close and reopen details to check again.</Text> : null;
+  if (!advanced && !projectHasHistory(data) && !data.projects.some(projectSetupAvailable) && !data.problems.length && data.freshness !== "held" && !query.isError) return null;
+  if (!data.enabled && !data.projects.length && !data.problems.length && data.freshness !== "held" && !query.isError) return null;
   const stale = query.isError || !data.enabled || data.freshness !== "current" || !!selected && !data.projects.some(p => p.projectId === selected.projectId && p.version === selected.version);
   async function confirm() {
     if (gate.current || stale || !selected?.projectId || !data) return;
@@ -92,25 +95,29 @@ export function ProjectOwnershipView({ theme, compact, data, readError = false, 
 }) {
   const [expanded, expand] = useState(false), [memoryProject, setMemory] = useState<Project | null>(null), colors = theme.colors;
   const stale = readError || data.freshness !== "current";
-  const held = data.projects.filter(p => p.reason).length;
+  const available = data.projects.filter(projectSetupAvailable).length;
+  const held = data.projects.filter(projectHasProblem).length;
   return <View testID="project-ownership" style={{ borderBottomWidth: 1, borderColor: colors.border, padding: compact ? 12 : 16, gap: 8 }}>
     <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-      <Pressable accessibilityRole="button" accessibilityLabel="Project mates and plans" accessibilityState={{ expanded }} onPress={() => expand(!expanded)} style={{ minHeight: 44, justifyContent: "center", flexGrow: 1 }}>
-        <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "600" }}>Project mates · {data.projects.length}{held ? ` · ${held} awaiting attention` : ""}{data.freshness === "held" ? " · status held" : ""}</Text>
+      <Pressable accessibilityRole="button" accessibilityLabel="Project mates and plans" accessibilityState={{ expanded }} onPress={() => expand(!expanded)} style={{ minHeight: 44, justifyContent: "center", flexGrow: 1, flexShrink: 1, minWidth: 0, flexBasis: "100%" }}>
+        <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "600" }}>Project mates{available ? ` · ${available} available to set up` : ""}{held ? ` · ${held} need review` : ""}</Text>
       </Pressable>
       {expanded ? <Action theme={theme} label="Refresh projects" onPress={onRefresh} /> : null}
     </View>
     {readError ? <Text accessibilityRole="alert" style={{ color: colors.statusDanger }}>Project status could not be refreshed. Showing the last received census; actions are unavailable.</Text> : null}
+    {data.problems.length || data.freshness === "held" ? <Text accessibilityRole="alert" style={{ color: colors.statusWarning }}>Some projects couldn't be checked. Open project details and refresh before continuing.</Text> : null}
     {expanded ? <>
       {data.problems.map((p, i) => <Text key={i} accessibilityRole="alert" style={{ color: colors.statusWarning }}>{p}</Text>)}
       {data.recovery && onRecover ? <View style={{ gap: 8 }}><Text style={{ color: colors.foregroundMuted }}>Recover the inspected project records before resuming. Recovery validates history and creates no workspace, agent or turn.</Text>
         <Action theme={theme} label="Recover project records" disabled={!data.enabled || readError || recoveryBusy} onPress={onRecover} /></View> : null}
       <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>General retains {data.general.headroom} of {data.general.slots} plugin admission slots. Provider capacity is unknown.</Text>
-      {!data.projects.length ? <Text style={{ color: colors.foregroundMuted }}>Register active projects in Home files, then record reviewed admission and allocation.</Text> : null}
-      <ScrollView style={{ maxHeight: compact ? 300 : 380 }} contentContainerStyle={{ gap: 16 }}>
+      {!data.projects.length && !data.problems.length && !readError && (data.freshness === "current" || data.freshness === "uninitialized") ? <Text style={{ color: colors.foregroundMuted }}>No projects have been set up.</Text> : null}
+      <View style={{ gap: 16 }}>
         {data.projects.map((p, i) => <View key={`${p.projectId ?? p.name}:${i}`} style={{ gap: 6 }}>
-          <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "600" }}>{p.name} · {p.state}{p.agentId ? " · mate reserved" : ""}</Text>
-          {p.reason ? <Text style={{ color: colors.foregroundMuted, fontSize: 13 }}>{p.reason}</Text> : null}
+          <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "600" }}>{p.name} · {projectSetupAvailable(p) ? "Review this project's setup" : p.state}{p.agentId ? " · mate reserved" : ""}</Text>
+          {p.reason && !projectSetupAvailable(p) ? <Text style={{ color: colors.foregroundMuted, fontSize: 13 }}>{p.reason} Review the saved details before resuming.</Text> : null}
+          <Text selectable style={{ color: colors.foregroundMuted, fontSize: 12 }}>Stored state: {p.state} · version {p.version} · project {p.projectId ?? "not recorded"} · scope {p.scopeId ?? "not recorded"}{p.reason ? ` · ${p.reason}` : ""}</Text>
+          <Text selectable style={{ color: colors.foregroundMuted, fontSize: 12 }}>{p.hostId ?? "Host not recorded"} · {p.directory ?? "Folder not recorded"}</Text>
           {p.agentId ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{p.sessions} sessions · {p.turns} turns spent{p.uncertain ? ` · ${p.uncertain} uncertain` : ""}</Text> : null}
           {p.plans.map(plan => <View key={plan.id} style={{ gap: 2 }}>
             <Text style={{ color: colors.foreground, fontSize: 13 }}>{plan.title}</Text>
@@ -125,7 +132,7 @@ export function ProjectOwnershipView({ theme, compact, data, readError = false, 
               <Action theme={theme} label={`${p.provisionRequestId ? "Resume" : "Create"} ${p.name} mate`} disabled={stale || !!p.reason && !p.reason.startsWith("Provisioning incomplete")} onPress={() => onProvision(p)} /> : null}
           </View>
         </View>)}
-      </ScrollView>
+      </View>
     </> : null}
     {memoryProject?.projectId ? <ProjectMemoryView theme={theme} homeId={data.homeId} project={memoryProject} onClose={() => setMemory(null)} /> : null}
   </View>;

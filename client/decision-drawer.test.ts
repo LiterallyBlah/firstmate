@@ -132,6 +132,7 @@ async function mount(ids = ["a", "b", "c"], planDecision = false, configure?: (s
       theme: attentionTheme, snapshot: query.data, offline: options.offline ?? false, filtered: options.filtered ?? false, destination,
       onSelect(next) { selectedId = next.requestId; select(next); },
       onClose() { close(); setOpen(false); },
+      onBackToFirstMate() { close(); setOpen(false); },
       mateId: "mate", suggestions: [], compact: false, returnLabel: "Board",
     }) : createElement("Text", null, "Original Board");
   }
@@ -153,6 +154,23 @@ async function answer() {
   await press("Send answer");
 }
 function words() { return visibleText(renderer.toJSON()); }
+
+it("a complete empty All inbox explains itself and returns to FirstMate", async () => {
+  await mount([], false, undefined, { initial: "all" });
+  expect(words()).toContain("No decisions right now");
+  await press("Back to FirstMate");
+  expect(close).toHaveBeenCalledOnce();
+  expect(rpc.calls).toHaveLength(0);
+});
+
+it.each(["offline", "partial", "corrupt", "unknown"])("an %s All read never claims there are no decisions", async state => {
+  await mount([], false, snapshot => {
+    if (state === "partial") snapshot.scopedComplete = false;
+    if (state === "corrupt") snapshot.planProblems = ["Plan history could not be checked"];
+    if (state === "unknown") snapshot.freshness.status = "unknown";
+  }, { initial: "all", offline: state === "offline" });
+  expect(words()).not.toContain("No decisions right now");
+});
 afterEach(async () => {
   await act(async () => renderer?.unmount());
   client?.clear();
