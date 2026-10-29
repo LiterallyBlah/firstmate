@@ -122,6 +122,7 @@ it("shows concrete per-project blockers and opens the shared setup for the ready
   await act(async () => button("Project mates and plans").props.onPress());
   await act(async () => button("Show Ariadne details").props.onPress());
   expect(visibleText(renderer!.toJSON())).toContain("another computer (ariadne-dev)");
+  expect(visibleText(renderer!.toJSON())).toContain("ariadne-dev:/home/ariadne/Projects/Aradne");
   await act(async () => button("Show FirstMate details").props.onPress());
   const words = visibleText(renderer!.toJSON());
   expect(words).toContain("On another machine");

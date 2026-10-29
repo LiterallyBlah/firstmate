@@ -142,7 +142,7 @@ export function ProjectOwnershipView({ theme, compact, data, readError = false, 
           {technical === key ? <View style={{ gap: 6 }}>
           <Text selectable style={{ color: colors.foregroundMuted, fontSize: 13 }}>{readiness.description}</Text>
           <Text selectable style={{ color: colors.foregroundMuted, fontSize: 12 }}>Stored state: {p.state} · version {p.version} · project {p.projectId ?? "not recorded"} · scope {p.scopeId ?? "not recorded"}{p.reason ? ` · ${p.reason}` : ""}</Text>
-          <Text selectable style={{ color: colors.foregroundMuted, fontSize: 12 }}>{p.hostId ?? "Host not recorded"} · {p.directory ?? "Folder not recorded"}</Text>
+          <Text selectable style={{ color: colors.foregroundMuted, fontSize: 12 }}>{p.hostId ?? "Host not recorded"} · {p.directory ?? p.registryLocation ?? "Folder not recorded"}</Text>
           {p.agentId ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{p.sessions} sessions · {p.turns} turns spent{p.uncertain ? ` · ${p.uncertain} uncertain` : ""}</Text> : null}
           {p.plans.length ? <Pressable accessibilityRole="button" accessibilityLabel={`${p.name} plans: ${p.plans.length}`} accessibilityState={{ expanded: planList === key }} aria-expanded={planList === key} onPress={() => showPlanList(planList === key ? null : key)} style={{ minHeight: 44, flexDirection: "row", alignItems: "center", gap: 6 }}><Icon name={planList === key ? "ChevronDown" : "ChevronRight"} size={14} color={colors.foregroundMuted} /><Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{p.plans.length} {p.plans.length === 1 ? "plan" : "plans"}</Text></Pressable> : null}
           {planList === key ? p.plans.map(plan => <View key={plan.id} style={{ gap: 2 }}>
