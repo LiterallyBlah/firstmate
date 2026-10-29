@@ -28,6 +28,7 @@ import { planDecisionReady } from "../shared/plan-readiness";
 import { scopeAnswerContext } from "./scope-answer-context";
 import { ScopedCaptainDecisionSchema } from "../shared/scoped-captain-decision";
 import { maintenanceAnswerContext, maintenanceCaptainDecision } from "./maintenance-decisions";
+import { planBudgetException } from "../shared/plan-supervisor-limits";
 
 /** Read-only opt-in composition seam for S05/S06. No polling/wake/send or legacy mutation. */
 export function withScopedNeedsYou(snapshot: NeedsYouSnapshot, status: SupervisionStatus): NeedsYouSnapshot {
@@ -48,7 +49,7 @@ export function withScopedNeedsYou(snapshot: NeedsYouSnapshot, status: Supervisi
     const backend = status.backends.find(b => b.planId === decision.planId);
     const held = status.operationHolds.some(h => h.scopeId === decision.ownerScopeId && h.planId === decision.planId && h.state === "held" && h.operations.includes("decision.answer"));
     const ready = status.freshness === "current" && backend?.backend === "scoped" && backend.state === "active" && owner?.kind === "plan" && owner.mode === "scoped" && ["active", "held", "transferring"].includes(owner.state) &&
-      !held && !!plan && !!node && decision.state === "pending" && planDecisionReady(plan, node, plans);
+      !held && !!plan && decision.state === "pending" && (!!node && planDecisionReady(plan, node, plans) || !!planBudgetException(status, decision));
     const answerContext = scopeAnswerContext(status, decision);
     const captain = ScopedCaptainDecisionSchema.parse({ format: "firstmate.scoped-captain-decision/1", homeId: status.homeId,
       scope: { kind: "plan", id: decision.ownerScopeId }, decisionId: decision.id, revision: decision.revision, subjectHash: decision.subjectHash,

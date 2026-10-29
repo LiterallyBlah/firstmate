@@ -7,6 +7,7 @@ import type { LegacyDeliveryDisposition, MigrationReceipt } from "./supervision-
 import type { BoardSubmission, SourceBinding } from "./supervision-sources";
 import type { ProjectRows } from "./supervision-projects";
 import type { MaintenanceRows } from "./supervision-maintenance";
+import { PlanRuleRefSchema, type PlanRuleRecord, type RuleVerification, type RuleFailure, type RuleViolation } from "./plan-rules";
 import type { AcceptedScopedCommand, OperationHold, PolicyApproval, PolicyEvidence, PolicyRule, PolicySource, ScopedDecision, ScopedOutbox } from "./supervision-policy";
 
 export const SupervisionHash = z.string().length(64).regex(/^[0-9a-f]{64}$/);
@@ -57,6 +58,10 @@ export const SupervisionEffectSchema = z.object({
   payloadDigest: SupervisionHash.optional(),
   /** Optional immutable Build D notification identity; no defaults or authority on historical effects. */
   maintenanceIncident: z.object({ incidentId: SupervisionUuid, generation: positive, jobId: SupervisionUuid }).strict().optional(),
+  planRules: PlanRuleRefSchema.optional(),
+  ruleSubjectHash: SupervisionHash.optional(),
+  admissionHead: z.string().regex(/^[0-9a-f]{40,64}$/).optional(),
+  reusedWorkspace: z.object({ workspaceId: text(), directory: text(1024), priorAttemptId: SupervisionUuid }).strict().optional(),
   /** S04 v1 extension: the exact prerequisite outcomes admitted at reservation (S03 dependency
    * bindings, without the plan hash/revision snapshot), re-resolved at final dispatch admission. */
   dependencyBindings: z.array(z.object({ planId: PlanId, nodeId: PlanId, outcome: z.enum(["done", "landed", "answered"]),
@@ -101,6 +106,7 @@ export const SupervisionAttemptSchema = z.object({
   worker: z.object({ hostId: text(), agentId: text(), workspaceId: text() }).strict().nullable(),
   originalNotificationOwner: text().nullable(), notificationStatus: z.enum(["known", "reported", "unknown"]),
   spentAgents: count, spentTurns: count, state: text(), evidenceIds: unique(SupervisionUuid, 256), version: positive,
+  reservedAt: SupervisionUtc.optional(),
   /** S07 v1 extension: an attempt imported from legacy history at cutover commit. It names no gateway launch
    * effect (`launchEffectId` is a reserved identity only); its spend and worker identity are the legacy record's. */
   importedFrom: z.object({ migrationId: SupervisionUuid, legacyAttempt: text(64), node: PlanId }).strict().optional(),
@@ -116,7 +122,8 @@ export const SupervisionRowKind = z.enum(["scope", "binding", "task", "attempt",
   "migration", "delivery-disposition",
   "source-binding", "board-submission",
   "project", "plan-sponsor", "intent", "dependency-resolution", "memory-proposal", "project-memory", "portfolio-conflict",
-  "resource-reservation", "maintenance-job", "occurrence", "occurrence-host", "maintenance-incident"]);
+  "resource-reservation", "maintenance-job", "occurrence", "occurrence-host", "maintenance-incident",
+  "plan-rules", "rule-verification", "rule-failure", "rule-violation"]);
 export const SupervisionExpectedSchema = z.object({ kind: SupervisionRowKind, id: text(1024), version: count }).strict();
 export const SupervisionActorSchema = z.object({
   kind: z.enum(["captain-ui", "mate-chat", "agent", "system", "plugin-ui-unverified"]), id: text(), source: text(1024),
@@ -168,5 +175,10 @@ export interface SupervisionStatus {
   projects?: ProjectRows;
   /** S10 resource reservations, maintenance jobs, daily occurrences, host passes and incidents. Absent before S10. */
   maintenance?: MaintenanceRows;
+  /** Additive Build B records; absent on historical fixtures. Never effect authority alone. */
+  planRules?: PlanRuleRecord[];
+  ruleVerifications?: RuleVerification[];
+  ruleFailures?: RuleFailure[];
+  ruleViolations?: RuleViolation[];
   index: { schema: 1; sequence: number; hash: string | null; taskOwners: Record<string, string>; effectKeys: Record<string, string> };
 }

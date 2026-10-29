@@ -389,7 +389,7 @@ export class SupervisionMigrator {
   /** Preflight, freeze and prepared commit. Refuses, without freezing, anything it cannot import and finish. */
   async prepare(input: MigrationInput): Promise<MigrationReceipt> {
     this.enabled();
-    if (Object.values(input.prerequisites).some(v => !v.trim())) fail("UNSUPPORTED", "Name the accepted inventory, compatible rollback build and policy import evidence.");
+    if ([input.prerequisites.inventory, input.prerequisites.rollbackBuild, input.prerequisites.policy].some(v => !v.trim())) fail("UNSUPPORTED", "Name the accepted inventory, compatible rollback build and policy import evidence.");
     if (!await this.gate.armed()) fail("HELD", "Arm the delivery gate first so every legacy send leaves a claim.");
     if (await this.gate.sidecar(input.plan, "freeze")) fail("CONFLICT", "This plan already has a cutover record; resume or release it. A released plan is not migrated again in this journal.");
     const status = await this.options.store.read();

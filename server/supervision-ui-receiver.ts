@@ -2,7 +2,7 @@
  * interrupt, takeover or strong receiver. Unknown create/send outcomes stay in S04's effect ledger. */
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import type { GatewayReceiver, AgentCreateIntent, AgentObservation, WorkspaceIntent } from "../shared/supervision-effects";
+import type { GatewayReceiver, AgentCreateIntent, AgentObservation, WorkspaceIntent, WorkspaceReceipt } from "../shared/supervision-effects";
 import type { PaseoApi } from "./host-types";
 import { refuse } from "./supervision-effects";
 import { sendWithoutInterrupting } from "./send";
@@ -20,7 +20,7 @@ export class SupervisionUiReceiver implements GatewayReceiver {
     const workspace = await this.paseo.workspaces.open(directory);
     return { workspaceId: workspace.id, directory };
   }
-  async findWorkspace(_intent: WorkspaceIntent) { return null; } // No negative lookup or automatic replay.
+  async findWorkspace(_intent: WorkspaceIntent): Promise<WorkspaceReceipt | null> { return null; } // No negative lookup or automatic replay.
   async createAgent(intent: AgentCreateIntent) {
     if (!(intent.labels["firstmate.role"] === "plan-supervisor" || this.options.projectMates && intent.labels["firstmate.role"] === "project-mate" ||
       this.options.maintenanceMates && intent.labels["firstmate.role"] === "maintenance-mate") || intent.labels["paseo.parent-agent-id"])
@@ -43,7 +43,7 @@ export class SupervisionUiReceiver implements GatewayReceiver {
       pendingPermissions: agent.pendingPermissions.length, archivedAt: agent.archivedAt ?? null };
   }
   async send(agentId: string, text: string, messageId: string) { await sendWithoutInterrupting(this.paseo, agentId, text, { messageId }); }
-  async interrupt(_id: string): Promise<never> { return refuse("UNSUPPORTED", "No interrupt adapter is installed."); }
+  async interrupt(_id: string): Promise<void> { return refuse("UNSUPPORTED", "No interrupt adapter is installed."); }
   async archive(_id: string): Promise<never> { return refuse("UNSUPPORTED", "Conditional archive is gated on U3."); }
   async inventory(_id: string): Promise<never> { return refuse("UNSUPPORTED", "No archive inventory adapter is installed."); }
 }

@@ -6,6 +6,16 @@ creates an independent persistent session. Admission, memory, cumulative caps an
 are documented in [Build A's contract and acceptance mapping](docs/scoped-supervision/build-a.md).
 This does not add a second plan Attach path or enable ongoing plan execution.
 
+Build B adds separately default-off operation via `FIRSTMATE_PLAN_SUPERVISORS=1`.
+The owned runtime consumes scoped requests, offers mailbox/outbox inputs, observes
+PR/remote/board facts and dispatches qualified local isolated workers while General
+is busy. Source-bound versioned rules gate dispatch and completion, retain actual
+artifacts and cumulative caps, and leave routine repairs with the delegated owner.
+Ordinary Plans reads the authoritative scoped history. Migration controls inspect,
+resume and abort through the existing path; continuation requires an independent
+verified snapshot under explicitly configured operator retention. See
+[Build B's acceptance mapping](docs/scoped-supervision/build-b.md). No rollout is implied.
+
 Activation is off unless the daemon environment contains exactly
 `FIRSTMATE_SCOPED_ACTIVATION=1`. Installing or viewing the plugin does not initialize a journal,
 acquire a coordinator, arm the delivery gate, migrate a plan or create a session. The switch enables
@@ -104,10 +114,11 @@ targets, drafts, threads and native links; one shared Needs-you snapshot gains s
 filters with global totals and retained quarantines. Stored status and compact scoped Bearings
 wake no model. General sends do not acquire a scoped writer. The app's answer press records
 unverified provenance and uses the existing logical-owner outbox; it cannot approve a plan or
-attach a supervisor. Plan session caps stay 1/1 pending B's durable cap seam. The shared captain
-decision shape adapts real plan decisions; project/maintenance origins remain fixtures until B/D
-emit actual captain escalations. See [Build C](docs/scoped-supervision/build-c.md).
+attach a supervisor. Plan sessions use B's durable cap when its explicit switch is enabled; otherwise caps stay 1/1. The shared captain
+decision shape adapts real plan decisions; project/maintenance origins require their domain
+owners to emit actual captain escalations. See [Build C](docs/scoped-supervision/build-c.md).
 
-Scoped workflow commands, source ingress, inbox offering and worker dispatch remain separate.
+Scoped workflow commands, source ingress, inbox offering and worker dispatch require
+Build B's separate switch. Discussion execution remains Build C's separate integration.
 Attaching a session does not qualify broader rollout or General relief. Follow
 [the per-plan procedure and observation gates](docs/scoped-supervision/rollout-runbook.md#7-explicit-activation-and-per-plan-expansion).

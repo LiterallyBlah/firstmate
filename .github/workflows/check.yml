@@ -64,6 +64,7 @@ jobs:
       - run: node docs/needs-you/render.mjs
       - run: node docs/scoped-supervision/s05-ui/render.mjs
       - run: node docs/scoped-supervision/build-c-ui/render.mjs
+      - run: node docs/scoped-supervision/build-b-ui/render.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -75,6 +76,8 @@ jobs:
             .local/s05-ui/results.json
             .local/build-c/ui/*.png
             .local/build-c/ui/results.json
+            .local/build-b-ui/*.png
+            .local/build-b-ui/results.json
             .local/s01/ci-tests.json
             .local/ci-diagnostics/*.json
             .local/s06/*.json

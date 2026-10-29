@@ -29,6 +29,8 @@ import { pageReceiptTimeline } from "./shared/receipts";
 import { ReportCache, loadFleet, readAgentTools } from "./server/fleet";
 import { SupervisionActivation, registerSupervisionActivation } from "./server/supervision-activation";
 import { SupervisionRuntime } from "./server/supervision-runtime";
+import { PlanRuntime } from "./server/plan-runtime";
+import { MigrationSnapshots } from "./server/migration-snapshot";
 import { ProjectRuntime, registerProjectRuntime } from "./server/project-runtime";
 import { MaintenanceRuntime, registerMaintenanceRuntime } from "./server/maintenance-runtime";
 import { nativeSchedules } from "./server/archive-inventory";
@@ -118,6 +120,10 @@ import {
 export default function contribute(server: PluginServerContext) {
   // One shared owner. Reads never initialize/acquire; only explicit gated operations mutate.
   const supervisionRuntime = new SupervisionRuntime(pluginDir());
+  const projects = new ProjectRuntime(supervisionRuntime, { enabled: process.env.FIRSTMATE_PROJECT_MATES === "1",
+    ...([process.env.FIRSTMATE_PROJECT_MATES, process.env.FIRSTMATE_PLAN_SUPERVISORS].includes("1") ? { slots: Number(process.env.FIRSTMATE_PROJECT_SLOTS ?? 4), generalHeadroom: Number(process.env.FIRSTMATE_GENERAL_HEADROOM ?? 1) } : {}) });
+  const plans = new PlanRuntime(supervisionRuntime, { enabled: process.env.FIRSTMATE_PLAN_SUPERVISORS === "1", slots: projects.slots, headroom: projects.headroom });
+  plans.register(server);
   // Display routes may serve an earlier committed head after 750 ms of overlapping writes;
   // crew-seen decides whether to clear attention, so it always waits for the newest head.
   const readSupervision = async (home?: string, newest = false) =>
@@ -141,7 +147,7 @@ export default function contribute(server: PluginServerContext) {
   // The backlog names the tasks whose remote worker the poll should look up by label; see server/remote-cards.ts.
   const remotes = new RemoteService(undefined, async (host) =>
     remoteTaskQueries(await readBacklog(resolveHome(await readFirstmateConfig())), host, (await remotes.read()).localServerId),
-    snapshot => attention.catalog(snapshot),
+    snapshot => { attention.catalog(snapshot); void plans.remote(snapshot).catch(error => console.error("[firstmate] scoped remote observations:", error)); },
   );
   remotes.start();
   const decisions = new NeedsYouService({
@@ -151,13 +157,13 @@ export default function contribute(server: PluginServerContext) {
   });
   const activation = new SupervisionActivation(pluginDir(), {
     runtime: supervisionRuntime,
+    ...(process.env.FIRSTMATE_PLAN_SUPERVISORS === "1" ? { requireSnapshots: true,
+      snapshots: new MigrationSnapshots(process.env.FIRSTMATE_MIGRATION_BACKUP_ROOT ?? "", process.env.FIRSTMATE_MIGRATION_RETENTION ?? "") } : {}),
     ...(process.env.FIRSTMATE_PROJECT_MATES === "1" ? { headroom: { slots: Number(process.env.FIRSTMATE_PROJECT_SLOTS ?? 4), reserved: Number(process.env.FIRSTMATE_GENERAL_HEADROOM ?? 1) } } : {}),
     enabled: process.env.FIRSTMATE_SCOPED_ACTIVATION === "1",
     adapters: () => legacyAdapters(watches.runner, () => decisions.read()),
   });
   registerSupervisionActivation(server, activation);
-  const projects = new ProjectRuntime(supervisionRuntime, { enabled: process.env.FIRSTMATE_PROJECT_MATES === "1",
-    ...(process.env.FIRSTMATE_PROJECT_MATES === "1" ? { slots: Number(process.env.FIRSTMATE_PROJECT_SLOTS ?? 4), generalHeadroom: Number(process.env.FIRSTMATE_GENERAL_HEADROOM ?? 1) } : {}) });
   registerProjectRuntime(server, projects);
   const scopeUiEnabled = process.env.FIRSTMATE_SCOPE_UI === "1", scopeExecutionEnabled = process.env.FIRSTMATE_SCOPE_EXECUTION === "1";
   const maintenanceEnabled = process.env.FIRSTMATE_MAINTENANCE === "1";
@@ -166,8 +172,8 @@ export default function contribute(server: PluginServerContext) {
     inventory: async (home, config, jobs) => readTimerInventory(home, config, new WatchConfigStore(join(pluginDir(), "watch-config.json")), await nativeSchedules(), jobs) });
   const unregisterMaintenance = registerMaintenanceRuntime(server, maintenance);
   const stopWorkflows = startWorkflowService(async () => {
-    const results = await Promise.allSettled([projects.processRequests(), maintenance.tick()]);
-    for (const result of results) if (result.status === "rejected") console.error("[firstmate] scoped queue:", result.reason);
+    const results = await Promise.allSettled([projects.processRequests(), plans.tick(), maintenance.tick()]);
+    for (const result of results) if (result.status === "rejected") console.error("[firstmate] scoped clock:", result.reason);
   });
   const readCombinedNeeds = async (given?: Awaited<ReturnType<typeof decisions.read>>) => {
     const snapshot = given ?? await decisions.read();
@@ -192,8 +198,9 @@ export default function contribute(server: PluginServerContext) {
   }, readNeeds: () => readCombinedNeeds(), uiEnabled: scopeUiEnabled, executionEnabled: scopeExecutionEnabled,
     admittedProjectsOnly: true, execute: scopeRuntime.execute.bind(scopeRuntime),
     activationEnabled: process.env.FIRSTMATE_SCOPED_ACTIVATION === "1" });
-  server.handle(readWorkflowPlans, async () => workflowSnapshot(resolveHome(await readFirstmateConfig())));
+  server.handle(readWorkflowPlans, async (_input, { paseo }) => { plans.remember(paseo); return workflowSnapshot(resolveHome(await readFirstmateConfig())); });
   server.handle(actOnWorkflowPlan, async ({ homeId, requestId, command }, { paseo }) => {
+    if (await plans.act({ homeId, requestId, command }, paseo)) return workflowSnapshot(resolveHome(await readFirstmateConfig()));
     await oneAtATime(async () => {
       const config = await readFirstmateConfig(); requireNoMigration(config);
       const home = resolveHome(config);
@@ -235,6 +242,7 @@ export default function contribute(server: PluginServerContext) {
   });
 
   server.handle(loadFleetRpc, async (_input, { paseo }) => {
+    plans.remember(paseo);
     attention.remember(paseo);
     const attentionSampleStart = Date.now();
     watches.remember(paseo);
@@ -318,6 +326,9 @@ export default function contribute(server: PluginServerContext) {
   server.handle(watchHistory, ({ name }) => watches.history(name));
 
   server.handle(steerCrewRpc, async ({ agentId, text }, { paseo }) => {
+    if (isScopedSourceWorker(await readSupervision(undefined, true), "local", agentId)) {
+      await plans.steer(paseo, agentId, text); return {};
+    }
     await steerCrew(paseo, steers, agentId, text);
     return {};
   });
@@ -440,6 +451,7 @@ export default function contribute(server: PluginServerContext) {
     unregisterReceipts();
     unregisterAttention();
     await activation.stop();
+    await plans.stop();
     await supervisionRuntime.stop();
     watches.stop();
     remotes.stop();

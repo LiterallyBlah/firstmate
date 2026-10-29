@@ -2,6 +2,7 @@ import type { SupervisionStatus } from "../shared/supervision";
 import type { ScopedDecision } from "../shared/supervision-policy";
 import { ScopedAnswerContextSchema } from "../shared/scoped-commands";
 import { currentPolicyVector } from "./supervision-policy";
+import { planBudgetException } from "../shared/plan-supervisor-limits";
 
 /** The displayed decision pins S03's actual read set. An answer never substitutes new vectors. */
 export function scopeAnswerContext(status: SupervisionStatus, decision: ScopedDecision) {
@@ -9,8 +10,8 @@ export function scopeAnswerContext(status: SupervisionStatus, decision: ScopedDe
   const plan = status.plans.find(p => p.scopeId === scope?.id && p.plan.definition.id === decision.planId)?.plan;
   const node = plan?.definition.nodes.find(n => n.id === decision.nodeId);
   const hostId = status.tasks.find(t => t.ownerScopeId === scope?.id && t.planId === decision.planId && t.nodeId === decision.nodeId)?.hostId ?? binding?.hostId;
-  if (!scope || !plan || !node || !hostId) return undefined;
-  const bindings = node.after.map(e => {
+  if (!scope || !plan || !hostId || !node && !planBudgetException(status, decision)) return undefined;
+  const bindings = (node?.after ?? []).map(e => {
     const candidates = status.plans.filter(p => p.plan.definition.nodes.some(n => n.id === e.node));
     if (candidates.length !== 1) return null;
     const p = candidates[0]!.plan;

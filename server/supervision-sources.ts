@@ -159,7 +159,7 @@ export class SupervisionSources {
   // ---- Pull requests ---------------------------------------------------------------------------
 
   /** Register the exact attempt that owns a pull request. A different owner is a CONFLICT, never a reroute. */
-  async bindPullRequest(input: { scopeId: string; attemptId: string; repository: string; pr: number }, requestId = randomUUID()) {
+  async bindPullRequest(input: { scopeId: string; attemptId: string; repository: string; pr: number }, requestId: string = randomUUID()) {
     const repository = Repository.parse(input.repository.toLowerCase()), id = sourceBindingId(repository, input.pr);
     this.budget(await this.store.read());
     return serialized(`${this.store.root}:ingress`, () => inboxTransaction(this.store, requestId, { op: "s08-bind", ...input, repository }, s => {

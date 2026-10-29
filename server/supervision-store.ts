@@ -35,10 +35,15 @@ import { DependencyResolutionSchema, IntentSchema, MemoryProposalSchema, PlanSpo
 import { validateProjectChange, validateProjectRows } from "./supervision-project-state";
 import { MaintenanceIncidentSchema, MaintenanceJobSchema, OccurrenceHostSchema, OccurrenceSchema, ResourceReservationSchema } from "../shared/supervision-maintenance";
 import { validateMaintenanceChange, validateMaintenanceRows } from "./supervision-maintenance-state";
+import { PlanRuleRecordSchema, RuleVerificationSchema, RuleFailureSchema, RuleViolationSchema } from "../shared/plan-rules";
 
 const number = z.number().int().min(0).max(Number.MAX_SAFE_INTEGER), positive = number.min(1);
 const BlobSchema = z.object({ id: SupervisionHash, bytes: number }).strict();
 export const SupervisionMutationSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("plan-rules"), value: PlanRuleRecordSchema }).strict(),
+  z.object({ kind: z.literal("rule-verification"), value: RuleVerificationSchema }).strict(),
+  z.object({ kind: z.literal("rule-failure"), value: RuleFailureSchema }).strict(),
+  z.object({ kind: z.literal("rule-violation"), value: RuleViolationSchema }).strict(),
   z.object({ kind: z.literal("policy-source"), value: PolicySourceSchema }).strict(),
   z.object({ kind: z.literal("policy-rule"), value: PolicyRuleSchema }).strict(),
   z.object({ kind: z.literal("policy-evidence"), value: PolicyEvidenceSchema }).strict(),
@@ -489,6 +494,16 @@ export class SupervisionStore {
         value = mutation.value;
         if ("version" in mutation.value && mutation.value.version !== version) fail("STALE", "New row version must increment once.");
         const old = prior?.value as Record<string, unknown> | undefined;
+        if (["rule-verification", "rule-failure", "rule-violation"].includes(mutation.kind) && prior)
+          fail("CONFLICT", "Rule evidence and violation receipts are immutable.");
+        if (["plan-rules", "rule-verification", "rule-failure", "rule-violation"].includes(mutation.kind)) {
+          const row = mutation.value as { homeId: string; scopeId: string; planId: string; revision?: number };
+          if (row.homeId !== this.homeId) fail("HELD", "Rules belong to another home.");
+          const scope = next.get(key("scope", row.scopeId))?.value as z.infer<typeof SupervisionScopeSchema> | undefined;
+          if (!scope || scope.kind !== "plan") fail("HELD", "Rules require one retained plan scope.");
+          if (mutation.kind === "plan-rules" && old && ["homeId", "scopeId", "planId", "revision"].some(k => old[k] !== row[k as keyof typeof row]))
+            fail("HELD", "Rule identity and effective revision cannot change.");
+        }
         validateInboxChange(mutation.kind, mutation.value, old, next, fail);
         validateSourceChange(mutation.kind, mutation.value, old, next, fail);
         validateProjectChange(mutation.kind, mutation.value, old, fail);
@@ -510,7 +525,7 @@ export class SupervisionStore {
         if (mutation.kind === "task" && old && ["planId", "nodeId", "projectId", "hostId"].some(p => old[p] !== mutation.value[p as keyof typeof mutation.value])) fail("CONFLICT", "Task identity cannot be renamed or reset.");
         if (mutation.kind === "attempt" && old) {
           const attempt = mutation.value;
-          if (["taskId", "ordinal", "briefHash", "launchEffectId", "originalNotificationOwner"].some(p => old[p] !== attempt[p as keyof typeof attempt]) ||
+          if (["taskId", "ordinal", "briefHash", "launchEffectId", "originalNotificationOwner", "reservedAt"].some(p => old[p] !== attempt[p as keyof typeof attempt]) ||
             attempt.spentAgents < Number(old.spentAgents) || attempt.spentTurns < Number(old.spentTurns) ||
             (old.worker && digest(old.worker) !== digest(attempt.worker)) || (old.evidenceIds as string[]).some(id => !attempt.evidenceIds.includes(id))) fail("HELD", "Attempt identity, evidence and cumulative spend must be retained.");
         }
@@ -749,9 +764,20 @@ export class SupervisionStore {
       if (frame.kind === "outbox") {
         const row = ScopedOutboxSchema.parse(value), backend = get("backend", row.planId) as z.infer<typeof SupervisionBackendSchema> | undefined;
         const maintenanceDecision = row.decisionId ? get("decision", row.decisionId) as z.infer<typeof ScopedDecisionSchema> | undefined : undefined;
+        const introduced = get("command", row.causationId) as z.infer<typeof AcceptedScopedCommandSchema> | undefined;
+        const input = introduced?.result.projectInput, project = input ? get("project", input.projectId) as { scopeId: string } | undefined : undefined;
+        const projectOwned = input && introduced?.actor.kind === "system" && introduced.actor.id === "project-judgment-input" &&
+          introduced.result.outboxId === row.id && input.scopeId === row.ownerScopeId && project?.scopeId === row.ownerScopeId &&
+          row.planId === `project-${input.projectId}` && row.kind === "plan.command" && row.decisionId === null && row.subjectHash === input.subjectHash;
         if ((row.maintenance ? !maintenanceDecision || !maintenanceDecision.maintenance || maintenanceDecision.ownerScopeId !== row.ownerScopeId || maintenanceDecision.planId !== row.planId || row.kind !== "decision.answer"
-          : !backend || backend.ownerScopeId !== row.ownerScopeId) || (row.state === "handled") !== !!(row.handledEpoch && row.resultRef))
+          : !(backend?.ownerScopeId === row.ownerScopeId || projectOwned)) || (row.state === "handled") !== !!(row.handledEpoch && row.resultRef))
           fail("CONFLICT", "Outbox ownership or handled receipt is inconsistent.");
+        if (projectOwned && row.state === "handled") {
+          const id = /^command:([0-9a-f-]{36})$/.exec(row.resultRef!)?.[1], command = id ? get("command", id) as z.infer<typeof AcceptedScopedCommandSchema> | undefined : undefined;
+          const judgment = command?.result.projectJudgment;
+          if (command?.actor.kind !== "agent" || !judgment || judgment.scopeId !== row.ownerScopeId || judgment.outboxId !== row.id || judgment.subjectHash !== row.subjectHash || judgment.epoch !== row.handledEpoch)
+            fail("CONFLICT", "Project outbox handling needs its exact committed owner judgment.");
+        }
         if (row.decisionId) {
           const decision = get("decision", row.decisionId) as z.infer<typeof ScopedDecisionSchema> | undefined;
           if (decision?.answer?.outboxId !== row.id) fail("CONFLICT", "Answer outbox must reference its committed decision result.");
@@ -1214,6 +1240,16 @@ export class SupervisionStore {
       return { id, bytes: copy.length };
     });
   }
+  /** Explicit migration export only. A consistent audited prefix; never called by a view. */
+  async exportSnapshot<T>(copy: (status: SupervisionStatus) => Promise<T>): Promise<T> {
+    this.writable();
+    return this.locked(async () => {
+      await this.assertCoordinator();
+      const snapshot = await this.scanFull();
+      if (snapshot.problems.length) fail("HELD", "Snapshot requires a complete audited published journal prefix.");
+      return copy(this.status(snapshot));
+    });
+  }
   /** Concurrent reads in one publication epoch share one validation. reading() still discards,
    * for every sharer, a result that a writer overlapped, so sharing never serves an older head.
    */
@@ -1281,6 +1317,7 @@ export class SupervisionStore {
       policySources: values("policy-source"), policyRules: values("policy-rule"), policyEvidence: values("policy-evidence"), approvals: values("approval"),
       decisions: values("decision"), outbox: values("outbox"), operationHolds: values("operation-hold"), commands: values("command"),
       continuations: values("continuation"),
+      planRules: values("plan-rules"), ruleVerifications: values("rule-verification"), ruleFailures: values("rule-failure"), ruleViolations: values("rule-violation"),
       migrations: values("migration"), dispositions: values("delivery-disposition"),
       uncertainEffectIds: effects.filter(e => ["dispatching", "uncertain"].includes(e.state)).map(e => e.id),
       plans: values<WorkflowRow>("workflow").map(({ scopeId, plan }) => ({ scopeId, plan })),
