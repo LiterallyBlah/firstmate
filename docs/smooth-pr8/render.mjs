@@ -51,6 +51,7 @@ try{
   const key=`${stage}-${theme}-${device}-${name}`;await page.screenshot({path:resolve(out,'screenshots',key+'.png')});results.push({key,errors,...state});
   if(stage==='after'&&name==='new'){
    const composer=page.getByRole('textbox',{name:'Message recipient'});
+   assert.equal(await page.getByRole('button',{name:'Start conversation and send',exact:true}).evaluate(el=>el===document.activeElement),true,'review focuses its confirmation');
    const draft=await composer.inputValue();
    await page.evaluate(()=>{window.pr8.scope.scopes[3].target.scopeVersion++;});
    await page.getByRole('button',{name:'Refresh',exact:true}).click();

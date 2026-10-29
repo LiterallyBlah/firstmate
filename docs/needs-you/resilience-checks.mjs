@@ -22,6 +22,8 @@ export async function checkResilience(pageAt, output) {
         })
         .click();
       const drawer = page.getByLabel("FirstMate decisions", { exact: true });
+      await drawer.getByText("Some work couldn't be checked. Review details before continuing.", { exact: true }).waitFor();
+      await drawer.getByRole("button", { name: "Warning details", exact: true }).click();
       await drawer.getByText(problem, { exact: true }).waitFor();
       await drawer
         .getByText(/Couldn't read this task: a.*Board.*line 12/)
@@ -99,6 +101,7 @@ export async function checkResilience(pageAt, output) {
       await page
         .getByRole("button", { name: /^Needs you, count unavailable/ })
         .click();
+      await drawer.getByRole("button", { name: "Warning details", exact: true }).click();
       await drawer
         .getByText(
           "Backlog must contain In flight, Queued and Done sections.",

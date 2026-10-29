@@ -24,7 +24,7 @@ Implement only PR 8 of the captain-approved smooth-rollout report (29 October 20
 | First effect requires review; target changes invalidate it; read-only destinations | `client/scope-discussion.test.ts`; new browser harness checks zero effects during reads/review, changed target hold, draft retention, focus return and one explicit send |
 | Copy, Details, themes and widths | [80 before/after captures](evidence.md), six 200% text captures, 44px changed-control assertions, no page exceptions/document-width overflow; Impeccable detector `[]` |
 
-Local validation: typecheck and 141 focused tests pass. The existing S05 and Build C browser matrices pass, as does the 146-capture slice-2 matrix. Full suite and hosted checks are tracked on the PR.
+Local validation: typecheck and 141 focused tests pass. The full Windows suite passed with 3,384 tests passed and four skipped, using CI's two-worker/20s settings; all 90 launch-tool tests passed. The existing S05, Build C, Needs-you and Deck browser checks pass, as does the 146-capture slice-2 matrix. The final keyboard-focus addition also passes the focused conversation tests and the full 80-capture browser matrix. Hosted checks are tracked on the PR.
 
 Run `node docs/smooth-pr8/render.mjs` after installing the root and `docs/board-list` dependencies. It compares `60d377fc` with current components, writes only ignored `.local/smooth-pr8/ui/`, and uses synthetic host/RPC data. The committed evidence is an intentionally selected copy of that output. CI runs this matrix on Windows and Ubuntu and uploads all captures/results.
 

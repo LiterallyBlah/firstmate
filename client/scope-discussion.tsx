@@ -2,7 +2,7 @@ import type { PluginTheme } from "@getpaseo/plugin";
 import type { PluginScreenProps } from "@getpaseo/plugin/client";
 import { useRpc } from "@getpaseo/plugin/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode, type Ref } from "react";
 import { Pressable, ScrollView, Text, View, type TextInput } from "react-native";
 import { readScopeConversation, discussScope, type ScopeSnapshot, type ScopeSummary } from "../shared/supervision-rpc";
 import { resolveDiscussion, scopeDraftKey } from "../shared/scope-discussion";
@@ -16,8 +16,8 @@ import { OptionPicker } from "./option-picker";
 import type { AgentSummary } from "../shared/fleet";
 import { useKeyboardOverlap } from "./keyboard";
 
-function Button({ label, onPress, disabled = false, theme, selected = false, expanded }: { label: string; onPress(): void; disabled?: boolean; theme: PluginTheme; selected?: boolean; expanded?: boolean }) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled, selected, ...(expanded === undefined ? {} : { expanded }) }} disabled={disabled} onPress={onPress}
+function Button({ label, onPress, disabled = false, theme, selected = false, expanded, buttonRef }: { label: string; onPress(): void; disabled?: boolean; theme: PluginTheme; selected?: boolean; expanded?: boolean; buttonRef?: Ref<View> }) {
+  return <Pressable ref={buttonRef} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled, selected, ...(expanded === undefined ? {} : { expanded }) }} disabled={disabled} onPress={onPress}
     style={{ minHeight: 44, padding: 10, justifyContent: "center", borderWidth: 1, borderColor: selected ? theme.colors.accent : theme.colors.border,
       borderRadius: 7, backgroundColor: theme.colors.surface1, opacity: disabled ? 0.5 : 1 }}><Text style={{ color: theme.colors.foreground, fontSize: 13 }}>{label}</Text></Pressable>;
 }
@@ -42,6 +42,7 @@ export function ScopeDiscussion({ snapshot, offline = false, hostId, theme, comp
   const [reviewedMessage, setReviewedMessage] = useState<string | null>(null);
   const root = useRef<View>(null);
   const composer = useRef<TextInput>(null);
+  const confirmation = useRef<View>(null);
   const keyboardOverlap = useKeyboardOverlap(root);
   const [validationError, setValidationError] = useState<string | null>(null);
   const select = (id: string) => { setSelection({ route, id }); drafts.set(selectionKey, id); onSelectScope?.(id); };
@@ -82,6 +83,7 @@ export function ScopeDiscussion({ snapshot, offline = false, hostId, theme, comp
   const scopeUnavailable = recipient?.id !== "general" && recipient && (!['active', 'dormant'].includes(recipient.state) || recipient.session === "held");
   const blocked = offline || conversations.isPending || conversations.isError || !!conversations.data?.problems.length || !snapshot.executionEnabled || (recipient?.id !== "general" && snapshot.freshness !== "current") || scopeUnavailable || unavailableGeneral || unsupported || sending.running || !!sending.pending || !!routeError || !resolved?.text || !recipient;
   const reviewKey = JSON.stringify([hostId, snapshot.homeId, draftKey, draft, defaultScope, recipient?.target, recipient?.title, resolved?.projectIds, replyTo]);
+  useEffect(() => { if (reviewedMessage === reviewKey) confirmation.current?.focus(); }, [reviewedMessage, reviewKey]);
   const needsCreation = recipient?.kind !== "general" && recipient?.session === "not-created";
   function sendDraft(confirmed = false) {
     if (blocked || !resolved || !recipient) return;
@@ -167,10 +169,10 @@ export function ScopeDiscussion({ snapshot, offline = false, hostId, theme, comp
         <GrowingChatInput ref={composer} theme={theme} compact={compact} accessibilityLabel="Message recipient" multiline value={draft} onChangeText={text => drafts.set(draftKey, text)} placeholder={`Message ${recipient?.title ?? "selected recipient"}…`} />
       </View>
       {reviewedMessage !== null ? <View testID="discussion-first-send-review" style={{ gap: 8 }}>
-        <Text accessibilityRole="header" style={{ color: colors.foreground, fontWeight: "600" }}>Start a conversation with {recipient?.title ?? "selected recipient"}?</Text>
+        <Text accessibilityRole="header" accessibilityLiveRegion="polite" style={{ color: colors.foreground, fontWeight: "600" }}>Start a conversation with {recipient?.title ?? "selected recipient"}?</Text>
         <Text style={{ color: colors.foreground }}>This creates a persistent conversation and sends your message. It uses the configured model, permissions and spending limits. Discussing does not approve a plan or authorize its work.</Text>
         {reviewedMessage !== reviewKey ? <Text accessibilityRole="alert" style={{ color: colors.statusWarning }}>The message or recipient changed. Review it again before sending.</Text> : null}
-        <Button label="Start conversation and send" theme={theme} disabled={blocked || reviewedMessage !== reviewKey} onPress={() => sendDraft(true)} />
+        <Button buttonRef={confirmation} label="Start conversation and send" theme={theme} disabled={blocked || reviewedMessage !== reviewKey} onPress={() => sendDraft(true)} />
         <Button label="Keep editing" theme={theme} onPress={() => { setReviewedMessage(null); composer.current?.focus(); }} />
       </View> : null}
       {reviewedMessage === null || reviewedMessage !== reviewKey ? <Button label={sending.running ? "Sending…" : needsCreation ? "Review first message" : "Send"} theme={theme} disabled={blocked} onPress={() => sendDraft()} /> : null}
