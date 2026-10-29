@@ -208,6 +208,7 @@ export function DecisionDrawer({
   const cache = useQueryClient();
   const presentation = indicatorState(sourceSnapshot, offline, { ...read, pending: loading || read.pending === true });
   const [scopeFilter, setScopeFilter] = useState<ScopeInboxFilter>({ kind: "all" });
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
   const allSnapshot = sourceSnapshot ? decisionCardSnapshot(filterScopeInbox(sourceSnapshot, sourceSnapshot.scopeFiltersEnabled ? scopeFilter : { kind: "all" })) : undefined;
   useEffect(() => { setScopeFilter({ kind: "all" }); }, [sourceSnapshot?.homeId]);
   const order = useRef<{ home: string | null; ids: string[] }>({
@@ -335,22 +336,23 @@ export function DecisionDrawer({
               : snapshot?.freshness.status === "disabled"
                 ? "Decision observation is disabled"
                 : snapshot?.freshness.status === "fresh"
-                  ? "Some backlog lines need repair"
+                  ? "Some work couldn't be checked. Review details before continuing."
                   : "Can’t read decisions"}
           </Text>
-          {problems.map((problem, i) => (
+          <DecisionButton theme={theme} compact label={showDiagnostics ? "Hide warning details" : "Warning details"} onPress={() => setShowDiagnostics(v => !v)} />
+          {showDiagnostics ? problems.map((problem, i) => (
             <Text key={i} style={{ color: colors.foreground, fontSize: 13 }}>
               {problem}
             </Text>
-          ))}
-          {scopedRows
+          )) : null}
+          {showDiagnostics ? scopedRows
             .filter((r) => r.hasHold)
             .map((r, i) => (
               <Text
                 key={i}
                 style={{ color: colors.foreground, fontSize: 13 }}
               >{`Couldn't read this task${r.taskId ? `: ${r.taskId}` : ""}. Check the Board and data/backlog.md${r.line ? `, line ${r.line}` : ""}.`}</Text>
-            ))}
+            )) : null}
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
             <DecisionButton
               theme={theme}
@@ -568,7 +570,7 @@ export function DecisionDrawer({
           </View> : null}
           {sourceSnapshot?.scopeFiltersEnabled ? <ScopeInboxFilters snapshot={sourceSnapshot} value={scopeFilter} onChange={setScopeFilter} theme={theme} compact={compact} /> : null}
           {sourceSnapshot?.scopeFiltersEnabled && scopeFilter.kind !== "all" && !allSnapshot?.requests.length && !allSnapshot?.scopedDecisions?.length && !allSnapshot?.scopedHolds?.length && !allSnapshot?.planNow?.length && !allSnapshot?.parked.length ?
-            <Text style={{ color: colors.foregroundMuted }}>No current decisions or holds in this scope.</Text> : null}
+            <Text style={{ color: colors.foregroundMuted }}>{sourceSnapshot.scopedComplete === false || sourceSnapshot.actionCount === null || !presentation.fresh || sourceSnapshot.planProblems?.length ? "No known decisions in this view. Some work still couldn't be checked." : "No current decisions or paused work in this view."}</Text> : null}
           {group(
             "Waiting for you",
             queue.filter((r) => allSnapshot?.requests.some(v => v.id === r.id) && (r.state === "new" || r.state === "seen")),

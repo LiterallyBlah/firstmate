@@ -9,12 +9,12 @@ export function ScopeInboxFilters({ snapshot, value, onChange, theme, compact }:
   onChange(value: ScopeInboxFilter): void; theme: PluginTheme; compact: boolean }) {
   const read = useDecisionReadState();
   const kinds = ["all", "general", "project", "plan", "maintenance"] as const;
-  const label = (kind: string) => kind === "all" ? "All scopes" : kind[0]!.toUpperCase() + kind.slice(1);
+  const label = (kind: string) => ({ all: "All projects", general: "FirstMate", project: "Projects", plan: "Plans", maintenance: "Routine checks" })[kind] ?? kind;
   const options: PickerOption[] = kinds.map(kind => ({ value: JSON.stringify({ kind }), label: label(kind), ...(kind === "project" ? { detail: "Projects and their plans" } : {}) }));
   for (const scope of snapshot.scopeDirectory ?? []) if (scope.kind === "project" || scope.kind === "plan")
-    options.push({ value: JSON.stringify({ kind: scope.kind, id: scope.id }), label: `${label(scope.kind)}: ${scope.title}`, detail: scope.planId ?? scope.id });
+    options.push({ value: JSON.stringify({ kind: scope.kind, id: scope.id }), label: scope.title, detail: scope.kind === "plan" ? "Plan" : "Project and its plans" });
   return <View testID="scope-inbox-filters" style={{ gap: 8 }}>
-    <OptionPicker inline label="Inbox scope" title="Filter Needs you" value={JSON.stringify(value)} options={options} onSelect={s => onChange(JSON.parse(s) as ScopeInboxFilter)} theme={theme} compact={compact} />
-    <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>Global Needs you: {decisionCountText(snapshot, false, read)}. Coming up is excluded. Unscoped quarantines remain visible in every filter.</Text>
+    <OptionPicker inline roomy label="Show" title="Filter Needs you" value={JSON.stringify(value)} options={options} onSelect={s => onChange(JSON.parse(s) as ScopeInboxFilter)} theme={theme} compact={compact} />
+    <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>{decisionCountText(snapshot, false, read)} across all projects. The total always includes all projects.</Text>
   </View>;
 }

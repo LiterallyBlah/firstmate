@@ -220,6 +220,9 @@ it("opens the mixed healthy-and-unreadable footer directly in All with repair co
   expect(button("Open Needs you: 1 more item")).toBeDefined();
   await press("Open Needs you: 1 more item");
   expect(renderer.root.findAll(node => (node.type as unknown) === "Text" && node.props.accessibilityRole === "header").some(node => node.children.join("") === "All")).toBe(true);
+  expect(words()).toContain("Some work couldn't be checked. Review details before continuing.");
+  expect(words()).not.toContain("Task scope could not be read.");
+  await press("Warning details");
   expect(words()).toContain("Couldn't read this task: damaged-task.");
   expect(button("Ask the first mate to fix it")).toBeDefined();
   expect(renderer.root.findAllByType(TextInput)).toHaveLength(0);

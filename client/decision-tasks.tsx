@@ -28,12 +28,16 @@ export function DecisionTask({
   reveal,
   review: isReview = false,
   waitingLabel,
+  roomy = false,
+  showDetailsControl = true,
 }: {
   presentation?: "row" | "card";
   onAnswer?: (() => void) | undefined;
   reveal?: object | undefined;
   review?: boolean;
   waitingLabel?: string;
+  roomy?: boolean;
+  showDetailsControl?: boolean;
   request: NeedsYouRequest;
   snapshot: Pick<NeedsYouSnapshot, "homeId" | "planNow">;
   cards?: readonly FleetCard[];
@@ -59,7 +63,7 @@ export function DecisionTask({
     <Text style={{ color: colors.foregroundMuted, fontSize: 11 }}>{waitingLabel ?? (review && !request.detectedAt ? "waiting for review" : `waiting ${waiting}`)}</Text>
   </View>;
   const answer = <Pressable nativeID={id} accessibilityRole="button" accessibilityLabel={review ? `Review plan: ${request.source.title}` : `Answer: ${title}. ${request.source.ask}`}
-    onPress={openAnswer} style={{ minHeight: compact ? 44 : 28, flexDirection: "row", alignItems: "center", justifyContent: "center",
+    onPress={openAnswer} style={{ minHeight: compact || roomy ? 44 : 28, flexDirection: "row", alignItems: "center", justifyContent: "center",
       gap: 5, paddingHorizontal: 10, borderWidth: 1, borderRadius: 7, borderColor: isNew ? colors.accent : colors.border,
       backgroundColor: isNew ? colors.accent : colors.surface1 }}>
     <Icon name={review ? "ListTodo" : "Reply"} size={14} color={isNew ? colors.accentForeground : colors.foreground} />
@@ -77,7 +81,7 @@ export function DecisionTask({
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
         {row ? <Icon name={review ? "ListTodo" : isNew ? "Circle" : "Hand"} size={isNew ? 9 : 14} color={colors.statusWarning} /> : null}
         <Pressable accessibilityRole="button" accessibilityLabel={`${action}: ${request.source.title}. ${request.source.ask}`}
-          onPress={openAnswer} style={{ flex: 1, minWidth: 0, gap: 3 }}>
+          onPress={openAnswer} style={{ flex: 1, minWidth: 0, gap: 3, ...(roomy ? { minHeight: 44 } : {}) }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             {isNew ? <Text style={{ color: decisionSignalInk(colors.surface0, colors.foreground, colors.statusWarning), backgroundColor: colors.statusWarning, borderRadius: 3,
               paddingHorizontal: 4, paddingVertical: 1, fontSize: 10, fontWeight: "700" }}>NEW</Text> : null}
@@ -92,7 +96,7 @@ export function DecisionTask({
         {row ? answer : null}
         {row && !review ? detailToggle : null}
       </View>
-      {!row ? <View style={{ flexDirection: "row", justifyContent: "space-between" }}>{answer}{!review ? detailToggle : null}</View> : null}
+      {!row ? <View style={{ flexDirection: "row", justifyContent: "space-between" }}>{answer}{!review && showDetailsControl ? detailToggle : null}</View> : null}
       {details ? (
         <>
           <Text style={{ color: theme.colors.foreground, fontSize: 13 }}>{request.source.title}</Text>

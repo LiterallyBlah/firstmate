@@ -39,6 +39,8 @@ interface OptionPickerProps {
   compact: boolean;
   /** A labelled trigger without a settings row, for a toolbar. */
   inline?: boolean;
+  /** Room for a full named recipient/filter and a 44px target in conversation controls. */
+  roomy?: boolean;
 }
 
 function withAlpha(color: string, alpha: string): string {
@@ -124,10 +126,11 @@ export function OptionPicker(props: OptionPickerProps) {
       style={[
         styles.trigger,
         props.inline ? { height: 28 } : null,
+        props.roomy ? { height: "auto", minHeight: 44, maxWidth: "100%", flexShrink: 1 } : null,
         props.disabled === true ? styles.triggerDisabled : null,
       ]}
     >
-      <Text style={[styles.triggerText, props.inline ? { fontSize: 12, lineHeight: 14 } : null]} numberOfLines={1}>
+      <Text style={[styles.triggerText, props.inline ? { fontSize: 12, lineHeight: 14 } : null]} numberOfLines={props.roomy ? undefined : 1}>
         {props.inline ? `${props.label}: ` : ""}
         {current?.label ?? (value === "" ? "Choose…" : value)}
       </Text>

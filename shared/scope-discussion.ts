@@ -17,7 +17,7 @@ export interface DiscussionProject { id: string; name: string }
 /** Only leading address tokens are routing syntax. Body quotes, code and later mentions are words.
  * A dedicated discussion supplies its explicit default; the shared stream defaults to General.
  */
-export function resolveDiscussion<T extends DiscussionAddress>(text: string, scopes: readonly T[], projects: readonly DiscussionProject[], defaultScope = "general") {
+export function resolveDiscussion<T extends DiscussionAddress>(text: string, scopes: readonly T[], projects: readonly DiscussionProject[], defaultScope = "general", allowEmptyMessage = false) {
   let rest = text.trimStart(), recipient: string | null = null;
   const projectIds: string[] = [];
   while (/^[@#]/.test(rest) && !/^#{1,6}\s/.test(rest)) {
@@ -27,7 +27,7 @@ export function resolveDiscussion<T extends DiscussionAddress>(text: string, sco
     if (marker === "@") {
       if (recipient !== null) throw new Error("Choose one recipient; messages are never broadcast.");
       const found = scopes.filter(s => [s.id, ...s.aliases].some(a => a.toLowerCase() === name!.toLowerCase()));
-      if (found.length !== 1) throw new Error(`${found.length ? "Ambiguous" : "Unknown"} recipient @${name}. Choose a scope explicitly.`);
+      if (found.length !== 1) throw new Error(`${found.length ? "Ambiguous" : "Unknown"} recipient @${name}. Choose a recipient from To.`);
       recipient = found[0]!.id;
     } else {
       const found = [...new Map(projects.filter(p => [p.id, p.name].some(a => a.toLowerCase() === name!.toLowerCase())).map(p => [p.id, p])).values()];
@@ -37,8 +37,10 @@ export function resolveDiscussion<T extends DiscussionAddress>(text: string, sco
     rest = rest.slice(match[0].length).trimStart();
   }
   const scope = scopes.find(s => s.id === (recipient ?? defaultScope));
-  if (!scope) throw new Error("The selected recipient is unavailable. Refresh scopes before sending.");
-  if (!rest.trim()) throw new Error("Write a message after the address.");
+  if (!scope) throw new Error("The selected recipient is unavailable. Refresh before sending.");
+  // Presentation may resolve an address before the body is written. Delivery always
+  // uses the default strict check, including on the server.
+  if (!rest.trim() && !allowEmptyMessage) throw new Error("Write a message after the address.");
   return { scope, projectIds, text: rest.trim() };
 }
 
