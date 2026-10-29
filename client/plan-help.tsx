@@ -88,7 +88,7 @@ export function PlanHelpReview({ theme, homeId, planId, onClose }: { theme: Plug
       <Text style={foreground}>Proposed help: a separate conversation dedicated to {data.title}. Only the captain's Attach button can create its helper, after the handover is complete.</Text>
       <Text style={muted}>Choose the actual model, permissions and opening in that separate Attach review. Attaching reserves one helper session and one opening turn. Continuing work still needs checked permission sources and its recorded cumulative limit.</Text>
       <Text style={foreground}>Worker budget stays at {data.budget.agents} sessions / {data.budget.turns} turns. Already spent: {data.spent.agents} sessions / {data.spent.turns} turns. Handover never resets spending or grants merge, deploy or cleanup permission.</Text>
-      <Text style={muted}>Handover saves and verifies an independent backup, preserves the exact history, checks pending deliveries, then changes which writer looks after this plan. Uncertain work stays held.</Text>
+      <Text style={muted}>Handover saves and verifies an independent backup, preserves the exact history, checks pending deliveries, then changes who looks after this plan. Uncertain work stays held.</Text>
       {data.problems.map(problem => <Text key={problem} style={foreground}>{problem}</Text>)}
     </> : null}
     {!migration ? <View style={{ gap: 8 }}>
@@ -125,8 +125,8 @@ export function PlanHelpReview({ theme, homeId, planId, onClose }: { theme: Plug
     </View>}
     {review ? <View style={{ gap: 8 }}>
       <Text accessibilityRole="header" style={foreground}>{review.op === "prepare" ? "Confirm handover preparation" : review.op === "commit" ? "Confirm ownership change" : review.op === "abort" ? "Confirm canceling handover" : "Confirm handover check"}</Text>
-      <Text style={foreground}>{review.op === "prepare" ? "This freezes this plan's old writer and imports its exact history. It creates no helper and sends no opening. Attach is a separate captain action after all checks pass." : review.op === "commit" ? "Only the checked writer will own this plan. This does not attach a helper or grant additional permission." : review.op === "abort" ? "Release the prepared handover back to its previous writer. Saved history and spending remain. No message is resent." : "Run the existing checked handover step. Unknown effects remain held."}</Text>
-      <Text style={muted}>App action recorded as client UI (unverified). Paseo does not authenticate captain identity.</Text>
+      <Text style={foreground}>{review.op === "prepare" ? "This pauses changes from this plan's previous owner and preserves its exact history for handover. It creates no helper and sends no opening. Attach is a separate captain action after all checks pass." : review.op === "commit" ? "Confirm who looks after this plan using the checked handover. This does not attach a helper or grant additional permission." : review.op === "abort" ? "Return this plan to its previous owner. Saved history and spending remain. No message is resent." : "Run the existing checked handover step. Unknown effects remain held."}</Text>
+      <Text style={muted}>Paseo cannot verify who pressed this button. The action is recorded for review.</Text>
       <HelpButton theme={theme} label={uncertain ? "Retry this handover request" : "Confirm this handover step"} disabled={busy || !!activationError} onPress={() => { void run(); }} />
       {!pending.current ? <HelpButton theme={theme} label="Keep current owner" disabled={busy} onPress={() => setReview(null)} /> : null}
     </View> : null}
