@@ -38,8 +38,12 @@ export const ProjectSetupStatusSchema = z.object({ snapshot: ProjectRuntimeSnaps
 export const readSavedProjectSetup = defineRpc({ name: "firstmate.projects.setup.status", input: z.object({ homeId: z.string() }).strict(), output: ProjectSetupStatusSchema });
 export const resumeProjectSetup = defineRpc({ name: "firstmate.projects.setup.resume", input: z.object({ homeId: z.string(), requestId: SupervisionUuid }).strict(), output: ProjectRuntimeSnapshotSchema });
 export const ProjectSetupFolderSchema = z.object({ homeId: z.string(), registryDigest: SupervisionHash,
-  name: z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,99}$/),
-  replace: z.object({ location: z.string().min(1), rowDigest: SupervisionHash }).strict().optional() }).strict();
+  name: z.string().min(1),
+  replace: z.object({ location: z.string().min(1), rowDigest: SupervisionHash }).strict().optional() }).strict()
+  // Repairs retain the exact registry name; the server binds it to the checked row.
+  // Only additions choose a new name and use the narrower new-name policy.
+  .refine(input => input.replace !== undefined || /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,99}$/.test(input.name),
+    { path: ["name"], message: "Use 1–100 letters, numbers, dots, underscores or hyphens, starting with a letter or number." });
 export const addProjectSetupFolder = defineRpc({ name: "firstmate.projects.setup.folder", input: ProjectSetupFolderSchema, output: ProjectRuntimeSnapshotSchema });
 export const ProjectSetupInstructionsSchema = z.object({ homeId: z.string(), requestId: SupervisionUuid,
   registryDigest: SupervisionHash, name: z.string().min(1).max(200), text: z.string().trim().min(1).max(32000) }).strict();

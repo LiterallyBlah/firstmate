@@ -1,5 +1,6 @@
 import { useRpc as original } from '../smooth-pr5/stubs';
 import { projects, homeId, uuid, params, clone } from '../smooth-pr2/data';
+import { ProjectSetupFolderSchema } from '../../shared/project-setup';
 export * from '../smooth-pr5/stubs';
 const methods = new Map(), requests = [];
 const profile = { provider: 'fixture/model', modeId: 'full-access' }, budget = { agents: 3, turns: 20 }, limits = { supervisorSessions: 1, supervisorTurns: 8 };
@@ -11,9 +12,10 @@ let folderIssues = [];
 rows.forEach((p, i) => Object.assign(p, { directory: i === 4 ? null : `C:/Projects/${p.name}`, hostId: i === 4 ? null : 'local', state: 'unadmitted',
   reason: i === 4 ? 'The project folder is unavailable. Choose its folder again before setup.' : 'Awaiting reviewed admission and allocation.', version: 0 }));
 if (rows[2]) Object.assign(rows[2], { state: 'admitted', reason: null, version: 2, agentId: 'existing-mate', workspaceId: 'existing-workspace', sessions: 1, turns: 2, profile, limits });
-if (scenario === 'missing-folder' || scenario === 'retained-folder') {
+if (scenario === 'unicode-folder') rows[0].name = 'café';
+if (scenario === 'missing-folder' || scenario === 'retained-folder' || scenario === 'unicode-folder') {
   Object.assign(rows[0], { directory: null, hostId: null, state: 'held', projectId: null, reason: 'Project directory is unavailable; identity was not guessed.' });
-  folderIssues = [{ name: rows[0].name, location: `C:/Projects/${rows[0].name}`, rowDigest: 'b'.repeat(64), canReplace: scenario === 'missing-folder' }];
+  folderIssues = [{ name: rows[0].name, location: `C:/Projects/${rows[0].name}`, rowDigest: 'b'.repeat(64), canReplace: scenario !== 'retained-folder' }];
 }
 function snapshot() { return clone(projects); }
 function review(choices) {
@@ -54,6 +56,7 @@ export function useRpc(contract) {
     if (contract.name.endsWith('.resume')) return finish(requests.find(r => r.requestId === input.requestId));
     if (contract.name.endsWith('.instructions')) { const path = `data/project-setup-${input.requestId}.md`; if (!sources.some(s => s.path === path)) sources.push({ path, text: input.text, problem: null }); return { path }; }
     if (contract.name.endsWith('.folder')) {
+      ProjectSetupFolderSchema.parse(input);
       if (input.replace) { Object.assign(rows[0], { projectId: uuid(602), directory: 'C:/Projects/Starpath-restored', hostId: 'local', state: 'unadmitted', reason: 'Awaiting reviewed admission and allocation.' }); folderIssues = []; }
       return snapshot();
     }

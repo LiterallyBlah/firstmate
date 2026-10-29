@@ -8,7 +8,7 @@ import { projectRuntimeFixture } from "../test/project-runtime-fixture";
 import { SyntheticReceiver } from "../test/synthetic-receiver";
 import { updateFirstmateConfig } from "./config";
 import type { PaseoApi } from "./host-types";
-import type { ProjectSetupChoices } from "../shared/project-setup";
+import { ProjectSetupFolderSchema, type ProjectSetupChoices } from "../shared/project-setup";
 import { ProjectSetupInputSchema } from "../shared/supervision-policy";
 import { stableId } from "./supervision-effects";
 import { FeaturePolicyRuntime } from "./feature-policy-runtime";
@@ -101,16 +101,24 @@ it.each(["createAgent", "send"] as const)("lost %s reply retains identity/spend,
   expect(receiver.calls.filter(c => c.op === op)).toHaveLength(1); expect(receiver.agents.size).toBe(1); expect(receiver.sends).toHaveLength(1);
   if (op === "send") expect(next.projects[0]?.uncertain).toBeGreaterThan(0);
 });
-it("corrects the reviewed missing unadmitted row without creating work, then requires a fresh preview", async () => {
+it.each(["alpha", "café", "設計", "project+notes", "x".repeat(120)])("corrects the existing %s registry name without creating work, then requires a fresh preview", async name => {
   const missing = join(home, "missing");
-  await writeFile(join(home, "data/projects.md"), `# Projects\n- alpha [worktree +yolo] - ${missing} - Keep this description\n`);
+  await writeFile(join(home, "data/projects.md"), `# Projects\n- ${name} [worktree +yolo] - ${missing} - Keep this description\n`);
   const catalog = await service.read((await choices()).homeId, api), issue = catalog.folderIssues[0]!;
-  expect(issue).toMatchObject({ name: "alpha", location: missing, canReplace: true });
-  const fixed = await service.folder({ homeId: catalog.snapshot.homeId, registryDigest: catalog.snapshot.registryDigest!, name: "alpha", replace: { location: issue.location, rowDigest: issue.rowDigest } });
+  expect(issue).toMatchObject({ name, location: missing, canReplace: true });
+  const input = ProjectSetupFolderSchema.parse({ homeId: catalog.snapshot.homeId, registryDigest: catalog.snapshot.registryDigest!, name, replace: { location: issue.location, rowDigest: issue.rowDigest } });
+  const fixed = await service.folder(input);
   expect(fixed.projects).toHaveLength(1); expect(fixed.projects[0]?.directory).toBeTruthy();
-  expect(await readFile(join(home, "data/projects.md"), "utf8")).toBe(`# Projects\n- alpha [worktree +yolo] - ${await realpath(join(home, "extra"))} - Keep this description\n`);
+  expect(fixed.projects[0]?.name).toBe(name);
+  expect(await readFile(join(home, "data/projects.md"), "utf8")).toBe(`# Projects\n- ${name} [worktree +yolo] - ${await realpath(join(home, "extra"))} - Keep this description\n`);
   expect(receiver.calls).toEqual([]); expect((await runtime.read(home)).freshness).toBe("uninitialized");
-  expect((await service.preview(await choices(), api)).reasons).toEqual([]);
+  expect((await service.preview({ ...await choices(), name }, api)).reasons).toEqual([]);
+});
+it.each(["café", "設計", "project+notes", "x".repeat(120)])("retains the new-name policy for adding %s without a replacement", async name => {
+  const snapshot = await projects.read(), before = await readFile(join(home, "data/projects.md"), "utf8");
+  await expect(service.folder({ homeId: snapshot.homeId, registryDigest: snapshot.registryDigest!, name })).rejects.toThrow();
+  expect(await readFile(join(home, "data/projects.md"), "utf8")).toBe(before);
+  expect(receiver.calls).toEqual([]); expect((await runtime.read(home)).freshness).toBe("uninitialized");
 });
 it.each(["fingerprint", "registry", "duplicate", "restored"] as const)("missing folder correction refuses %s changes without writing the registry or creating work", async kind => {
   const missing = join(home, "missing");

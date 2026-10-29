@@ -11,8 +11,10 @@ const repo = createRequire(resolve(root, 'package.json')), local = createRequire
 const { build } = local('esbuild'), { chromium } = local('playwright'), baseline = '9c3485e';
 // The reviewed 8f05e974 component's blob also belongs to the rebased ancestor; pin content across rebases.
 const reviewBaselineBlob = 'e433ca0f0072b4aeba4e86a34030ea0c31a4585c';
+// The registered folder RPC schema at reviewed 53e1fb52, before the existing-name repair.
+const nameBaselineBlob = '7b815b41b14711cfc933723100e309576793b3c5';
 await mkdir(resolve(out, 'screenshots'), { recursive: true });
-for (const stage of ['before', 'after', 'review-before']) await build({ entryPoints: [resolve(here, 'panel.jsx')], outfile: resolve(out, stage + '.js'), bundle: true,
+for (const stage of ['before', 'after', 'review-before', 'name-before']) await build({ entryPoints: [resolve(here, 'panel.jsx')], outfile: resolve(out, stage + '.js'), bundle: true,
   jsx: 'automatic', logLevel: 'warning', define: { 'process.env.NODE_ENV': '"development"' }, plugins: [{ name: 'setup-fixture', setup(b) {
     b.onResolve({ filter: /^@getpaseo\/plugin$/ }, () => ({ path: resolve(root, 'docs/board-list/contracts.js') }));
     b.onResolve({ filter: /^@getpaseo\/plugin\// }, () => ({ path: resolve(here, 'stubs.jsx') }));
@@ -26,9 +28,12 @@ for (const stage of ['before', 'after', 'review-before']) await build({ entryPoi
     if (stage === 'review-before') b.onLoad({ filter: /[\\/]client[\\/]project-setup\.tsx$/ }, a => ({
       contents: execFileSync('git', ['show', reviewBaselineBlob], { cwd: root, encoding: 'utf8' }), loader: 'tsx',
     }));
+    if (stage === 'name-before') b.onLoad({ filter: /[\\/]shared[\\/]project-setup\.ts$/ }, () => ({
+      contents: execFileSync('git', ['show', nameBaselineBlob], { cwd: root, encoding: 'utf8' }), loader: 'ts',
+    }));
   } }] });
 const server = createServer(async (req, res) => {
-  const stage = req.url.includes('review-before') ? 'review-before' : req.url.includes('before') ? 'before' : 'after';
+  const stage = req.url.includes('name-before') ? 'name-before' : req.url.includes('review-before') ? 'review-before' : req.url.includes('before') ? 'before' : 'after';
   res.setHeader('Content-Type', req.url.endsWith('.js') ? 'application/javascript' : 'text/html');
   res.end(req.url.endsWith('.js') ? await readFile(resolve(out, stage + '.js')) : `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body,#root{margin:0;width:100%;height:100%;overflow:hidden;font-family:system-ui}#root{display:flex;flex-direction:column}*{box-sizing:border-box}button,input,select{font:inherit}button{min-height:44px;min-width:44px}:focus-visible{outline:2px solid currentColor;outline-offset:2px}</style><div id="root"></div><script src="/${stage}.js"></script>`);
 });
@@ -104,6 +109,27 @@ try {
         } else if (setup === 'uncertain') { await page.getByText(/Checking whether setup finished/, { exact: false }).first().waitFor(); assert.equal(await button(page, 'Continue Starpath saved setup').isDisabled(), true); }
       }
       await capture(page, `${theme}-${device}-${setup}`); assert.deepEqual(errors, []); await page.close();
+    }
+    for (const stage of ['name-before', 'after']) {
+      const page = await browser.newPage({ viewport: { width, height } }), errors = []; page.on('pageerror', e => errors.push(e.message)); page.setDefaultTimeout(15000);
+      await page.goto(`${origin}/?${new URLSearchParams({ stage, theme, home: 'upgraded', features: 'on', case: 'pilot', setup: 'unicode-folder' })}`, { waitUntil: 'networkidle' });
+      await button(page, 'Set up project mates').click();
+      await button(page, 'Choose a replacement folder for café').click();
+      if (stage === 'name-before') {
+        await page.getByText(/Invalid string: must match pattern/).waitFor();
+        assert.equal(await button(page, 'Review café').count(), 0);
+        assert.equal(await button(page, 'Choose a replacement folder for café').isEnabled(), true);
+      } else {
+        await button(page, 'Review café').waitFor();
+        assert.equal(await button(page, 'Choose a replacement folder for café').count(), 0);
+      }
+      const calls = await page.evaluate(() => window.review.calls);
+      const repair = calls.filter(c => c.name.endsWith('.folder'));
+      assert.equal(repair.length, 1); assert.equal(repair[0].input.name, 'café');
+      assert.deepEqual(repair[0].input.replace, { location: 'C:/Projects/café', rowDigest: 'b'.repeat(64) });
+      assert.equal(calls.some(c => /\.(commit|resume|preview)$/.test(c.name)), false);
+      await capture(page, `${theme}-${device}-unicode-folder-${stage}`); await controls(page);
+      assert.deepEqual(errors, []); await page.close();
     }
     for (const setup of ['lost-create', 'missing-folder', 'retained-folder']) for (const stage of ['review-before', 'after']) {
       const page = await browser.newPage({ viewport: { width, height } }), errors = []; page.on('pageerror', e => errors.push(e.message)); page.setDefaultTimeout(15000);

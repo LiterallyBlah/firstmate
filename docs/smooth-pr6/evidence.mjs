@@ -23,6 +23,13 @@ try {
       reviewHtml += `<figure><figcaption>${label} · ${title}</figcaption><img src="data:image/png;base64,${png.toString('base64')}"></figure>`;
     }
     await reviewPage.setContent(reviewHtml + '</main>'); await reviewPage.screenshot({ path: resolve(out, `review-${theme}-${device}.png`), fullPage: true }); await reviewPage.close();
+    const namePage = await browser.newPage({ viewport: { width: width * 2 + 36, height: 1 } });
+    let nameHtml = html.slice(0, html.indexOf('<main>') + 6);
+    for (const [stage, label] of [['name-before', 'Before · offered repair rejects café'], ['after', 'After · café repaired, ready for explicit review']]) {
+      const png = await readFile(resolve(root, '.local/smooth-pr6/ui/screenshots', `${theme}-${device}-unicode-folder-${stage}.png`));
+      nameHtml += `<figure><figcaption>${label}</figcaption><img src="data:image/png;base64,${png.toString('base64')}"></figure>`;
+    }
+    await namePage.setContent(nameHtml + '</main>'); await namePage.screenshot({ path: resolve(out, `unicode-${theme}-${device}.png`), fullPage: true }); await namePage.close();
   }
   const results = JSON.parse(await readFile(resolve(root, '.local/smooth-pr6/ui/results.json'), 'utf8'));
   await writeFile(resolve(out, 'verification.json'), JSON.stringify({ passed: results.passed, baseline: results.baseline, captures: results.captures, cases: results.results.map(r => r.key) }, null, 2) + '\n');

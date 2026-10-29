@@ -3,7 +3,7 @@ import { create, type ReactTestRenderer } from "react-test-renderer";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { PluginTheme } from "@getpaseo/plugin";
-import type { ProjectSetupCatalog, ProjectSetupPreview } from "../shared/project-setup";
+import { ProjectSetupFolderSchema, type ProjectSetupCatalog, type ProjectSetupPreview } from "../shared/project-setup";
 import type { z } from "zod";
 import type { ProjectSetupInputSchema } from "../shared/supervision-policy";
 const calls = vi.hoisted(() => new Map<string, ReturnType<typeof vi.fn>>());
@@ -85,21 +85,23 @@ it("lost create recovery stays available for the exact saved request while uncer
   expect(rpc("resume")).toHaveBeenCalledExactlyOnceWith({ homeId: home, requestId: id });
   expect(rpc("commit")).not.toHaveBeenCalled();
 });
-it("missing unadmitted folder offers checked correction and requires a fresh setup review", async () => {
-  Object.assign(data.snapshot.projects[0]!, { projectId: null, directory: null, hostId: null, state: "held", version: 0, reason: "Project directory is unavailable; identity was not guessed." });
-  const issue = { name: "alpha", location: "C:/missing/alpha", rowDigest: hash, canReplace: true };
+it.each(["alpha", "café"])("missing %s folder offers checked correction through the RPC schema and requires a fresh setup review", async name => {
+  Object.assign(data.snapshot.projects[0]!, { name, projectId: null, directory: null, hostId: null, state: "held", version: 0, reason: "Project directory is unavailable; identity was not guessed." });
+  review.choices.name = name; review.review!.name = name;
+  const issue = { name, location: "C:/missing/alpha", rowDigest: hash, canReplace: true };
   Object.assign(data, { folderIssues: [issue] });
-  rpc("folder").mockImplementation(async () => {
+  rpc("folder").mockImplementation(async input => {
+    ProjectSetupFolderSchema.parse(input);
     Object.assign(data.snapshot.projects[0]!, { projectId: id, directory: "C:/replacement/alpha", hostId: "local", state: "unadmitted", reason: "Awaiting reviewed admission and allocation." });
     Object.assign(data, { folderIssues: [] }); return data.snapshot;
   });
   await mount(); expect(text()).toContain(issue.location);
-  expect(button("Review alpha")).toBeUndefined();
-  await press("Choose a replacement folder for alpha");
-  expect(rpc("folder")).toHaveBeenCalledExactlyOnceWith({ homeId: home, registryDigest: hash, name: "alpha", replace: { location: issue.location, rowDigest: hash } });
-  expect(button("Review alpha")).toBeDefined();
+  expect(button(`Review ${name}`)).toBeUndefined();
+  await press(`Choose a replacement folder for ${name}`);
+  expect(rpc("folder")).toHaveBeenCalledExactlyOnceWith({ homeId: home, registryDigest: hash, name, replace: { location: issue.location, rowDigest: hash } });
+  expect(button(`Review ${name}`)).toBeDefined();
   expect(rpc("preview")).not.toHaveBeenCalled(); expect(rpc("commit")).not.toHaveBeenCalled();
-  await press("Review alpha"); await press("Review alpha setup"); expect(rpc("preview")).toHaveBeenCalledOnce();
+  await press(`Review ${name}`); await press(`Review ${name} setup`); expect(rpc("preview")).toHaveBeenCalledOnce();
 });
 it("missing retained folder shows the exact restoration path and offers no rebinding", async () => {
   Object.assign(data.snapshot.projects[0]!, { directory: null, state: "held" });

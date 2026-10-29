@@ -20,7 +20,7 @@ profile, limits and effects, create its mate, and inspect the saved result.
 
 ## Boundaries
 
-No batch/select-all (slice 7), plan handover/Attach (slice 9), routine checks or
+This slice adds no batch/select-all (slice 7), plan handover/Attach (slice 9), routine checks or
 upgrade introduction (slice 10). Existing default-off policy, source authority,
 capacity/headroom, profile and lifecycle checks remain mandatory. D4 reuses valid
 reviewed profiles; exact suggested preset values require captain approval and must
@@ -79,6 +79,13 @@ correction and admission share one registry boundary, outside the native picker;
 correction acquires no journal writer. Setup then requires a fresh preview and
 confirmation. Admitted projects, retained aliases and saved setup identities
 cannot be rebound: the app shows the original path and restoration instructions.
+
+Folder correction retains the registry's exact existing name, including Unicode,
+punctuation and names longer than the new-name limit. Only adding a new project
+uses the narrower new-name rule. Regression cases first reproduced the rejected
+`café` repair at both the RPC schema and the actual component action, then passed
+with the original name, row flags/description and all ownership/fingerprint guards
+preserved. No rename or session effect is needed to correct a folder.
 
 ## Shared destination for slice 10
 
@@ -161,15 +168,19 @@ project drawer 52, routine-check drawer 28, quiet refresh 24, and navigation/lay
 regressions 32. The live comparison sheets show the combined drawer.
 
 - Typecheck and `git diff --check` pass.
+- Existing-name repair follow-up: **92 focused setup/runtime/component tests passed**.
+  The new cases first failed with the reviewed schema; successful repairs retain
+  exact registry names and require a fresh review. New additions still reject
+  names outside their existing policy.
 - Focused project setup/runtime/component checks: **81 passed**, including a regression that
   first reproduced the concurrent older-request adoption and passes with the
   atomic guard. Component recovery, settings and template checks also pass.
 - The existing slice 5 Settings harness passes all 72 captures/assertion cases,
   retaining its persistence assertions after returning from the new chooser.
-- `node docs/smooth-pr6/render.mjs`: 68 captures/assertion cases across light/dark,
+- `node docs/smooth-pr6/render.mjs`: 76 captures/assertion cases across light/dark,
   1440×1000 and 390×844. Includes actual chooser/profile/review/result, capacity,
   instruction save, lost reply, uncertain opening, lost-create recovery,
-  missing-folder correction, retained-folder restoration and 200% text. No page exceptions
+  missing-folder correction, Unicode-name repair, retained-folder restoration and 200% text. No page exceptions
   or document overflow; controls meet 44×44 and keyboard focus returns.
 - The Impeccable mechanical scan reported no findings in the changed UI targets.
 - `node docs/smooth-pr6/live-render.mjs`: 52 actual Home/board/details/setup
@@ -212,6 +223,13 @@ are illustrative, never production defaults.
 | Dark desktop | [Screenshots](smooth-pr6/evidence/review-dark-desktop.png) |
 | Light phone | [Screenshots](smooth-pr6/evidence/review-light-phone.png) |
 | Dark phone | [Screenshots](smooth-pr6/evidence/review-dark-phone.png) |
+
+| Existing-name repair: production schema before `53e1fb52` and after | Offered `café` repair → corrected folder, fresh review required |
+| --- | --- |
+| Light desktop | [Screenshots](smooth-pr6/evidence/unicode-light-desktop.png) |
+| Dark desktop | [Screenshots](smooth-pr6/evidence/unicode-dark-desktop.png) |
+| Light phone | [Screenshots](smooth-pr6/evidence/unicode-light-phone.png) |
+| Dark phone | [Screenshots](smooth-pr6/evidence/unicode-dark-phone.png) |
 
 | Captain live feedback: before installed `fbdf3ae0` and after | Home, board, collapsed/expanded project details |
 | --- | --- |
