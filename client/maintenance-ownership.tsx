@@ -1,4 +1,4 @@
-/** Captain-app maintenance admission/answers. Viewing never provisions, answers or attaches. */
+/** Captain-app maintenance admission. Decisions use the shared Needs-you inbox. */
 import type { PluginTheme } from "@getpaseo/plugin";
 import { useRpc } from "@getpaseo/plugin/client";
 import type { PluginScreenProps } from "@getpaseo/plugin/client";
@@ -6,15 +6,14 @@ import { Modal, TextInput } from "@getpaseo/plugin/client/react-native";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
-import { readMaintenance, admitMaintenanceFromUi, answerMaintenanceFromUi, MaintenanceRuntimeSnapshotSchema,
-  type MaintenanceRuntimeSnapshot, type AdmitMaintenance, type MaintenanceAnswer } from "../shared/maintenance-runtime";
+import { readMaintenance, admitMaintenanceFromUi, MaintenanceRuntimeSnapshotSchema,
+  type MaintenanceRuntimeSnapshot, type AdmitMaintenance } from "../shared/maintenance-runtime";
 import { migrationTargets } from "../shared/fleet";
 import { OptionPicker } from "./option-picker";
 import { workflowRequestId } from "./workflow-plans";
 import { errorText } from "./format";
 
 type Owner = MaintenanceRuntimeSnapshot["owners"][number];
-type Choice = MaintenanceRuntimeSnapshot["captainDecisions"][number];
 function Action({ theme, label, disabled = false, onPress }: { theme: PluginTheme; label: string; disabled?: boolean; onPress(): void }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress}
     style={{ minHeight: 44, paddingHorizontal: 12, paddingVertical: 10, justifyContent: "center", borderWidth: 1, borderColor: theme.colors.border, borderRadius: 7, opacity: disabled ? 0.5 : 1 }}>
@@ -24,9 +23,9 @@ function Action({ theme, label, disabled = false, onPress }: { theme: PluginThem
 export function MaintenanceOwnershipBoard({ theme, compact, hostId = "local", navigation }: { theme: PluginTheme; compact: boolean; hostId?: string; navigation?: PluginScreenProps["navigation"] }) {
   const read = useRpc(readMaintenance);
   const query = useQuery({ queryKey: ["firstmate", "maintenance-ownership", hostId], queryFn: async () => MaintenanceRuntimeSnapshotSchema.parse(await read({})), refetchInterval: 5000 });
-  const [admission, selectAdmission] = useState<Owner | "new" | null>(null), [choice, selectChoice] = useState<Choice | null>(null);
+  const [admission, selectAdmission] = useState<Owner | "new" | null>(null);
   const data = query.data;
-  useEffect(() => { selectAdmission(null); selectChoice(null); }, [hostId, data?.homeId]);
+  useEffect(() => { selectAdmission(null); }, [hostId, data?.homeId]);
   if (!data || !data.enabled && !data.owners.length && !data.captainDecisions.length) return null;
   const stale = query.isError || !data.enabled, colors = theme.colors;
   return <View testID="maintenance-ownership" style={{ gap: 8, padding: compact ? 12 : 16, borderBottomWidth: 1, borderColor: colors.border }}>
@@ -41,9 +40,6 @@ export function MaintenanceOwnershipBoard({ theme, compact, hostId = "local", na
         {owner.agentId && navigation ? <Action theme={theme} label={`Open ${owner.admission?.name ?? "maintenance owner"}`} onPress={() => navigation.openAgent({ agentId: owner.agentId!, ...(hostId === "local" ? {} : { serverId: hostId }) })} /> : null}
         {owner.admission && owner.opening !== "succeeded" ? <Action theme={theme} label={`Resume ${owner.admission.name}`} disabled={stale} onPress={() => selectAdmission(owner)} /> : null}
       </View>)}
-      <Text style={{ color: colors.foreground, fontWeight: "600" }}>Captain decisions · {data.captainDecisions.length}</Text>
-      {data.captainDecisions.map(d => <Action key={d.decisionId} theme={theme} label={`Review: ${d.title}`} disabled={stale || !d.permittedActions.includes("answer")} onPress={() => selectChoice(d)} />)}
-      {data.outbox.some(o => o.state === "pending") ? <Text style={{ color: colors.foregroundMuted }}>Answers awaiting owner handling: {data.outbox.filter(o => o.state === "pending").length}. Delivery and handling retain their original receipts.</Text> : null}
     </ScrollView>
     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
       <Action theme={theme} label="Create maintenance owner" disabled={stale || data.freshness === "held"} onPress={() => selectAdmission("new")} />
@@ -51,8 +47,6 @@ export function MaintenanceOwnershipBoard({ theme, compact, hostId = "local", na
     </View>
     {admission ? <MaintenanceAdmissionConfirmation key={`${data.homeId}:${admission === "new" ? "new" : admission.scopeId}`} theme={theme} compact={compact} homeId={data.homeId}
       owner={admission === "new" ? null : admission} stale={stale} onClose={() => selectAdmission(null)} onRead={() => { void query.refetch(); }} /> : null}
-    {choice ? <MaintenanceAnswerConfirmation key={`${data.homeId}:${choice.decisionId}`} theme={theme} choice={choice} stale={stale || !data.captainDecisions.some(d => d.decisionId === choice.decisionId && d.subjectHash === choice.subjectHash && d.revision === choice.revision && d.permittedActions.includes("answer"))}
-      onClose={() => selectChoice(null)} onRead={() => { void query.refetch(); }} /> : null}
   </View>;
 }
 export function MaintenanceAdmissionConfirmation({ theme, compact, homeId, owner, stale, onClose, onRead }: {
@@ -100,32 +94,4 @@ export function MaintenanceAdmissionConfirmation({ theme, compact, homeId, owner
       <Action theme={theme} label="Cancel" disabled={busy} onPress={onClose} />
     </View>
   </Modal.Content></Modal>;
-}
-export function MaintenanceAnswerConfirmation({ theme, choice, stale, onClose, onRead }: { theme: PluginTheme; choice: Choice; stale: boolean; onClose(): void; onRead(): void }) {
-  const answer = useRpc(answerMaintenanceFromUi), [option, setOption] = useState(""), [text, setText] = useState(""), [busy, setBusy] = useState(false), [error, setError] = useState<string | null>(null);
-  const pending = useRef<MaintenanceAnswer | null>(null), gate = useRef(false);
-  async function confirm() {
-    if (gate.current || stale || !option) return;
-    gate.current = true; setBusy(true); setError(null);
-    pending.current ??= { homeId: choice.homeId, submissionId: workflowRequestId(), decisionId: choice.decisionId, revision: choice.revision,
-      subjectHash: choice.subjectHash, evidence: choice.evidence.map(e => ({ ref: e.ref, digest: e.digest! })), option, text };
-    try {
-      const next = MaintenanceRuntimeSnapshotSchema.parse(await answer(pending.current)); onRead();
-      if (next.decisions.some(d => d.id === choice.decisionId && d.answer?.submissionId === pending.current!.submissionId)) onClose();
-      else setError("No matching answer receipt returned. Inspect the decision, then retry this exact submission.");
-    } catch (e) { setError(`${errorText(e)} Your choice and notes are retained; retry keeps the same submission.`); }
-    finally { gate.current = false; setBusy(false); }
-  }
-  return <Modal title={choice.title} open onOpenChange={open => { if (!open && !busy) onClose(); }}><Modal.Content><View style={{ gap: 16 }}>
-    <Text style={{ color: theme.colors.foreground }}>{choice.question}</Text>
-    <Text style={{ color: theme.colors.foregroundMuted }}>This records a captain choice by app convention, not verified identity. It changes no budget and grants no work authority.</Text>
-    {choice.options.map(o => <Action key={o.id} theme={theme} label={`${option === o.id ? "Selected: " : ""}${o.number}. ${o.label}${choice.recommendation === o.id ? " (recommended)" : ""}`} disabled={busy || !!pending.current || stale} onPress={() => setOption(o.id)} />)}
-    <ScrollView style={{ maxHeight: 100 }}>{choice.evidence.map((e, i) => <Text selectable key={`${e.ref}:${i}`} style={{ color: theme.colors.foregroundMuted }}>{e.ref}{e.digest ? ` · ${e.digest}` : ""}</Text>)}</ScrollView>
-    <TextInput accessibilityLabel="Maintenance answer notes" value={text} onChangeText={setText} editable={!busy && !pending.current} multiline maxLength={10000}
-      style={{ minHeight: 80, fontSize: 16, color: theme.colors.foreground, backgroundColor: theme.colors.surface1, padding: 12, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 7 }} />
-    {stale ? <Text accessibilityRole="alert" style={{ color: theme.colors.statusWarning }}>This decision changed or could not be refreshed. Close and refresh before answering.</Text> : null}
-    {error ? <Text accessibilityRole="alert" style={{ color: theme.colors.statusWarning }}>{error}</Text> : null}
-    <Action theme={theme} label={busy ? "Recording answer…" : pending.current ? "Retry maintenance answer" : "Submit maintenance answer"} disabled={busy || stale || !option} onPress={() => { void confirm(); }} />
-    <Action theme={theme} label="Cancel" disabled={busy} onPress={onClose} />
-  </View></Modal.Content></Modal>;
 }

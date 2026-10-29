@@ -201,6 +201,7 @@ export function mergeDecisionSnapshot(
   return { ...base, scopedDecisions: scoped.scopedDecisions, scopedSequence: scoped.scopedSequence, scopedHolds: scoped.scopedHolds,
     scopeDirectory: scoped.scopeDirectory, scopeFiltersEnabled: next.scopeFiltersEnabled === true,
     scopedComplete: complete, scopedAnswersEnabled: scoped.scopedAnswersEnabled === true && next.scopedAnswersEnabled !== false,
+    maintenanceAnswersEnabled: scoped.maintenanceAnswersEnabled === true && next.maintenanceAnswersEnabled !== false,
     scopedProblems: complete ? scoped.scopedProblems : [...new Set([...(scoped.scopedProblems ?? []), ...(next.scopedProblems ?? []), "Scoped decisions could not be confirmed; counts are a lower bound."])],
     scopedPendingAnswerCount: scoped.scopedPendingAnswerCount,
     actionCount: base.actionCount === null ? null : base.actionCount - contribution(base) + contribution(scoped),

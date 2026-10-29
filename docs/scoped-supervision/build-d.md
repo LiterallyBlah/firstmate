@@ -126,9 +126,16 @@ emits `captainDecisions` for C presentation, alongside D's separate durable `dec
 (checked maintenance origin) and `outbox`; presentation never authorizes a legacy send.
 Maintenance contexts use job/incident IDs in retained decision identity fields, not a
 workflow/backend grant. Other plan decisions/outboxes retain their original validation.
-The plan-only Needs-you adapter excludes maintenance rows/outboxes instead of inventing
-plan origins or offering the plan answer transport. Maintenance choices/counts remain
-in the Maintenance owners board with D's exact checked answer transport.
+The shared Needs-you adapter includes genuine maintenance choices with maintenance scope/origin,
+numbered options, recommendation and evidence. It carries D's exact checked answer context separately
+from presentation, and counts pending logical-owner answer outboxes globally. General/Project/Plan/
+Maintenance filters change visible rows only. Routine incidents contribute no choices or counts.
+The shared answer form selects `firstmate.maintenance.answer-ui` from the durable maintenance origin;
+it never uses the plan/backlog sender. `FIRSTMATE_MAINTENANCE=1` independently enables this transport;
+the C execution switch neither enables nor blocks maintenance answers. A committed answer waits for
+a complete combined reread; failed reads and lost replies retain the exact submission and disable
+resending across remounts. The Maintenance owners board retains admission/resume/native links without
+a second decision count or answer form.
 
 Review F1/F2 checks were recorded in the PR before follow-up implementation. Production
 entry tests now construct the owner through the registered app RPC from a fresh home;
@@ -136,7 +143,11 @@ the ordinary integration fixture also uses this path. Tests cover lost create/op
 replies and fresh-runtime resume, receiver mismatch, default-off, duplicate/conflicting
 submissions, stale evidence/options/job versions, authority origin checks, one automatic
 budget choice, original-cap exhaustion, checked outbox handling and uncertain restart.
-App tests cover explicit confirmation, exact retry/resume and failed-refresh holds.
+App tests cover explicit confirmation, exact retry/resume and failed-refresh holds. F3's production-origin
+test admits an owner/job, records a routine incident (zero actions), escalates a real authority choice
+(one shared action), and commits its checked app answer (one pending answer), checking every filter
+and repeated snapshot composition. Shared-form regressions cover the domain transport, independent
+switches, missing context, lost replies and confirmed-answer reread failure, alongside plan routing.
 
 ## Read-only timer re-inventory, 29 October 2026
 

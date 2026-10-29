@@ -160,7 +160,8 @@ export default function contribute(server: PluginServerContext) {
     ...(process.env.FIRSTMATE_PROJECT_MATES === "1" ? { slots: Number(process.env.FIRSTMATE_PROJECT_SLOTS ?? 4), generalHeadroom: Number(process.env.FIRSTMATE_GENERAL_HEADROOM ?? 1) } : {}) });
   registerProjectRuntime(server, projects);
   const scopeUiEnabled = process.env.FIRSTMATE_SCOPE_UI === "1", scopeExecutionEnabled = process.env.FIRSTMATE_SCOPE_EXECUTION === "1";
-  const maintenance = new MaintenanceRuntime(supervisionRuntime, { enabled: process.env.FIRSTMATE_MAINTENANCE === "1",
+  const maintenanceEnabled = process.env.FIRSTMATE_MAINTENANCE === "1";
+  const maintenance = new MaintenanceRuntime(supervisionRuntime, { enabled: maintenanceEnabled,
     headroom: { slots: projects.slots, reserved: projects.headroom },
     inventory: async (home, config, jobs) => readTimerInventory(home, config, new WatchConfigStore(join(pluginDir(), "watch-config.json")), await nativeSchedules(), jobs) });
   const unregisterMaintenance = registerMaintenanceRuntime(server, maintenance);
@@ -175,7 +176,8 @@ export default function contribute(server: PluginServerContext) {
     try {
       const status = await readSupervision(home);
       const combined = status.scopes.length || status.problems.length ? withScopedNeedsYou(base, status) : base;
-      return { ...(scopeUiEnabled ? withScopeInboxContext(combined, status, workflow.plans, (await remotes.read()).localServerId ?? "local") : combined), scopedAnswersEnabled: scopeExecutionEnabled };
+      return { ...(scopeUiEnabled ? withScopeInboxContext(combined, status, workflow.plans, (await remotes.read()).localServerId ?? "local") : combined),
+        scopedAnswersEnabled: scopeExecutionEnabled, maintenanceAnswersEnabled: maintenanceEnabled };
     } catch {
       return { ...base, scopedComplete: false, scopedProblems: ["Scoped decisions unavailable. Existing decisions remain available; the total is incomplete."] };
     }

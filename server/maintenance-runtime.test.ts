@@ -23,6 +23,10 @@ import type { SupervisionEffect } from "../shared/supervision";
 import { digest } from "./submissions";
 import { withScopedNeedsYou } from "./needs-you-service";
 import { attentionSnapshot } from "../test/attention-deck-fixture";
+import { withScopeInboxContext } from "./scope-inbox";
+import { filterScopeInbox } from "../shared/scope-inbox";
+import { NeedsYouSnapshotSchema } from "../shared/needs-you";
+import { registerScopeRpcs } from "./scope-rpc";
 
 vi.setConfig({ testTimeout: 30000 });
 const SCOPE = "00000000-0000-4000-8000-000000000001", JOB = "00000000-0000-4000-8000-000000000002";
@@ -142,9 +146,10 @@ it("F2/A20 a real zero-budget incident creates one scoped captain decision witho
   service.remember(api); clock = "2026-10-27T03:15:00Z"; await service.tick(); await observe("failed"); nextMinute(); await service.tick();
   const state = await runtime.read(home);
   expect(state.decisions.filter(d => d.state === "pending")).toHaveLength(1);
-  // C's checked plan transport must not relabel a maintenance origin or offer a plan answer.
-  const planInbox = withScopedNeedsYou({ ...attentionSnapshot([]), homeId: state.homeId }, state);
-  expect(planInbox.scopedDecisions).toEqual([]); expect(planInbox.actionCount).toBe(0);
+  const inbox = withScopedNeedsYou({ ...attentionSnapshot([]), homeId: state.homeId }, state);
+  expect(inbox.scopedDecisions).toMatchObject([{ captain: { scope: { kind: "maintenance" } }, ready: true }]);
+  expect(inbox.actionCount).toBe(1); expect(inbox.scopedPendingAnswerCount).toBe(0);
+  expect(inbox.scopedDecisions![0]!.answerContext).toBeUndefined();
   expect(state.outbox).toEqual([]); expect(receiver.sends).toHaveLength(1);
   nextMinute(); await service.tick(); expect((await runtime.read(home)).decisions).toEqual(state.decisions);
 });
@@ -164,8 +169,9 @@ it.each([false, true])("F2/A10/A20 checked app answers retain context/outbox acr
   await service.answer(answer, api); const accepted = await service.read();
   expect(accepted.captainDecisions).toEqual([]); expect(accepted.outbox).toMatchObject([{ id: answer.submissionId, ownerScopeId: SCOPE, state: "pending", maintenance: true }]);
   expect(accepted.decisions[0]!.answer).toMatchObject({ provenance: { kind: "plugin-ui-unverified" }, outboxId: answer.submissionId });
-  const planInbox = withScopedNeedsYou({ ...attentionSnapshot([]), homeId: accepted.homeId }, await runtime.read(home));
-  expect(planInbox.scopedDecisions).toEqual([]); expect(planInbox.scopedPendingAnswerCount).toBe(0);
+  const inbox = withScopedNeedsYou({ ...attentionSnapshot([]), homeId: accepted.homeId }, await runtime.read(home));
+  expect(inbox.scopedDecisions).toMatchObject([{ decision: { state: "answered" }, ready: false }]);
+  expect(inbox.actionCount).toBe(0); expect(inbox.scopedPendingAnswerCount).toBe(1); expect(inbox.pendingAnswerCount).toBe(1);
   expect((await job()).budget).toEqual({ turns: 0 }); expect(receiver.sends).toHaveLength(1);
   await service.answer(answer, api); expect((await service.read()).sequence).toBe(accepted.sequence);
   await expect(service.answer({ ...answer, text: "Different answer" }, api)).rejects.toMatchObject({ code: "CONFLICT" });
@@ -182,6 +188,48 @@ it.each([false, true])("F2/A10/A20 checked app answers retain context/outbox acr
     const id = randomUUID(); await admin(handling, id, owner.agentId!); const handled = await admin(handling, id, owner.agentId!);
     expect(handled.outbox[0]).toMatchObject({ state: "handled", handledEpoch: owner.epoch });
   }
+});
+
+it("F3/A20/A21 a real owner authority choice enters the shared inbox and its app answer retains global pending totals under every filter", async () => {
+  const handlers = new Map<string, (input: any, context: { paseo: PaseoApi }) => Promise<any>>();
+  const server = { handle: (rpc: { name: string }, handler: any) => handlers.set(rpc.name, handler), on: () => () => {} } as unknown as PluginServerContext;
+  registerMaintenanceRuntime(server, service);
+  const readNeeds = async () => {
+    const state = await runtime.read(home);
+    return { ...withScopeInboxContext(withScopedNeedsYou({ ...attentionSnapshot([]), homeId: state.homeId }, state), state), maintenanceAnswersEnabled: true };
+  };
+  registerScopeRpcs(server, { readNeeds, read: async () => ({ home, generalId: "general", status: await runtime.read(home) }) });
+  const sharedRead = async () => NeedsYouSnapshotSchema.parse(await handlers.get("firstmate.scope.needs")!({}, { paseo: api }));
+  await activate(); await observe("failed"); nextMinute(); await service.tick();
+  expect(await sharedRead()).toMatchObject({ actionCount: 0, pendingAnswerCount: 0, scopedDecisions: [] });
+  const snapshot = await service.read(), incident = snapshot.incidents.find(i => i.kind === "failure")!, owner = snapshot.owners[0]!;
+  await handlers.get("firstmate.maintenance.admin")!({ homeId: snapshot.homeId, requestId: randomUUID(), actorId: owner.agentId!, command: {
+    op: "escalate", input: { incidentId: incident.id, generation: incident.generation, epoch: owner.epoch, kind: "authority",
+      question: "Keep held pending a separately reviewed plan?", options: [{ id: "hold", label: "Keep held" }, { id: "plan", label: "Request a reviewed plan" }],
+      recommendation: "hold", evidence: [{ ref: "verified/authority-report", digest: hash }] } } }, { paseo: api });
+  const before = await sharedRead(), row = before.scopedDecisions![0]!;
+  expect(before).toMatchObject({ actionCount: 1, scopedPendingAnswerCount: 0, pendingAnswerCount: 0, maintenanceAnswersEnabled: true });
+  expect(row).toMatchObject({ ready: true, captain: { scope: { kind: "maintenance", id: SCOPE }, origin: { kind: "maintenance", id: incident.id }, permittedActions: ["answer"] },
+    maintenanceAnswerContext: { homeId: snapshot.homeId, decisionId: row.decision.id, revision: row.decision.revision, subjectHash: row.decision.subjectHash, evidence: [{ ref: "verified/authority-report", digest: hash }] } });
+  expect(row.answerContext).toBeUndefined();
+  const answer = { ...row.maintenanceAnswerContext!, submissionId: randomUUID(), option: "hold", text: "Retain the hold; no work authority." };
+  await handlers.get("firstmate.maintenance.answer-ui")!(answer, { paseo: api });
+  const after = await sharedRead();
+  expect(after).toMatchObject({ actionCount: 0, scopedPendingAnswerCount: 1, pendingAnswerCount: 1 });
+  expect(after.scopedDecisions).toMatchObject([{ ready: false, decision: { state: "answered", answer: { submissionId: answer.submissionId, outboxId: answer.submissionId } }, captain: { permittedActions: [] } }]);
+  expect(after.scopedDecisions![0]!.maintenanceAnswerContext).toBeUndefined();
+  expect((await service.read()).outbox).toMatchObject([{ maintenance: true, ownerScopeId: SCOPE, state: "pending" }]);
+  for (const snapshot of [before, after]) {
+    for (const kind of ["all", "general", "project", "plan", "maintenance"] as const) {
+      const view = filterScopeInbox(snapshot, { kind });
+      expect([view.actionCount, view.pendingAnswerCount, view.scopedPendingAnswerCount]).toEqual([snapshot.actionCount, snapshot.pendingAnswerCount, snapshot.scopedPendingAnswerCount]);
+      expect(view.scopedDecisions).toHaveLength(kind === "all" || kind === "maintenance" ? 1 : 0);
+    }
+  }
+  const latest = await runtime.read(home);
+  expect(withScopedNeedsYou(after, latest)).toEqual(after);
+  const incomplete = withScopedNeedsYou(after, { ...latest, freshness: "held" });
+  expect(incomplete).toMatchObject({ scopedComplete: false, pendingAnswerCount: 1, scopedPendingAnswerCount: 1 });
 });
 
 it("F2/A20 only the exact maintenance owner escalates genuine authority choices; routine incidents stay out of captain counts", async () => {

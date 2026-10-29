@@ -5,6 +5,7 @@ import type { SupervisionActor, SupervisionStatus } from "../shared/supervision"
 import type { ScopedDecision, ScopedOutbox } from "../shared/supervision-policy";
 import { MaintenanceEscalationSchema, MaintenanceAnswerSchema, type MaintenanceAnswer } from "../shared/maintenance-runtime";
 import { ScopedCaptainDecisionSchema } from "../shared/scoped-captain-decision";
+import { MaintenanceAnswerContextSchema } from "../shared/maintenance-answer";
 import { maintenanceRows, refuse } from "./supervision-resources";
 import { expectedFor, stableId } from "./supervision-effects";
 import { activationEffects, supervisorSpend } from "./supervisor-sessions";
@@ -24,13 +25,20 @@ export function maintenanceDecisionCurrent(s: SupervisionStatus, d: ScopedDecisi
     s.scopes.some(scope => scope.id === d.ownerScopeId && scope.kind === "maintenance" && ["active", "held"].includes(scope.state));
 }
 export function maintenanceCaptainDecisions(s: SupervisionStatus) {
-  return s.decisions.filter(d => d.maintenance && d.state === "pending").map(d => ScopedCaptainDecisionSchema.parse({
+  return s.decisions.filter(d => d.maintenance && d.state === "pending").map(d => maintenanceCaptainDecision(s, d));
+}
+export function maintenanceAnswerContext(s: SupervisionStatus, d: ScopedDecision) {
+  if (s.freshness !== "current" || d.state !== "pending" || !maintenanceDecisionCurrent(s, d)) return undefined;
+  return MaintenanceAnswerContextSchema.parse({ homeId: s.homeId, decisionId: d.id, revision: d.revision, subjectHash: d.subjectHash, evidence: d.maintenance!.evidence });
+}
+export function maintenanceCaptainDecision(s: SupervisionStatus, d: ScopedDecision) {
+  return ScopedCaptainDecisionSchema.parse({
     format: "firstmate.scoped-captain-decision/1", homeId: s.homeId, scope: { kind: "maintenance", id: d.ownerScopeId },
     decisionId: d.id, revision: d.revision, subjectHash: d.subjectHash, origin: { kind: "maintenance", id: d.maintenance!.incidentId },
     title: d.title, question: d.question, options: d.options.map((o, i) => ({ ...o, number: i + 1 })), recommendation: d.maintenance!.recommendation,
     evidence: d.maintenance!.evidence, projectIds: s.scopes.find(scope => scope.id === d.ownerScopeId)?.projectIds ?? [],
-    permittedActions: maintenanceDecisionCurrent(s, d) ? ["answer"] : [],
-  }));
+    permittedActions: maintenanceAnswerContext(s, d) ? ["answer"] : [],
+  });
 }
 export function maintenanceAnswerOwner(s: SupervisionStatus, outbox: ScopedOutbox, generalId: string) {
   const decision = s.decisions.find(d => d.id === outbox.decisionId), scope = s.scopes.find(scope => scope.id === outbox.ownerScopeId), binding = s.bindings.find(b => b.scopeId === scope?.id);

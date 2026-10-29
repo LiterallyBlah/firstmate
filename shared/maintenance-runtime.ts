@@ -4,6 +4,8 @@ import { z } from "zod";
 import { SupervisionHash, SupervisionUuid } from "./supervision";
 import { MaintenanceAdmissionInputSchema, ScopedDecisionSchema, ScopedOutboxSchema } from "./supervision-policy";
 import { ScopedCaptainDecisionSchema } from "./scoped-captain-decision";
+import { MaintenanceAnswerSchema } from "./maintenance-answer";
+export { MaintenanceAnswerSchema, type MaintenanceAnswer } from "./maintenance-answer";
 import { PlanId } from "./workflow-plans";
 import { MaintenanceJobSchema, MaintenanceIncidentSchema, OccurrenceSchema, OccurrenceHostSchema, ResourceReservationSchema, ResourceClass, ResourceKey, HostId } from "./supervision-maintenance";
 
@@ -83,8 +85,5 @@ export const AdmitMaintenanceSchema = z.union([MaintenanceAdmissionInputSchema,
   z.object({ homeId: z.string(), requestId: SupervisionUuid, resume: z.literal(true) }).strict()]);
 export type AdmitMaintenance = z.infer<typeof AdmitMaintenanceSchema>;
 export const admitMaintenanceFromUi = defineRpc({ name: "firstmate.maintenance.admit-ui", input: AdmitMaintenanceSchema, output: MaintenanceRuntimeSnapshotSchema });
-export const MaintenanceAnswerSchema = z.object({ homeId: z.string(), submissionId: SupervisionUuid, decisionId: SupervisionUuid,
-  revision: count.min(1), subjectHash: SupervisionHash, evidence: Evidence, option: PlanId, text: z.string().max(10000) }).strict();
-export type MaintenanceAnswer = z.infer<typeof MaintenanceAnswerSchema>;
 /** Dedicated captain-app convention; no helper/CLI answer, no actor input and no legacy fallback. */
 export const answerMaintenanceFromUi = defineRpc({ name: "firstmate.maintenance.answer-ui", input: MaintenanceAnswerSchema, output: MaintenanceRuntimeSnapshotSchema });

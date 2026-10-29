@@ -44,9 +44,10 @@ Maintenance sessions use the existing reserved/verified lifecycle and a separate
 retaining profile/caps and exact resume input; no helper/CLI Attach or background provisioning.
 `server/maintenance-decisions.ts` retains genuine authority/budget choices, checked answers and logical-owner
 outboxes. Routine incidents create no captain count. D uses C's real presentation contract at
-`shared/scoped-captain-decision.ts`; the plan-only Needs-you adapter never relabels these maintenance
-origins or routes them through plan answers. Maintenance choices use the owner board and D's checked
-app transport. App provenance stays unverified.
+`shared/scoped-captain-decision.ts`. Genuine maintenance choices and pending answers enter the shared
+Needs-you snapshot, global totals and Maintenance filter, retaining D's separate checked context and
+app transport. Filtering never changes global totals; the owner board has no duplicate decision count.
+Plan/backlog answer transports refuse these origins. App provenance stays unverified.
 Healthy and unchanged incidents wake nobody, changed
 incidents reserve one bounded owner turn, and uncertain sends never retry or refund spend. General reads
 the pure summary directly. The fresh timer census retains disabled watches and all approved host coverage,

@@ -52,16 +52,3 @@ it("a fresh client resumes the recorded maintenance request and a failed refresh
   mocks.read.mockRejectedValue(new Error("offline")); await act(async () => { await cache.refetchQueries(); await new Promise(done => setTimeout(done, 20)); });
   expect(button("Retry recorded maintenance admission").props.disabled).toBe(true);
 });
-it("maintenance choices send the displayed revision/subject/evidence only after an explicit answer, retaining duplicate identity", async () => {
-  data.captainDecisions = [{ format: "firstmate.scoped-captain-decision/1", homeId: data.homeId, scope: { kind: "maintenance", id }, decisionId: id, revision: 2, subjectHash: hash,
-    origin: { kind: "maintenance", id }, title: "Storage budget", question: "Keep held or request a reviewed allocation?", options: [{ number: 1, id: "hold", label: "Keep held" }, { number: 2, id: "review", label: "Review allocation" }],
-    recommendation: "hold", evidence: [{ ref: "checked/storage", digest: hash }], projectIds: [], permittedActions: ["answer"] }];
-  mocks.answer.mockRejectedValue(new Error("reply lost")); await mount(); await act(async () => button("Review: Storage budget").props.onPress());
-  expect(mocks.answer).not.toHaveBeenCalled(); expect(button("Submit maintenance answer").props.disabled).toBe(true);
-  await act(async () => button("1. Keep held (recommended)").props.onPress());
-  await act(async () => renderer!.root.find(n => n.type === "TextInput" as never && n.props.accessibilityLabel === "Maintenance answer notes").props.onChangeText("Keep the hold."));
-  await act(async () => { const press = button("Submit maintenance answer").props.onPress; press(); press(); });
-  expect(mocks.answer).toHaveBeenCalledTimes(1); expect(mocks.answer.mock.calls[0]![0]).toMatchObject({ decisionId: id, revision: 2, subjectHash: hash,
-    evidence: [{ ref: "checked/storage", digest: hash }], option: "hold", text: "Keep the hold." });
-  await act(async () => button("Retry maintenance answer").props.onPress()); expect(mocks.answer.mock.calls[1]![0]).toEqual(mocks.answer.mock.calls[0]![0]);
-});

@@ -4,6 +4,8 @@ import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-quer
 import { MateChat } from "../../../client/chat";
 import { ScopeDiscussion } from "../../../client/scope-discussion";
 import { ScopedNeeds } from "../../../client/scoped-needs";
+import { ScopeInboxFilters } from "../../../client/scope-inbox-filters";
+import { filterScopeInbox } from "../../../shared/scope-inbox";
 import { readScopeNeeds } from "../../../shared/supervision-rpc";
 import { NEEDS_YOU_QUERY_KEY } from "../../../client/needs-you-query";
 import { useRpc } from "./stubs";
@@ -16,6 +18,7 @@ const params = new URLSearchParams(location.search), theme = params.get("theme")
 const client = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false }, mutations: { retry: false } } });
 function App() {
   const [generation, remount] = useState(0), read = useRpc(readScopeNeeds);
+  const [filter, setFilter] = useState({ kind: "all" });
   window.remountScope = () => remount(v => v + 1);
   window.dropScopeCache = () => { client.removeQueries({ queryKey: ["firstmate", "scope-read"] }); remount(v => v + 1); };
   const decisions = useQuery({ queryKey: NEEDS_YOU_QUERY_KEY, queryFn: () => read({}) });
@@ -24,7 +27,10 @@ function App() {
     hostId="local" theme={theme} compact={phone} refresh={() => {}} navigation={navigation} /> :
     <MateChat key={generation} mate={fleet.mate} theme={theme} compact={phone} onChanged={() => {}} onOpenFile={() => {}} imageContext={{ serverId: "local", home: params.has("restored") ? homeId.toUpperCase() : homeId }} navigation={navigation} />;
   return <div style={{ height: "100vh", width: "100%", display: "flex", background: theme.colors.surface0, color: theme.colors.foreground }}>
-    {params.has("decisions") ? <div style={{ width: "100%", maxWidth: 760, margin: "auto", padding: 16, overflow: "auto", maxHeight: "100vh" }}><ScopedNeeds key={generation} snapshot={decisions.data} theme={theme} compact={phone} /></div> :
+    {params.has("decisions") ? <div style={{ width: "100%", maxWidth: 760, margin: "auto", padding: 16, overflow: "auto", maxHeight: "100vh" }}>
+      {params.has("maintenance") && decisions.data ? <><ScopeInboxFilters snapshot={decisions.data} value={filter} onChange={setFilter} theme={theme} compact={phone} />
+        <div>Global pending answers: {decisions.data.pendingAnswerCount}</div></> : null}
+      <ScopedNeeds key={generation} snapshot={decisions.data && params.has("maintenance") ? filterScopeInbox(decisions.data, filter) : decisions.data} theme={theme} compact={phone} /></div> :
       <div style={{ display: "flex", flex: 1, maxWidth: phone ? "100%" : 960, margin: "0 auto", minWidth: 0 }}>{chat}</div>}
   </div>;
 }
