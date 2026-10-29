@@ -16,6 +16,11 @@ export function useRpc(contract){
   if(params.has('failure')&&['firstmate.fleet.load','firstmate.needs-you.read'].includes(contract.name))throw new Error('Plugin request timed out (synthetic startup case)');
   switch(contract.name){
    case 'firstmate.config.read':return {resolvedHome:homeId,config:{home:homeId,mateAgentId:upgraded?'first-mate':'',mateSince:null,mateProvider:'',mateModeId:'',crewProvider:'',crewModeId:'',migration:null,previousMateIds:[]}};
+   case 'firstmate.features.read':return {homeId,revision:0,source:window.review.on?'legacy-environment':'default',state:'ready',
+    requested:{projectMates:window.review.on,planSupervisors:window.review.on,scopedActivation:window.review.on,scopeUi:window.review.on,scopeExecution:window.review.on,maintenance:window.review.on},
+    effective:{projectMates:window.review.on,planSupervisors:window.review.on,scopedActivation:window.review.on,scopeUi:window.review.on,scopeExecution:window.review.on,maintenance:window.review.on},
+    capacity:{slots:4,generalHeadroom:1},policy:null,problems:[],dependencyRefusals:[],runtimeEnforced:true,writesAvailable:true,
+    inventory:{complete:false,coverage:[],sequence:0,active:0,pending:0,uncertain:0,problems:['Other delivery sources have not been checked.']},pause:null};
    case 'firstmate.mate.candidates':return {home:homeId,agents:[]};
    case 'firstmate.scope.read':return clone(scope);
    case 'firstmate.projects.read':return clone(projects);

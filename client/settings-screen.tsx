@@ -34,6 +34,7 @@ import { OptionPicker } from "./option-picker";
 import { errorText } from "./ui";
 import { WorkflowSurface } from "./workflow-plans";
 import { WorkDetails } from "./work-details";
+import { HelpSettings } from "./help-settings";
 
 const CONFIG_QUERY_KEY = ["firstmate", "config"] as const;
 const PROVIDER_DEFAULT = "";
@@ -50,7 +51,8 @@ export function SettingsScreen({ theme, layout, host, navigation }: PluginSurfac
   const settings = useDeckSettings();
   const fleet = useFleet(display.status === "ready" ? display.values.pollSeconds : 5);
 
-  const config = useQuery({ queryKey: CONFIG_QUERY_KEY, queryFn: () => read({}) });
+  const configKey = [...CONFIG_QUERY_KEY, host?.id ?? "local"];
+  const config = useQuery({ queryKey: configKey, queryFn: () => read({}) });
   const current = config.data?.config ?? null;
   const [homeDraft, setHomeDraft] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -88,7 +90,7 @@ export function SettingsScreen({ theme, layout, host, navigation }: PluginSurfac
     setBusy(true);
     write(patch)
       .then((result) => {
-        queryClient.setQueryData(CONFIG_QUERY_KEY, result);
+        queryClient.setQueryData(configKey, result);
         void queryClient.invalidateQueries({ queryKey: FLEET_QUERY_KEY });
         toast.show(message, { variant: "success" });
       })
@@ -101,6 +103,11 @@ export function SettingsScreen({ theme, layout, host, navigation }: PluginSurfac
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} automaticallyAdjustKeyboardInsets>
+      <SettingsGroup title="Help with your work">
+        {config.data ? <HelpSettings key={`${host?.id ?? "local"}:${config.data.resolvedHome}`} theme={theme}
+          home={config.data.resolvedHome} hostId={host?.id ?? "local"} /> : config.isError ? <SettingsAction label="Can't read FirstMate's home" hint="Check the connection, then try reading settings again. Your existing setup stays in use."
+          actionLabel="Refresh settings" disabled={config.isFetching} onPress={() => { void config.refetch({ cancelRefetch: false }); }} /> : <Text accessibilityLiveRegion="polite" style={styles.note}>Loading help settings…</Text>}
+      </SettingsGroup>
       <SettingsGroup title="Work details">
         <WorkflowSurface theme={theme} hostId={host?.id ?? "local"}>
           <WorkDetails theme={theme} compact={layout.compact} hostId={host?.id ?? "local"} {...(navigation ? { navigation } : {})} always />
