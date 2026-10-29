@@ -104,6 +104,7 @@ export function ProjectOwnershipView({ theme, compact, data, readError = false, 
       </Pressable>
       {expanded ? <Action theme={theme} label="Refresh projects" onPress={onRefresh} /> : null}
     </View>
+    {data.pause ? <Text accessibilityLiveRegion="polite" style={{ color: colors.foregroundMuted }}>{data.pause}</Text> : null}
     {readError ? <Text accessibilityRole="alert" style={{ color: colors.statusDanger }}>Project status could not be refreshed. Showing the last received census; actions are unavailable.</Text> : null}
     {data.problems.length || data.freshness === "held" ? <Text accessibilityRole="alert" style={{ color: colors.statusWarning }}>Some projects couldn't be checked. Open project details and refresh before continuing.</Text> : null}
     {expanded ? <>

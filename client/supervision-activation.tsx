@@ -24,9 +24,10 @@ export function SupervisionActivationBoard({ theme, compact, advanced = false }:
   const { activation: data, activationError: readError, updateActivation } = useWorkflowPlans();
   const [selected, select] = useState<Plan | null>(null);
   useEffect(() => { select(null); }, [data?.homeId]);
-  if (!data || !activationHasHistory(data) && !data.problems.length && !readError && !(advanced && data.enabled)) return null;
+  if (!data || !activationHasHistory(data) && !data.problems.length && !data.pause && !readError && !(advanced && data.enabled)) return null;
   return <View testID="supervision-activation-board" style={{ gap: 8, padding: compact ? 12 : 16 }}>
     <Text style={{ color: theme.colors.foreground, fontWeight: "600" }}>Plan help</Text>
+    {data.pause ? <Text accessibilityLiveRegion="polite" style={{ color: theme.colors.foregroundMuted }}>{data.pause}</Text> : null}
     {data.problems.map(p => <Text key={p} accessibilityRole="alert" style={{ color: theme.colors.foreground }}>{p}</Text>)}
     {readError ? <Text accessibilityRole="alert" style={{ color: theme.colors.foreground }}>Supervisor status could not be refreshed. Attach is unavailable.</Text> : null}
     {data.plans.map(plan => <View key={plan.scopeId} style={{ gap: 4 }}>

@@ -99,6 +99,8 @@ export interface GatewayOptions {
   enabled?: boolean;
   now?: () => number;
   /** Additional owning-service preconditions, rechecked inside the final claim transaction. */
+  featurePolicy?: () => Promise<SupervisionEffect["featurePolicy"]>;
+  policyFence?: { capture(effect: SupervisionEffect): Promise<string>; run<T>(fence: string, run: () => Promise<T>): Promise<T> } | undefined;
   admissionCheck?: (status: SupervisionStatus, effect: SupervisionEffect) => Promise<void>;
   rules?: PlanRules;
   /** External observations happen before the publication lock; returned validation runs in the claim. */
@@ -197,7 +199,8 @@ export class SupervisionGateway {
       const ids = { workspace: stableId("effect", key("workspace.open")), create: stableId("effect", key("agent.create")), send: stableId("effect", key("agent.send")) };
       const agentId = stableId("agent", ids.create);
       // The admission read set is pinned: start and model-use policy refs, admission evidence and approval.
-      const base = { requestId: input.requestId, requestHash: digest(input), scopeId, epoch: binding.epoch, attemptId,
+      const featurePolicy = await this.options.featurePolicy?.();
+      const base = { ...(featurePolicy ? { featurePolicy } : {}), requestId: input.requestId, requestHash: digest(input), scopeId, epoch: binding.epoch, attemptId,
         planRevision: input.revision || null, subjectHash: input.subjectHash ?? digest(command), policyVector: unionVectors(input.policyVector, input.modelPolicyVector),
         evidenceVector: input.evidenceVector, approvalId: input.approvalId, state: "reserved" as const, receiptRef: null, version: 1,
         ...(input.planRules ? { planRules: input.planRules } : {}),
@@ -258,6 +261,8 @@ export class SupervisionGateway {
     if (effect.state === "succeeded") return effect;
     if (["dispatching", "uncertain", "accepted"].includes(effect.state)) refuse("UNCERTAIN", "This effect may already have crossed its boundary; reconcile it, never resend.");
     if (effect.state !== "reserved") refuse("HELD", `Effect is ${effect.state}; a new step needs a new logical cause.`);
+    const stopping = ["agent.interrupt", "agent.archive"].includes(effect.operation);
+    const fence = stopping ? undefined : await this.options.policyFence?.capture(effect);
     const operation = requireGatewayOperation(effect.operation);
     // Receiver and file reads happen before the writer lock; the claim then rechecks against them.
     const capabilities = await this.capabilities(), target = targetOf(pre, effect, operation);
@@ -267,21 +272,29 @@ export class SupervisionGateway {
     const text = operation === "agent.send" ? await this.payload(effect) : null;
     const inventoryKey = operation === "agent.archive" && target ? await this.checkInventory(capabilities, target, effect.receiverKey) : null;
     const validate = operation === "agent.interrupt" || operation === "agent.archive" ? undefined : await this.options.prepareAdmission?.(effect);
-    let claimed: SupervisionEffect | null = null, call: Call | null = null;
-    await this.store.transactCommand(stableId("dispatch-claim", effect.id), digest({ claim: effect.id, version: effect.version }), GATEWAY, async status => {
-      const current = status.effects.find(e => e.id === effect.id);
-      if (!current || current.version !== effect.version || current.state !== "reserved") refuse("STALE", "The effect changed before its claim; reread.");
-      call = await this.admit(status, current, operation, { capabilities, observed, text, inventoryKey, validate, reusedObserved });
-      claimed = { ...current, state: "dispatching", version: current.version + 1 };
-      const mutations: SupervisionMutation[] = [{ kind: "effect", value: claimed }];
-      const plan = planOf(status, current);
-      return { expectedVersions: expectedFor(status, mutations), mutations, result: { planId: plan?.definition.id ?? null, planHash: plan?.hash ?? null, decisionId: null, outboxId: null } };
-    });
-    // A replayed claim means an earlier dispatcher already crossed (or may have crossed) the boundary.
-    if (!claimed || !call) refuse("UNCERTAIN", "This effect was already claimed for dispatch; reconcile it, never resend.");
-    const admitted: Call = call;
+    const claimAndStart = async () => {
+      let claimed: SupervisionEffect | null = null, call: Call | null = null;
+      await this.store.transactCommand(stableId("dispatch-claim", effect.id), digest({ claim: effect.id, version: effect.version }), GATEWAY, async status => {
+        const current = status.effects.find(e => e.id === effect.id);
+        if (!current || current.version !== effect.version || current.state !== "reserved") refuse("STALE", "The effect changed before its claim; reread.");
+        call = await this.admit(status, current, operation, { capabilities, observed, text, inventoryKey, validate, reusedObserved });
+        claimed = { ...current, state: "dispatching", version: current.version + 1 };
+        const mutations: SupervisionMutation[] = [{ kind: "effect", value: claimed }];
+        const plan = planOf(status, current);
+        return { expectedVersions: expectedFor(status, mutations), mutations, result: { planId: plan?.definition.id ?? null, planHash: plan?.hash ?? null, decisionId: null, outboxId: null } };
+      });
+      // A replayed claim means an earlier dispatcher already crossed (or may have crossed) the boundary.
+      if (!claimed || !call) refuse("UNCERTAIN", "This effect was already claimed for dispatch; reconcile it, never resend.");
+      const admitted: Call = call;
+      const pending = admitted.run();
+      // Attach a handler before releasing the fence; settlement below owns the outcome.
+      void pending.catch(() => undefined);
+      return { claimed, admitted, pending };
+    };
+    const { claimed, admitted, pending } = this.options.policyFence && !stopping
+      ? await this.options.policyFence.run(fence!, claimAndStart) : await claimAndStart();
     let outcome: { state: "succeeded" | "failed" | "uncertain"; receiptRef: string | null };
-    try { outcome = { state: "succeeded", receiptRef: await admitted.run() }; }
+    try { outcome = { state: "succeeded", receiptRef: await pending }; }
     catch (error) {
       outcome = error instanceof ReceiverRejected ? { state: "failed", receiptRef: `rejected:${error.reason}:${error.message}`.slice(0, 1024) } :
         { state: "uncertain", receiptRef: null };

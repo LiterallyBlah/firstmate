@@ -29,24 +29,29 @@ export interface ScopeRuntimeOptions {
 export class ScopeRuntime {
   constructor(readonly runtime: SupervisionRuntime, private readonly options: ScopeRuntimeOptions = {}) {}
   private async checked(homeId: string) {
-    if (!this.options.enabled) refuse("UNSUPPORTED", "Scope execution is disabled; no session or writer was created.");
+    if (!this.options.enabled && !this.runtime.features) refuse("UNSUPPORTED", "Scope execution is disabled; no session or writer was created.");
     const config = await (this.options.config ?? readFirstmateConfig)(); requireNoMigration(config);
     if (config.mateLaunch) refuse("HELD", "FirstMate ownership is changing; preserve this message.");
     const home = resolveHome(config);
     if (workflowHomeIdentity(home) !== homeId) refuse("STALE", "Home changed; preserve the original message and refresh.");
+    await this.runtime.features?.check(home, "scopeExecution");
     return { config, home };
   }
   async execute<T>(homeId: string, scopeId: string, paseo: PaseoApi, run: (services: ScopeServices) => Promise<T>): Promise<T> {
     const { home } = await this.checked(homeId);
     const compose = async (store: SupervisionStore) => {
       const receiver = this.options.receiver?.(paseo) ?? new SupervisionUiReceiver(paseo, this.runtime.root, { projectMates: true });
+      const initialPolicy = await this.runtime.features?.read(home);
+      const stored = await store.read();
+      const planLimits = !this.runtime.features || initialPolicy?.effective.planSupervisors || stored.planRules?.some(r => r.scopeId === scopeId) ? this.options.planLimits : undefined;
       const check = async (status: SupervisionStatus, scopeId: string) => {
         await this.checked(homeId);
         const scope = status.scopes.find(s => s.id === scopeId);
+        if (scope?.kind === "project") await this.runtime.features?.check(home, "projectMates");
         if (!scope || scope.kind === "maintenance") refuse("UNSUPPORTED", "This scope has no qualified discussion adapter.");
         if (scope.projectIds.some(id => status.projects?.projects.find(p => p.id === id)?.state !== "admitted"))
           refuse("HELD", "Every associated project must remain admitted before sending.");
-        if (scope.kind === "plan" && this.options.planLimits) {
+        if (scope.kind === "plan" && planLimits) {
           const current = await checkPlanSupervisorAuthority(home, status, scopeId);
           if (digest(current) !== digest(capturedRuleAuthority)) refuse("STALE", "Supervisor rule authority changed before admission.");
         }
@@ -58,12 +63,15 @@ export class ScopeRuntime {
         }
       };
       const commands = new SupervisionCommands(store, home, { enabled: true, unverifiedUiAnswers: true,
+        commandBoundary: run => this.runtime.features ? this.runtime.features.boundary(home, run) : run(),
         answerAdmission: async () => { await this.checked(homeId); } });
-      const gateway = new SupervisionGateway(store, commands, home, receiver, { enabled: true,
+      const gateway = new SupervisionGateway(store, commands, home, receiver, { enabled: true, policyFence: this.runtime.features?.gateway(home, "scopeExecution", () => store.read()),
         admissionCheck: async (status, effect) => {
           // This service can only dispatch its own conversation effects. Worker effects belong to Build B.
           if (effect.attemptId !== null) refuse("UNSUPPORTED", "Discussion cannot dispatch worker effects.");
           await check(status, effect.scopeId);
+          const capacity = await this.runtime.features?.capacity(home);
+          if (capacity) await checkGeneralHeadroom(status, receiver, capacity.slots, capacity.generalHeadroom, effect.id);
           if (capturedRuleAuthority && digest(effect.planRules ?? null) !== digest(capturedRuleAuthority))
             refuse("STALE", "This supervisor effect did not reserve the current rule authority.");
           if (profileAuthority(status) !== capturedProfileAuthority || digest(readLimits(status)) !== digest(limits))
@@ -82,15 +90,17 @@ export class ScopeRuntime {
         return { profile: runNode.launch.agent, limits: readLimits(status) };
       };
       const initial = await store.read();
-      const capturedRuleAuthority = this.options.planLimits && initial.scopes.some(s => s.id === scopeId && s.kind === "plan")
+      const capturedRuleAuthority = planLimits && initial.scopes.some(s => s.id === scopeId && s.kind === "plan")
         ? planSupervisorAuthority(initial, scopeId) : null;
       const profileAuthority = (status: SupervisionStatus) => digest(status.projects?.projects.find(p => p.scopeId === scopeId)?.owner ??
         status.plans.find(p => p.scopeId === scopeId)?.plan.definition ?? null);
       const capturedProfileAuthority = profileAuthority(initial);
       const readLimits = (status: SupervisionStatus) => GatewayLimitsSchema.parse(status.projects?.projects.find(p => p.scopeId === scopeId)?.owner?.limits ??
-        (status.scopes.find(s => s.id === scopeId)?.kind === "plan" ? this.options.planLimits?.(status, scopeId) : undefined) ?? { supervisorSessions: 1, supervisorTurns: 1 });
+        (status.scopes.find(s => s.id === scopeId)?.kind === "plan" ? planLimits?.(status, scopeId) : undefined) ?? { supervisorSessions: 1, supervisorTurns: 1 });
       const limits = readLimits(initial);
       const sessions = new SupervisorSessions(store, gateway, receiver, { enabled: true,
+        featurePolicy: async () => this.runtime.features?.reservation(home, "scopeExecution"),
+        reserveBoundary: run => this.runtime.features ? this.runtime.features.boundary(home, run) : run(),
         limits, ...(capturedRuleAuthority ? { ruleRef: (current: SupervisionStatus, id: string) => planSupervisorAuthority(current, id) } : {}),
         budgetRefused: scope => this.options.planBudgetRefused?.(store, home, scope) ?? Promise.resolve(),
         globalMateId: async () => (await this.checked(homeId)).config.mateAgentId || null,
@@ -99,10 +109,11 @@ export class ScopeRuntime {
           if (profileAuthority(current) !== capturedProfileAuthority) refuse("STALE", "Stored discussion profile or plan changed before reservation.");
           const latest = readLimits(current);
           if (JSON.stringify(latest) !== JSON.stringify(limits)) refuse("STALE", "Stored discussion budget changed; refresh.");
-          await checkGeneralHeadroom(current, receiver, this.options.slots ?? 4, this.options.generalHeadroom ?? 1);
+          const capacity = await this.runtime.features?.capacity(home);
+          await checkGeneralHeadroom(current, receiver, capacity?.slots ?? this.options.slots ?? 4, capacity?.generalHeadroom ?? this.options.generalHeadroom ?? 1);
         } });
       const discussions = new ScopeDiscussions(home, store, sessions, {
-        enabled: true, uiEnabled: !!this.options.uiEnabled, admittedProjectsOnly: true,
+        enabled: true, uiEnabled: this.runtime.features ? (await this.runtime.features.read(home)).effective.scopeUi : !!this.options.uiEnabled, admittedProjectsOnly: true,
         actor: { kind: "plugin-ui-unverified", id: "unauthenticated-plugin-call", source: "scope Send (unverified)" },
         reserve: work => withScopeAdmission(homeId, work),
         projectContext: async ids => {
@@ -119,7 +130,10 @@ export class ScopeRuntime {
         profile: async id => (await profileAndLimits(await store.read(), id)).profile,
         generalSend: (text, messageId, beforeSend) => askMate(paseo, { text, messageId }, async agentId => {
           await this.checked(homeId); await beforeSend(agentId);
-        }),
+        }, start => this.runtime.features ? this.runtime.features.boundary(home, async () => {
+          await this.checked(homeId);
+          const pending = start(); void pending.catch(() => undefined); return { pending };
+        }) : Promise.resolve({ pending: start() })),
       });
       return run({ discussions, commands });
     };

@@ -1,3 +1,4 @@
+import { featurePause } from "../shared/feature-settings";
 /** Default-off Build D. One owned workflow clock, S10 observe records and exception-only owner turns.
  * Only the captain-app admission creates an owner. No Attach, timer mutation, worker dispatch or deletion executor.
  */
@@ -21,6 +22,7 @@ import { SupervisionGateway, stableId, expectedFor } from "./supervision-effects
 import { SupervisorSessions, activationEffects, supervisorSpend } from "./supervisor-sessions";
 import { SupervisionUiReceiver } from "./supervision-ui-receiver";
 import { executorApproval } from "./supervision-capabilities";
+import { checkGeneralHeadroom } from "./supervision-headroom";
 import { serialized } from "./serialize";
 import { digest, publish } from "./submissions";
 import { resolveInHome } from "./files";
@@ -64,17 +66,21 @@ export class MaintenanceRuntime {
   }
   remember(paseo: PaseoApi) { if (!this.closed) this.paseo = paseo; }
   stop() { this.closed = true; this.paseo = null; }
-  private async checked(homeId: string) {
-    if (!this.options.enabled || this.closed) refuse("UNSUPPORTED", "Maintenance is disabled; no writer or model was created.");
+  private async checked(homeId: string, settlement = false) {
+    if ((!this.options.enabled && !this.runtime.features) || this.closed) refuse("UNSUPPORTED", "Maintenance is disabled; no writer or model was created.");
     const config = await this.config(); requireNoMigration(config);
     const home = resolveHome(config);
     if (workflowHomeIdentity(home) !== homeId) refuse("STALE", "Maintenance home changed; refresh before acting.");
+    if (!settlement) await this.runtime.features?.check(home, "maintenance");
+    else if (this.runtime.features && !(await this.runtime.features.read(home)).effective.maintenance &&
+      (await this.runtime.read(home)).freshness === "uninitialized") refuse("UNSUPPORTED", "There is no saved work to check for this paused help.");
     return { config, home };
   }
   async read() {
     const config = await this.config(), s = await this.runtime.read(resolveHome(config)), rows = maintenanceRows(s), summary = maintenanceSummary(s);
+    const policy = await this.runtime.features?.read(s.homeId);
     const approval = executorApproval({ installedVersion: null }); // No executor or live qualification ships here.
-    return MaintenanceRuntimeSnapshotSchema.parse({ enabled: !!this.options.enabled && !this.closed, homeId: s.homeId, sequence: s.sequence,
+    return MaintenanceRuntimeSnapshotSchema.parse({ enabled: (policy?.effective.maintenance ?? !!this.options.enabled) && !this.closed, homeId: s.homeId, pause: policy ? featurePause(s, policy.effective, "maintenance") : null, sequence: s.sequence,
       freshness: s.freshness, lowerBound: summary.lowerBound, problems: summary.problems,
       cleanup: { state: "held", reason: "G8: automatic cleanup is held; no qualified no-follow executor or reviewed installed-version reader evidence.",
         conditions: approval.conditions.map(c => ({ id: c.id, satisfied: c.satisfied, reasons: c.reasons })) }, ...rows,
@@ -91,7 +97,7 @@ export class MaintenanceRuntime {
   async summary() { return maintenanceSummary(await this.runtime.read(resolveHome(await this.config()))); }
   async admit(input: AdmitMaintenance, paseo: PaseoApi) {
     await this.checked(input.homeId); this.remember(paseo);
-    await admitMaintenanceOwner(this.runtime, input, this.receiver(paseo), id => this.checked(id), this.headroom);
+    await admitMaintenanceOwner(this.runtime, input, this.receiver(paseo), id => this.checked(id), this.runtime.features ? await this.runtime.features.capacity(input.homeId).then(c => ({ slots: c.slots, reserved: c.generalHeadroom })) : this.headroom);
     return this.read();
   }
   async answer(input: MaintenanceAnswer, paseo: PaseoApi) {
@@ -114,10 +120,12 @@ export class MaintenanceRuntime {
     return MaintenanceCensusSchema.parse({ ...body, capturedAt: this.now(), fingerprint: digest(body) });
   }
   async admin(raw: { homeId: string; requestId: string; actorId: string; command: MaintenanceCommand }) {
-    const command = MaintenanceCommandSchema.parse(raw.command), { config, home } = await this.checked(raw.homeId);
+    const command = MaintenanceCommandSchema.parse(raw.command);
+    const settlement = ["observe", "ack", "answer-handled", "retired", "reconcile-items", "resource-release", "resource-expire"].includes(command.op) || command.op === "state" && command.state !== "active";
+    const { config, home } = await this.checked(raw.homeId, settlement);
     return serialized(`${this.runtime.root}:maintenance-admin:${raw.homeId}`, async () => {
-      await this.runtime.mutate(home, async store => {
-        await this.checked(raw.homeId);
+      const commit = () => this.runtime.mutate(home, async store => {
+        await this.checked(raw.homeId, settlement);
         const s = await store.read(), requestHash = digest({ ...raw, command });
         const accepted = s.commands.find(c => c.id === raw.requestId);
         if (accepted) {
@@ -129,7 +137,7 @@ export class MaintenanceRuntime {
         const actor: SupervisionActor = { kind: general ? "mate-chat" : "agent", id: raw.actorId, source: "maintenance request (unverified same-user role)" };
         if (!["observe", "ack", "escalate", "answer-handled"].includes(command.op) && !general) refuse("UNKNOWN_OWNER", "Only the current first mate records maintenance administration.");
         const commandCheck = async (current: SupervisionStatus) => {
-          const fresh = await this.checked(raw.homeId);
+          const fresh = await this.checked(raw.homeId, settlement);
           if (general && fresh.config.mateAgentId !== raw.actorId) refuse("STALE", "General changed before maintenance commit.");
           if (command.op === "state" && command.state === "active" && maintenanceRows(current).jobs.find(j => j.id === command.jobId)?.mode !== "observe")
             refuse("HELD", "G8 holds automatic cleanup; only observe jobs can activate.");
@@ -190,15 +198,20 @@ export class MaintenanceRuntime {
           else if (command.op === "resource-expire") await resources.expire(raw.requestId, actor);
         }
       });
+      await (!settlement && this.runtime.features ? this.runtime.features.boundary(home, commit) : commit());
       return this.read();
     });
   }
   /** Existing clock only. It never borrows General's conversation lock. No jobs means no writer. */
   async tick() {
-    if (!this.options.enabled || this.closed) return;
+    if ((!this.options.enabled && !this.runtime.features) || this.closed) return;
     const config = await this.config(), home = resolveHome(config);
     if (config.migration || config.mateLaunch) return;
     await this.processRequests(home);
+    if (this.runtime.features && !(await this.runtime.features.read(home)).effective.maintenance) {
+      if (this.paseo) await this.runtime.reconcile(home, this.receiver(this.paseo), ["maintenance"]);
+      return;
+    }
     const minute = this.now().slice(0, 16);
     if (this.minute === minute) return;
     this.minute = minute;
@@ -241,13 +254,17 @@ export class MaintenanceRuntime {
         let effect = delivery(s, incident);
         if (effect && (effect.epoch !== binding.epoch || effect.state !== "reserved")) return;
         const commands = new SupervisionCommands(store, home, { enabled: true });
-        const gateway = new SupervisionGateway(store, commands, home, receiver, { enabled: true, admissionCheck: async (current, effect) => {
+        const gateway = new SupervisionGateway(store, commands, home, receiver, { enabled: true, policyFence: this.runtime.features?.gateway(home, "maintenance", () => store.read()), admissionCheck: async (current, effect) => {
           const { config } = await this.checked(current.homeId);
           this.incidentGuard(current, incident, config.mateAgentId);
+          const capacity = await this.runtime.features?.capacity(home);
+          if (capacity) await checkGeneralHeadroom(current, receiver, capacity.slots, capacity.generalHeadroom, effect.id);
           if (effect.requestId !== requestFor(incident) || effect.scopeId !== scopeId || effect.operation !== "agent.send" || effect.attemptId !== null)
             refuse("HELD", "Maintenance only admits its reserved incident notification; corrective plans use the checked plan runtime/rules.");
         } });
-        const sessions = new SupervisorSessions(store, gateway, receiver, { enabled: true, globalMateId: async () => (await this.config()).mateAgentId || null,
+        const sessions = new SupervisorSessions(store, gateway, receiver, { enabled: true,
+        featurePolicy: async () => this.runtime.features?.reservation(home, "maintenance"),
+        reserveBoundary: run => this.runtime.features ? this.runtime.features.boundary(home, run) : run(), reserveCheck: async () => { await this.checked(store.homeId); }, globalMateId: async () => (await this.config()).mateAgentId || null,
           limits: { supervisorSessions: 1, supervisorTurns: Math.min(admission.limits.supervisorTurns,
             1 + maintenanceRows(s).jobs.filter(j => j.scopeId === scopeId).reduce((sum, j) => sum + (j.budget?.turns ?? 0), 0)) } });
         if (!effect) {
@@ -272,15 +289,19 @@ export class MaintenanceRuntime {
     if (!admission) refuse("HELD", "Maintenance answer delivery requires the original captain-app session/turn limits.");
     let effect = maintenanceAnswerDelivery(s, outbox);
     if (effect && (effect.epoch !== binding.epoch || effect.state !== "reserved")) return;
-    const gateway = new SupervisionGateway(store, new SupervisionCommands(store, home, { enabled: true }), home, receiver, { enabled: true,
+    const gateway = new SupervisionGateway(store, new SupervisionCommands(store, home, { enabled: true }), home, receiver, { enabled: true, policyFence: this.runtime.features?.gateway(home, "maintenance", () => store.read()),
       admissionCheck: async (current, candidate) => {
         const { config } = await this.checked(current.homeId), actual = current.outbox.find(o => o.id === outbox.id);
         if (!actual || digest(actual) !== digest(outbox)) refuse("STALE", "Maintenance answer outbox changed before its send.");
         maintenanceAnswerOwner(current, actual, config.mateAgentId);
+        const capacity = await this.runtime.features?.capacity(home);
+        if (capacity) await checkGeneralHeadroom(current, receiver, capacity.slots, capacity.generalHeadroom, candidate.id);
         if (candidate.requestId !== maintenanceAnswerRequest(actual) || candidate.scopeId !== scopeId || candidate.attemptId !== null || candidate.operation !== "agent.send")
           refuse("HELD", "Only the exact checked maintenance answer notification is admitted.");
       } });
-    const sessions = new SupervisorSessions(store, gateway, receiver, { enabled: true, limits: admission.limits,
+    const sessions = new SupervisorSessions(store, gateway, receiver, { enabled: true,
+        featurePolicy: async () => this.runtime.features?.reservation(home, "maintenance"),
+        reserveBoundary: run => this.runtime.features ? this.runtime.features.boundary(home, run) : run(), reserveCheck: async () => { await this.checked(store.homeId); }, limits: admission.limits,
       globalMateId: async () => (await this.config()).mateAgentId || null });
     if (!effect) {
       const text = `Captain maintenance choice (client UI, unverified): ${JSON.stringify({ decision, outbox })}\nThis answer is an instruction to the logical maintenance owner, never a budget grant or work authority. Record handling with maintenance answer-handled, outboxId ${outbox.id}, epoch ${binding.epoch}, and checked result evidence. Budget edits and corrective work retain their existing reviewed guards.`;

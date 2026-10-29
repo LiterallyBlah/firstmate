@@ -28,11 +28,12 @@ export function MaintenanceOwnershipBoard({ theme, compact, hostId = "local", na
   const data = query.data;
   useEffect(() => { selectAdmission(null); }, [hostId, data?.homeId]);
   if (!data) return query.isError ? <Text accessibilityRole="alert" style={{ color: theme.colors.statusWarning }}>Routine checks could not be read. Close and reopen details to check again.</Text> : null;
-  if (!maintenanceHasHistory(data) && !data.problems.length && data.freshness !== "held" && !query.isError && !(advanced && data.enabled)) return null;
+  if (!maintenanceHasHistory(data) && !data.problems.length && !data.pause && data.freshness !== "held" && !query.isError && !(advanced && data.enabled)) return null;
   const stale = query.isError || !data.enabled, colors = theme.colors;
   return <View testID="maintenance-ownership" style={{ gap: 8, padding: compact ? 12 : 16, borderBottomWidth: 1, borderColor: colors.border }}>
     <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "600" }}>Routine checks</Text>
     <Text style={{ color: colors.foregroundMuted }}>Checks report problems for review. Automatic cleanup is unavailable.</Text>
+    {data.pause ? <Text accessibilityLiveRegion="polite" style={{ color: colors.foregroundMuted }}>{data.pause}</Text> : null}
     {query.isError ? <Text accessibilityRole="alert" style={{ color: colors.statusWarning }}>Maintenance could not be refreshed. Actions are unavailable; refresh before continuing.</Text> : null}
     {data.problems.map(p => <Text key={p} accessibilityRole="alert" style={{ color: colors.statusWarning }}>{p}</Text>)}
     <View style={{ gap: 8 }}>

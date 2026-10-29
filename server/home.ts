@@ -1,3 +1,4 @@
+import { currentFeaturePolicy } from "./feature-policy-runtime";
 /**
  * The first mate's home: the directory it runs in, and the only place it
  * writes. FirstMate called this the distro — a charter and a set of records
@@ -120,18 +121,7 @@ export async function prepareHome(home: string, config: FirstmateConfig, origin:
   }));
   await homeWrite(home, TEMPLATES.launchHelper, origin, await renderLaunchTool(home));
   await homeWrite(home, TEMPLATES.workflowHelper, origin, await readTemplate(TEMPLATES.workflowHelper));
-  if (process.env.FIRSTMATE_PLAN_SUPERVISORS === "1") {
-    await homeWrite(home, TEMPLATES.scopeHelper, origin, await readTemplate(TEMPLATES.scopeHelper));
-    await homeWrite(home, TEMPLATES.scopeGuide, origin, await readTemplate(TEMPLATES.scopeGuide));
-  }
-  if (process.env.FIRSTMATE_PROJECT_MATES === "1") {
-    await homeWrite(home, TEMPLATES.projectHelper, origin, await readTemplate(TEMPLATES.projectHelper));
-    await homeWrite(home, TEMPLATES.projectGuide, origin, await readTemplate(TEMPLATES.projectGuide));
-  }
-  if (process.env.FIRSTMATE_MAINTENANCE === "1") {
-    await homeWrite(home, TEMPLATES.maintenanceHelper, origin, await readTemplate(TEMPLATES.maintenanceHelper));
-    await homeWrite(home, TEMPLATES.maintenanceGuide, origin, await readTemplate(TEMPLATES.maintenanceGuide));
-  }
+  await syncFeatureHelpers(home, origin);
   await homeWrite(home, TEMPLATES.backlogLint, origin, await readTemplate(TEMPLATES.backlogLint));
   await homeWrite(home, TEMPLATES.workflowGuide, origin, await readTemplate(TEMPLATES.workflowGuide));
   await homeWrite(home, TEMPLATES.recallHelper, origin, await readTemplate(TEMPLATES.recallHelper));
@@ -243,4 +233,22 @@ export function parseProjects(markdown: string): Project[] {
 export async function readProjects(home: string): Promise<Project[]> {
   const markdown = await readOptional(join(home, "data", "projects.md"));
   return markdown === null ? [] : parseProjects(markdown);
+}
+
+/** Only existing homes gain transport files. Off retains files/receipts for reconciliation. */
+export async function syncFeatureHelpers(home: string, origin: RecordOrigin = newAction("feature-helpers")): Promise<void> {
+  if (!(await isHomeReady(home))) return;
+  const policy = await currentFeaturePolicy(home);
+  if (policy.effective.planSupervisors) {
+    await homeWrite(home, TEMPLATES.scopeHelper, origin, await readTemplate(TEMPLATES.scopeHelper));
+    await homeWrite(home, TEMPLATES.scopeGuide, origin, await readTemplate(TEMPLATES.scopeGuide));
+  }
+  if (policy.effective.projectMates) {
+    await homeWrite(home, TEMPLATES.projectHelper, origin, await readTemplate(TEMPLATES.projectHelper));
+    await homeWrite(home, TEMPLATES.projectGuide, origin, await readTemplate(TEMPLATES.projectGuide));
+  }
+  if (policy.effective.maintenance) {
+    await homeWrite(home, TEMPLATES.maintenanceHelper, origin, await readTemplate(TEMPLATES.maintenanceHelper));
+    await homeWrite(home, TEMPLATES.maintenanceGuide, origin, await readTemplate(TEMPLATES.maintenanceGuide));
+  }
 }

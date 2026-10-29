@@ -49,14 +49,18 @@ export async function admitMaintenanceOwner(runtime: SupervisionRuntime, raw: Ad
     });
     let status = await store.read(); await fresh(status);
     const binding = status.bindings.find(b => b.scopeId === input.scopeId);
-    const gateway = new SupervisionGateway(store, new SupervisionCommands(store, home, { enabled: true }), home, receiver, { enabled: true,
+    const gateway = new SupervisionGateway(store, new SupervisionCommands(store, home, { enabled: true }), home, receiver, { enabled: true, policyFence: runtime.features?.gateway(home, "maintenance", () => store.read()),
       admissionCheck: async (current, effect) => {
         await fresh(current);
+        const capacity = await runtime.features?.capacity(home);
+        if (capacity) await checkGeneralHeadroom(current, receiver, capacity.slots, capacity.generalHeadroom, effect.id);
         const b = current.bindings.find(b => b.scopeId === input.scopeId), effects = b && activationEffects(current, input.scopeId, b.epoch);
         if (effect.requestId !== input.requestId || effect.scopeId !== input.scopeId || !effects || ![effects.workspace?.id, effects.create?.id, effects.send?.id].includes(effect.id))
           refuse("HELD", "Only the original maintenance admission effects may run here.");
       } });
-    const sessions = new SupervisorSessions(store, gateway, receiver, { enabled: true, limits: input.limits,
+    const sessions = new SupervisorSessions(store, gateway, receiver, { enabled: true,
+        featurePolicy: async () => runtime.features?.reservation(home, "maintenance"),
+        reserveBoundary: run => runtime.features ? runtime.features.boundary(home, run) : run(), limits: input.limits,
       globalMateId: async () => (await checked(input.homeId)).config.mateAgentId, reserveCheck: fresh });
     if (!binding) await withScopeAdmission(input.homeId, async () => {
       await fresh(await store.read()); await checkGeneralHeadroom(await store.read(), receiver, headroom.slots, headroom.reserved);

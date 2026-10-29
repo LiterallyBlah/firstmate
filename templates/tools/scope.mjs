@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Plugin-owned scope transport for a plan supervisor, a home guest bound to one scope epoch.
-// Seeded/served only with FIRSTMATE_PLAN_SUPERVISORS=1. tools/role.mjs remains the only
+// Seeded when plan help is enabled; retained for read/receipt reconciliation while paused. tools/role.mjs remains the only
 // global first-mate check; this helper never grants or borrows that role. Request files are
 // cooperative same-user transport, not authenticated identity. Never repeat a create.
 import { execFile } from "node:child_process";

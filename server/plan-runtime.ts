@@ -1,3 +1,4 @@
+import type { FeatureCapability } from "../shared/feature-settings";
 import { connectPlanBootstrap } from "./plan-bootstrap";
 import { checkPlanSupervisorAuthority, planSupervisorAuthority } from "./plan-supervisor-authority";
 /** Default-off production composition over Build A's single owned home runtime. */
@@ -60,10 +61,10 @@ export class PlanRuntime {
     if (!Number.isSafeInteger(slots) || !Number.isSafeInteger(headroom) || headroom < 1 || slots <= headroom)
       throw new Error("Plan slots must leave at least one configured General slot.");
   }
-  remember(paseo: PaseoApi) { if (this.options.enabled && !this.closed) this.paseo = paseo; }
+  remember(paseo: PaseoApi) { if ((this.options.enabled || this.runtime.features) && !this.closed) this.paseo = paseo; }
   private config() { return (this.options.config ?? readFirstmateConfig)(); }
   register(server: PluginServerContext) {
-    if (!this.options.enabled) return;
+    if (!this.options.enabled && !this.runtime.features) return;
     this.server = server;
     this.disposers.push(server.on("agent.turn_started", (_e, { paseo }) => { this.remember(paseo); }),
       server.on("agent.turn_ended", (event, context) => this.lifecycleEvent("agent.turn_ended", event, context)),
@@ -73,23 +74,25 @@ export class PlanRuntime {
   /** Register at plugin start; the first post-restart callback must not wait for a view or tick. */
   private async lifecycleEvent(name: string, event: unknown, context: { paseo: PaseoApi }) {
     this.remember(context.paseo);
-    if (!this.options.enabled || this.closed) return;
+    if ((!this.options.enabled && !this.runtime.features) || this.closed) return;
     const config = await this.config(), home = resolveHome(config);
     if (!config.mateAgentId || config.migration || config.mateLaunch) return;
     const status = await this.runtime.read(home);
     if (status.freshness !== "current" || !status.bindings.some(b => b.state === "active")) return;
     await this.runtime.mutate(home, async store => {
-      await this.guard(home, config.mateAgentId);
+      await this.guard(home, config.mateAgentId, false);
       if (!this.components.has(store)) this.components.set(store, this.compose(store, home, config.mateAgentId, context.paseo));
       for (const handler of this.lifecycleHooks.get(store)?.get(name) ?? []) await handler(event, context);
     });
   }
-  private async guard(home: string, generalId: string) {
-    if (!this.options.enabled || this.closed) refuse("UNSUPPORTED", "Plan supervisors are disabled.");
+  private async guard(home: string, generalId: string, capability: FeatureCapability | false = "planSupervisors") {
+    if ((!this.options.enabled && !this.runtime.features) || this.closed) refuse("UNSUPPORTED", "Plan supervisors are disabled.");
     const config = await this.config();
     if (resolveHome(config) !== home || config.mateAgentId !== generalId || config.migration || config.mateLaunch)
       refuse("STALE", "Home/General changed or is migrating; scoped admission is held.");
+    if (capability) await this.runtime.features?.check(home, capability);
   }
+  private async capacity(home: string) { return this.runtime.features?.capacity(home) ?? { slots: this.options.slots ?? 4, generalHeadroom: this.options.headroom ?? 1 }; }
   compose(store: SupervisionStore, home: string, generalId: string, paseo: PaseoApi) {
     const rules = new PlanRules(store, home);
     const directory = async (name: string) => {
@@ -100,25 +103,30 @@ export class PlanRuntime {
       return matches[0]!.owner!.directory;
     };
     const receiver = this.options.receiver?.(paseo, store) ?? new SupervisionWorkerReceiver(paseo, this.runtime.root, directory);
-    const commands = new SupervisionCommands(store, home, { enabled: true, rules, recovery: true, registerTasks: true });
+    const commands = new SupervisionCommands(store, home, { enabled: true, rules, recovery: true, registerTasks: true,
+      commandBoundary: run => this.runtime.features ? this.runtime.features.boundary(home, run) : run(), commandAdmission: async (_s, input) => {
+      await this.guard(home, generalId, ["record", "ack", "notified", "hold"].includes(input.command.op) ? false : "planSupervisors");
+    } });
     const allocation = (s: SupervisionStatus, input: import("../shared/scoped-commands").ScopedPlanCommand) => {
       const c = input.command, node = c.op === "implicit" ? c.launch.id : "node" in c ? c.node : null;
       checkPlanAllocation(s, input.scopeId, true, s.tasks.find(t => t.ownerScopeId === input.scopeId && t.nodeId === node)?.projectId);
     };
     const sources = new SupervisionSources(store), board = new ScopedBoardSteer(store, sources, undefined, { refuseDelivery: true });
     const admissionCheck = async (s: SupervisionStatus, scopeId: string) => {
-      await this.guard(home, generalId);
       const scope = s.scopes.find(v => v.id === scopeId);
+      await this.guard(home, generalId, scope?.kind === "project" ? "projectMates" : "planSupervisors");
       if (scope?.projectIds.some(id => s.projects?.projects.find(p => p.id === id)?.state === "stopped")) refuse("HELD", "This project's new effects are stopped.");
       if (scope?.kind === "plan") await checkPlanSupervisorAuthority(home, s, scopeId);
     };
     const gateway = new SupervisionGateway(store, commands, home, receiver, { enabled: true, rules, recovery: true,
+      featurePolicy: async () => this.runtime.features?.reservation(home, "planSupervisors"),
+      policyFence: this.runtime.features?.gateway(home, async e => (await store.read()).scopes.find(s => s.id === e.scopeId)?.kind === "project" ? "projectMates" : "planSupervisors", () => store.read()),
       reserveStart: run => withScopeAdmission(store.homeId, run),
       startCheck: allocation,
-      beforeStart: async (s, input) => { await this.guard(home, generalId); allocation(s, input); await checkGeneralHeadroom(s, receiver, this.options.slots ?? 4, this.options.headroom ?? 1); },
+      beforeStart: async (s, input) => { await this.guard(home, generalId); allocation(s, input); const cap = await this.capacity(home); await checkGeneralHeadroom(s, receiver, cap.slots, cap.generalHeadroom); },
       prepareAdmission: async e => {
-        await this.guard(home, generalId);
         const s = await store.read();
+        await admissionCheck(s, e.scopeId);
         const task = s.attempts.find(a => a.id === e.attemptId)?.taskId;
         const relevant = (status: SupervisionStatus) => e.attemptId ? status.sources.bindings.filter(b => b.scopeId === e.scopeId && b.state === "active" &&
           (b.taskId === task || e.dependencyBindings?.some(d => d.attemptId === b.attemptId))) : [];
@@ -139,10 +147,13 @@ export class PlanRuntime {
         await admissionCheck(s, e.scopeId);
         if (e.attemptId && !["agent.interrupt", "agent.archive"].includes(e.operation)) {
           checkPlanAllocation(s, e.scopeId, false);
-          await checkGeneralHeadroom(s, receiver, this.options.slots ?? 4, this.options.headroom ?? 1, e.id);
+          const cap = await this.capacity(home); await checkGeneralHeadroom(s, receiver, cap.slots, cap.generalHeadroom, e.id);
         }
         const scope = s.scopes.find(v => v.id === e.scopeId);
         if (scope?.projectIds.some(id => s.projects?.projects.find(p => p.id === id)?.state === "stopped")) refuse("HELD", "This project's new effects are stopped.");
+        if (e.attemptId === null && this.runtime.features) {
+          const cap = await this.capacity(home); await checkGeneralHeadroom(s, receiver, cap.slots, cap.generalHeadroom, e.id);
+        }
         if (e.attemptId === null && e.operation === "agent.send" && scope?.kind === "plan") {
           const authority = planSupervisorAuthority(s, e.scopeId);
           if (digest(e.planRules ?? null) !== digest(authority)) refuse("STALE", "The supervisor effect's reserved rule authority changed.");
@@ -151,10 +162,12 @@ export class PlanRuntime {
         }
       } });
     const sessions = new SupervisorSessions(store, gateway, receiver, { enabled: true,
+      featurePolicy: async (status, scopeId) => this.runtime.features?.reservation(home, status.scopes.find(s => s.id === scopeId)?.kind === "project" ? "projectMates" : "planSupervisors"),
+      reserveBoundary: run => this.runtime.features ? this.runtime.features.boundary(home, run) : run(),
       ruleRef: (s, scopeId) => s.scopes.some(v => v.id === scopeId && v.kind === "plan") ? planSupervisorAuthority(s, scopeId) : undefined,
       budgetRefused: scopeId => rules.budgetDecision(scopeId),
       reservationQueue: run => withScopeAdmission(store.homeId, run),
-      preflightTurn: async () => { await this.guard(home, generalId); await checkGeneralHeadroom(await store.read(), receiver, this.options.slots ?? 4, this.options.headroom ?? 1); },
+      preflightTurn: async scopeId => { await admissionCheck(await store.read(), scopeId); const cap = await this.capacity(home); await checkGeneralHeadroom(await store.read(), receiver, cap.slots, cap.generalHeadroom); },
       limits: { supervisorSessions: 1, supervisorTurns: 1 },
       limitsFor: (s, scopeId) => {
         const scope = s.scopes.find(v => v.id === scopeId);
@@ -164,7 +177,7 @@ export class PlanRuntime {
         const p = s.projects?.projects.find(p => p.scopeId === scopeId);
         if (!p?.owner) refuse("HELD", "Project provisioning limits are unavailable.");
         return p.owner.limits;
-      }, reserveCheck: admissionCheck, globalMateId: async () => { await this.guard(home, generalId); return generalId; } });
+      }, reserveCheck: admissionCheck, globalMateId: async () => { await this.guard(home, generalId, false); return generalId; } });
     const ingress = new SupervisionEvents(store), inbox = new SupervisionInbox(store, { offers: true });
     const lifecycle = new SupervisionLifecycle(store, ingress, inbox, sessions, gateway, { enabled: true, context: (s, scopeId) => ({
       helper: join(home, "tools", "scope.mjs"), guide: join(home, "data", "plan-supervisors.md"), scopeId, epoch: s.bindings.find(b => b.scopeId === scopeId)?.epoch,
@@ -189,16 +202,16 @@ export class PlanRuntime {
     return { rules, receiver, commands, sources, board, gateway, sessions, ingress, inbox, lifecycle, projectJudgments: new ProjectJudgments(store), recovered: false, recoveredAt: 0, routesHash: "" };
   }
   async tick() {
-    if (!this.options.enabled || this.closed) return;
+    if ((!this.options.enabled && !this.runtime.features) || this.closed) return;
     const config = await this.config(), home = resolveHome(config);
     if (config.migration || config.mateLaunch || !config.mateAgentId) return;
     const read = await this.runtime.read(home);
-    if (read.freshness !== "current" || !read.bindings.some(b => b.state === "active")) return;
+    if (read.freshness !== "current" || !read.bindings.length) return;
     if (!this.paseo) {
       if (Date.now() - this.bootstrapAttemptAt < 60000) return;
       this.bootstrapAttemptAt = Date.now();
       const connection = await (this.options.bootstrap ?? connectPlanBootstrap)(home, config.mateAgentId);
-      try { await this.guard(home, config.mateAgentId); }
+      try { await this.guard(home, config.mateAgentId, false); }
       catch (error) { await connection.close(); throw error; }
       this.bootstrapConnection = connection;
       // A lifecycle event may have supplied the host API while the connection was opening.
@@ -206,6 +219,7 @@ export class PlanRuntime {
     }
     const paseo = this.paseo;
     await this.runtime.mutate(home, async store => {
+      await this.guard(home, config.mateAgentId, false);
       let c = this.components.get(store);
       if (!c) { c = this.compose(store, home, config.mateAgentId, paseo); this.components.set(store, c); }
       const own = c;
@@ -218,10 +232,8 @@ export class PlanRuntime {
         const temporary = join(directory, "scoped-routes.json.tmp"); await writeFile(temporary, JSON.stringify(routes)); await rename(temporary, join(directory, "scoped-routes.json"));
         c.routesHash = digest(routes);
       }
-      await c.rules.observeFailures();
-      const stopRequests = await c.rules.requestStops(), projectInputs = await c.projectJudgments.observe();
       await processScopeRequests(home, { store, commands: c.commands, gateway: c.gateway, legacy: workflowStore(home), inbox: c.inbox, rules: c.rules,
-        globalMateId: async () => { await this.guard(home, config.mateAgentId); return config.mateAgentId; }, continuationsEnabled: true,
+        globalMateId: async () => { await this.guard(home, config.mateAgentId, false); return config.mateAgentId; }, continuationsEnabled: true,
         projectResult: (id, input, actor) => own.projectJudgments.handle(id, input, actor),
         admin: async (kind, id, input, actor) => { await this.guard(home, config.mateAgentId);
           if (kind === "rules") return own.rules.import(id, PlanRuleRecordSchema.parse(input), actor);
@@ -232,6 +244,17 @@ export class PlanRuntime {
           const s = await store.read(); if (!s.bindings.some(b => b.scopeId === binding.scopeId && b.agentId === actor.id && b.state === "active")) refuse("UNKNOWN_OWNER", "PR binding requires this exact supervisor.");
           return own.sources.bindPullRequest(binding, requestId);
         } });
+      const policy = await this.runtime.features?.read(home);
+      if (policy && !policy.effective.planSupervisors) {
+        await this.runtime.reconcile(home, c.receiver, ["project", "plan"]);
+        if (policy.effective.projectMates) {
+          for (const scope of (await store.read()).scopes.filter(s => s.kind === "project" && s.state === "active"))
+            await c.lifecycle.wake(scope.id, "heartbeat").catch(() => undefined);
+        }
+        return;
+      }
+      await c.rules.observeFailures();
+      const stopRequests = await c.rules.requestStops(), projectInputs = await c.projectJudgments.observe();
       await c.rules.observeFailures();
       const logFailures = (results: PromiseSettledResult<unknown>[]) => results.forEach(r => { if (r.status === "rejected") console.error("[firstmate] scoped progress held:", r.reason); });
       logFailures(await Promise.allSettled([...new Set([...projectInputs, ...stopRequests])].map(id => own.lifecycle.wake(id, "event"))));
@@ -263,20 +286,21 @@ export class PlanRuntime {
     });
   }
   async remote(snapshot: RemoteSnapshot) {
-    if (!this.options.enabled || this.closed) return;
+    if ((!this.options.enabled && !this.runtime.features) || this.closed) return;
     const home = resolveHome(await this.config());
     for (const [store, c] of this.components) if (store.homeId === workflowHomeIdentity(home)) await c.sources.observeRemote(snapshot);
   }
   async steer(paseo: PaseoApi, agentId: string, text: string) {
-    if (!this.options.enabled) refuse("UNSUPPORTED", "Scoped board steering is disabled.");
+    if (!this.options.enabled && !this.runtime.features) refuse("UNSUPPORTED", "Scoped board steering is disabled.");
     this.remember(paseo);
     const home = resolveHome(await this.config());
+    await this.runtime.features?.check(home, "planSupervisors");
     const component = [...this.components].find(([store]) => store.homeId === workflowHomeIdentity(home))?.[1];
     if (!component) refuse("HELD", "The scoped runtime has not reconciled this home yet.");
     return component.board.steer(paseo, agentId, text);
   }
   async act(input: { homeId: string; requestId: string; command: Extract<WorkflowCommand, { op: "captain" }> }, paseo: PaseoApi) {
-    if (!this.options.enabled || this.closed) return false;
+    if ((!this.options.enabled && !this.runtime.features) || this.closed) return false;
     const config = await this.config(), home = resolveHome(config);
     const read = await this.runtime.read(home), backend = read.backends.find(b => b.planId === input.command.plan);
     if (!backend) return false;
@@ -311,7 +335,10 @@ export class PlanRuntime {
       if (saved && (digest(saved.command) !== digest(input.command) || saved.homeId !== read.homeId)) refuse("CONFLICT", "Request ID belongs to another captain action.");
       await store.transactCommand(intentId, digest(input), actor, async () => ({ expectedVersions: [], mutations: [],
         result: { planId: plan.definition.id, planHash: plan.hash, decisionId: null, outboxId: null, uiPlanIntent: body } }));
-      await new SupervisionCommands(store, home, { enabled: true, rules: new PlanRules(store, home) }).planCommand(body, actor);
+      await new SupervisionCommands(store, home, { enabled: true, rules: new PlanRules(store, home),
+        commandAdmission: async () => { await this.guard(home, config.mateAgentId); },
+        commandBoundary: run => this.runtime.features ? this.runtime.features.boundary(home, run) : run(),
+      }).planCommand(body, actor);
     });
     return true;
   }

@@ -60,6 +60,8 @@ export function checkDependencyRoute(status: SupervisionStatus, planId: string, 
 }
 export class SupervisionCommands {
   constructor(readonly store: SupervisionStore, readonly home: string, private readonly options: { enabled?: boolean; now?: () => string; rules?: PlanRules; recovery?: boolean; registerTasks?: boolean; unverifiedUiAnswers?: boolean;
+    commandBoundary?: <T>(run: () => Promise<T>) => Promise<T>;
+    commandAdmission?: (status: SupervisionStatus, input: ScopedPlanCommand) => Promise<void>;
     answerAdmission?: (status: SupervisionStatus) => Promise<void> } = {}) {}
   private checkOwner(status: SupervisionStatus, input: Pick<ScopedPlanCommand, "homeId" | "scopeId" | "epoch" | "scopeVersion">, actor: SupervisionActor, op: PilotOperation, uiAnswer = false) {
     if (!this.options.enabled) fail("UNSUPPORTED", "Pilot scoped commands are disabled.");
@@ -80,7 +82,8 @@ export class SupervisionCommands {
   async planCommand(raw: ScopedPlanCommand, actorInput: SupervisionActor) {
     const input = structuredClone(ScopedPlanCommandSchema.parse(raw)), actor = structuredClone(SupervisionActorSchema.parse(actorInput));
     const factual = await this.options.rules?.prepareFactual(input);
-    return this.store.transactCommand(input.requestId, digest(input), actor, status => this.prepare(status, input, actor, false, factual))
+    const commit = () => this.store.transactCommand(input.requestId, digest(input), actor, status => this.prepare(status, input, actor, false, factual));
+    return (this.options.commandBoundary ? this.options.commandBoundary(commit) : commit())
       .catch(error => this.options.rules ? this.options.rules.refused(error) : Promise.reject(error));
   }
   /** S04 composition seam: the same checked preparation, extended inside the same transaction.
@@ -90,10 +93,11 @@ export class SupervisionCommands {
     extend: (status: SupervisionStatus, prepared: { mutations: SupervisionMutation[]; result: ScopedCommandResult }) => Promise<{ expectedVersions: SupervisionExpected[]; mutations: SupervisionMutation[] }>) {
     const input = structuredClone(ScopedPlanCommandSchema.parse(raw)), actor = structuredClone(SupervisionActorSchema.parse(actorInput));
     const factual = await this.options.rules?.prepareFactual(input);
-    return this.store.transactCommand(input.requestId, digest({ composed: kind, input }), actor, async status => {
+    const commit = () => this.store.transactCommand(input.requestId, digest({ composed: kind, input }), actor, async status => {
       const prepared = await this.prepare(status, input, actor, kind === "s04.checked-recovery/1", factual), extra = await extend(status, prepared);
       return { expectedVersions: [...prepared.expectedVersions, ...extra.expectedVersions], mutations: [...prepared.mutations, ...extra.mutations], result: prepared.result };
-    }).catch(error => this.options.rules ? this.options.rules.refused(error) : Promise.reject(error));
+    });
+    return (this.options.commandBoundary ? this.options.commandBoundary(commit) : commit()).catch(error => this.options.rules ? this.options.rules.refused(error) : Promise.reject(error));
   }
   async answer(raw: ScopedAnswer, actorInput: SupervisionActor) {
     return this.answerWith(raw, actorInput, false);
@@ -106,7 +110,7 @@ export class SupervisionCommands {
   }
   private async answerWith(raw: ScopedAnswer, actorInput: SupervisionActor, uiAnswer: boolean) {
     const answer = structuredClone(ScopedAnswerSchema.parse(raw)), actor = structuredClone(SupervisionActorSchema.parse(actorInput));
-    return this.store.transactCommand(answer.submissionId, digest(answer), actor, async status => {
+    const commit = () => this.store.transactCommand(answer.submissionId, digest(answer), actor, async status => {
       await this.options.answerAdmission?.(status);
       const decision = status.decisions.find(d => d.id === answer.decisionId);
       if (decision?.maintenance) fail("UNSUPPORTED", "Maintenance answers use their checked maintenance app transport, never a plan command.");
@@ -142,8 +146,10 @@ export class SupervisionCommands {
         command: { op: "captain", plan: decision.planId, action: "answer", revision: answer.revision, subjectHash: decision.subjectHash,
           node: decision.nodeId, option: answer.option, text: answer.text } }, actor, false, undefined, uiAnswer);
     });
+    return this.options.commandBoundary ? this.options.commandBoundary(commit) : commit();
   }
   private async prepare(status: SupervisionStatus, input: ScopedPlanCommand, actor: SupervisionActor, checkedRecovery = false, factual?: { id: string; bytes: number }, uiAnswer = false) {
+    await this.options.commandAdmission?.(status, input);
     const c = input.command, op = operation(c), scope = this.checkOwner(status, input, actor, op, uiAnswer);
     if (["plans", "show", "agenda", "lint", "notified"].includes(c.op) || (["retire", "replace", "release"].includes(c.op) && !this.options.recovery) || (["retire", "replace"].includes(c.op) && !checkedRecovery)) fail("UNSUPPORTED", "This command needs its existing reader or checked lifecycle/recovery adapter.");
     const planId = c.op === "draft" || c.op === "revise" ? c.definition.id : c.op === "implicit" ? c.launch.id : "plan" in c ? c.plan : fail("UNSUPPORTED", "No plan target.");

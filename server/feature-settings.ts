@@ -1,5 +1,5 @@
 /** Immutable policy revisions, separate from both the display document and supervision journal.
- * Nothing in the running services consumes this store until runtime enforcement is installed. */
+ * The runtime resolves live authority separately; store reads remain inert. */
 import { mkdir, readFile, readdir } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 import { z } from "zod";
@@ -110,7 +110,7 @@ export class FeatureSettingsStore {
           code: "POLICY_HELD", reason: held().message })), runtimeEnforced: false, writesAvailable: false });
     }
   }
-  /** Internal persistence seam only. The app transport remains held until PR 4. It writes no
+  /** Immutable persistence seam; the app transport serializes saves with final effect claims. It writes no
    * source authority, session/owner identity, spend, strong qualification or supervision record. */
   async set(input: FeatureSetInput): Promise<FeatureSetResult> {
     const parsed = FeatureSetInputSchema.parse(input);

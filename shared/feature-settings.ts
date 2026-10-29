@@ -1,5 +1,6 @@
+import type { SupervisionStatus } from "./supervision";
 /** Server-owned feature policy. Display preferences are never execution authority.
- * Slice 3 defines the contract; runtime enforcement is deliberately not installed. */
+ * Runtime enforcement is resolved by the server, independently of display preferences. */
 import { defineRpc } from "@getpaseo/plugin";
 import { z } from "zod";
 
@@ -35,9 +36,9 @@ export const FeaturePolicySnapshotSchema = z.object({ homeId: home, revision: co
   requested: FeatureCapabilitiesSchema, effective: FeatureCapabilitiesSchema, capacity: FeatureCapacitySchema.nullable(),
   policy: FeaturePolicySchema.nullable(), problems: z.array(z.string()),
   dependencyRefusals: z.array(z.object({ capability: z.enum(FEATURE_CAPABILITIES),
-    code: z.enum(["POLICY_HELD", "RUNTIME_ENFORCEMENT_UNAVAILABLE"]), reason: z.string() }).strict()),
-  /** Effective values are policy resolution only, never a claim of live runtime enforcement. */
-  runtimeEnforced: z.literal(false), writesAvailable: z.literal(false),
+    code: z.enum(["POLICY_HELD", "RUNTIME_ENFORCEMENT_UNAVAILABLE", "DEPENDENCY_DISABLED"]), reason: z.string() }).strict()),
+  /** The running server resolves dependencies and advertises its installed effect fences. */
+  runtimeEnforced: z.boolean(), writesAvailable: z.boolean(),
 }).strict();
 export type FeaturePolicySnapshot = z.infer<typeof FeaturePolicySnapshotSchema>;
 /** Counts describe only the listed coverage; incomplete/failed sources never imply an empty fleet. */
@@ -46,8 +47,23 @@ export const FeatureInventorySchema = z.object({ complete: z.literal(false),
   active: count.nullable(), pending: count.nullable(), uncertain: count.nullable(), problems: z.array(z.string()),
 }).strict();
 export type FeatureInventory = z.infer<typeof FeatureInventorySchema>;
-export const FeatureReadResultSchema = FeaturePolicySnapshotSchema.extend({ inventory: FeatureInventorySchema });
+export const FeatureReadResultSchema = FeaturePolicySnapshotSchema.extend({ inventory: FeatureInventorySchema,
+  pause: z.string().nullable().default(null) });
 export const readFeatureSettings = defineRpc({ name: "firstmate.features.read",
   input: z.object({ home }).strict(), output: FeatureReadResultSchema });
 export const setFeatureSettings = defineRpc({ name: "firstmate.features.set",
   input: FeatureSetInputSchema, output: FeatureSetResultSchema });
+
+/** A bounded count of retained scoped operations, never a complete fleet inventory. */
+export function featurePause(status: SupervisionStatus, effective: FeatureCapabilities, kind?: string): string | null {
+  const paused = status.effects.filter(e => ["reserved", "dispatching", "accepted", "uncertain"].includes(e.state)).filter(e => {
+    const scope = status.scopes.find(s => s.id === e.scopeId);
+    if (!scope || kind && scope.kind !== kind) return false;
+    const receipt = status.commands.find(c => c.id === e.requestId);
+    const capability = e.featurePolicy?.capability ?? (receipt?.result.attachmentAudit ? "scopedActivation" :
+      receipt?.actor.source === "scope Send (unverified)" ? "scopeExecution" :
+      scope.kind === "project" ? "projectMates" : scope.kind === "maintenance" ? "maintenance" : scope.kind === "plan" ? "planSupervisors" : null);
+    return capability && (!effective[capability] || scope.kind === "project" && !effective.projectMates);
+  });
+  return paused.length ? `Paused for new work; checking ${paused.length} saved ${paused.length === 1 ? "operation" : "operations"}` : null;
+}

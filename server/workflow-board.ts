@@ -40,7 +40,7 @@ export async function workflowSnapshot(home: string, scoped?: import("../shared/
   read = { ...read, problems: [...read.problems, ...cutover.problems], warnings: [...(read.warnings ?? []), ...cutover.warnings] };
   // The browser retains all history; due actions below still exclude finished plans. A plan in an S07
   // cutover is no longer the legacy mate's: its retained history still resolves dependencies only.
-  if (!scoped && process.env.FIRSTMATE_PLAN_SUPERVISORS === "1") {
+  if (!scoped) {
     const { SupervisionStatusReader } = await import("./supervision-status-reader");
     const { pluginDir } = await import("./data-dir");
     scoped = await new SupervisionStatusReader(pluginDir()).read(home);

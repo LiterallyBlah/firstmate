@@ -80,7 +80,7 @@ export async function deliverToMate(
   return oneAtATime(async () => {
     // Re-read after taking the lifecycle gate: a handover may have changed the mate while we waited.
     const latest = await readConfig();
-    if (process.env.FIRSTMATE_PLAN_SUPERVISORS === "1") {
+    { // Retained scoped owners keep their delivery route even when new work is off.
       const pulls = [...text.matchAll(/https:\/\/github\.com\/([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)\/pull\/(\d+)/gi)];
       if (pulls.length) {
         const scoped = await new SupervisionStatusReader(pluginDir()).read(resolveHome(latest));

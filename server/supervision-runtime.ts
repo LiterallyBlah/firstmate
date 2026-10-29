@@ -1,3 +1,7 @@
+import { SupervisionGateway } from "./supervision-effects";
+import { SupervisionCommands } from "./supervision-commands";
+import type { GatewayReceiver } from "../shared/supervision-effects";
+import type { FeaturePolicyRuntime } from "./feature-policy-runtime";
 /** One owner per home for every scoped service. Reads never initialize or acquire. */
 import { SupervisionStore } from "./supervision-store";
 import { SupervisionStatusReader } from "./supervision-status-reader";
@@ -11,7 +15,7 @@ export class SupervisionRuntime {
   private readonly active = new Set<Promise<void>>();
   private readonly lock: string;
   constructor(readonly root: string, private readonly create = (root: string, home: string) =>
-    new SupervisionStore(root, home, { writable: true, actor: { kind: "system", id: "scoped-runtime", source: "owned-plugin-runtime" } })) {
+    new SupervisionStore(root, home, { writable: true, actor: { kind: "system", id: "scoped-runtime", source: "owned-plugin-runtime" } }), readonly features?: FeaturePolicyRuntime) {
     this.reader = new SupervisionStatusReader(root); this.lock = `firstmate.runtime:${root}`;
   }
   read(home: string, options?: { settleAfterMs?: number }) {
@@ -43,6 +47,17 @@ export class SupervisionRuntime {
     // The store serializes journal transactions. Network callbacks never hold a fleet-wide runtime lock.
     try { return await run(owned.store); }
     finally { this.active.delete(owned.pending); owned.release(); }
+  }
+  /** Account for prior effects even while new work is off. No dispatch or inferred absence. */
+  async reconcile(home: string, receiver: GatewayReceiver, kinds: string[]) {
+    const status = await this.read(home);
+    const selected = status.effects.filter(e => ["dispatching", "accepted", "uncertain"].includes(e.state) &&
+      status.scopes.some(s => s.id === e.scopeId && kinds.includes(s.kind))).slice(0, 32);
+    if (status.freshness !== "current" || !selected.length) return;
+    await this.mutate(home, async store => {
+      const gateway = new SupervisionGateway(store, new SupervisionCommands(store, home, { enabled: true }), home, receiver, { enabled: true });
+      await Promise.allSettled(selected.map(e => serialized(`${store.root}:reconcile:${e.id}`, () => gateway.reconcile(e.id))));
+    });
   }
   async stop() {
     const pending = await serialized(this.lock, async () => { this.closed = true; return [...this.active]; });

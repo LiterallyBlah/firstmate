@@ -29,6 +29,8 @@ export interface SupervisorOptions {
   /** The configured global first mate, read fresh. A scope binding can never be that identity. */
   globalMateId: () => Promise<string | null>;
   /** Integration admission guard, checked inside the final reservation transaction. */
+  featurePolicy?: (status: SupervisionStatus, scopeId: string) => Promise<SupervisionEffect["featurePolicy"]>;
+  reserveBoundary?: <T>(run: () => Promise<T>) => Promise<T>;
   reserveCheck?: (status: SupervisionStatus, scopeId: string) => Promise<void> | void;
 }
 /** Cumulative reservation accounting. A supervisor session/turn is spent when it is reserved; neither
@@ -117,7 +119,7 @@ export class SupervisorSessions {
     const openingText = context === undefined ? input.opening : `${input.opening}\n\nScoped operating context (stored, cooperative):\n${JSON.stringify(context)}`;
     const opening = await this.store.putBlob(Buffer.from(openingText, "utf8")), profileBlob = await this.store.putBlob(Buffer.from(canonical(profile), "utf8"));
     if (profileBlob.id !== digest(profile)) refuse("CONFLICT", "Profile encoding mismatch.");
-    return this.store.transactCommand(input.requestId, inputHash, actor, async status => {
+    const commit = () => this.store.transactCommand(input.requestId, inputHash, actor, async status => {
       await this.options.reserveCheck?.(status, input.scopeId);
       if (this.options.openingContext && digest(this.options.openingContext(status, input.scopeId)) !== digest(context)) refuse("STALE", "Supervisor opening context changed before reservation.");
       const scope = status.scopes.find(s => s.id === input.scopeId), old = status.bindings.find(b => b.scopeId === input.scopeId);
@@ -145,7 +147,8 @@ export class SupervisorSessions {
       const binding: SupervisionBinding = { scopeId: scope.id, epoch, hostId: "local", agentId, workspaceId: null, workspaceIntent: intent.key,
         profileDigest: profileBlob.id, state: "prepared", checkpointHash: opening.id, acknowledgedSeq: old?.acknowledgedSeq ?? 0, heartbeatDue: null,
         purpose: old?.purpose === "discussion" || input.purpose === "discussion" ? "discussion" : "work" };
-      const base = { requestId: input.requestId, requestHash: digest(input), scopeId: scope.id, epoch, attemptId: null, planRevision: null,
+      const featurePolicy = await this.options.featurePolicy?.(status, scope.id);
+      const base = { ...(featurePolicy ? { featurePolicy } : {}), requestId: input.requestId, requestHash: digest(input), scopeId: scope.id, epoch, attemptId: null, planRevision: null,
         ...(this.options.ruleRef ? { planRules: this.options.ruleRef(status, scope.id) } : {}),
         subjectHash: digest({ scope: scope.id, epoch }), policyVector: [], evidenceVector: [], approvalId: null, state: "reserved" as const, receiptRef: null, version: 1 };
       const effects: SupervisionEffect[] = [
@@ -166,6 +169,7 @@ export class SupervisorSessions {
           source: "client UI (unverified)" as const, authorization: "by convention, not verified" as const },
       } : NO_RESULT };
     });
+    return this.options.reserveBoundary ? this.options.reserveBoundary(commit) : commit();
   }
 
   /** Verify the created, unprompted supervisor, then commit the verified workspace, binding and scope active in one record. */
@@ -229,7 +233,7 @@ export class SupervisorSessions {
       if (actor.kind === "agent") refuse("UNSUPPORTED", "Supervisor turns are reserved by the plugin, not by agents.");
       await this.options.preflightTurn?.(input.scopeId);
       const blob = await this.store.putBlob(Buffer.from(input.text, "utf8"));
-      return this.store.transactCommand(input.requestId, inputHash, actor, async status => {
+      const commit = () => this.store.transactCommand(input.requestId, inputHash, actor, async status => {
         await this.options.reserveCheck?.(status, input.scopeId);
         const scope = status.scopes.find(s => s.id === input.scopeId), binding = status.bindings.find(b => b.scopeId === input.scopeId);
         if (!scope || scope.state !== "active" || binding?.state !== "active" || binding.epoch !== input.epoch) refuse("STALE", "No active owner at this epoch.");
@@ -240,7 +244,8 @@ export class SupervisorSessions {
         const key = effectLogicalKey({ scopeId: scope.id, subject: `epoch:${binding.epoch}`, operation: "agent.send", causation: input.causation, objectiveRevision: 0 });
         if (status.index.effectKeys[key]) refuse("CONFLICT", `This turn's cause is already reserved as ${status.index.effectKeys[key]}.`);
         const id = stableId("effect", key);
-        const effect: SupervisionEffect = { id, logicalKey: key, requestId: input.requestId, requestHash: digest(input), scopeId: scope.id, epoch: binding.epoch,
+        const featurePolicy = await this.options.featurePolicy?.(status, scope.id);
+        const effect: SupervisionEffect = { ...(featurePolicy ? { featurePolicy } : {}), id, logicalKey: key, requestId: input.requestId, requestHash: digest(input), scopeId: scope.id, epoch: binding.epoch,
           attemptId: null, operation: "agent.send", planRevision: null, subjectHash: digest({ turn: input.causation }), policyVector: [],
           evidenceVector: [], approvalId: null, resourceIds: [`turn:${binding.agentId}`], state: "reserved", receiverKey: sendMessageId(id), receiptRef: null, version: 1,
           payloadDigest: blob.id, ...(this.options.ruleRef ? { planRules: this.options.ruleRef(status, scope.id) } : {}), ...(input.maintenanceIncident ? { maintenanceIncident: input.maintenanceIncident } : {}) };
@@ -249,6 +254,7 @@ export class SupervisorSessions {
           ...(status.versions.some(v => v.kind === "blob" && v.id === blob.id) ? [] : [{ kind: "blob" as const, value: blob }])];
         return { expectedVersions: expectedFor(status, mutations), mutations, result: NO_RESULT };
       });
+      return this.options.reserveBoundary ? this.options.reserveBoundary(commit) : commit();
     })();
     return receipt.versions.find(v => v.kind === "effect")!.id;
   }
