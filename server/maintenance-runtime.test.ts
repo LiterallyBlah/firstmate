@@ -216,12 +216,25 @@ it("A20 one stalled maintenance owner cannot prevent another owner from receivin
   await admin({ op: "observe", input: { occurrenceId: otherOccurrence.id, hostId: "other", outcome: "failed", detail: "Second owner failure", resultDigest: hash } });
   const firstId = read.owners.find(o => o.scopeId === SCOPE)!.agentId!, secondId = read.owners.find(o => o.scopeId === otherScope)!.agentId!;
   const original = receiver.findAgent.bind(receiver);
-  vi.spyOn(receiver, "findAgent").mockImplementation(id => id === firstId ? new Promise(() => {}) : original(id));
-  service.stop(); service = make(true, 100); service.remember(api);
-  nextMinute(); await service.tick();
-  expect(receiver.sends.filter(s => s.agentId === firstId)).toHaveLength(1);
-  expect(receiver.sends.filter(s => s.agentId === secondId)).toHaveLength(2);
-});
+  let entered!: () => void, release!: () => void, firstLookupPending = false;
+  const ready = new Promise<void>(done => { entered = done; }), gate = new Promise<void>(done => { release = done; });
+  vi.spyOn(receiver, "findAgent").mockImplementation(async id => {
+    if (id === firstId) {
+      firstLookupPending = true; entered();
+      try { await gate; } finally { firstLookupPending = false; }
+      return original(id);
+    }
+    await new Promise(done => setTimeout(done, 250)); return original(id);
+  });
+  service.stop(); service = make(true, 30000); service.remember(api);
+  nextMinute(); const ticking = service.tick();
+  try {
+    await ready;
+    await vi.waitFor(() => expect(receiver.sends.filter(s => s.agentId === secondId)).toHaveLength(2), { timeout: 20000 });
+    expect(firstLookupPending).toBe(true);
+    expect(receiver.sends.filter(s => s.agentId === firstId)).toHaveLength(1);
+  } finally { release(); await ticking; }
+}, 60000);
 
 it("A17 approved host coverage cannot shrink when a host goes offline", async () => {
   await activate(); const current = await job(), input = definition(); input.input.expectedVersion = current.version; input.input.hosts = ["ariadne"];
