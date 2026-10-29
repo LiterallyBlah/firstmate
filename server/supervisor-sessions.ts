@@ -220,7 +220,8 @@ export class SupervisorSessions {
       throw error;
     }
   }
-  private async reserveTurnOnce(input: { requestId: string; scopeId: string; epoch: number; causation: string; text: string }, actor: SupervisionActor,
+  private async reserveTurnOnce(input: { requestId: string; scopeId: string; epoch: number; causation: string; text: string;
+    maintenanceIncident?: SupervisionEffect["maintenanceIncident"] }, actor: SupervisionActor,
     extend?: (status: SupervisionStatus) => SupervisionMutation[]): Promise<string> {
     this.enabled();
     const inputHash = digest({ turn: input });

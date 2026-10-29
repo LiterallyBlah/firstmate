@@ -171,3 +171,18 @@ General/home identity, authentication-error redaction and connection cleanup;
 `plan-runtime-review` checks idle resumption, failed-bootstrap backoff, default-off
 inertness and no duplicate native create after an uncertain startup effect. These
 map F1 to A08/A20, F2 to A06/A10/A18, F3 to A05/A20, and F4 to A05/A11/A20.
+
+
+## Merged maintenance integration
+
+The review corrections are rebased onto merged Build D `833d557a` (#166).
+Plan, project and maintenance drivers share the existing workflow clock and owned
+runtime. Maintenance decision/outbox validation and incident identities remain
+independent of B's checked plan and project paths. Continuing-turn reservation
+preserves D's optional incident identity alongside B's immutable rule reference.
+The combined production tests cover both domains' original caps, stops, checked
+answers and uncertain deliveries. Flags remain independent and default-off.
+
+The installed compiler harness now checks parsed class declarations/expressions,
+with positive and negative controls, before Hermes compilation. D's legitimate
+object properties named `class` no longer trigger the old token-only assertion.

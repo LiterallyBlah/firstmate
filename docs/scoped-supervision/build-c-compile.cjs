@@ -19,7 +19,15 @@ async function main() {
     const began = Date.now(), result = await compilePlugin({ client: path.join(directory, "index.client.tsx"), server: path.join(directory, "index.server.ts") });
     const file = path.join(out, `${name}.client.js`);
     fs.writeFileSync(file, result.clientBundle); fs.writeFileSync(path.join(out, `${name}.server.js`), result.serverBundle);
-    assert.equal((result.clientBundle.match(/\bclass\b/g) || []).length, 0, "No class syntax in the evaluated native client");
+    const { parse } = require(path.join(root, "node_modules/@babel/parser"));
+    const countClasses = code => { let count = 0; const visit = node => {
+      if (!node || typeof node !== "object") return;
+      if (["ClassDeclaration", "ClassExpression"].includes(node.type)) count++;
+      for (const child of Object.values(node)) { if (Array.isArray(child)) child.forEach(visit); else visit(child); }
+    }; visit(parse(code, { sourceType: "unambiguous" })); return count; };
+    assert.equal(countClasses("const x = { class: 1 };"), 0);
+    assert.equal(countClasses("class X {}; const Y = class {};"), 2);
+    assert.equal(countClasses(result.clientBundle), 0, "No class syntax in the evaluated native client");
     cp.execFileSync(hermesc, ["-emit-binary", "-out", path.join(out, `${name}.hbc`), file], { stdio: "pipe" });
     results.push({ name, clientBytes: Buffer.byteLength(result.clientBundle), serverBytes: Buffer.byteLength(result.serverBundle),
       clientSHA256: sha(result.clientBundle), serverSHA256: sha(result.serverBundle), durationMs: Date.now() - began, hermes: "passed" });
