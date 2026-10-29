@@ -1,6 +1,6 @@
 # Observe maintenance
 
-Available only with `FIRSTMATE_MAINTENANCE=1`. This is same-user cooperative transport,
+Available when the captain enables routine checks in the home's saved feature policy. Changes apply while services are running. Existing environment-only pilots keep their exact original-home selection until saved. Turning checks off refuses new work while retaining read/receipt reconciliation and all identities, spend and uncertainty. This is same-user cooperative transport,
 not authenticated IPC. It does not provision sessions, Attach, dispatch workers,
 create/retire native timers or delete files. Automatic cleanup is held by G8.
 
