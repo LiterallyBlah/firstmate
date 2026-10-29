@@ -13,6 +13,9 @@ import type { z } from "zod";
 import { OptionPicker } from "./option-picker";
 import { workflowRequestId } from "./workflow-plans";
 import { errorText } from "./format";
+import { ProjectBatchPanel, type ProjectBatchDraft } from "./project-setup-batch";
+import { readProjectBatches, ProjectBatchStatusSchema } from "../shared/project-setup-batch";
+import { checkboxKeyProps } from "./checkbox-keyboard";
 
 export function SetupAction({ theme, label, onPress, disabled = false, primary = false }: {
   theme: PluginTheme; label: string; onPress(): void; disabled?: boolean; primary?: boolean;
@@ -26,6 +29,15 @@ export function SetupAction({ theme, label, onPress, disabled = false, primary =
     <Text style={{ color: primary && !focused ? theme.colors.accentForeground : theme.colors.foreground, fontSize: 14, flexShrink: 1 }}>{label}</Text>
   </Pressable>;
 }
+function ProjectSelection({ theme, name, checked, disabled, reviewed, onPress }: { theme: PluginTheme; name: string; checked: boolean; disabled: boolean; reviewed: boolean; onPress(): void }) {
+  const [focused, focus] = useState(false);
+  return <Pressable accessibilityRole="checkbox" accessibilityLabel={`Select ${name}`} accessibilityState={{ checked, disabled }} aria-checked={checked} aria-disabled={disabled} disabled={disabled}
+    {...checkboxKeyProps(onPress, disabled)}
+    onPress={onPress} onFocus={() => focus(true)} onBlur={() => focus(false)}
+    style={{ minHeight: 44, padding: 10, borderWidth: 2, borderRadius: 8, borderColor: focused ? theme.colors.accent : theme.colors.border, backgroundColor: theme.colors.surface1 }}>
+    <Text style={{ color: theme.colors.foreground, fontSize: 14, lineHeight: 21 }}>{checked ? "Selected" : "Select project"}{reviewed ? " · Settings reviewed" : ""}</Text>
+  </Pressable>;
+}
 export type ProjectSetupProps = { theme: PluginTheme; compact: boolean; home: string; hostId: string; open: boolean; onClose(): void;
   navigation?: PluginSurfaceProps["navigation"]; online?: boolean; initialProjectName?: string };
 /** Slice 10 can mount this same destination; no separate Home setup logic is needed. */
@@ -36,20 +48,23 @@ function ProjectSetupSession({ theme, compact, home, hostId, onClose, navigation
   const read = useRpc(readProjectSetup), preview = useRpc(previewProjectSetup), commit = useRpc(commitProjectSetup), status = useRpc(readSavedProjectSetup), resume = useRpc(resumeProjectSetup), folder = useRpc(addProjectSetupFolder), saveInstructions = useRpc(saveProjectSetupInstructions);
   const cache = useQueryClient(), query = useQuery({ queryKey: ["firstmate", "project-setup", hostId, home], queryFn: async () => ProjectSetupCatalogSchema.parse(await read({ homeId: home })), retry: false });
   const saved = useQuery({ queryKey: ["firstmate", "project-setup-saved", hostId, home], queryFn: async () => ProjectSetupStatusSchema.parse(await status({ homeId: home })), retry: false });
+  const readBatches = useRpc(readProjectBatches), batches = useQuery({ queryKey: ["firstmate", "project-batches", hostId, home], queryFn: async () => ProjectBatchStatusSchema.array().parse(await readBatches({ homeId: home })), retry: false });
   const [choices, choose] = useState<ProjectSetupChoices | null>(null), [review, setReview] = useState<ProjectSetupPreview | null>(null);
   const [request, setRequest] = useState<z.infer<typeof ProjectSetupInputSchema> | null>(null), [busy, setBusy] = useState(false), [failure, fail] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null), [details, setDetails] = useState(false), [folderName, setFolderName] = useState("");
+  const [selected, setSelected] = useState<string[]>([]), [batchChoices, saveBatchChoices] = useState<Record<string, ProjectSetupChoices>>({}), [batch, showBatch] = useState(false);
+  const batchDraft = useRef<ProjectBatchDraft>({ batchId: workflowRequestId(), review: null, exact: null });
   const [instructions, setInstructions] = useState(""), instructionRequest = useRef<Parameters<typeof saveInstructions>[0] | null>(null);
   const gate = useRef(false), mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const data = query.data, text = { color: theme.colors.foreground, fontSize: 14, lineHeight: 21 }, note = { ...text, color: theme.colors.foregroundMuted };
-  const disabled = busy || !online || query.isError || saved.isError;
+  const disabled = busy || !online || query.isError || saved.isError || batches.isPending || batches.isError;
   async function act(run: () => Promise<void>) {
     if (gate.current || !online) return; gate.current = true; setBusy(true); fail(null);
     try { await run(); } catch (e) { if (mounted.current) fail(errorText(e)); }
     finally { gate.current = false; if (mounted.current) setBusy(false); }
   }
-  async function refresh() { await Promise.all([query.refetch(), saved.refetch()]); }
+  async function refresh() { await Promise.all([query.refetch(), saved.refetch(), cache.refetchQueries({ queryKey: ["firstmate", "project-batches", hostId, home] })]); }
   function select(name: string) {
     if (!data) return;
     const existing = data.reviewed.find(p => p.name === name);
@@ -83,7 +98,10 @@ function ProjectSetupSession({ theme, compact, home, hostId, onClose, navigation
   const model = data?.models.find(m => m.provider === choices?.profile?.provider);
   const field = (label: string, value: string, change: (v: string) => void) => <View style={{ gap: 5 }}><Text style={text}>{label}</Text><TextInput accessibilityLabel={label} value={value}
     editable={!disabled && !request} keyboardType="number-pad" onChangeText={change} style={{ ...text, minHeight: 44, padding: 10, borderWidth: 1, borderRadius: 8, borderColor: theme.colors.border, backgroundColor: theme.colors.surface1 }} /></View>;
-  const step = result ? "result" : review?.review ? "review" : choices ? "profile" : "chooser";
+  const eligible = data?.snapshot.projects.filter(p => !!p.projectId && !!p.directory && p.hostId === "local" && ["admitted", "unadmitted"].includes(p.state) &&
+    !p.agentId && !p.provisionInput && !p.uncertain && !saved.data?.requests.some(r => r.review.projectId === p.projectId) &&
+    !batches.data?.some(b => b.children.some(c => c.projectId === p.projectId && c.state !== "cancelled"))) ?? [];
+  const step = batch ? "batch" : result ? "result" : review?.review ? "review" : choices ? "profile" : "chooser";
   return <Modal key={step} title={result ? "Project setup result" : review?.review ? `Review ${review.review.name} mate` : choices ? `${choices.name} setup` : "Set up project mates"} open onOpenChange={open => { if (!open && !busy) onClose(); }}><Modal.Content>
     <View testID="project-setup" style={{ gap: 18 }}>
       {!data ? <Text accessibilityLiveRegion="polite" style={text}>{query.isError ? "Project setup couldn't be read. Check the connection and try again." : "Getting your projects ready…"}</Text> : null}
@@ -91,12 +109,16 @@ function ProjectSetupSession({ theme, compact, home, hostId, onClose, navigation
       {data?.problems.map((s, i) => <Text key={i} style={text}>{s}</Text>)}
       {failure ? <Text accessibilityRole="alert" style={text}>{failure}</Text> : null}
       {result ? <Text accessibilityLiveRegion="polite" style={text}>{result}</Text> : null}
-      {review?.review && !result ? <>
+      {batch && data ? <ProjectBatchPanel theme={theme} home={home} hostId={hostId} online={online} navigation={navigation} onClose={onClose} draft={batchDraft}
+        choices={selected.map(name => batchChoices[name] ?? data.reviewed.find(r => r.name === name) ?? { homeId: home, name, profile: null, limits: null, budget: null, sourcePath: null })}
+        data={data} onBack={() => showBatch(false)} onRefresh={refresh} /> : review?.review && !result ? <>
         <ProjectSetupReview theme={theme} data={data!} review={review} />
         <Text style={note}>This creates a separate project conversation and one opening message. Your FirstMate chat stays where it is. Plan execution and release actions keep their separate approvals.</Text>
         {request ? <Text style={text}>This request keeps its original model, permissions and limits. Check saved setup after a lost reply; uncertain messages are never automatically resent.</Text> : null}
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-          {!result ? <SetupAction theme={theme} primary label={busy ? "Setting up…" : request ? "Continue exact setup" : "Create project mate"} disabled={disabled} onPress={() => { void confirm(); }} /> : null}
+          {selected.includes(review.review.name) && !request ? <SetupAction theme={theme} primary label={`Use reviewed settings for ${review.review.name}`} disabled={disabled} onPress={() => {
+            saveBatchChoices({ ...batchChoices, [review.review!.name]: review.choices }); choose(null); setReview(null);
+          }} /> : !result ? <SetupAction theme={theme} primary label={busy ? "Setting up…" : request ? "Continue exact setup" : "Create project mate"} disabled={disabled} onPress={() => { void confirm(); }} /> : null}
           {!request ? <SetupAction theme={theme} label="Back to projects" disabled={busy} onPress={() => setReview(null)} /> : null}
         </View>
         <SetupAction theme={theme} label={details ? "Hide setup details" : "Setup details"} onPress={() => setDetails(!details)} />
@@ -106,12 +128,30 @@ function ProjectSetupSession({ theme, compact, home, hostId, onClose, navigation
           <Text selectable style={note}>{JSON.stringify(review.review.sourceVector)}</Text>
           <Text selectable style={note}>Review {review.reviewDigest}. Recorded app action; caller identity is unverified.</Text></View> : null}
       </> : data && !result ? <>
-        {!choices ? <Text style={text}>Choose a project to give it a separate mate. Review its instructions, permissions and spending limits before anything starts.</Text> : null}
+        {!choices ? <>
+          <Text style={text}>Choose the projects that should have their own mate. Your FirstMate chat stays here. Review each project's settings before anything starts.</Text>
+          <Text style={note}>{batches.data ? `${eligible.length} available to set up · ${data.snapshot.projects.filter(p => p.agentId && !p.reason).length} already set up · ${data.snapshot.projects.filter(p => !eligible.includes(p) && !(p.agentId && !p.reason)).length} unavailable or saved` : batches.isError ? "Saved setup couldn't be checked. Check the connection before selecting projects." : "Checking saved setup…"}</Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            <SetupAction theme={theme} label="Select all eligible projects" disabled={disabled || !eligible.length || eligible.length > 64} onPress={() => setSelected(eligible.map(p => p.name))} />
+            {selected.length ? <SetupAction theme={theme} label="Clear selection" disabled={disabled} onPress={() => setSelected([])} /> : null}
+            <SetupAction theme={theme} primary label={`Review ${selected.length} selected ${selected.length === 1 ? "project" : "projects"}`} disabled={disabled || !selected.length || selected.length > 64} onPress={() => {
+              // A known saved batch keeps its own recovery controls below. A new explicit review
+              // may start a different batch; an unconfirmed request must retain its original ID.
+              if (batches.data?.some(b => b.commit.manifest.batchId === batchDraft.current.batchId))
+                batchDraft.current = { batchId: workflowRequestId(), review: null, exact: null };
+              showBatch(true);
+            }} />
+          </View>
+          {selected.length ? <Text style={text}>{selected.length} selected. {selected.filter(name => !batchChoices[name] && !data.reviewed.some(r => r.name === name)).length} need model, permissions, limits and instructions reviewed. Use each project's Review action below.</Text> : null}
+          {eligible.length > 64 ? <Text style={text}>Select up to 64 projects for one reviewed setup.</Text> : null}
+        </> : null}
         {!choices ? [...data.snapshot.projects].sort((a, b) => Number(b.name === initialProjectName) - Number(a.name === initialProjectName)).map((project, i) => {
           const savedRequest = saved.data?.requests.find(r => r.review.projectId === project.projectId), ready = !!project.agentId && !project.reason && project.state !== "stopped";
           const issue = data.folderIssues.find(r => r.name === project.name);
           return <View key={`${project.name}:${i}`} style={{ gap: 8, paddingBottom: 14, borderBottomWidth: 1, borderColor: theme.colors.border }}>
             <Text style={{ ...text, fontSize: 16, fontWeight: "600" }}>{project.name}</Text>
+            {eligible.includes(project) ? <ProjectSelection theme={theme} name={project.name} checked={selected.includes(project.name)} disabled={disabled || !selected.includes(project.name) && selected.length >= 64}
+              reviewed={!!batchChoices[project.name]} onPress={() => setSelected(selected.includes(project.name) ? selected.filter(n => n !== project.name) : [...selected, project.name])} /> : null}
             <Text selectable style={note}>{project.directory ?? issue?.location ?? "Folder unavailable"} · {project.hostId ?? "Original computer"}</Text>
             <Text style={text}>{ready ? "Already set up" : project.uncertain ? "Checking whether setup finished" :
               project.state === "stopped" || project.reason?.startsWith("Provisioning stopped") ? "Setup was stopped. Review the saved operation before continuing." :
@@ -178,7 +218,9 @@ function ProjectSetupSession({ theme, compact, home, hostId, onClose, navigation
           <Text style={note}>Choosing a folder only adds it to this home's project list. Setup still needs a fresh review.</Text>
         </View> : !choices ? <Text style={text}>To add a folder, open setup on this project's original computer. Remote folder identities cannot be guessed.</Text> : null}
       </> : null}
-      {saved.data?.requests.map(input => {
+      {!batch ? <ProjectBatchPanel theme={theme} home={home} hostId={hostId} online={online} navigation={navigation} onClose={onClose} data={data} draft={batchDraft}
+        onBack={() => {}} onRefresh={refresh} /> : null}
+      {saved.data?.requests.filter(input => !batches.data?.some(b => b.commit.manifest.children.some(c => c.requestId === input.requestId))).map(input => {
         const project = saved.data.snapshot.projects.find(p => p.projectId === input.review.projectId), ready = !!project?.agentId && !project.reason && project.state !== "stopped";
         const recoverableCreate = saved.data.recoverableCreates.includes(input.requestId);
         return <View key={input.requestId} style={{ gap: 8 }}>
@@ -192,7 +234,7 @@ function ProjectSetupSession({ theme, compact, home, hostId, onClose, navigation
       })}
       {saved.isError ? <Text accessibilityRole="alert" style={text}>Saved setup couldn't be checked. Refresh before creating or continuing a mate.</Text> : null}
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-        <SetupAction theme={theme} label={busy ? "Checking…" : "Check saved setup"} disabled={busy || !online} onPress={() => { void act(refresh); }} />
+        <SetupAction theme={theme} label="Check saved setup" disabled={busy || !online} onPress={() => { void act(refresh); }} />
         <SetupAction theme={theme} label="Close setup" disabled={busy} onPress={onClose} />
       </View>
     </View>

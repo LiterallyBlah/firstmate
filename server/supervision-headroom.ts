@@ -9,7 +9,7 @@ export function withScopeAdmission<T>(homeId: string, run: () => Promise<T>) {
   return serialized(`firstmate.scope-admission:${homeId}`, run);
 }
 /** Conservative plugin admission, not reserved provider quota or a fence against native/raw callers. */
-export async function checkGeneralHeadroom(status: SupervisionStatus, receiver: GatewayReceiver, slots: number, reserved: number, admittingEffectId?: string) {
+export async function pluginOccupancy(status: SupervisionStatus, receiver: GatewayReceiver, admittingEffectId?: string) {
   const identities = new Map<string, string>();
   for (const b of status.bindings.filter(b => b.state !== "retired")) identities.set(b.agentId, b.scopeId);
   const workerIdentity = (attemptId: string) => {
@@ -46,5 +46,9 @@ export async function checkGeneralHeadroom(status: SupervisionStatus, receiver: 
     ]).finally(() => clearTimeout(timer));
     if (!observed || !["idle", "closed"].includes(observed.status)) occupied++;
   }
-  if (occupied >= slots - reserved) refuse("HELD", "Plugin work capacity is occupied; configured General headroom is reserved. Actual provider capacity is unknown.");
+  return occupied;
+}
+export async function checkGeneralHeadroom(status: SupervisionStatus, receiver: GatewayReceiver, slots: number, reserved: number, admittingEffectId?: string) {
+  if (await pluginOccupancy(status, receiver, admittingEffectId) >= slots - reserved)
+    refuse("HELD", "Plugin work capacity is occupied; configured General headroom is reserved. Actual provider capacity is unknown.");
 }

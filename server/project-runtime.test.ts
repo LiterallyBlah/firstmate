@@ -126,7 +126,8 @@ it.each(["project", "Attach"] as const)("a stalled %s capacity lookup times out 
 }, 60000);
 it("production RPCs are registered; off and enabled reads create nothing, account every registry entry, and never provision", async () => {
   const handles: string[] = []; registerProjectRuntime({ handle: ((rpc: { name: string }) => { handles.push(rpc.name); }) as never }, make(false));
-  expect(handles).toHaveLength(13); expect(handles).toContain("firstmate.projects.recover-ui"); expect(handles).toContain("firstmate.projects.abort-ui");
+  expect(handles).toHaveLength(18); expect(handles).toContain("firstmate.projects.recover-ui"); expect(handles).toContain("firstmate.projects.abort-ui");
+  expect(handles).toEqual(expect.arrayContaining(["firstmate.projects.batch.preview", "firstmate.projects.batch.commit", "firstmate.projects.batch.status", "firstmate.projects.batch.continue", "firstmate.projects.batch.cancel"]));
   expect((await service.read()).projects).toHaveLength(4);
   expect((await service.read()).projects.find(p => p.name === "remote")?.reason).toMatch(/canonical local/);
   service = make(false); const read = await service.read();
