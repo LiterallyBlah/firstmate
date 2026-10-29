@@ -38,6 +38,19 @@ it("a disabled board has no layout, attach button or write on view", async () =>
   await render(createElement(SupervisionActivationBoard, { theme, compact: false }));
   expect(renderer!.toJSON()).toBe(null); expect(mocks.attach).not.toHaveBeenCalled();
 });
+it("an enabled empty board consumes no primary space", async () => {
+  mocks.snapshot = { ...snapshot(), plans: [] };
+  await render(createElement(SupervisionActivationBoard, { theme, compact: false }));
+  expect(renderer!.toJSON()).toBe(null); expect(mocks.attach).not.toHaveBeenCalled();
+});
+it("disabled controls retain corrupt status and failed owners even without an audit", async () => {
+  mocks.snapshot = { ...snapshot(), enabled: false, problems: ["Journal hash mismatch"],
+    plans: [{ ...plan, canAttach: false, binding: "retired", opening: "failed" }] };
+  await render(createElement(SupervisionActivationBoard, { theme, compact: true }));
+  expect(visibleText(renderer!.toJSON())).toContain("Journal hash mismatch");
+  expect(visibleText(renderer!.toJSON())).toContain("retired · opening failed");
+  expect(mocks.attach).not.toHaveBeenCalled();
+});
 it("board history shows time, plan, supervisor and unverified source without attaching", async () => {
   mocks.snapshot = { ...snapshot(), audits: [{ at: "2026-10-28T12:00:00Z", plan: "scheduler", supervisor: plan.supervisorId,
     source: "client UI (unverified)", authorization: "by convention, not verified" }] };

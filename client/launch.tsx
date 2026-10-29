@@ -13,7 +13,7 @@ import { useToast } from "@getpaseo/plugin/client/react-native";
 import { SettingsSection, SettingsSelect } from "@getpaseo/plugin/client/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 import { adoptMate, launchMate, listCandidates, readConfig } from "../shared/fleet";
 import { modelLabel, relativeTime, shortPath } from "./format";
@@ -45,6 +45,7 @@ export function LaunchPanel({
   const [provider, setProvider] = useState("");
   const [modeId, setModeId] = useState(PROVIDER_DEFAULT);
   const [busy, setBusy] = useState(false);
+  const [details, setDetails] = useState(false);
 
   // The last launch's choice is the default for the next one.
   useEffect(() => {
@@ -108,22 +109,17 @@ export function LaunchPanel({
   return (
     <View style={styles.panel}>
       <View style={{ gap: 6 }}>
-        <Text style={styles.title}>Hoist the first mate</Text>
+        <Text style={styles.title}>Welcome to FirstMate</Text>
         <Text style={styles.body}>
-          You talk to one agent — the first mate — and it runs the crew: every task goes to a worker agent in its
-          own git worktree, and the first mate supervises them and brings you finished pull requests, findings and
-          the decisions only you can make.
-        </Text>
-        <Text style={styles.muted}>
-          Its home is {shortPath(home, 72)}. Launching writes its charter (AGENTS.md) and records there, and starts it.
-          Change the home in the FirstMate settings.
+          Start a conversation with FirstMate. It will help plan the work and bring you the decisions that need you.
+          Review its model and permissions before starting.
         </Text>
       </View>
 
-      <SettingsSection title="Launch">
+      <SettingsSection title="Set up FirstMate">
         <OptionPicker
           label="Model"
-          hint="The first mate's own model. It picks the crew's unless the settings name one."
+          hint="Choose the model for your FirstMate conversation."
           title="The first mate's model"
           value={provider}
           options={withCurrent(models.options, provider)}
@@ -133,8 +129,8 @@ export function LaunchPanel({
           compact={compact}
         />
         <SettingsSelect
-          label="Mode"
-          hint="Its permission mode. It runs Paseo's tools constantly, so a mode that asks before each one is tiring."
+          label="Permissions"
+          hint="Choose what FirstMate may do. Provider default uses your provider's configured permissions."
           value={modeOptions.some((option) => option.value === modeId) ? modeId : PROVIDER_DEFAULT}
           options={modeOptions}
           onValueChange={setModeId}
@@ -144,7 +140,7 @@ export function LaunchPanel({
       <View style={styles.actions}>
         <IconButton
           icon="Ship"
-          label={busy ? "Launching…" : "Launch the first mate"}
+          label={busy ? "Starting FirstMate…" : "Set up FirstMate"}
           showLabel
           tone="accent"
           theme={theme}
@@ -153,7 +149,16 @@ export function LaunchPanel({
         />
       </View>
 
-      {list.length === 0 ? null : (
+      <Pressable accessibilityRole="button" accessibilityLabel="FirstMate setup details" accessibilityState={{ expanded: details }}
+        onPress={() => setDetails(v => !v)} style={{ minHeight: 44, justifyContent: "center" }}>
+        <Text style={styles.muted}>{details ? "Hide setup details" : "Setup details"}</Text>
+      </Pressable>
+      {details ? <Text style={styles.muted}>
+        Its home is {shortPath(home, 72)}. Starting writes its charter (AGENTS.md) and records there, and starts the agent.
+        Change the home in FirstMate settings. Tasks can run in separate git worktrees with worker agents.
+      </Text> : null}
+
+      {!details || list.length === 0 ? null : (
         <View style={{ gap: 4 }}>
           <Text style={styles.muted}>Or adopt an agent that is already running:</Text>
           {list.slice(0, 12).map((agent) => (

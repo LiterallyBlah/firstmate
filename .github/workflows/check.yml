@@ -17,6 +17,9 @@ jobs:
       - run: node docs/fm-ui-polish/render.mjs
       - run: node docs/deck-scene-swap/render.mjs
       - run: node docs/decision-ux-lists/render.mjs
+      - run: node docs/smooth-pr2/render.mjs
+      - run: node docs/smooth-pr2/regressions.mjs
+      - run: node docs/smooth-pr2/contact-sheets.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: deck-before-after
@@ -29,6 +32,11 @@ jobs:
             .local/deck-scene-swap/worktree/results.json
             .local/decision-ux-lists/*.png
             .local/decision-ux-lists/results.json
+            .local/smooth-pr2/ui/*.png
+            .local/smooth-pr2/ui/*.json
+            .local/smooth-pr2/ui/screenshots/*.png
+            .local/smooth-pr2/regressions/results.json
+            .local/smooth-pr2/regressions/screenshots/*.png
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 30

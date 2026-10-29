@@ -167,7 +167,7 @@ try {
     const delivered = await page.evaluate(() => window.scopeActions.find(a => a.name === "firstmate.scope.discuss").input);
     assert.equal(delivered.route.target.scopeId, "00000000-0000-4000-8000-000000000201");
     assert.equal(delivered.text, "Project draft");
-    await page.getByRole("button", { name: "Show stored status", exact: true }).click();
+    await page.getByRole("button", { name: "Details", exact: true }).click();
     await page.getByText(/0 tracked workers/).waitFor(); await page.getByText(/Review accepted; the outcome still needs a follow-up task/).waitFor();
     await page.screenshot({ path: resolve(out, `${theme}-${device}-status.png`) });
     await page.getByRole("button", { name: "Open Reader pass conversation", exact: true }).click();
@@ -179,7 +179,7 @@ try {
     await page.getByText("First Send creates a persistent discussion session. Reading does not.", { exact: true }).waitFor();
     await page.screenshot({ path: resolve(out, `${theme}-${device}-activation.png`) });
     await page.goto(`${origin}/?absent&theme=${theme}`); await page.getByTestId("scope-discussion").waitFor();
-    await page.getByRole("button", { name: "Show stored status", exact: true }).click();
+    await page.getByRole("button", { name: "Details", exact: true }).click();
     await page.getByText(/Reader project · dormant/).waitFor();
     assert.equal(await page.evaluate(() => window.scopeActions.filter(a => /discuss|answer|activate|navigation/.test(a.name)).length), 0);
     await page.screenshot({ path: resolve(out, `${theme}-${device}-absent.png`) });

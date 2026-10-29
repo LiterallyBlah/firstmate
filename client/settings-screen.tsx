@@ -32,11 +32,13 @@ import { agentStatusLabel, modelLabel } from "./format";
 import { useModeOptions, useModelOptions, withCurrent } from "./models";
 import { OptionPicker } from "./option-picker";
 import { errorText } from "./ui";
+import { WorkflowSurface } from "./workflow-plans";
+import { WorkDetails } from "./work-details";
 
 const CONFIG_QUERY_KEY = ["firstmate", "config"] as const;
 const PROVIDER_DEFAULT = "";
 
-export function SettingsScreen({ theme, layout }: PluginSurfaceProps) {
+export function SettingsScreen({ theme, layout, host, navigation }: PluginSurfaceProps) {
   const read = useRpc(readConfig);
   const write = useRpc(writeConfig);
   const release = useRpc(releaseMate);
@@ -99,6 +101,11 @@ export function SettingsScreen({ theme, layout }: PluginSurfaceProps) {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} automaticallyAdjustKeyboardInsets>
+      <SettingsGroup title="Work details">
+        <WorkflowSurface theme={theme} hostId={host?.id ?? "local"}>
+          <WorkDetails theme={theme} compact={layout.compact} hostId={host?.id ?? "local"} {...(navigation ? { navigation } : {})} always />
+        </WorkflowSurface>
+      </SettingsGroup>
       <SettingsGroup title="The first mate">
         <SettingsSection title="Aboard">
           <SettingsRow

@@ -4,7 +4,7 @@ import { useRpc } from "@getpaseo/plugin/client";
 import { Modal, TextInput } from "@getpaseo/plugin/client/react-native";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { ActivationSnapshotSchema, attachSupervisorFromUi,
   type ActivationSnapshot, type AttachSupervisorInput, type ResumeSupervisorInput } from "../shared/supervision-activation";
 import { migrationTargets } from "../shared/fleet";
@@ -12,35 +12,38 @@ import { OptionPicker } from "./option-picker";
 import { workflowRequestId, useWorkflowPlans } from "./workflow-plans";
 import { errorText } from "./format";
 import { MigrationOperations } from "./migration-operations";
+import { activationHasHistory } from "./ownership-state";
 type Plan = ActivationSnapshot["plans"][number];
 function Action({ theme, label, onPress, disabled = false }: { theme: PluginTheme; label: string; onPress(): void; disabled?: boolean }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress}
-    style={{ minHeight: 44, paddingHorizontal: 12, paddingVertical: 10, justifyContent: "center", borderWidth: 1, borderColor: theme.colors.border, borderRadius: 7, opacity: disabled ? 0.5 : 1 }}>
-    <Text style={{ color: theme.colors.foreground }}>{label}</Text>
+    style={{ minHeight: 44, maxWidth: "100%", minWidth: 0, flexShrink: 1, paddingHorizontal: 12, paddingVertical: 10, justifyContent: "center", borderWidth: 1, borderColor: theme.colors.border, borderRadius: 7, opacity: disabled ? 0.5 : 1 }}>
+    <Text style={{ color: theme.colors.foreground, flexShrink: 1 }}>{label}</Text>
   </Pressable>;
 }
-export function SupervisionActivationBoard({ theme, compact }: { theme: PluginTheme; compact: boolean }) {
+export function SupervisionActivationBoard({ theme, compact, advanced = false }: { theme: PluginTheme; compact: boolean; advanced?: boolean }) {
   const { activation: data, activationError: readError, updateActivation } = useWorkflowPlans();
   const [selected, select] = useState<Plan | null>(null);
   useEffect(() => { select(null); }, [data?.homeId]);
-  if (!data || !data.enabled && !data.audits.length) return null;
+  if (!data || !activationHasHistory(data) && !data.problems.length && !readError && !(advanced && data.enabled)) return null;
   return <View testID="supervision-activation-board" style={{ gap: 8, padding: compact ? 12 : 16 }}>
-    <ScrollView style={{ maxHeight: 200 }} contentContainerStyle={{ gap: 8 }}>
-    <Text style={{ color: theme.colors.foreground, fontWeight: "600" }}>Plan supervisors</Text>
+    <Text style={{ color: theme.colors.foreground, fontWeight: "600" }}>Plan help</Text>
     {data.problems.map(p => <Text key={p} accessibilityRole="alert" style={{ color: theme.colors.foreground }}>{p}</Text>)}
     {readError ? <Text accessibilityRole="alert" style={{ color: theme.colors.foreground }}>Supervisor status could not be refreshed. Attach is unavailable.</Text> : null}
     {data.plans.map(plan => <View key={plan.scopeId} style={{ gap: 4 }}>
       <Text style={{ color: theme.colors.foreground }}>{plan.title} · {plan.binding ?? "No supervisor"}{plan.opening ? ` · opening ${plan.opening}` : ""}</Text>
+      <Text selectable style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>Plan {plan.plan} · scope {plan.scopeId} · version {plan.scopeVersion} · supervisor {plan.supervisorId}</Text>
       {plan.readiness ? <Text style={{ color: theme.colors.foregroundMuted }}>{plan.readiness.ready ? "Stored readiness checks met; live qualification still required." : `Readiness held: ${plan.readiness.reasons.join(" ")}`}</Text> : null}
-      {plan.canAttach ? <Action theme={theme} label={`Attach supervisor to ${plan.title}`} disabled={!!readError} onPress={() => select(plan)} /> : null}
+      {plan.canAttach ? <Action theme={theme} label={`Attach supervisor to ${plan.title}`} disabled={!!readError || !data.enabled} onPress={() => select(plan)} /> : null}
       {plan.resumeRequestId ? <Action theme={theme} label={`Resume attachment to ${plan.title}`} disabled={!!readError || !data.enabled} onPress={() => select(plan)} /> : null}
     </View>)}
     {data.audits.length ? <Text style={{ color: theme.colors.foregroundMuted }}>Attachment history · by convention, not verified</Text> : null}
     {data.audits.map(a => <Text selectable key={`${a.at}:${a.supervisor}`} style={{ color: theme.colors.foregroundMuted }}>
       {a.at} · {a.plan} · supervisor {a.supervisor} · {a.source}
     </Text>)}
-    {data.operatorEnabled ? <MigrationOperations theme={theme} data={data} unavailable={!!readError || !data.enabled} onRead={next => updateActivation?.(next)} /> : null}
-    </ScrollView>
+    {data.dispositions.filter(d => !data.migrations.some(m => m.id === d.migrationId)).map(d =>
+      <Text selectable key={d.id} style={{ color: theme.colors.foregroundMuted }}>{d.source} · {d.route} · {d.removal.state} · {d.reason}</Text>)}
+    {data.operatorEnabled || data.migrations.length || data.dispositions.length || data.resumeMigrations?.length ?
+      <MigrationOperations theme={theme} data={data} unavailable={!!readError || !data.enabled || !data.operatorEnabled} onRead={next => updateActivation?.(next)} /> : null}
     {selected ? <AttachConfirmation key={`${data.homeId}:${selected.scopeId}`} theme={theme} compact={compact} homeId={data.homeId} plan={selected}
       stale={!!readError || !data.enabled || !data.plans.some(p => p.scopeId === selected.scopeId && p.supervisorId === selected.supervisorId &&
         (selected.resumeRequestId ? p.resumeRequestId === selected.resumeRequestId : p.canAttach && p.hash === selected.hash && p.scopeVersion === selected.scopeVersion))}

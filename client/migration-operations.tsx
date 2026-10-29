@@ -8,8 +8,8 @@ import { errorText } from "./format";
 
 function Control({ theme, label, disabled = false, onPress }: { theme: PluginTheme; label: string; disabled?: boolean; onPress(): void }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress}
-    style={{ minHeight: 44, paddingVertical: 10, paddingHorizontal: 12, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 7, opacity: disabled ? 0.5 : 1 }}>
-    <Text style={{ color: theme.colors.foreground }}>{label}</Text>
+    style={{ minHeight: 44, maxWidth: "100%", minWidth: 0, flexShrink: 1, paddingVertical: 10, paddingHorizontal: 12, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 7, opacity: disabled ? 0.5 : 1 }}>
+    <Text style={{ color: theme.colors.foreground, flexShrink: 1 }}>{label}</Text>
   </Pressable>;
 }
 /** Extends the existing migration RPC. Viewing, inspecting and reviewing send nothing. */

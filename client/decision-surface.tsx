@@ -201,6 +201,7 @@ export function DecisionSurface({
         destination={destination}
         onSelect={(next) => { setDiscussion(null); setDestination(next); }}
         onClose={close}
+        onBackToFirstMate={shell ? () => { close(); shell.openHome(); } : undefined}
         mateId={mateId}
         suggestions={fleet.data?.suggestions ?? []}
         compact={phone}

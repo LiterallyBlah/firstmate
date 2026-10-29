@@ -34,6 +34,7 @@ import {
   decisionProblems,
   decisionSession,
   decisionDraftKey,
+  completeEmptyInbox,
   type DecisionDestination,
 } from "./needs-you-state";
 import {
@@ -175,6 +176,7 @@ export function DecisionDrawer({
   modal = compact,
   onOpenBoard,
   onOpenChat,
+  onBackToFirstMate,
   filtered = false,
   loading = false,
   returnLabel = "Home",
@@ -191,6 +193,7 @@ export function DecisionDrawer({
   modal?: boolean;
   onOpenBoard?: (() => void) | undefined;
   onOpenChat?: ((destination: DecisionDestination) => void) | undefined;
+  onBackToFirstMate?: (() => void) | undefined;
   filtered?: boolean;
   loading?: boolean;
   returnLabel?: string;
@@ -466,7 +469,7 @@ export function DecisionDrawer({
             {...webAttributes({ tabindex: "-1", "aria-level": "2" })}
             accessibilityRole="header"
             style={{
-              color: colors.statusWarning,
+              color: colors.foreground,
               fontSize: 13,
               fontWeight: "600",
               // This non-interactive heading takes focus to announce a new page.
@@ -549,6 +552,10 @@ export function DecisionDrawer({
           style={{ flex: 1 }}
         >
           {failure ? chrome : null}
+          {sameHome && completeEmptyInbox(sourceSnapshot, offline, loading) ? <View style={{ gap: 12 }}>
+            <Text style={{ color: colors.foreground }}>No decisions right now</Text>
+            <DecisionButton theme={theme} compact label={onBackToFirstMate ? "Back to FirstMate" : `Back to ${returnLabel}`} onPress={onBackToFirstMate ?? onClose} />
+          </View> : null}
           {sourceSnapshot?.scopeFiltersEnabled ? <ScopeInboxFilters snapshot={sourceSnapshot} value={scopeFilter} onChange={setScopeFilter} theme={theme} compact={compact} /> : null}
           {sourceSnapshot?.scopeFiltersEnabled && scopeFilter.kind !== "all" && !allSnapshot?.requests.length && !allSnapshot?.scopedDecisions?.length && !allSnapshot?.scopedHolds?.length && !allSnapshot?.planNow?.length && !allSnapshot?.parked.length ?
             <Text style={{ color: colors.foregroundMuted }}>No current decisions or holds in this scope.</Text> : null}

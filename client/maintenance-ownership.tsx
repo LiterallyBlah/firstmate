@@ -5,42 +5,47 @@ import type { PluginScreenProps } from "@getpaseo/plugin/client";
 import { Modal, TextInput } from "@getpaseo/plugin/client/react-native";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { readMaintenance, admitMaintenanceFromUi, MaintenanceRuntimeSnapshotSchema,
   type MaintenanceRuntimeSnapshot, type AdmitMaintenance } from "../shared/maintenance-runtime";
 import { migrationTargets } from "../shared/fleet";
 import { OptionPicker } from "./option-picker";
 import { workflowRequestId } from "./workflow-plans";
 import { errorText } from "./format";
+import { maintenanceHasHistory } from "./ownership-state";
 
 type Owner = MaintenanceRuntimeSnapshot["owners"][number];
 function Action({ theme, label, disabled = false, onPress }: { theme: PluginTheme; label: string; disabled?: boolean; onPress(): void }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress}
-    style={{ minHeight: 44, paddingHorizontal: 12, paddingVertical: 10, justifyContent: "center", borderWidth: 1, borderColor: theme.colors.border, borderRadius: 7, opacity: disabled ? 0.5 : 1 }}>
-    <Text style={{ color: theme.colors.foreground }}>{label}</Text>
+    style={{ minHeight: 44, maxWidth: "100%", minWidth: 0, flexShrink: 1, paddingHorizontal: 12, paddingVertical: 10, justifyContent: "center", borderWidth: 1, borderColor: theme.colors.border, borderRadius: 7, opacity: disabled ? 0.5 : 1 }}>
+    <Text style={{ color: theme.colors.foreground, flexShrink: 1 }}>{label}</Text>
   </Pressable>;
 }
-export function MaintenanceOwnershipBoard({ theme, compact, hostId = "local", navigation }: { theme: PluginTheme; compact: boolean; hostId?: string; navigation?: PluginScreenProps["navigation"] }) {
+export function MaintenanceOwnershipBoard({ theme, compact, hostId = "local", navigation, advanced = false, onNavigate }: { theme: PluginTheme; compact: boolean; hostId?: string; navigation?: PluginScreenProps["navigation"]; advanced?: boolean; onNavigate?(): void }) {
   const read = useRpc(readMaintenance);
   const query = useQuery({ queryKey: ["firstmate", "maintenance-ownership", hostId], queryFn: async () => MaintenanceRuntimeSnapshotSchema.parse(await read({})), refetchInterval: 5000 });
   const [admission, selectAdmission] = useState<Owner | "new" | null>(null);
   const data = query.data;
   useEffect(() => { selectAdmission(null); }, [hostId, data?.homeId]);
-  if (!data || !data.enabled && !data.owners.length && !data.captainDecisions.length) return null;
+  if (!data) return query.isError ? <Text accessibilityRole="alert" style={{ color: theme.colors.statusWarning }}>Routine checks could not be read. Close and reopen details to check again.</Text> : null;
+  if (!maintenanceHasHistory(data) && !data.problems.length && data.freshness !== "held" && !query.isError && !(advanced && data.enabled)) return null;
   const stale = query.isError || !data.enabled, colors = theme.colors;
   return <View testID="maintenance-ownership" style={{ gap: 8, padding: compact ? 12 : 16, borderBottomWidth: 1, borderColor: colors.border }}>
-    <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "600" }}>Maintenance owners</Text>
-    <Text style={{ color: colors.foregroundMuted }}>Observe mode. Automatic cleanup is held.</Text>
+    <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "600" }}>Routine checks</Text>
+    <Text style={{ color: colors.foregroundMuted }}>Checks report problems for review. Automatic cleanup is unavailable.</Text>
     {query.isError ? <Text accessibilityRole="alert" style={{ color: colors.statusWarning }}>Maintenance could not be refreshed. Actions are unavailable; refresh before continuing.</Text> : null}
     {data.problems.map(p => <Text key={p} accessibilityRole="alert" style={{ color: colors.statusWarning }}>{p}</Text>)}
-    <ScrollView style={{ maxHeight: 240 }} contentContainerStyle={{ gap: 8 }}>
+    <View style={{ gap: 8 }}>
       {data.owners.map(owner => <View key={owner.scopeId} style={{ gap: 4 }}>
         <Text style={{ color: colors.foreground }}>{owner.admission?.name ?? "Maintenance owner"} · {owner.state}{owner.opening ? ` · opening ${owner.opening}` : ""}</Text>
         <Text style={{ color: colors.foregroundMuted }}>{owner.sessions} session reserved · {owner.turns} turns reserved{owner.uncertain ? ` · ${owner.uncertain} uncertain` : ""}</Text>
-        {owner.agentId && navigation ? <Action theme={theme} label={`Open ${owner.admission?.name ?? "maintenance owner"}`} onPress={() => navigation.openAgent({ agentId: owner.agentId!, ...(hostId === "local" ? {} : { serverId: hostId }) })} /> : null}
+        <Text selectable style={{ color: colors.foregroundMuted, fontSize: 12 }}>Scope {owner.scopeId} · epoch {owner.epoch} · agent {owner.agentId ?? "not recorded"}</Text>
+        {owner.agentId && navigation ? <Action theme={theme} label={`Open ${owner.admission?.name ?? "maintenance owner"}`} onPress={() => { navigation.openAgent({ agentId: owner.agentId!, ...(hostId === "local" ? {} : { serverId: hostId }) }); onNavigate?.(); }} /> : null}
         {owner.admission && owner.opening !== "succeeded" ? <Action theme={theme} label={`Resume ${owner.admission.name}`} disabled={stale} onPress={() => selectAdmission(owner)} /> : null}
       </View>)}
-    </ScrollView>
+    </View>
+    {data.incidents.map(incident => <Text key={incident.id} accessibilityRole="alert" style={{ color: colors.statusWarning }}>{incident.detail}</Text>)}
+    <Text selectable style={{ color: colors.foregroundMuted, fontSize: 12 }}>Cleanup: {data.cleanup.state} · {data.cleanup.reason}{data.cleanup.conditions.map(c => ` · ${c.id}: ${c.satisfied ? "met" : c.reasons.join("; ")}`).join("")}</Text>
     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
       <Action theme={theme} label="Create maintenance owner" disabled={stale || data.freshness === "held"} onPress={() => selectAdmission("new")} />
       <Action theme={theme} label="Refresh maintenance" onPress={() => { void query.refetch(); }} />
