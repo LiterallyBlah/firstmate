@@ -18,6 +18,12 @@ A regression test enforces that identity; the copy is needed because Paseo only
 permits imported plugin modules under client/server/shared. Existing internal checked text edits also
 use it. Home preparation refreshes this helper before launch. It creates no agents.
 
+Every launch replacement uses it: backlog transitions, generated briefs, remote
+request files and launch JSON revisions. JSON updates carry the hash of the exact
+bytes loaded for that revision, so a Files edit with the same revision number is
+still protected. New attempt publication and rendered message output remain
+exclusive creates; they never replace an existing file.
+
 ## Save protocol
 
 1. Resolve the canonical file inside the home. Acquire its exclusive cross-process

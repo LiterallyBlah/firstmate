@@ -210,6 +210,30 @@ describe("launch contract and assembly", () => {
 });
 
 describe("attempts and current-role recovery", () => {
+  it("retains exact previous generated briefs and launch JSON revisions with a launch audit", async () => {
+    const previousBrief = Buffer.from("\uFEFFCaptain's previous brief\r\n");
+    await writeFile(join(home, "data/task/brief.md"), previousBrief);
+    expect((await prepare()).ok).toBe(true);
+    expect(await readFile(join(home, "recall/files/data/task/brief.md", `${digest(previousBrief)}.bin`))).toEqual(previousBrief);
+    const path = "data/task/launches/1.json", before = await readFile(join(home, path));
+    expect((await run(["unresolved", "task", "--attempt", "1", "--error", "Lost answer"])).ok).toBe(false);
+    const recovery = join(home, "recall/files", path);
+    expect(await readFile(join(recovery, `${digest(before)}.bin`))).toEqual(before);
+    const events = await Promise.all((await readdir(join(recovery, "history"))).map(name => readFile(join(recovery, "history", name), "utf8").then(JSON.parse)));
+    expect(events).toContainEqual(expect.objectContaining({ before: digest(before), actor: "launch", force: false, status: "saved" }));
+  });
+
+  it("refuses a launch JSON update while Files saves the same record", async () => {
+    expect((await prepare()).ok).toBe(true);
+    const path = "data/task/launches/1.json", opened = await readTextFile(home, path);
+    let response: any;
+    await writeTextFile(home, { path, content: opened.content + "\n", expectedHash: opened.hash, force: false }, {
+      afterStaging: async () => { response = await run(["unresolved", "task", "--attempt", "1"]); },
+    });
+    expect(response).toMatchObject({ ok: false, error: expect.stringContaining("file locked") });
+    expect(await readFile(join(home, path), "utf8")).toBe(opened.content + "\n");
+  });
+
   it("reserves one attempt across simultaneous prepares", async () => {
     // CI diagnostics only (inert locally): each reply is recorded as it settles; state is snapshotted before cleanup.
     const t0 = performance.now();

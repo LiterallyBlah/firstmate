@@ -149,6 +149,12 @@ an exclusive install; conflicts keep the outside edit and the previous copies.
 See [safe save and recovery](files-safe-save/README.md) for the remaining outside-writer
 limit and recovery after a process stops during capture.
 
+Generated briefs, remote request files and launch JSON revisions use the same
+checked save and recovery path. A JSON update carries the hash of the exact bytes
+read for that revision; changing the file through Files without increasing its
+revision number cannot slip past the final check. New attempt publication and
+`render --out` are exclusive creates, so they cannot replace an existing file.
+
 ## Message templates
 
 `data/templates/` starts with `art-ready`, `land`, `deploy-go` and

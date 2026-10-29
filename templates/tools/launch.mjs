@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Optional first-mate tool. Local creation stays in the lead's own MCP calls.
 import { execFile } from "node:child_process";
-import { createHash, randomUUID } from "node:crypto";
-import { readFile, writeFile, mkdir, readdir, realpath, lstat, open, link, rename, rm } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { readFile, writeFile, mkdir, readdir, realpath, lstat, open, rm } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve, sep, win32 } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
@@ -76,16 +76,23 @@ async function remote(host, args) {
 }
 const query = (record, args) => record.host === "local" ? cli(args) : remote(record.host, [...args, "--json"]);
 function rows(value) { if (!Array.isArray(value)) fail("invalid-response", "Expected a Paseo list; absence is not established"); return value; }
-async function write(path, bytes) {
-  await role(); const target = await inside(path);
-  await mkdir(dirname(target), { recursive: true }); await writeFile(await inside(path), bytes, { mode: 0o600 });
+async function write(path, bytes, expectedHash) {
+  await role(); const target = await fileTarget(config.home, path);
+  return withFileLock(target.absolute, async () => {
+    let expected = expectedHash;
+    if (expected === undefined) {
+      // A newly assembled brief/request has no retained editor draft. Read its previous copy
+      // inside the same lock as Files, then preserve those exact bytes before replacing it.
+      try { expected = hash(await readFile(target.absolute)); }
+      catch (error) { if (error.code !== "ENOENT") throw error; expected = null; }
+    }
+    await role();
+    await replaceLocked(config.home, target.path, bytes, expected, { actor: "launch", force: false });
+  });
 }
-async function atomic(path, value, exclusive = false) {
-  await role(); const target = await inside(path), temporary = `${target}.${randomUUID()}.tmp`;
-  const file = await open(temporary, "wx", 0o600);
-  try { await file.writeFile(JSON.stringify(value, null, 2) + "\n"); await file.sync(); } finally { await file.close(); }
-  try { if (exclusive) await link(temporary, target); else await rename(temporary, target); }
-  finally { await rm(temporary, { force: true }); }
+async function atomic(path, value, exclusive = false, expectedHash) {
+  if (!exclusive && typeof expectedHash !== "string") fail("record-changed", "A launch record update needs its original file version");
+  return write(path, JSON.stringify(value, null, 2) + "\n", exclusive ? null : expectedHash);
 }
 function alive(pid) { try { process.kill(pid, 0); return true; } catch (error) { return error.code !== "ESRCH"; } }
 async function locked(path, action) {
@@ -112,11 +119,11 @@ function handover(record, recorder) {
 }
 async function update(record, changes) {
   return locked(`${directory(record.id)}/.lock`, async () => {
-    const current = await load(record.id, record.attempt);
+    const previousBytes = await read(recordPath(record.id, record.attempt)), current = json(previousBytes);
     if (current.revision !== record.revision) fail("record-changed", "Launch record changed; inspect status before continuing");
     const actor = handover(current, await role());
     const next = { ...current, ...changes, ...actor, revision: current.revision + 1, updatedAt: now(), history: [...current.history, { at: now(), state: changes.state ?? current.state, ...actor }] };
-    await atomic(recordPath(record.id, record.attempt), next);
+    await atomic(recordPath(record.id, record.attempt), next, false, hash(previousBytes));
     if (next.workflow && ["unresolved", "failed", "abandoned"].includes(changes.state)) await workflowCommand({ op: "record", plan: next.workflow.plan, node: next.workflow.node, attempt: next.workflow.attempt,
       state: changes.state === "failed" ? "failed" : "unresolved", evidence: changes.reason ?? changes.error ?? "Launch outcome requires inspection; no create may be repeated blindly." });
     return next;
