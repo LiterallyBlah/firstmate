@@ -49,6 +49,7 @@ export const FeatureInventorySchema = z.object({ complete: z.literal(false),
 export type FeatureInventory = z.infer<typeof FeatureInventorySchema>;
 export const FeatureReadResultSchema = FeaturePolicySnapshotSchema.extend({ inventory: FeatureInventorySchema,
   pause: z.string().nullable().default(null) });
+export type FeatureReadResult = z.infer<typeof FeatureReadResultSchema>;
 export const readFeatureSettings = defineRpc({ name: "firstmate.features.read",
   input: z.object({ home }).strict(), output: FeatureReadResultSchema });
 export const setFeatureSettings = defineRpc({ name: "firstmate.features.set",
