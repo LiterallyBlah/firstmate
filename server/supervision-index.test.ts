@@ -65,7 +65,9 @@ it("launch work stays bounded after 176 transactions instead of replaying the pr
   await f.run(owner, { op: "record", plan: owner.planId, node: "indexed-build", attempt: launched.attemptId!, state: "done", evidence: "Owner inspected the admitted synthetic report." });
   expect((await f.store.read()).plans[0]!.plan.nodes["indexed-build"]!.state).toBe("done");
   expect(f.receiver.calls.filter(c => c.op === "createAgent")).toHaveLength(1);
-}, 60_000);
+  // The bound is the scan/apply counts, not wall time. Windows CI: median 11 s, passes up to 55.5 s against 60 s;
+  // hosted Windows runner slowdowns add up to ~46 s (61 runs, 2026-10-28/29), so the budget is its Windows median + ~50 s.
+}, 90_000);
 it("a reader validates a bounded new tail; startup and an oversized tail validate full history", async () => {
   const f = await fixture(); await f.advance();
   const reader = new SupervisionStore(f.data, f.home), full = vi.spyOn(reader as any, "scanFull");
@@ -216,4 +218,5 @@ it.each(["checkpoint:written", "checkpoint:synced", "checkpoint:replaced"])("int
 it("the history ceiling holds admissions without deleting or resetting history", async () => {
   const f = await fixture(); for (let n = 0; n < SUPERVISION_INDEX_LIMITS.transactions; n++) await f.advance();
   const before = await f.store.read(); await expect(f.advance()).rejects.toMatchObject({ code: "HELD" }); expect(await f.store.read()).toEqual(before);
-}, 30000);
+  // Windows CI: median 11.7 s, passes up to 29.3 s and three timeouts at 30 s; hosted Windows runner slowdowns add up to ~46 s (61 runs, 2026-10-28/29), so the budget is its Windows median + ~50 s.
+}, 90_000);

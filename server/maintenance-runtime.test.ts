@@ -482,4 +482,5 @@ it("A13 upgraded storage continues maintenance and summaries past every pilot ba
   clock = "2026-10-28T03:16:00Z"; await service.tick(); const after = await service.read();
   expect(after.sequence).toBeGreaterThan(256); expect(after.occurrences).toHaveLength(2); expect(after.owners).toEqual(before.owners);
   expect((await service.summary()).lowerBound).toBe(false); expect(after.lowerBound).toBe(false);
-}, 60000);
+  // Windows CI: median 17.6 s, passes up to 30.5 s; hosted Windows runner slowdowns add up to ~46 s (61 runs, 2026-10-28/29), so the budget is its Windows median + ~50 s.
+}, 90_000);

@@ -113,7 +113,8 @@ it("production tick processes two checked chains while General's lifecycle lock 
     restarted.remember(f.api); await restarted.tick(); await restarted.stop();
     expect(f.receiver.calls.filter(c => c.op === "createAgent")).toHaveLength(4);
   } finally { unlock(); await hold; await f.service.stop(); await f.runtime.stop(); }
-}, 20000);
+  // Windows CI: median 11.3 s, passes up to 19.3 s and three timeouts at 20 s; hosted Windows runner slowdowns add up to ~46 s (61 runs, 2026-10-28/29), so the budget is its Windows median + ~50 s.
+}, 90_000);
 it("allocation stops and queued claims hold only affected starts without reserving spend", async () => {
   const f = await fixture();
   try {

@@ -14,7 +14,9 @@ import { SupervisionLifecycle } from "./supervision-lifecycle";
 import { supervisorSpend } from "./supervisor-sessions";
 import { ObservationTimeout } from "./supervision-observation";
 
-describe("R04 independent counterexamples", { timeout: 60000 }, () => {
+// Windows CI: R04-02 passes up to 39.6 s (median 4.6 s) and R04-03 once exceeded 60 s while both workers ran
+// ~6x slow (run 40911944822). The 10 s progress bound inside R04-03 is unchanged; this only covers fixture time.
+describe("R04 independent counterexamples", { timeout: 120_000 }, () => {
   it("R04-01: processes a request beyond twenty retained completed requests", async () => {
     const f = await s04Fixture(), scope = await f.addScope(1, "transport-goal", ["work"]);
     const directory = join(f.home, "data/scope-requests"); await mkdir(directory, { recursive: true });
