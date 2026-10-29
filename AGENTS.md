@@ -1510,12 +1510,10 @@ offset in the file: a note that splits a suggestion across lines is read the way
 and removal deletes only that suggestion's own characters and its line break, never a note's bytes —
 deleting the whole physical line could take a `<!--` with it and bring what the note hid onto the board.
 A suggestion the file no longer has writes nothing. The write is `replaceTextIfUnchanged` in
-`server/files.ts`: confined to the home, staged and renamed, and refused with `FileChangedError` unless
-the file still reads exactly as it did — by content, since two writes in one millisecond share an
-mtime — checked before staging and again just before the rename. A refusal is the first mate writing
-at the same moment, and the removal starts over from its version, `REMOVE_ATTEMPTS` times at most. A
-write landing between that last check and the rename is still lost: a rename cannot compare and swap.
-The Files view's own saves get the same second check, by modification time as before. The RPC answers
+`server/files.ts`: confined to the home, checked by content under the shared file lock,
+with recoverable replacement through `file-save.mjs`. A refusal is the first mate writing
+at the same moment, and removal starts over from its version, `REMOVE_ATTEMPTS` times at most.
+Files saves check SHA-256 even for a reviewed replacement. The RPC answers
 with the list left, which the board puts in the fleet query at once.
 
 On the card, the trash is a sibling of the send `Pressable` rather than inside it, so pressing it can
@@ -1745,11 +1743,17 @@ folder and opens any text file in an editor, with a Markdown preview for `.md`. 
   above the home; then it is resolved through symlinks and refused if it lands outside the home's real
   path — for a file about to be created, through its nearest existing ancestor. A clone under
   `projects/` can contain links to anywhere, and the panel must not follow them out.
-- **Saved against the version opened.** The first mate writes these same files, so a save carries the
-  modification time the editor opened the file at and is refused if the file has changed since; the
-  editor then offers *Overwrite*, which sends `force`. A file that changes on disk while open and
-  unedited is reloaded quietly, off the list's ten-second poll. A save is a temporary file renamed over
-  the old one, so the first mate never reads half of it.
+- **Saved against the exact bytes opened.** Read and write carry SHA-256; mtime is display/polling
+  information only. `force` records a deliberate replacement but never bypasses its expected hash.
+  A conflict retains the draft and offers Yours / Theirs / Original, with task removals and completed
+  work made unfinished listed and acknowledged before replacing. The server recomputes this list
+  against the same current hash and proposed text. Choosing their saved copy asks before discarding a dirty draft.
+- **Recoverable shared saves.** `server/file-save.mjs` is mirrored byte-for-byte in
+  `templates/tools/file-save.mjs` for installation beside launch; a test enforces identity. Files and launch use the same exclusive per-file lock (`data/.backlog.lock`
+  for backlog). They reread inside it, retain exact previous data bytes in
+  `recall/files/<home-relative-path>/<sha256>.bin`, and persist bounded before/after/actor/force audit
+  records. A final-boundary edit is captured, compared and restored without overwriting a new path.
+  See `docs/files-safe-save/README.md` for retention, crash recovery and the outside-writer limit.
 - **Text only, up to a megabyte.** A NUL byte in the first 8 KB marks a file binary; either kind is
   listed but not opened.
 - **The chat links only what the daemon vouches for.** `client/file-links.ts` picks anything

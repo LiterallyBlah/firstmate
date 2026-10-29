@@ -8,20 +8,15 @@
  * clone under `projects/` — happens to contain from opening the rest of the
  * disk.
  *
- * Writes carry the modification time the editor opened the file at, because
- * the first mate writes these same files; a save over a newer version is
- * refused unless forced, checked both before the new content is staged and
- * again just before it replaces the file. Each write goes to a temporary file
- * that is then renamed, so a crash never leaves half a file for the first mate
- * to read; it takes the replaced file's mode first, so an executable stays
- * executable.
- * Writes to one path run one at a time, so two saves opened at the same
- * version cannot both pass the check.
+ * Saves compare exact byte hashes under the shared cross-process file lock. Data replacements
+ * keep previous bytes and an audit even with receipt journaling disabled. See file-save.mjs.
  */
-import { randomUUID } from "node:crypto";
-import type { Stats } from "node:fs";
-import { chmod, mkdir, open, readdir, readFile, realpath, rename, rm, stat, writeFile } from "node:fs/promises";
+import { readdir, readFile, realpath, stat } from "node:fs/promises";
 import { dirname, isAbsolute, join, normalize, relative, sep } from "node:path";
+
+import { fileLosses } from "../shared/file-losses";
+import { FileChangedError, fileHash, fileTarget, replaceLocked, withFileLock, type SaveOptions } from "./file-save.mjs";
+export { FileChangedError } from "./file-save.mjs";
 
 import { MAX_EDITABLE_BYTES, type HomeEntry } from "../shared/files";
 import { newAction, observedWrite, type RecordOrigin } from "./receipts";
@@ -101,152 +96,68 @@ export async function listDirectory(home: string, path: string): Promise<{ path:
   return { path: rel, entries };
 }
 
-/** A NUL byte in the first few kilobytes is the usual sign of a file that is not text. */
-async function looksBinary(absolute: string): Promise<boolean> {
-  const handle = await open(absolute, "r");
-  try {
-    const buffer = Buffer.alloc(SNIFF_BYTES);
-    const { bytesRead } = await handle.read(buffer, 0, SNIFF_BYTES, 0);
-    return buffer.subarray(0, bytesRead).includes(0);
-  } finally {
-    await handle.close();
-  }
-}
-
+/** Read once: the version always describes the exact bytes shown, even if the file changes mid-read. */
 export async function readTextFile(home: string, path: string) {
   const { absolute, relative: rel } = await resolveInHome(home, path);
   const info = await stat(absolute);
   if (!info.isFile()) throw new Error(`"${rel}" is not a file.`);
-  const base = { path: rel, size: info.size, modifiedMs: Math.floor(info.mtimeMs) };
+  const base = { path: rel, size: info.size, modifiedMs: Math.floor(info.mtimeMs), hash: null };
   if (info.size > MAX_EDITABLE_BYTES) return { ...base, content: null, binary: false, tooLarge: true };
-  if (await looksBinary(absolute)) return { ...base, content: null, binary: true, tooLarge: false };
-  return { ...base, content: await readFile(absolute, "utf8"), binary: false, tooLarge: false };
+  const bytes = await readFile(absolute);
+  if (bytes.length > MAX_EDITABLE_BYTES) return { ...base, size: bytes.length, content: null, binary: false, tooLarge: true };
+  if (bytes.subarray(0, SNIFF_BYTES).includes(0)) return { ...base, content: null, binary: true, tooLarge: false };
+  try {
+    const content = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes);
+    return { ...base, size: bytes.length, content, hash: fileHash(bytes), binary: false, tooLarge: false };
+  } catch { return { ...base, content: null, binary: true, tooLarge: false }; }
 }
 
-/**
- * A write refused because the file is no longer the version it was checked against: the first mate
- * wrote it, deleted it or created it in between. Callers that can start over from the new version
- * tell it from other failures by its class.
- */
-export class FileChangedError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "FileChangedError";
-  }
-}
-
-/** For tests: runs once the temporary file is written, before the destination is checked again. */
-export interface WriteHooks {
-  afterStaging?: () => Promise<void>;
-  /** The action the write is part of, for the receipt journal's record ledger; nothing when it is off. */
+export interface WriteHooks extends SaveOptions {
+  /** Optional receipt journal action; recovery copies are always enabled separately. */
   origin?: RecordOrigin | (() => RecordOrigin);
 }
-
 const originOf = (hooks: WriteHooks) => hooks.origin ?? (() => newAction("home.write"));
 
 export async function writeTextFile(
   home: string,
-  input: { path: string; content: string; expectedModifiedMs: number | null; force: boolean },
+  input: { path: string; content: string; expectedHash: string | null; force: boolean; reviewedLosses?: string[] },
   hooks: WriteHooks = {},
-): Promise<{ path: string; size: number; modifiedMs: number }> {
-  const { absolute, relative: rel } = await resolveInHome(home, input.path);
+): Promise<{ path: string; size: number; modifiedMs: number; hash: string }> {
+  const { relative: rel } = await resolveInHome(home, input.path);
   if (rel === "") throw new Error("The home itself is not a file.");
-  // S07: a scoped plan's Markdown export is a projection of its journal, never an authority to edit.
-  if (/^data\/scoped\/(?!proposals\/)/.test(rel.replace(/\\/g, "/")))
+  const target = await fileTarget(home, rel);
+  // Check canonical identity too: a home alias cannot edit a scoped projection or skip data recovery.
+  if (/^data\/scoped\/(?!proposals\/)/.test(target.path))
     throw new Error("This is a scoped plan's projection; the plan's journal is its authority. Save your change under data/scoped/proposals/ as a proposal for its supervisor.");
-  return serialized(absolute, async () => {
-    await observedWrite({ absolute, path: rel }, originOf(hooks),
-      () => stageAndReplace(absolute, input.content, (current) => checkVersion(rel, current, input), hooks), { after: input.content });
-    const saved = await stat(absolute);
-    return { path: rel, size: saved.size, modifiedMs: Math.floor(saved.mtimeMs) };
-  });
-}
-
-/**
- * Replaces a text file only if it still reads exactly `expected`, compared by content rather than by
- * modification time, which cannot tell two writes within one millisecond apart. Throws
- * `FileChangedError` when it does not, or when it is gone.
- */
-export async function replaceTextIfUnchanged(
-  home: string,
-  path: string,
-  expected: string,
-  content: string,
-  hooks: WriteHooks = {},
-): Promise<void> {
-  const { absolute, relative: rel } = await resolveInHome(home, path);
-  if (rel === "") throw new Error("The home itself is not a file.");
-  await serialized(absolute, () =>
-    observedWrite({ absolute, path: rel }, originOf(hooks), () =>
-      stageAndReplace(
-        absolute,
-        content,
-        async (current) => {
-          if (current === null) throw new FileChangedError(`"${rel}" was deleted since it was read.`);
-          if (!current.isFile()) throw new Error(`"${rel}" is not a file.`);
-          if ((await readFile(absolute, "utf8")) !== expected) throw new FileChangedError(`"${rel}" changed since it was read.`);
+  if (Buffer.byteLength(input.content, "utf8") > MAX_EDITABLE_BYTES) throw new Error("This text is too large to save here.");
+  return serialized(target.absolute, () => withFileLock(target.absolute, async () => {
+    const hash = await observedWrite({ absolute: target.absolute, path: rel }, originOf(hooks),
+      () => replaceLocked(home, target.path, input.content, input.expectedHash, {
+        ...hooks, actor: "files", force: input.force,
+        check: before => {
+          const losses = target.path.startsWith("data/") && before !== null ? fileLosses(before.toString("utf8"), input.content) : [];
+          if (losses.length && JSON.stringify(losses) !== JSON.stringify(input.reviewedLosses ?? []))
+            throw new FileChangedError("This save removes tasks or marks completed work unfinished. Review what will change before replacing the file.");
         },
-        hooks,
-      ), { before: expected, after: content }),
-  );
+      }), { after: input.content });
+    const saved = await stat(target.absolute);
+    return { path: rel, size: Buffer.byteLength(input.content, "utf8"), modifiedMs: Math.floor(saved.mtimeMs), hash };
+  }));
 }
 
-type Current = Stats | null;
-
-async function statIfPresent(absolute: string): Promise<Current> {
-  try {
-    return await stat(absolute);
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-    return null;
-  }
-}
-
-function checkVersion(rel: string, current: Current, input: { expectedModifiedMs: number | null; force: boolean }): void {
-  if (current !== null && !current.isFile()) throw new Error(`"${rel}" is not a file.`);
-  if (input.force) return;
-  if (input.expectedModifiedMs === null && current !== null) {
-    throw new FileChangedError(`"${rel}" already exists. Open it to edit it.`);
-  }
-  if (input.expectedModifiedMs !== null && (current === null || Math.floor(current.mtimeMs) !== input.expectedModifiedMs)) {
-    throw new FileChangedError(
-      current === null
-        ? `"${rel}" was deleted since you opened it — the first mate may have removed it. Overwrite to write your version back.`
-        : `"${rel}" changed since you opened it — the first mate may have written it. Reload to see that version, or overwrite it with yours.`,
-    );
-  }
-}
-
-/**
- * Writes `content` to a temporary file beside `absolute` and renames it into place, running `check`
- * on the destination twice: before anything is written, and again once the temporary file is ready,
- * just before the rename. The second check is what catches the first mate writing while this one was
- * staging. What it cannot catch is a write landing between that check and the rename — there is no
- * compare-and-swap rename to close it — so the window is a stat, or a read of a small file, wide.
- */
-async function stageAndReplace(
-  absolute: string,
-  content: string,
-  check: (current: Current) => void | Promise<void>,
-  hooks: WriteHooks,
+/** Internal text edits share the same lock and recovery protocol; they never bypass a content check. */
+export async function replaceTextIfUnchanged(
+  home: string, path: string, expected: string, content: string, hooks: WriteHooks = {},
 ): Promise<void> {
-  const current = await statIfPresent(absolute);
-  await check(current);
-
-  await mkdir(dirname(absolute), { recursive: true });
-  const temporary = `${absolute}.firstmate-${randomUUID()}.tmp`;
-  try {
-    await writeFile(temporary, content, "utf8");
-    // The temporary file has the default mode; the one it replaces keeps its own, so a watch script
-    // saved here stays executable. A new file keeps the default.
-    if (current !== null) await chmod(temporary, current.mode & 0o7777);
-    await hooks.afterStaging?.();
-    await check(await statIfPresent(absolute));
-    await rename(temporary, absolute);
-  } catch (error) {
-    await rm(temporary, { force: true });
-    throw error;
-  }
+  const { relative: rel } = await resolveInHome(home, path);
+  if (rel === "") throw new Error("The home itself is not a file.");
+  const target = await fileTarget(home, rel);
+  await serialized(target.absolute, () => withFileLock(target.absolute, () =>
+    observedWrite({ absolute: target.absolute, path: rel }, originOf(hooks), async () => {
+      try { await replaceLocked(home, target.path, content, fileHash(expected), { ...hooks, actor: "home.edit", force: false }); }
+      catch (error) { if (error instanceof FileChangedError) throw new FileChangedError(`"${rel}" changed since it was read.`); throw error; }
+    }, { before: expected, after: content }),
+  ));
 }
 
 /**

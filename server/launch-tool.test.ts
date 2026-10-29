@@ -8,6 +8,8 @@ import { promisify } from "node:util";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CREW_LABELS, FirstmateConfigSchema } from "../shared/fleet";
 import { prepareHome } from "./home";
+import { readTextFile, writeTextFile } from "./files";
+import { fileHash, fileTarget, withFileLock } from "./file-save.mjs";
 import { briefParts } from "./launch-tool";
 import { commandArguments } from "./remotes";
 import { WorkflowPlanStore } from "./workflow-plans";
@@ -299,17 +301,36 @@ describe("backlog and gates", () => {
     await addWorker(); const result = await record();
     const after = await readFile(join(home, "data/backlog.md"), "utf8");
     expect(after.charCodeAt(0)).toBe(0xfeff); expect(after).toContain(`- [ ] other - Unrelated (note: untouched)${eol}`);
-    expect(after).toContain(result.backlog.line + eol); expect(result.backlog.warning).toContain("without detection");
+    expect(after).toContain(result.backlog.line + eol); expect(result.backlog.warning).toContain("recall/files/");
     const without = after.replace(result.backlog.line + eol, ""); await writeFile(join(home, "data/backlog.md"), without);
     const tool = await module(); const restored = tool.backlogEdit(Buffer.from(without), "task", result.backlog.line, "In flight");
     expect(restored.toString()).toBe(after);
   });
-  it("detects the before-compare change and the after-rename missing line, with no claim about the intervening window", async () => {
+  it("detects the before-compare change and the after-rename missing line, and preserves an edit at the capture boundary", async () => {
     const tool = await module(), path = join(home, "data/backlog.md"), before = await readFile(path), line = "- [ ] task - Task";
     const after = tool.backlogEdit(before, "task", line, "Queued");
     await expect(tool.replaceBacklog(path, before, after, line, { beforeCompare: () => writeFile(path, "changed") })).rejects.toMatchObject({ code: "backlog-changed" });
     expect(await readFile(path, "utf8")).toBe("changed"); await writeFile(path, before);
-    await expect(tool.replaceBacklog(path, before, after, line, { afterRename: () => writeFile(path, before) })).rejects.toMatchObject({ code: "backlog-line-missing" });
+    await expect(tool.replaceBacklog(path, before, after, line, { afterRename: () => writeFile(path, before) })).rejects.toMatchObject({ code: "backlog-changed" });
+    await writeFile(path, before);
+    const external = Buffer.from(before.toString() + "\n- [ ] external - Newer task\n");
+    const target = await fileTarget(home, "data/backlog.md");
+    await expect(withFileLock(target.absolute, () => tool.replaceBacklog(path, before, after, line, {
+      beforeCapture: () => writeFile(path, external),
+    }))).rejects.toMatchObject({ code: "backlog-changed" });
+    expect(await readFile(path)).toEqual(external);
+    expect(await readFile(join(home, "recall/files/data/backlog.md", `${fileHash(external)}.bin`))).toEqual(external);
+  });
+
+  it("refuses a launch process while Files holds the same backlog lock", async () => {
+    const opened = await readTextFile(home, "data/backlog.md");
+    let launch: any;
+    await writeTextFile(home, { path: opened.path, content: opened.content + "\nFiles note\n", expectedHash: opened.hash, force: false }, {
+      afterStaging: async () => { launch = await prepare(); },
+    });
+    expect(launch.ok).toBe(false);
+    expect(launch.error).toMatch(/file locked/);
+    expect(await readFile(join(home, opened.path), "utf8")).toBe(opened.content + "\nFiles note\n");
   });
   it("binds dependency evidence and captain authority to the filed hold, without consulting Done", async () => {
     await writeFile(join(home, "data/backlog.md"), "## In flight\n## Queued\n- [ ] task - Filed title (blocked-by: missing-history) (kind: captain) (hold: Approve art)\n## Done\n");

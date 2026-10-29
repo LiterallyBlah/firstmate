@@ -129,7 +129,7 @@ export async function changeItemTag(
             {
               path: ITEM_TAGS_FILE,
               content,
-              expectedModifiedMs: null,
+              expectedHash: null,
               force: false,
             },
             hooks,

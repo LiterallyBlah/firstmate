@@ -61,7 +61,7 @@ export async function sendRecordedDiscussion(home: string, key: string, title: s
     async function save() {
       const content = `${JSON.stringify(thread, null, 2)}\n`;
       if (Buffer.byteLength(content) > MAX_EDITABLE_BYTES) throw new Error("This discussion is full. Open its existing conversation.");
-      if (previous === null) await writeTextFile(home, { path: threadPath(key), content, expectedModifiedMs: null, force: false });
+      if (previous === null) await writeTextFile(home, { path: threadPath(key), content, expectedHash: null, force: false });
       else await replaceTextIfUnchanged(home, threadPath(key), previous, content);
       previous = content;
     }
@@ -120,7 +120,7 @@ export async function sendThread(
     async function save(): Promise<void> {
       const content = `${JSON.stringify(thread, null, 2)}\n`;
       if (Buffer.byteLength(content, "utf8") > MAX_EDITABLE_BYTES) throw new Error("This discussion is full. Continue with the first mate in the bridge.");
-      if (previous === null) await writeTextFile(home, { path: threadPath(key), content, expectedModifiedMs: null, force: false });
+      if (previous === null) await writeTextFile(home, { path: threadPath(key), content, expectedHash: null, force: false });
       else await replaceTextIfUnchanged(home, threadPath(key), previous, content);
       previous = content;
     }

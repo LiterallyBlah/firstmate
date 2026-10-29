@@ -34,7 +34,7 @@ export function useRpc(contract) {
   if (contract.name === "firstmate.files.find") return async ({ paths }) => ({ files: Object.fromEntries(paths.filter(p => p in files).map(p => [p, p])) });
   if (contract.name === "firstmate.files.read") return async ({ path }) => {
     window.fixtureCalls.push({ name: contract.name, input: { path } });
-    return { path, content: files[path], modifiedMs: 1, binary: false, tooLarge: false, size: files[path]?.length ?? 0 };
+    return { path, content: files[path], hash: "a".repeat(64), modifiedMs: 1, binary: false, tooLarge: false, size: files[path]?.length ?? 0 };
   };
   if (contract.name === "firstmate.files.list") return async ({ path }) => ({ path, home: "fixture", entries: [] });
   return originalRpc(contract);

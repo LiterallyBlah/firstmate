@@ -5,7 +5,7 @@
  *
  * The first mate writes these same files, so an edit is saved against the
  * version it was opened at: a file that changed since is refused, and the
- * editor offers to reload theirs or overwrite it with yours. A file changed
+ * editor keeps the draft and offers a comparison before any replacement. A file changed
  * on disk while open and unedited is simply reloaded. The daemon confines
  * every path to the home (`server/files.ts`).
  *
@@ -20,6 +20,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 
 import { listHomeFiles, readHomeFile, writeHomeFile, type HomeEntry } from "../shared/files";
+import { fileLosses } from "../shared/file-losses";
 import { relativeTime } from "./format";
 import { useKeyboardOverlap } from "./keyboard";
 import { isSaveKey, type WebKeyPressEvent } from "./keys";
@@ -87,6 +88,8 @@ export function FilesView({
   const [preview, setPreviewState] = useState(memory.preview);
   const [loadingPath, setLoadingPath] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [comparison, setComparison] = useState<{ path: string; original: string; theirs: string; hash: string } | null>(null);
+  const [checkedLosses, setCheckedLosses] = useState(false);
   const [error, setError] = useState<{ text: string; conflict: boolean; path?: string } | null>(null);
   const opening = useRef<{ path: string } | null>(null);
   const writing = useRef(false);
@@ -101,6 +104,7 @@ export function FilesView({
     setDirState(next);
   }
   function setOpen(next: OpenFile | null): void {
+    if (next?.path !== memory.open?.path) setComparison(null);
     memory = { ...memory, open: next };
     setOpenState(next);
   }
@@ -130,6 +134,7 @@ export function FilesView({
     opening.current = request;
     if (options.quiet !== true) setLoadingPath(path);
     setError(null);
+    setComparison(null);
     read({ path })
       .then((result) => {
         if (opening.current !== request) return;
@@ -146,6 +151,7 @@ export function FilesView({
           kind: "text",
           path: result.path,
           modifiedMs: result.modifiedMs,
+          hash: result.hash!,
           saved: result.content,
           draft: result.content,
         });
@@ -157,14 +163,18 @@ export function FilesView({
   function save(force: boolean, then?: PendingAction): void {
     if (open?.kind !== "text" || writing.current) return;
     const file = open;
+    const review = comparison?.path === file.path ? comparison : null;
+    if (force && (!review || (losses.length > 0 && !checkedLosses))) return;
     writing.current = true;
     setSaving(true);
     setError(null);
-    write({ path: file.path, content: file.draft, expectedModifiedMs: file.modifiedMs, force })
+    write({ path: file.path, content: file.draft, expectedHash: force ? review!.hash : file.hash, force,
+      reviewedLosses: force ? losses : [] })
       .then((result) => {
         // `memory.open`, not `file`: the captain may have typed on, or opened another file, since.
-        const next = markSaved(memory.open, { path: file.path, content: file.draft, modifiedMs: result.modifiedMs });
+        const next = markSaved(memory.open, { path: file.path, content: file.draft, modifiedMs: result.modifiedMs, hash: result.hash });
         setOpen(next);
+        setComparison(null);
         void queryClient.invalidateQueries({ queryKey: LIST_QUERY });
         toast.show(`Saved ${file.path}`, { variant: "success" });
         // Typed on while it saved: going on now would drop that, so ask again.
@@ -174,10 +184,28 @@ export function FilesView({
       })
       .catch((caught: unknown) => {
         const text = errorText(caught);
-        setError({ text, conflict: /changed since|deleted since/.test(text) });
+        setComparison(null);
+        setError({ text, conflict: /changed since|deleted since|already exists|Review what will change/.test(text) });
       })
       .finally(() => { writing.current = false; setSaving(false); });
   }
+
+  function compareCopies(): void {
+    if (open?.kind !== "text" || opening.current || writing.current) return;
+    const file = open, request = { path: file.path };
+    opening.current = request; setLoadingPath(file.path); setCheckedLosses(false);
+    read({ path: file.path }).then(result => {
+      if (opening.current !== request || memory.open?.path !== file.path) return;
+      if (result.content === null || result.hash === null) throw new Error("The current copy cannot be shown as text. Your draft is still here; copy it before opening another file.");
+      setComparison({ path: file.path, original: file.saved, theirs: result.content, hash: result.hash });
+    }).catch((caught: unknown) => setError({ text: errorText(caught), conflict: false }))
+      .finally(() => { if (opening.current === request) { opening.current = null; setLoadingPath(null); } });
+  }
+
+  const losses = comparison && open?.kind === "text" && open.path === comparison.path
+    ? fileLosses(comparison.theirs, open.draft) : [];
+  // Changing either copy invalidates the acknowledgement of exactly what would be removed.
+  useEffect(() => setCheckedLosses(false), [open?.kind === "text" ? open.draft : null, comparison]);
 
   function create(): void {
     const name = newName?.trim() ?? "";
@@ -185,7 +213,7 @@ export function FilesView({
     writing.current = true;
     setSaving(true);
     const path = dir === "" ? name : `${dir}/${name}`;
-    write({ path, content: "", expectedModifiedMs: null, force: false })
+    write({ path, content: "", expectedHash: null, force: false })
       .then(() => {
         setNewName(null);
         void queryClient.invalidateQueries({ queryKey: LIST_QUERY });
@@ -574,22 +602,49 @@ export function FilesView({
             <Banner
               theme={theme}
               tone="warning"
-              text={error?.conflict ? error.text : "This file changed on disk while you were editing it — the first mate may have written it."}
+              text="Your draft is still here. Compare it with the saved copy before choosing what to keep."
               actions={[
                 { label: "Copy my text", icon: "Copy", onPress: () => {
                   if (open.kind === "text") void copyText(open.draft)
                     .then(() => toast.show("Copied your text", { variant: "success" }))
                     .catch((caught: unknown) => toast.error(errorText(caught)));
                 } },
-                { label: "Load theirs", icon: "RefreshCw", disabled: loadingPath !== null, onPress: () => load(open.path) },
-                ...(error?.conflict ? [{ label: "Overwrite", icon: "Save", disabled: saving, onPress: () => save(true) }] : []),
+                { label: "Compare copies", icon: "FileText", disabled: loadingPath !== null || saving, onPress: compareCopies },
               ]}
             />
           ) : null}
           {errorBanner}
         </View>
       )}
-      {editorBody}
+      {comparison && open?.kind === "text" && comparison.path === open.path ? (
+        <ScrollView style={{ flex: 1, minHeight: 0 }} contentContainerStyle={{ padding: 12, gap: 12 }}>
+          <Text style={{ color: theme.colors.foreground, fontSize: 16, fontWeight: "600" }}>Choose what to keep</Text>
+          <Text style={{ color: theme.colors.foreground, fontSize: 14 }}>Your draft is kept until you choose. Review the copies below before replacing the saved file.</Text>
+          {[["Yours — your draft", open.draft], ["Theirs — saved now", comparison.theirs], ["Original — when you opened it", comparison.original]].map(([label, text]) => (
+            <View key={label} style={{ gap: 6 }}>
+              <Text style={{ color: theme.colors.foreground, fontSize: 14, fontWeight: "600" }}>{label}</Text>
+              <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
+                <Text selectable style={{ color: theme.colors.foreground, fontFamily: MONOSPACE, fontSize: 13, lineHeight: 19 }}>{text || "(empty file)"}</Text>
+              </ScrollView>
+            </View>
+          ))}
+          {losses.length > 0 ? <View style={{ gap: 8 }}>
+            <Text style={{ color: theme.colors.foreground, fontSize: 16, fontWeight: "600" }}>This is what your copy will remove or undo</Text>
+            {losses.map((loss, index) => <Text key={index} style={{ color: theme.colors.foreground, fontSize: 14 }}>{loss}</Text>)}
+            <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: checkedLosses }} style={{ minHeight: 44, justifyContent: "center" }} onPress={() => setCheckedLosses(!checkedLosses)}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Icon name={checkedLosses ? "SquareCheck" : "Square"} size={18} color={theme.colors.foreground} />
+                <Text style={{ flex: 1, color: theme.colors.foreground, fontSize: 14 }}>I have read what will be removed or marked unfinished</Text>
+              </View>
+            </Pressable>
+          </View> : null}
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            <IconButton theme={theme} compact={compact} showLabel label="Keep editing my draft" icon="Pencil" onPress={() => setComparison(null)} />
+            <IconButton theme={theme} compact={compact} showLabel label="Use their saved copy" icon="RefreshCw" onPress={() => guarded("discard your draft and open their saved copy", () => load(open.path))} />
+            <IconButton theme={theme} compact={compact} showLabel tone="danger" label="Replace with my text" icon="Save" disabled={saving || (losses.length > 0 && !checkedLosses)} onPress={() => save(true)} />
+          </View>
+        </ScrollView>
+      ) : editorBody}
     </View>
   );
 

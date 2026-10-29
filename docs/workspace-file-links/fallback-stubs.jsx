@@ -43,7 +43,7 @@ const listHome = async input => {
   window.fixtureCalls.push({ name: "firstmate.files.list", input });
   return { home: "C:/Sample/FirstMate", path: input.path, entries: [{ name: "backlog.md", path: "data/backlog.md", kind: "file", size: 20, modifiedMs: 1 }] };
 };
-const readHome = async input => ({ path: input.path, content: "# Backlog fixture\n", binary: false, tooLarge: false, size: 20, modifiedMs: 1 });
+const readHome = async input => ({ path: input.path, content: "# Backlog fixture\n", hash: "a".repeat(64), binary: false, tooLarge: false, size: 20, modifiedMs: 1 });
 export const useRpc = contract => contract.name === "firstmate.files.find" ? findHome : contract.name === "firstmate.files.list" ? listHome : contract.name === "firstmate.files.read" ? readHome : originalRpc(contract);
 
 const source = [
