@@ -57,7 +57,8 @@ Home/Plans has an explicit Create maintenance owner confirmation naming the owne
 model, permission mode and total turn cap (opening, incidents and answer notifications).
 The app admits the scope and retains the exact input in an immutable command before
 reserving its workspace, parentless unprompted session and opening. Shared General
-headroom admission precedes reservation. Native effects use the existing gateway;
+headroom admission precedes reservation, using the same validated configured slots and
+General reserve as the project runtime. Native effects use the existing gateway;
 exact workspace/profile/label verification precedes the opening. An interrupted app
 can resume the saved request after reload. Uncertain creation is reconciled only by
 the reserved identity; uncertain workspace/opening sends stay held. Neither failure

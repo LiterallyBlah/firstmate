@@ -31,7 +31,7 @@ const profile = { provider: "codex/test", modeId: "full-access", thinkingOptionI
 const captain = { kind: "captain-ui" as const, id: "fixture", source: "fixture" };
 let home: string, root: string, runtime: SupervisionRuntime, service: MaintenanceRuntime, receiver: SyntheticReceiver,
   clock: string, watchConfig: WatchConfigStore, config: ReturnType<typeof FirstmateConfigSchema.parse>, native: NativeTimerInventory;
-const make = (enabled = true, observationTimeoutMs = 5000) => new MaintenanceRuntime(runtime, { enabled, config: async () => config, now: () => clock, receiver: () => receiver, observationTimeoutMs,
+const make = (enabled = true, observationTimeoutMs = 5000, headroom = { slots: 4, reserved: 1 }) => new MaintenanceRuntime(runtime, { enabled, config: async () => config, now: () => clock, receiver: () => receiver, observationTimeoutMs, headroom,
   inventory: (home, config, jobs) => readTimerInventory(home, config, watchConfig, native, jobs) });
 beforeEach(async () => {
   root = join(process.env.PASEO_HOME!, randomUUID()); home = join(root, "home");
@@ -121,6 +121,19 @@ it("F1/A21 app admission is default-off, rejects changed homes and refuses an un
   receiver.tamper = agent => { agent.provider = "different/model"; };
   await expect(service.admit(input, api)).rejects.toMatchObject({ code: "HELD" });
   expect(receiver.sends).toEqual([]); expect((await service.read()).owners[0]).toMatchObject({ sessions: 1, turns: 1, state: "transferring" });
+});
+
+it("F1/A20 maintenance admission retains configured General headroom and resumes only after capacity is free", async () => {
+  service.stop(); service = make(true, 5000, { slots: 3, reserved: 2 });
+  const first = { homeId: (await service.read()).homeId, requestId: randomUUID(), scopeId: SCOPE, name: "First owner", profile,
+    limits: { supervisorSessions: 1 as const, supervisorTurns: 20 } };
+  await service.admit(first, api); const calls = receiver.calls.length;
+  const second = { ...first, requestId: randomUUID(), scopeId: randomUUID(), name: "Second owner" };
+  await expect(service.admit(second, api)).rejects.toMatchObject({ code: "HELD", message: expect.stringContaining("General headroom") });
+  expect(receiver.calls).toHaveLength(calls); expect((await service.read()).owners.find(o => o.scopeId === second.scopeId)).toMatchObject({ sessions: 0, turns: 0 });
+  receiver.finish((await service.read()).owners.find(o => o.scopeId === SCOPE)!.agentId!);
+  await service.admit({ homeId: first.homeId, requestId: second.requestId, resume: true }, api);
+  expect((await service.read()).owners.find(o => o.scopeId === second.scopeId)).toMatchObject({ state: "active", sessions: 1, turns: 1 });
 });
 
 it("F2/A20 a real zero-budget incident creates one scoped captain decision without waking General or the owner", async () => {

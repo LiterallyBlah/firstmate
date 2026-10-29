@@ -161,6 +161,7 @@ export default function contribute(server: PluginServerContext) {
   registerProjectRuntime(server, projects);
   const scopeUiEnabled = process.env.FIRSTMATE_SCOPE_UI === "1", scopeExecutionEnabled = process.env.FIRSTMATE_SCOPE_EXECUTION === "1";
   const maintenance = new MaintenanceRuntime(supervisionRuntime, { enabled: process.env.FIRSTMATE_MAINTENANCE === "1",
+    headroom: { slots: projects.slots, reserved: projects.headroom },
     inventory: async (home, config, jobs) => readTimerInventory(home, config, new WatchConfigStore(join(pluginDir(), "watch-config.json")), await nativeSchedules(), jobs) });
   const unregisterMaintenance = registerMaintenanceRuntime(server, maintenance);
   const stopWorkflows = startWorkflowService(async () => {

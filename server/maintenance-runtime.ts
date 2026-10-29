@@ -41,13 +41,20 @@ export interface MaintenanceRuntimeOptions {
   enabled?: boolean; config?: typeof readFirstmateConfig; now?: () => string;
   inventory: (home: string, config: Awaited<ReturnType<typeof readFirstmateConfig>>, jobs: readonly MaintenanceJob[]) => Promise<TimerInventory>;
   receiver?: (paseo: PaseoApi) => GatewayReceiver; observationTimeoutMs?: number;
+  headroom?: { slots: number; reserved: number };
 }
 export class MaintenanceRuntime {
   private paseo: PaseoApi | null = null;
   private minute: string | null = null;
   private closed = false;
   private readonly receivers = new WeakMap<PaseoApi, GatewayReceiver>();
-  constructor(readonly runtime: SupervisionRuntime, private readonly options: MaintenanceRuntimeOptions) {}
+  private readonly headroom: { slots: number; reserved: number };
+  constructor(readonly runtime: SupervisionRuntime, private readonly options: MaintenanceRuntimeOptions) {
+    const { slots, reserved } = options.headroom ?? { slots: 4, reserved: 1 };
+    if (!Number.isSafeInteger(slots) || !Number.isSafeInteger(reserved) || reserved < 1 || slots <= reserved)
+      throw new Error("Maintenance capacity must retain the configured General headroom.");
+    this.headroom = { slots, reserved };
+  }
   private config() { return (this.options.config ?? readFirstmateConfig)(); }
   private now() { return this.options.now?.() ?? new Date().toISOString().replace(/\.\d{3}Z$/, "Z"); }
   private receiver(paseo: PaseoApi) {
@@ -84,7 +91,7 @@ export class MaintenanceRuntime {
   async summary() { return maintenanceSummary(await this.runtime.read(resolveHome(await this.config()))); }
   async admit(input: AdmitMaintenance, paseo: PaseoApi) {
     await this.checked(input.homeId); this.remember(paseo);
-    await admitMaintenanceOwner(this.runtime, input, this.receiver(paseo), id => this.checked(id));
+    await admitMaintenanceOwner(this.runtime, input, this.receiver(paseo), id => this.checked(id), this.headroom);
     return this.read();
   }
   async answer(input: MaintenanceAnswer, paseo: PaseoApi) {

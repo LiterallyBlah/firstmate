@@ -21,7 +21,7 @@ export function maintenanceAdmission(status: SupervisionStatus, scopeId: string)
     c.inputHash === digest(c.result.maintenanceAdmission) && digest(c.actor) === digest(UI))?.result.maintenanceAdmission ?? null;
 }
 export async function admitMaintenanceOwner(runtime: SupervisionRuntime, raw: AdmitMaintenance, receiver: GatewayReceiver,
-  checked: (homeId: string) => Promise<{ home: string; config: { mateAgentId: string } }>) {
+  checked: (homeId: string) => Promise<{ home: string; config: { mateAgentId: string } }>, headroom: { slots: number; reserved: number }) {
   const request = AdmitMaintenanceSchema.parse(raw), { home, config } = await checked(request.homeId);
   if (!config.mateAgentId) refuse("UNKNOWN_OWNER", "A configured General is required; maintenance never adopts that identity.");
   const initial = await runtime.read(home);
@@ -59,7 +59,7 @@ export async function admitMaintenanceOwner(runtime: SupervisionRuntime, raw: Ad
     const sessions = new SupervisorSessions(store, gateway, receiver, { enabled: true, limits: input.limits,
       globalMateId: async () => (await checked(input.homeId)).config.mateAgentId, reserveCheck: fresh });
     if (!binding) await withScopeAdmission(input.homeId, async () => {
-      await fresh(await store.read()); await checkGeneralHeadroom(await store.read(), receiver, 4, 1);
+      await fresh(await store.read()); await checkGeneralHeadroom(await store.read(), receiver, headroom.slots, headroom.reserved);
       const opening = `You own maintenance scope ${input.scopeId} (${input.name}). FirstMate home: ${home}. Read ${home}/data/maintenance.md. Transport: node "${home}/tools/maintenance.mjs" read, or command --file data/<request>.json --request-id <uuid>; write the strict command JSON under the FirstMate home. Your actual PASEO_AGENT_ID records owner provenance; never override it. Observe mode only. Healthy/unchanged results wake nobody. Acknowledge only exact delivered incident generations. Use escalate for genuine budget/authority choices; routine incidents are not captain decisions. Captain answers are instructions, never a budget grant, cleanup, provisioning, Attach, worker, merge or deployment authority. Corrective work requires the checked plan runtime and all seven plan rules. Session/turn reservations retain spend on failure or uncertainty. Limits: ${JSON.stringify(input.limits)}.`;
       await sessions.prepare({ requestId: input.requestId, scopeId: input.scopeId, scopeVersion: (await store.read()).scopes.find(s => s.id === input.scopeId)!.version,
         profile: input.profile, purpose: "work", opening }, UI);
