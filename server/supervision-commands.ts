@@ -56,8 +56,9 @@ export function checkDependencyRoute(status: SupervisionStatus, planId: string, 
     (["held", "transferring"].includes(owner.state) && !(op === "decision.answer" && owner.id === scopeId))) fail("HELD", "Dependency backend or scope is unavailable; cross-backend mutation is unsupported.");
 }
 export class SupervisionCommands {
-  constructor(readonly store: SupervisionStore, readonly home: string, private readonly options: { enabled?: boolean; now?: () => string } = {}) {}
-  private checkOwner(status: SupervisionStatus, input: Pick<ScopedPlanCommand, "homeId" | "scopeId" | "epoch" | "scopeVersion">, actor: SupervisionActor, op: PilotOperation) {
+  constructor(readonly store: SupervisionStore, readonly home: string, private readonly options: { enabled?: boolean; now?: () => string; unverifiedUiAnswers?: boolean;
+    answerAdmission?: (status: SupervisionStatus) => Promise<void> } = {}) {}
+  private checkOwner(status: SupervisionStatus, input: Pick<ScopedPlanCommand, "homeId" | "scopeId" | "epoch" | "scopeVersion">, actor: SupervisionActor, op: PilotOperation, uiAnswer = false) {
     if (!this.options.enabled) fail("UNSUPPORTED", "Pilot scoped commands are disabled.");
     if (status.homeId !== input.homeId || status.homeId !== this.store.homeId || workflowHomeIdentity(this.home) !== status.homeId) fail("STALE", "Home identity changed.");
     const scope = status.scopes.find(s => s.id === input.scopeId), binding = status.bindings.find(b => b.scopeId === input.scopeId);
@@ -65,11 +66,12 @@ export class SupervisionCommands {
     if (!scope || scope.mode !== "scoped" || scope.kind !== "plan") fail("UNKNOWN_OWNER", "Exact scoped plan owner required.");
     // A captain answer addresses a logical decision, independently of session replacement. Its
     // revision/subject/policy still bind below. Only the current owner can consume its outbox.
-    const logicalAnswer = op === "decision.answer" && actor.kind === "captain-ui";
+    const explicitUiAnswer = uiAnswer && actor.kind === "plugin-ui-unverified" && op === "decision.answer";
+    const logicalAnswer = op === "decision.answer" && (actor.kind === "captain-ui" || explicitUiAnswer);
     if (!logicalAnswer && (scope.version !== input.scopeVersion || binding?.epoch !== input.epoch)) fail("STALE", "Scope version or binding epoch changed.");
     if ((!logicalAnswer && binding?.state !== "active") || (logicalAnswer ? ["retired", "dormant"] : ["transferring", "retired", "dormant"]).includes(scope.state) ||
       (scope.state === "held" && !["plan.record", "plan.stop", "decision.answer", "plan.review"].includes(op))) fail("HELD", "Owner is not admitted for this operation.");
-    if (actor.kind === "system" || (actor.kind !== "captain-ui" && actor.id !== binding?.agentId)) fail("UNKNOWN_OWNER", "Only the bound logical owner or explicit captain action may propose this command.");
+    if (actor.kind === "system" || (actor.kind !== "captain-ui" && !explicitUiAnswer && actor.id !== binding?.agentId)) fail("UNKNOWN_OWNER", "Only the bound logical owner or explicit captain action may propose this command.");
     return scope;
   }
   async planCommand(raw: ScopedPlanCommand, actorInput: SupervisionActor) {
@@ -88,19 +90,29 @@ export class SupervisionCommands {
     });
   }
   async answer(raw: ScopedAnswer, actorInput: SupervisionActor) {
+    return this.answerWith(raw, actorInput, false);
+  }
+  /** Explicit app answer, by convention only. No fabricated authenticated captain identity.
+   * This seam cannot approve plans, dispatch, clear migration holds or attach. */
+  async answerFromUnverifiedUi(raw: ScopedAnswer) {
+    if (!this.options.unverifiedUiAnswers) fail("UNSUPPORTED", "Unverified app answers are disabled.");
+    return this.answerWith(raw, { kind: "plugin-ui-unverified", id: "unauthenticated-plugin-call", source: "scope answer button (unverified)" }, true);
+  }
+  private async answerWith(raw: ScopedAnswer, actorInput: SupervisionActor, uiAnswer: boolean) {
     const answer = structuredClone(ScopedAnswerSchema.parse(raw)), actor = structuredClone(SupervisionActorSchema.parse(actorInput));
     return this.store.transactCommand(answer.submissionId, digest(answer), actor, async status => {
+      await this.options.answerAdmission?.(status);
       const decision = status.decisions.find(d => d.id === answer.decisionId);
       if (!decision || decision.ownerScopeId !== answer.scopeId) fail("UNKNOWN_OWNER", "Decision does not belong to this logical scope.");
       if (decision.state !== "pending" || decision.answer || decision.revision !== answer.revision || decision.subjectHash !== answer.subjectHash)
         fail("STALE", "This decision was answered or its subject changed. Preserve the draft and reread.");
       return this.prepare(status, { ...answer, requestId: answer.submissionId,
         command: { op: "captain", plan: decision.planId, action: "answer", revision: answer.revision, subjectHash: decision.subjectHash,
-          node: decision.nodeId, option: answer.option, text: answer.text } }, actor);
+          node: decision.nodeId, option: answer.option, text: answer.text } }, actor, uiAnswer);
     });
   }
-  private async prepare(status: SupervisionStatus, input: ScopedPlanCommand, actor: SupervisionActor) {
-    const c = input.command, op = operation(c), scope = this.checkOwner(status, input, actor, op);
+  private async prepare(status: SupervisionStatus, input: ScopedPlanCommand, actor: SupervisionActor, uiAnswer = false) {
+    const c = input.command, op = operation(c), scope = this.checkOwner(status, input, actor, op, uiAnswer);
     if (["plans", "show", "agenda", "lint", "retire", "notified", "release", "replace"].includes(c.op)) fail("UNSUPPORTED", "This command needs its existing reader or a later checked lifecycle/migration adapter.");
     const planId = c.op === "draft" || c.op === "revise" ? c.definition.id : c.op === "implicit" ? c.launch.id : "plan" in c ? c.plan : fail("UNSUPPORTED", "No plan target.");
     const backend = status.backends.find(b => b.planId === planId);
@@ -111,7 +123,7 @@ export class SupervisionCommands {
     if ((previous?.hash ?? null) !== input.expectedPlanHash || (previous?.revision ?? 0) !== input.revision ||
       (previous ? planSubjectHash(previous) : null) !== input.subjectHash) fail("STALE", "Plan revision, hash or subject changed.");
     if (c.op === "captain" || c.op === "approve") {
-      if (!["captain-ui", "mate-chat"].includes(actor.kind)) fail("UNSUPPORTED", "A worker/agent proposal cannot mint a captain action.");
+      if (!["captain-ui", "mate-chat"].includes(actor.kind) && !(uiAnswer && actor.kind === "plugin-ui-unverified" && c.op === "captain" && c.action === "answer")) fail("UNSUPPORTED", "A worker/agent proposal cannot mint a captain action.");
       if (actor.kind === "mate-chat" && !(c.op === "approve" ? c.quote : c.text).trim()) fail("HELD", "Chat-recorded authority needs the captain's source words.");
     } else if (actor.kind === "captain-ui") fail("UNSUPPORTED", "Captain UI uses the distinct captain command class.");
     const at = this.options.now?.() ?? new Date().toISOString();

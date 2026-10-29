@@ -98,6 +98,16 @@ Migration app calls also record unverified provenance. Abort and ordinary hold r
 that provenance. **Answer holds still require the original captain actor and are refused through
 this unauthenticated RPC.** No call is relabeled `captain-ui` to clear one.
 
-Scoped workflow commands, source ingress, inbox offering, discussion execution and worker dispatch
-remain unwired. Attaching a session does not qualify broader rollout or General relief. Follow
+Build C wires explicit discussion and checked answer execution behind independent default-off
+`FIRSTMATE_SCOPE_UI=1` / `FIRSTMATE_SCOPE_EXECUTION=1` startup controls. It reuses S05 captured
+targets, drafts, threads and native links; one shared Needs-you snapshot gains scope/ancestry
+filters with global totals and retained quarantines. Stored status and compact scoped Bearings
+wake no model. General sends do not acquire a scoped writer. The app's answer press records
+unverified provenance and uses the existing logical-owner outbox; it cannot approve a plan or
+attach a supervisor. Plan session caps stay 1/1 pending B's durable cap seam. The shared captain
+decision shape adapts real plan decisions; project/maintenance origins remain fixtures until B/D
+emit actual captain escalations. See [Build C](docs/scoped-supervision/build-c.md).
+
+Scoped workflow commands, source ingress, inbox offering and worker dispatch remain separate.
+Attaching a session does not qualify broader rollout or General relief. Follow
 [the per-plan procedure and observation gates](docs/scoped-supervision/rollout-runbook.md#7-explicit-activation-and-per-plan-expansion).

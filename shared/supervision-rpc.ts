@@ -38,6 +38,7 @@ export const ScopeSummarySchema = z.object({ id: z.string(), title: z.string(), 
   lastEffectFailure: z.object({ id: z.string(), operation: z.string(), reason: z.string().nullable() }).nullable(),
   goals: z.array(ScopeGoalSchema), activeWorkers: count, activeEffects: count, uncertainEffects: count }).strict();
 export const ScopeSnapshotSchema = z.object({ homeId: z.string(), sequence: count, freshness: z.enum(["uninitialized", "current", "held"]), asOf: SupervisionUtc,
+  bearings: z.string().max(24000).optional(),
   activation: ActivationSnapshotSchema.optional(),
   uiEnabled: z.boolean(), executionEnabled: z.boolean(), problems: z.array(z.string()), scopes: z.array(ScopeSummarySchema),
   projects: z.array(z.object({ id: z.string(), name: z.string() }).strict()) }).strict();

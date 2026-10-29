@@ -1,0 +1,63 @@
+{
+  "build": "C",
+  "date": "2026-10-29",
+  "base": "e721939d67a53f8ead6fdeb5f4b481b8bfca485e",
+  "acceptanceIds": ["A07", "A09", "A11", "A16", "A21"],
+  "complete": false,
+  "liveRollout": false,
+  "typecheck": "passed",
+  "runtime": "Node 24.22.1 / Vitest 5.0.3",
+  "focused": {
+    "scopeRuntimeCases": 6,
+    "sharedContractAndFilterCases": 2,
+    "status": "passed"
+  },
+  "browser": {
+    "s05": "passed: captured pending sends, drafts/remount/offline, refusal and uncertain answers",
+    "buildC": "passed: actual drawer/filters, global counts, quarantines, scope ancestry and origin fixtures",
+    "themes": ["light", "dark"],
+    "viewports": [[1440, 1000], [390, 844]],
+    "casesPerHarness": 4,
+    "modelOrResourceCallsOnRead": 0,
+    "mechanicalDesignDetector": [],
+    "nativeDeviceTested": false
+  },
+  "installedCompiler": {
+    "runtime": "Node 24.20.0 (installed Paseo Electron)",
+    "compilerSHA256": "67a77e0b80c0c7507b699e1992ab20bc6ed83b144dc5a999b9d9ea3a108fa3a4",
+    "hermescSHA256": "e27ed700e2b4025497eb802a604c41a96f0979f5300275c3a6fdbfdff15c6521",
+    "clientSHA256": "2ecb51ea367097b530d71c8675cf3b6b17eb9acf5a09fc5596b6454fff4cc98d",
+    "serverSHA256": "0236b19a6a20387ef0d0b4ffa24674dc5635da39d9096c1057508b7d0cba920b",
+    "hermes": "passed for branch and Build A baseline",
+    "classSyntaxInClient": 0,
+    "liveResources": 0
+  },
+  "finalFullSuite": {
+    "command": "node node_modules/vitest/vitest.mjs run --passWithNoTests --maxWorkers=2 --testTimeout=20000 --reporter=dot --reporter=json --outputFile=.local/build-c/final-tests.json",
+    "status": "failed",
+    "passed": 3192,
+    "failed": 1,
+    "skipped": 3,
+    "filesPassed": 215,
+    "filesFailed": 1,
+    "failure": "server/launch-tool.test.ts: emits exact local MCP arguments with baseBranch and never creates locally; result.ok was false",
+    "previousBoundedRun": "3191 passed / 1 failed / 3 skipped: same unchanged launch-helper file, BOM recovery-line case",
+    "isolatedControl": "all 90 launch-helper tests passed",
+    "disposition": "blocked after second full-run occurrence, per worker brief; no fixture, assertion or timeout was weakened"
+  },
+  "integrationLimits": [
+    "Plan supervisor caps remain 1 session / 1 opening turn until B supplies the stored planLimits seam.",
+    "Project and maintenance captain origins are fixtures only until B/D emit actual escalations through checked outboxes.",
+    "No migration, provisioning, Attach, worker dispatch, timer changes, U1-U3 claim, install or live enablement."
+  ],
+  "localArtifacts": [
+    ".local/build-c/final-tests.json",
+    ".local/build-c/final-test.log",
+    ".local/build-c/launch-isolated.json",
+    ".local/build-c/final-diagnostics/",
+    ".local/build-c/ui/results.json",
+    ".local/s05-ui/results.json",
+    ".local/build-c/compile/results.json"
+  ],
+  "biggestSlowdown": "Windows launch-helper full-suite instability"
+}

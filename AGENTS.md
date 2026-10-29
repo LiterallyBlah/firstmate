@@ -23,7 +23,19 @@ lock; only capacity reservation shares the scoped admission queue, with fresh gu
 The explicit capacity upgrade retains the original prefix, uses 256-event pages and a metadata-only replay
 index, and applies byte/projection reserve
 bands rather than resetting sequence or budget. See `docs/scoped-supervision/build-a.md`; B/C/D runtime,
-chat and maintenance are still separate, and no live rollout is implied.
+chat and maintenance are separate builds, and no live rollout is implied.
+
+Build C composes S05 discussion and S03 answer services in `server/scope-runtime.ts`,
+with independent default-off `FIRSTMATE_SCOPE_UI=1` and `FIRSTMATE_SCOPE_EXECUTION=1`.
+Only explicit scoped sends/answers enter A's owned writer; General conversation uses its
+existing checked sender and a read-only projection. Profile/source/cap guards run at reservation
+and dispatch. Plan caps remain 1/1; `ScopeRuntimeOptions.planLimits` is B's stored-budget seam.
+`shared/scoped-captain-decision.ts` is B/D's presentation contract; only actual plan decisions
+are adapted now, with project/maintenance origins covered by fixtures, never invented counts.
+The single drawer filters its shared snapshot by scope/ancestry, keeps global totals and unknown
+quarantines visible, and uses the checked logical-owner answer outbox with unverified app provenance.
+Projects/Plans/Needs-you reuse scope chat and native links; compact Bearings reads storage only.
+See `docs/scoped-supervision/build-c.md` and the both-theme/width harness under `build-c-ui/`.
 
 Plans (workflows slice 1) are additive. `shared/workflow-plans.ts` owns strict one-step `task@1` and
 `scout@1` contracts, dependency reasons, bounds and posture. `server/workflow-plans.ts` owns the

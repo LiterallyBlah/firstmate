@@ -7,6 +7,7 @@
  * dispatch and supervision, with Paseo's own tools.
  */
 import { randomUUID } from "node:crypto";
+import { pluginDir } from "./data-dir";
 import type { CaptainMessage } from "../shared/attachments";
 import { BEARINGS_MESSAGE_PREFIX, bearingsMessage } from "../shared/bearings";
 import { CREW_LABELS, type AgentSummary, type FirstmateConfig, type MateCommand } from "../shared/fleet";
@@ -270,7 +271,14 @@ export async function commandText(command: MateCommand, args: string): Promise<s
   const text = await (extra === "" ? message(plain) : message(withArgs, { args: extra }));
   if (command !== "bearings") return text;
   const { workflowBearings } = await import("./workflow-board");
-  const plans = await workflowBearings(resolveHome(await readFirstmateConfig()));
+  const home = resolveHome(await readFirstmateConfig());
+  let plans = await workflowBearings(home);
+  if (process.env.FIRSTMATE_SCOPE_UI === "1") {
+    const [{ SupervisionStatusReader }, { scopedBearings }, { bearingsOverview }] = await Promise.all([
+      import("./supervision-status-reader"), import("./scope-bearings"), import("../shared/bearings")]);
+    try { plans = bearingsOverview(plans, scopedBearings(await new SupervisionStatusReader(pluginDir()).read(home, { settleAfterMs: 750 }))); }
+    catch { plans = bearingsOverview(plans, "Scoped status unavailable; inventory is incomplete. Read stored scope status before acting."); }
+  }
   return plans ? bearingsMessage(text, await message(TEMPLATES.workflowBearings, { plans })) : text;
 }
 

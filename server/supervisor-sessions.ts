@@ -208,6 +208,7 @@ export class SupervisorSessions {
       if (actor.kind === "agent") refuse("UNSUPPORTED", "Supervisor turns are reserved by the plugin, not by agents.");
       const blob = await this.store.putBlob(Buffer.from(input.text, "utf8"));
       return this.store.transactCommand(input.requestId, inputHash, actor, async status => {
+        await this.options.reserveCheck?.(status);
         const scope = status.scopes.find(s => s.id === input.scopeId), binding = status.bindings.find(b => b.scopeId === input.scopeId);
         if (!scope || scope.state !== "active" || binding?.state !== "active" || binding.epoch !== input.epoch) refuse("STALE", "No active owner at this epoch.");
         refuseHeld(status, scope.id);

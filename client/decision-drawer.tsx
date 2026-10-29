@@ -60,6 +60,8 @@ import { errorText } from "./format";
 import { PlanNeeds, useWorkflowPlans, WORKFLOW_QUERY_KEY, workflowRequestId } from "./workflow-plans";
 import { DecisionTask } from "./decision-tasks";
 import { ScopedNeeds } from "./scoped-needs";
+import { ScopeInboxFilters } from "./scope-inbox-filters";
+import { filterScopeInbox, type ScopeInboxFilter } from "../shared/scope-inbox";
 
 const readableContent = { width: "100%" as const, maxWidth: 760, alignSelf: "center" as const };
 
@@ -194,6 +196,9 @@ export function DecisionDrawer({
   returnLabel?: string;
 }) {
   const snapshot = sourceSnapshot ? decisionCardSnapshot(sourceSnapshot) : undefined;
+  const [scopeFilter, setScopeFilter] = useState<ScopeInboxFilter>({ kind: "all" });
+  const allSnapshot = sourceSnapshot ? decisionCardSnapshot(filterScopeInbox(sourceSnapshot, sourceSnapshot.scopeFiltersEnabled ? scopeFilter : { kind: "all" })) : undefined;
+  useEffect(() => { setScopeFilter({ kind: "all" }); }, [sourceSnapshot?.homeId]);
   const order = useRef<{ home: string | null; ids: string[] }>({
     home: null,
     ids: [],
@@ -544,27 +549,30 @@ export function DecisionDrawer({
           style={{ flex: 1 }}
         >
           {failure ? chrome : null}
+          {sourceSnapshot?.scopeFiltersEnabled ? <ScopeInboxFilters snapshot={sourceSnapshot} value={scopeFilter} onChange={setScopeFilter} theme={theme} compact={compact} /> : null}
+          {sourceSnapshot?.scopeFiltersEnabled && scopeFilter.kind !== "all" && !allSnapshot?.requests.length && !allSnapshot?.scopedDecisions?.length && !allSnapshot?.scopedHolds?.length && !allSnapshot?.planNow?.length && !allSnapshot?.parked.length ?
+            <Text style={{ color: colors.foregroundMuted }}>No current decisions or holds in this scope.</Text> : null}
           {group(
             "Waiting for you",
-            queue.filter((r) => r.state === "new" || r.state === "seen"),
+            queue.filter((r) => allSnapshot?.requests.some(v => v.id === r.id) && (r.state === "new" || r.state === "seen")),
           )}
           {!failure ? chrome : null}
-          <PlanNeeds theme={theme} snapshot={snapshot} showReviews={false} />
-          {sameHome ? <ScopedNeeds snapshot={snapshot} theme={theme} compact={compact} offline={offline} /> : null}
+          <PlanNeeds theme={theme} snapshot={allSnapshot} showReviews={false} />
+          {sameHome ? <ScopedNeeds snapshot={allSnapshot} theme={theme} compact={compact} offline={offline} /> : null}
           {group(
             "Answered · waiting for the first mate",
-            snapshot?.requests.filter(
+            allSnapshot?.requests.filter(
               (r) =>
                 r.state === "answer-sent" || r.state === "delivery-uncertain",
             ) ?? [],
           )}
           {group(
             "Snoozed",
-            snapshot?.requests.filter((r) => r.state === "snoozed") ?? [],
+            allSnapshot?.requests.filter((r) => r.state === "snoozed") ?? [],
           )}
-          {snapshot?.parked.length ? (
-            <DecisionGroup theme={theme} label="Parked until something else happens" count={snapshot.parked.length}>
-              {snapshot.parked.map((r) => (
+          {allSnapshot?.parked.length ? (
+            <DecisionGroup theme={theme} label="Parked until something else happens" count={allSnapshot.parked.length}>
+              {allSnapshot.parked.map((r) => (
                 <View
                   key={r.key}
                   style={{
@@ -584,7 +592,7 @@ export function DecisionDrawer({
           ) : null}
           {group(
             "Settled today",
-            snapshot?.requests.filter(
+            allSnapshot?.requests.filter(
               (r) =>
                 r.state === "resolved" &&
                 new Date(r.resolution?.at ?? r.updatedAt).toDateString() ===

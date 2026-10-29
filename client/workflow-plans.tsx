@@ -39,6 +39,7 @@ type PlansContext = {
   taskRequest?: WorkflowTaskRequest | null; navigationNotice?: string | null;
   navigate?(request: WorkflowTaskRequest): void; finishNavigation?(problem?: string): void;
   discussPlan?(id: string): void; canDiscussPlan?(id: string): boolean;
+  discussScope?(id: string, homeId: string): void; canDiscussScope?(id: string, homeId: string): boolean;
 };
 const Plans = createContext<PlansContext>({ loading: true, error: null, refresh() {}, open() {} });
 export function useWorkflowPlans() { return useContext(Plans); }
@@ -69,6 +70,7 @@ export function WorkflowSurface({ theme, children, hostId, view, shell, params =
     return scopeForPlan(scopeRead.data, snapshot?.homeId, id);
   };
   const discussPlan = (id: string) => { const target = discussionScope(id); if (target && scopeRead.data) { setSelected(null); shell?.openScope?.(target.id, scopeRead.data.homeId); } };
+  const canDiscussScope = (id: string, homeId: string) => !!shell?.openScope && !!scopeRead.data?.uiEnabled && scopeRead.data.homeId === homeId && scopeRead.data.scopes.some(s => s.id === id);
   const scope = planSessionKey(hostId, data?.home, data?.mate?.id, snapshot?.homeId);
   const planFilter = usePlanBrowse(scope, state => state.filter);
   const [taskRequest, setTaskRequest] = useState(() => routeWorkflowTask(params));
@@ -96,6 +98,7 @@ export function WorkflowSurface({ theme, children, hostId, view, shell, params =
     updateActivation: next => cache.setQueryData([...SCOPE_QUERY_KEY, hostId ?? "local", data?.home ?? ""], (current: typeof scopeRead.data) => current ? { ...current, activation: next } : current),
     scope, fleet: data, fleetOffline: !!fleet.error, canNavigate: !!scope && (!view || !!shell?.openTask), planFilter,
     discussPlan, canDiscussPlan: id => !!discussionScope(id),
+    canDiscussScope, discussScope: (id, homeId) => { if (canDiscussScope(id, homeId)) { setSelected(null); shell?.openScope?.(id, homeId); } },
     setPlanFilter: filter => updatePlanBrowse(scope, { filter }), taskRequest, navigationNotice: navigationNotice?.scope === scope ? navigationNotice.text : null,
     finishNavigation: problem => { setTaskRequest(null); setNavigationNotice(problem ? { scope, text: problem } : null); },
     navigate: request => {
