@@ -1,11 +1,11 @@
 import { createHash, randomUUID } from "node:crypto";
-import { mkdir, readdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { expect, it, vi } from "vitest";
 import { DEFAULT_FEATURE_CAPACITY, FEATURES_OFF, type FeatureCapabilities } from "../shared/feature-settings";
 import { FirstmateConfigSchema } from "../shared/fleet";
 import { s04Fixture, captain } from "../test/supervision-s04-fixture";
-import { FeaturePolicyRuntime } from "./feature-policy-runtime";
+import { FeaturePolicyRuntime, installFeaturePolicy } from "./feature-policy-runtime";
 import { FeatureSettingsStore, legacyFeatureSettings } from "./feature-settings";
 import { FeatureSettingsService, registerFeatureSettingsRpc } from "./feature-settings-rpc";
 import { SupervisionRuntime } from "./supervision-runtime";
@@ -22,10 +22,30 @@ import { registerScopeRpcs } from "./scope-rpc";
 import { readScopes } from "../shared/supervision-rpc";
 import { SupervisionStore } from "./supervision-store";
 import { SyntheticReceiver } from "../test/synthetic-receiver";
+import { syncFeatureHelpers } from "./home";
 
 const change = (home: string, expectedRevision: number, requested: Partial<FeatureCapabilities>) => ({ home, expectedRevision, requestId: randomUUID(),
   change: { requested: { ...FEATURES_OFF, ...requested }, capacity: { ...DEFAULT_FEATURE_CAPACITY } } });
 const deferred = () => { let resolve!: () => void; const promise = new Promise<void>(r => { resolve = r; }); return { promise, resolve }; };
+
+it("project-only help supplies its checked reply transport without advertising plan execution, and pause retains it", async () => {
+  const root = join(process.env.PASEO_HOME!, randomUUID()), home = join(root, "home"), policy = new FeaturePolicyRuntime(root);
+  await mkdir(join(home, "tools"), { recursive: true }); await mkdir(join(home, "data"));
+  await writeFile(join(home, "AGENTS.md"), "Existing reviewed home.");
+  const uninstall = installFeaturePolicy(policy);
+  try {
+    await policy.set(change(home, 0, { projectMates: true })); await syncFeatureHelpers(home);
+    const transport = await readFile(join(home, "tools/scope.mjs"), "utf8");
+    expect(transport).toContain("scope commands belong to their bound owners");
+    expect(await readFile(join(home, "data/project-mates.md"), "utf8")).toContain("grant no plan execution or Attach");
+    await expect(readFile(join(home, "data/plan-supervisors.md"))).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(readFile(join(home, "tools/maintenance.mjs"))).rejects.toMatchObject({ code: "ENOENT" });
+    await policy.set(change(home, 1, {})); await syncFeatureHelpers(home);
+    expect(await readFile(join(home, "tools/scope.mjs"), "utf8")).toBe(transport);
+    expect((await policy.read(home)).effective).toEqual(FEATURES_OFF);
+    expect((await readdir(root)).sort()).toEqual(["feature-settings", "home"]);
+  } finally { uninstall(); }
+});
 
 it("two app clients hot-apply independent settings with CAS, no model/writer/clock creation, and home-bound legacy compatibility", async () => {
   const root = join(process.env.PASEO_HOME!, randomUUID()), home = join(root, "home");

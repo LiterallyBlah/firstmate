@@ -239,10 +239,10 @@ export async function readProjects(home: string): Promise<Project[]> {
 export async function syncFeatureHelpers(home: string, origin: RecordOrigin = newAction("feature-helpers")): Promise<void> {
   if (!(await isHomeReady(home))) return;
   const policy = await currentFeaturePolicy(home);
-  if (policy.effective.planSupervisors) {
+  if (policy.effective.planSupervisors || policy.effective.projectMates)
     await homeWrite(home, TEMPLATES.scopeHelper, origin, await readTemplate(TEMPLATES.scopeHelper));
+  if (policy.effective.planSupervisors)
     await homeWrite(home, TEMPLATES.scopeGuide, origin, await readTemplate(TEMPLATES.scopeGuide));
-  }
   if (policy.effective.projectMates) {
     await homeWrite(home, TEMPLATES.projectHelper, origin, await readTemplate(TEMPLATES.projectHelper));
     await homeWrite(home, TEMPLATES.projectGuide, origin, await readTemplate(TEMPLATES.projectGuide));

@@ -180,7 +180,7 @@ export class PlanRuntime {
       }, reserveCheck: admissionCheck, globalMateId: async () => { await this.guard(home, generalId, false); return generalId; } });
     const ingress = new SupervisionEvents(store), inbox = new SupervisionInbox(store, { offers: true });
     const lifecycle = new SupervisionLifecycle(store, ingress, inbox, sessions, gateway, { enabled: true, context: (s, scopeId) => ({
-      helper: join(home, "tools", "scope.mjs"), guide: join(home, "data", "plan-supervisors.md"), scopeId, epoch: s.bindings.find(b => b.scopeId === scopeId)?.epoch,
+      helper: join(home, "tools", "scope.mjs"), guide: join(home, "data", s.scopes.find(scope => scope.id === scopeId)?.kind === "project" ? "project-mates.md" : "plan-supervisors.md"), scopeId, epoch: s.bindings.find(b => b.scopeId === scopeId)?.epoch,
       rules: s.planRules?.filter(r => r.scopeId === scopeId && s.plans.some(p => p.scopeId === scopeId && p.plan.revision === r.revision)).map(r => ({ ...ruleRef(r), revision: r.revision, nodes: r.nodes.map(n => n.nodeId) })),
       supervisorBudget: planSupervisorLimits(s, scopeId),
       ruleViolations: s.ruleViolations?.filter(r => r.scopeId === scopeId).slice(-4),
