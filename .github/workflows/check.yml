@@ -21,6 +21,7 @@ jobs:
       - run: node docs/smooth-pr2/regressions.mjs
       - run: node docs/smooth-pr2/contact-sheets.mjs
       - run: node docs/smooth-pr5/render.mjs
+      - run: node docs/smooth-pr7/render.mjs
       - run: node docs/smooth-pr9/render.mjs
       - run: node docs/smooth-pr9/work-details-render.mjs
       - run: node docs/smooth-pr9/production-render.mjs
@@ -52,6 +53,8 @@ jobs:
             .local/smooth-pr2/regressions/screenshots/*.png
             .local/smooth-pr5/ui/results.json
             .local/smooth-pr5/ui/screenshots/*.png
+            .local/smooth-pr7/ui/results.json
+            .local/smooth-pr7/ui/screenshots/*.png
             .local/smooth-pr9/ui/results.json
             .local/smooth-pr9/ui/screenshots/*.png
             .local/smooth-pr9/production/*.png

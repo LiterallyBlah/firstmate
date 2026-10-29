@@ -31,7 +31,7 @@ function HelpButton({ label, onPress, disabled = false, primary = false, theme }
   </Pressable>;
 }
 
-export function HelpSettings({ theme, home, hostId, online = true, compact = false, navigation }: { theme: PluginTheme; home: string; hostId: string; online?: boolean; compact?: boolean; navigation?: PluginSurfaceProps["navigation"] }) {
+export function HelpSettings({ theme, home, hostId, online = true, compact = false, navigation, capacityReview }: { theme: PluginTheme; home: string; hostId: string; online?: boolean; compact?: boolean; navigation?: PluginSurfaceProps["navigation"]; capacityReview?: { onClose(): void } }) {
   const read = useRpc(readFeatureSettings), set = useRpc(setFeatureSettings), cache = useQueryClient();
   const key = [...FEATURE_SETTINGS_QUERY_KEY, hostId, home];
   const query = useQuery({ queryKey: key, queryFn: async () => FeatureReadResultSchema.parse(await read({ home })),
@@ -48,6 +48,10 @@ export function HelpSettings({ theme, home, hostId, online = true, compact = fal
   const mutable = !!snapshot && snapshot.state === "ready" && snapshot.writesAvailable && snapshot.runtimeEnforced && snapshot.revision !== null && online && !query.isError;
   // Correct only known legacy capacity. Unknown/corrupt revisions cannot become a new default.
   const capacityRepair = !!snapshot && snapshot.source === "legacy-environment" && snapshot.revision === 0 && snapshot.capacity === null && snapshot.runtimeEnforced && online && !query.isError;
+  const capacityStarted = useRef(false);
+  useEffect(() => {
+    if (capacityReview && !capacityStarted.current && (mutable || capacityRepair)) { capacityStarted.current = true; begin("capacity"); }
+  }, [capacityReview, mutable, capacityRepair]);
   function begin(kind: Review["kind"], enabled = true) {
     if (!snapshot || pending.current || review?.request) return;
     if (kind === "projects" && enabled && HELP.projects.capabilities.every(k => snapshot.effective[k])) { setProjectOpen(true); return; }
@@ -106,6 +110,15 @@ export function HelpSettings({ theme, home, hostId, online = true, compact = fal
   const title = !review ? "Help settings" : review.kind === "keep" ? "Keep your existing setup" : review.kind === "capacity" ? "Review capacity" :
     review.enabled ? HELP[review.kind].action : `Turn off ${HELP[review.kind].title.toLowerCase()}`;
   return <View style={{ gap: 20 }} testID="help-settings">
+    {capacityReview ? <>
+      <Text style={text}>Review capacity separately. Your project selection and reviewed settings are kept.</Text>
+      {query.isPending ? <Text style={note}>Loading help settings…</Text> : null}
+      {query.isError || snapshot?.state === "held" ? <Text style={text}>Capacity settings couldn't be checked. Reconnect and refresh before making a change.</Text> : null}
+      {notice ? <Text style={text}>{notice}</Text> : null}
+      <HelpButton theme={theme} label="Review capacity" disabled={!mutable && !capacityRepair || busy} onPress={() => begin("capacity")} />
+      <HelpButton theme={theme} label="Refresh help settings" disabled={query.isFetching || busy} onPress={() => { void refresh(); }} />
+      <HelpButton theme={theme} label="Back to selected projects" disabled={busy} onPress={capacityReview.onClose} />
+    </> : <>
     <Text style={note}>Choose the help you want. Changes apply here without restarting. Each new helper still needs a separate review.</Text>
     {query.isPending ? <Text accessibilityLiveRegion="polite" style={note}>Loading help settings…</Text> : null}
     {query.isError ? <Text accessibilityRole="alert" style={text}>Can't read help settings right now. Your existing setup stays in use. Try again.</Text> : null}
@@ -146,6 +159,7 @@ export function HelpSettings({ theme, home, hostId, online = true, compact = fal
       {[...snapshot.problems, ...snapshot.inventory.problems, ...snapshot.dependencyRefusals.map(r => r.reason)].map((p, i) => <Text selectable key={i} style={note}>{p}</Text>)}
       {!capacityRepair ? <HelpButton theme={theme} label="Review capacity" disabled={!mutable || busy || !!review?.request} onPress={() => begin("capacity")} /> : null}
     </View> : null}
+    </>}
     <Modal title={title} open={open} onOpenChange={setOpen}><Modal.Content>
       {review && draft ? <View style={{ gap: 16 }}>
         <Text style={text}>{review.kind === "capacity" ? "Review how many plugin slots are available and how many stay reserved for FirstMate." :
@@ -185,8 +199,8 @@ export function HelpSettings({ theme, home, hostId, online = true, compact = fal
         </View>
       </View> : null}
     </Modal.Content></Modal>
-    {routineOpen && snapshot ? <RoutineCheckSetup key={`${hostId}:${snapshot.homeId}`} theme={theme} compact={compact} homeId={snapshot.homeId} hostId={hostId} online={online} canEnable={mutable && !busy && !review?.request}
+    {!capacityReview && routineOpen && snapshot ? <RoutineCheckSetup key={`${hostId}:${snapshot.homeId}`} theme={theme} compact={compact} homeId={snapshot.homeId} hostId={hostId} online={online} canEnable={mutable && !busy && !review?.request}
       onEnable={() => { setRoutineOpen(false); begin("checks"); }} onClose={() => setRoutineOpen(false)} /> : null}
-    <ProjectSetup theme={theme} compact={compact} home={home} hostId={hostId} open={projectOpen} onClose={() => setProjectOpen(false)} online={online} navigation={navigation} />
+    {!capacityReview ? <ProjectSetup theme={theme} compact={compact} home={home} hostId={hostId} open={projectOpen} onClose={() => setProjectOpen(false)} online={online} navigation={navigation} /> : null}
   </View>;
 }

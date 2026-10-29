@@ -23,6 +23,7 @@ import { requireNoMigration } from "./mate";
 import type { SupervisionStatus } from "../shared/supervision";
 import { activationEffects } from "./supervisor-sessions";
 import { parseProjects } from "./home";
+import { registerProjectBatches } from "./project-setup-batch";
 
 export const PROJECT_SETUP_UI = { kind: "plugin-ui-unverified" as const, id: "unauthenticated-plugin-call", source: "project setup review (unverified)" };
 type Input = z.infer<typeof ProjectSetupInputSchema>;
@@ -79,7 +80,7 @@ export class ProjectSetupService {
       sourcePath: status.policySources.find(s => p.sourceVector.some(ref => ref.id === s.id))?.path ?? null,
     })) };
   }
-  async preview(raw: ProjectSetupChoices, paseo: PaseoApi): Promise<ProjectSetupPreview> {
+  async preview(raw: ProjectSetupChoices, paseo: PaseoApi, aggregate = false): Promise<ProjectSetupPreview> {
     const choices = ProjectSetupChoicesSchema.parse(raw), c = await this.context(choices.homeId), reasons: string[] = [];
     const snapshot = await this.projects.read(), p = snapshot.projects.find(p => p.name === choices.name);
     const row = c.catalog.rows.find(r => r.name === choices.name), saved = c.status.projects?.projects.find(p => p.id === row?.projectId);
@@ -115,7 +116,7 @@ export class ProjectSetupService {
       } catch { reasons.push("One of this project's reviewed instruction sources changed or is unavailable. Restore its reviewed source before continuing."); }
     }
     let capacity;
-    try { capacity = await this.projects.capacity(c.home); await checkGeneralHeadroom(c.status, this.projects.setupReceiver(paseo), capacity.slots, capacity.generalHeadroom); }
+    try { capacity = await this.projects.capacity(c.home); if (!aggregate) await checkGeneralHeadroom(c.status, this.projects.setupReceiver(paseo), capacity.slots, capacity.generalHeadroom); }
     catch { reasons.push("There isn't confirmed room for this mate while keeping FirstMate's reserved capacity. Review capacity in Help settings, choose fewer helpers, or check saved operations."); }
     const policy = await this.projects.runtime.features?.read(c.home);
     if (!snapshot.enabled) reasons.push("Turn on project controls in Help settings, then return here. Turning them on creates no mate.");
@@ -264,4 +265,5 @@ export function registerProjectSetup(server: Pick<PluginServerContext, "handle">
   server.handle(resumeProjectSetup, (i, { paseo }) => service.resume(i.homeId, i.requestId, paseo));
   server.handle(addProjectSetupFolder, i => service.folder(i));
   server.handle(saveProjectSetupInstructions, i => service.instructions(i));
+  registerProjectBatches(server, service);
 }

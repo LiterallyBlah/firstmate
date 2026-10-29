@@ -7,7 +7,7 @@ import { ProjectSetupFolderSchema, type ProjectSetupCatalog, type ProjectSetupPr
 import type { z } from "zod";
 import type { ProjectSetupInputSchema } from "../shared/supervision-policy";
 const calls = vi.hoisted(() => new Map<string, ReturnType<typeof vi.fn>>());
-vi.mock("react-native", () => ({ View: "View", Text: "Text", Pressable: "Pressable" }));
+vi.mock("react-native", () => ({ View: "View", Text: "Text", Pressable: "Pressable", Platform: { OS: "web" } }));
 vi.mock("@getpaseo/plugin/client", () => ({ useRpc: (c: { name: string }) => {
   if (!calls.has(c.name)) calls.set(c.name, vi.fn()); return calls.get(c.name);
 } }));
@@ -15,6 +15,7 @@ vi.mock("@getpaseo/plugin/client/react-native", () => ({ TextInput: "TextInput",
 vi.mock("./option-picker", () => ({ OptionPicker: "Picker" }));
 vi.mock("./workflow-plans", () => ({ workflowRequestId: () => "00000000-0000-4000-8000-000000000099" }));
 import { ProjectSetup } from "./project-setup";
+import type { ProjectBatchCommit, ProjectBatchStatus } from "../shared/project-setup-batch";
 const home = "C:/fixture/home", id = "00000000-0000-4000-8000-000000000001", hash = "a".repeat(64), theme = { colors: {} } as PluginTheme;
 let renderer: ReactTestRenderer | null, cache: QueryClient, data: ProjectSetupCatalog, review: ProjectSetupPreview, saved: z.infer<typeof ProjectSetupInputSchema>[], closed: () => void;
 const rpc = (suffix: string) => calls.get(`firstmate.projects.setup.${suffix}`)!;
@@ -47,6 +48,54 @@ beforeEach(() => {
   for (const suffix of ["read", "preview", "status", "commit", "resume", "folder", "instructions"]) calls.set(`firstmate.projects.setup.${suffix}`, vi.fn());
   rpc("read").mockImplementation(async () => structuredClone(data)); rpc("status").mockImplementation(async () => ({ snapshot: structuredClone(data.snapshot), requests: structuredClone(saved) }));
   rpc("preview").mockImplementation(async () => structuredClone(review)); rpc("commit").mockImplementation(async (input: z.infer<typeof ProjectSetupInputSchema>) => { saved = [input]; return structuredClone(data.snapshot); });
+  calls.set("firstmate.projects.batch.status", vi.fn(async () => []));
+});
+const batchRpc = (suffix: string) => calls.get(`firstmate.projects.batch.${suffix}`)!;
+function batchFixture() {
+  const manifest = { version: 1 as const, homeId: home, batchId: id, registryDigest: hash, policyHash: hash,
+    children: [{ homeId: home, requestId: id, reviewDigest: hash, review: review.review! }], capacity: { slots: 4, generalHeadroom: 1, occupied: 0, available: 3 } };
+  const input: ProjectBatchCommit = { manifest, reviewDigest: hash }, results: ProjectBatchStatus[] = [];
+  calls.set("firstmate.projects.batch.preview", vi.fn(async () => ({ reviews: [review], commit: input, reasons: [], capacity: manifest.capacity })));
+  calls.set("firstmate.projects.batch.commit", vi.fn(async (exact: ProjectBatchCommit) => {
+    const result: ProjectBatchStatus = { commit: exact, children: [{ requestId: id, projectId: id, name: "alpha", state: "ready", reason: "Ready", agentId: "alpha-agent", sessions: 1, turns: 1, canContinue: false, canCancel: false }], problems: [] };
+    results.push(result); return result;
+  }));
+  batchRpc("status").mockImplementation(async () => structuredClone(results));
+  calls.set("firstmate.projects.batch.continue", vi.fn()); calls.set("firstmate.projects.batch.cancel", vi.fn());
+  return { input, results };
+}
+it("select-all is explicit, excludes existing/invalid projects and reviews without effects", async () => {
+  batchFixture();
+  data.snapshot.projects.push({ ...data.snapshot.projects[0]!, name: "existing", agentId: "old-agent" }, { ...data.snapshot.projects[0]!, name: "remote", directory: null, hostId: "remote", state: "held" });
+  await mount(); expect(button("Select alpha").props.accessibilityState.checked).toBe(false);
+  expect(button("Select existing")).toBeUndefined(); expect(button("Select remote")).toBeUndefined();
+  await press("Select all eligible projects"); expect(button("Select alpha").props.accessibilityState.checked).toBe(true);
+  await press("Review 1 selected project");
+  expect(batchRpc("preview")).toHaveBeenCalledOnce(); expect(batchRpc("commit")).not.toHaveBeenCalled(); expect(rpc("commit")).not.toHaveBeenCalled();
+  expect(text()).toContain("full-access permissions"); expect(text()).toContain("Existing spend");
+  await press("Create 1 project mate"); expect(batchRpc("commit")).toHaveBeenCalledOnce(); expect(text()).toContain("alpha"); expect(text()).toContain("Ready");
+  await press("Check saved setup"); expect(batchRpc("commit")).toHaveBeenCalledOnce(); expect(batchRpc("continue")).not.toHaveBeenCalled();
+});
+it("a shortfall keeps all six selected, offers capacity review and never raises limits", async () => {
+  batchFixture();
+  for (const name of ["beta", "gamma", "delta", "epsilon", "zeta"]) data.snapshot.projects.push({ ...data.snapshot.projects[0]!, name });
+  batchRpc("preview").mockResolvedValue({ reviews: [review], commit: null, reasons: ["6 selected; room for 3. Review capacity or choose fewer projects."], capacity: { slots: 4, generalHeadroom: 1, occupied: 0, available: 3 } });
+  await mount(); await press("Select all eligible projects"); await press("Review 6 selected projects");
+  expect(text()).toContain("6 selected; room for 3"); expect(button("Review capacity")).toBeDefined(); expect(button("Create 6 project mates")).toBeUndefined();
+  await press("Choose fewer projects or review settings"); expect(button("Review 6 selected projects")).toBeDefined();
+  expect(batchRpc("commit")).not.toHaveBeenCalled();
+});
+it("lost batch response uses read-only discovery and never automatically continues an uncertain opening", async () => {
+  const { input, results } = batchFixture();
+  batchRpc("commit").mockImplementation(async () => {
+    results.push({ commit: input, children: [{ requestId: id, projectId: id, name: "alpha", state: "checking", reason: "Checking whether setup finished", agentId: "original-agent", sessions: 1, turns: 1, canContinue: false, canCancel: false }], problems: [] });
+    throw Error("Reply lost");
+  });
+  await mount(); await press("Select all eligible projects"); await press("Review 1 selected project"); await press("Create 1 project mate");
+  expect(text()).toContain("Checking whether setup finished"); expect(button("Continue saved batch")).toBeUndefined();
+  await press("Check saved setup"); expect(batchRpc("commit")).toHaveBeenCalledOnce(); expect(batchRpc("continue")).not.toHaveBeenCalled();
+  await act(async () => renderer?.unmount()); await mount(); expect(text()).toContain("Checking whether setup finished"); expect(batchRpc("commit")).toHaveBeenCalledOnce();
+  expect(button("Select alpha")).toBeUndefined();
 });
 afterEach(() => { act(() => renderer?.unmount()); cache.clear(); });
 it("chooser, supported reviewed profile, review and close perform reads only; creation alone authorizes effects", async () => {

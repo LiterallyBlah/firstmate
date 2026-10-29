@@ -24,6 +24,7 @@ export function useRpc(contract){
    case 'firstmate.mate.candidates':return {home:homeId,agents:[]};
    case 'firstmate.scope.read':return clone(scope);
    case 'firstmate.projects.read':return clone(projects);
+   case 'firstmate.projects.batch.status':return [];
    case 'firstmate.maintenance.read':return clone(maintenance);
    case 'firstmate.workflow.read':return clone(workflow);
    case 'firstmate.needs-you.read':case 'firstmate.scope.needs':return clone(decisions);
