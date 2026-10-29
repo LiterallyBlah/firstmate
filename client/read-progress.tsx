@@ -3,19 +3,24 @@ import { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 
 /** Copy deadlines only. They never classify a source or retry an effect. */
-export function ReadProgress({ theme, pending, failed = false, fetching = false, label = "Getting FirstMate ready…", details, onRetry }: {
+export function ReadProgress({ theme, pending, pendingSince, quietInitially = false, failed = false, fetching = false, label = "Getting FirstMate ready…", details, onRetry }: {
   theme: PluginTheme; pending: boolean; failed?: boolean; fetching?: boolean;
+  pendingSince?: number | undefined; quietInitially?: boolean;
   label?: string; details?: string | undefined; onRetry?: (() => void) | undefined;
 }) {
-  const [stage, setStage] = useState(0), [expanded, setExpanded] = useState(false);
+  const [localStart, setLocalStart] = useState(Date.now), [, tick] = useState(0), [expanded, setExpanded] = useState(false);
+  const startedAt = pendingSince ?? localStart;
+  const elapsed = Date.now() - startedAt;
+  const stage = elapsed >= 30000 ? 2 : elapsed >= 8000 ? 1 : 0;
+  useEffect(() => { setLocalStart(Date.now()); }, [pending, failed]);
   useEffect(() => {
-    setStage(0);
     if (!pending || failed) return;
-    const slow = setTimeout(() => setStage(1), 8000);
-    const delayed = setTimeout(() => setStage(2), 30000);
+    const redraw = () => tick(value => value + 1);
+    const slow = Date.now() < startedAt + 8000 ? setTimeout(redraw, startedAt + 8000 - Date.now()) : undefined;
+    const delayed = Date.now() < startedAt + 30000 ? setTimeout(redraw, startedAt + 30000 - Date.now()) : undefined;
     return () => { clearTimeout(slow); clearTimeout(delayed); };
-  }, [pending, failed]);
-  if (!pending && !failed) return null;
+  }, [pending, failed, startedAt]);
+  if ((!pending && !failed) || (quietInitially && !failed && stage === 0)) return null;
   const color = failed ? theme.colors.statusDanger : theme.colors.foregroundMuted;
   const message = failed ? "Can't connect to FirstMate right now. Try again."
     : stage > 0 ? "FirstMate is taking a little longer to start. We'll keep checking." : label;

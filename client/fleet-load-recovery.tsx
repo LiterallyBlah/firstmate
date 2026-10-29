@@ -9,12 +9,13 @@ import { readConfig, type AgentSummary } from "../shared/fleet";
 import { MateChat } from "./chat";
 import { FilesView, type FilesRequest } from "./files";
 
-export function FleetLoadRecovery({ theme, compact, navigation, serverId, onChanged }: {
+export function FleetLoadRecovery({ theme, compact, navigation, serverId, onChanged, active = true }: {
   theme: PluginScreenProps["theme"];
   compact: boolean;
   navigation?: PluginScreenProps["navigation"];
   serverId?: string | undefined;
   onChanged(): void;
+  active?: boolean;
 }) {
   const read = useRpc(readConfig);
   const paseo = usePaseo();
@@ -44,7 +45,7 @@ export function FleetLoadRecovery({ theme, compact, navigation, serverId, onChan
   }
   if (!mate.data || !config.data) return null;
   return <>
-    <MateChat key={mate.data.id} mate={mate.data} mateSince={config.data.config.mateSince || null} theme={theme} compact={compact}
+    <MateChat key={mate.data.id} mate={mate.data} mateSince={config.data.config.mateSince || null} theme={theme} compact={compact} active={active}
       imageContext={{ ...(serverId ? { serverId } : {}), home: config.data.resolvedHome }} navigation={navigation} onChanged={changed}
       onOpenFile={path => setFile({ path, at: Date.now() })} />
     <Modal title="Home files" open={file !== null} onOpenChange={open => { if (!open) setFile(null); }}>

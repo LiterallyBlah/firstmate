@@ -307,7 +307,7 @@ export function DecisionDrawer({
       problems.length > 0);
   const chrome = (
     <>
-      <ReadProgress theme={theme} pending={presentation.loading} failed={presentation.failed} fetching={read.fetching === true}
+      <ReadProgress theme={theme} pending={presentation.loading} pendingSince={read.pendingSince} failed={presentation.failed} fetching={read.fetching === true}
         label="Loading decisions…" onRetry={() => { void cache.refetchQueries({ queryKey: NEEDS_YOU_QUERY_KEY }, { cancelRefetch: false }); }} />
       {presentation.updating ? <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>{presentation.label}</Text> : null}
       {filtered ? (

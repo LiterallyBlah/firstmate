@@ -795,7 +795,7 @@ function FleetViewBody({
           details={fleet.error ? errorText(fleet.error) : undefined} onRetry={() => { void fleet.refetch({ cancelRefetch: false }); }} />
         {home || view === "chat" ? <ChatDestination scopeRequest={scopeRequest} onDismissScope={dismissScope}
           imageContext={{ serverId: host?.id }} theme={theme} compact={compact} navigation={navigation}>
-          <FleetLoadRecovery theme={theme} compact={compact} navigation={navigation} serverId={host?.id} onChanged={refresh} />
+          {active => <FleetLoadRecovery theme={theme} compact={compact} navigation={navigation} serverId={host?.id} onChanged={refresh} active={active} />}
         </ChatDestination> : null}
       </View>
     );

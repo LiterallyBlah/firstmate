@@ -34,3 +34,20 @@ The S05 harness now opens its scoped adapter explicitly and gives its restored
 case an exact route. It continues to check the same sender, identity, uncertain
 delivery, refusal and answer-transport boundaries. General continuity is checked
 by this harness rather than relying on enabling scope UI to replace Home.
+
+The independent-review regressions run through the same production Home, chat,
+discussion and drawer, with controlled promise settlement and a fake browser clock:
+
+```powershell
+& 'C:/Program Files/nodejs/node.exe' docs/smooth-rollout/review-regressions.mjs --before
+& 'C:/Program Files/nodejs/node.exe' docs/smooth-rollout/review-regressions.mjs
+```
+
+The first command captures reviewed head `b2fad4e` without checking it out. The
+second asserts the fixes: 31-second decision delay survives fleet completion and
+late/reopened drawers, retries coalesce, original-message recovery opens the
+captured recipient and reconciliation without sending, and recovery Back returns
+focus to General. Both cover light/dark at both widths. Results and 36 screenshots
+per revision stay in `.local/smooth-rollout-review/{before,after}/`; CI runs the
+asserting after variant. [Review evidence](review-evidence.md) includes 24 selected
+raw screenshots and four comparison sheets.

@@ -33,6 +33,8 @@ administrative section redesign, enablement or server runtime change belongs her
 ## Evidence
 
 See [all before/after captures](evidence.md) and the [reproduction instructions](README.md).
+The [independent review follow-up](review-evidence.md) maps both P2 fixes, recovery
+focus, and their additional before/after screenshots and regression checks.
 
 | Acceptance | Evidence |
 | --- | --- |

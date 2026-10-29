@@ -24,7 +24,7 @@ export function ChatDestination({ scopeRequest, imageContext, theme, compact, na
     <View style={{ flex: 1, minHeight: 0, display: contextual ? "none" : "flex" }} accessibilityElementsHidden={contextual} importantForAccessibility={contextual ? "no-hide-descendants" : "auto"}>
       {typeof children === "function" ? children(!contextual) : children}
     </View>
-    {contextual ? <ContextualDiscussion key={route} request={scopeRequest} imageContext={imageContext} theme={theme} compact={compact} navigation={navigation}
+    {contextual ? <ContextualDiscussion key={`${imageContext?.serverId ?? "local"}:${route}`} request={scopeRequest} imageContext={imageContext} theme={theme} compact={compact} navigation={navigation}
       onBack={() => { setDismissed(route); onDismissScope?.(); }} /> : null}
   </View>;
 }
@@ -36,7 +36,8 @@ function ContextualDiscussion({ request, imageContext, theme, compact, navigatio
   const host = imageContext?.serverId ?? "local";
   const scopes = useScopeSnapshot(host, imageContext?.home ?? request.homeId);
   const snapshot = scopes.data;
-  const target = snapshot?.scopes.find(scope => scope.id === request.scopeId);
+  const [scopeId, setScopeId] = useState(request.scopeId);
+  const target = snapshot?.scopes.find(scope => scope.id === scopeId);
   const crossHome = snapshot && request.homeId !== snapshot.homeId;
   return <View testID="contextual-chat" style={{ flex: 1, minHeight: 0 }}>
     <View style={{ padding: 8, gap: 4 }}>
@@ -55,8 +56,8 @@ function ContextualDiscussion({ request, imageContext, theme, compact, navigatio
           : "This conversation is unavailable. Your draft and recipient are kept; refresh before sending."}
       </Text>
       <IconButton icon="RefreshCw" label="Refresh conversation" showLabel compact theme={theme} disabled={scopes.isFetching} onPress={() => { void scopes.refetch(); }} />
-    </View> : <ScopeDiscussion key={`${host}:${request.homeId}:${request.scopeId}`} snapshot={snapshot} offline={!!scopes.error}
-      hostId={host} theme={theme} compact={compact} navigation={navigation} initialScope={request.scopeId} refresh={() => { void scopes.refetch(); }} />}
+    </View> : <ScopeDiscussion key={`${host}:${request.homeId}:${scopeId}`} snapshot={snapshot} offline={!!scopes.error}
+      hostId={host} theme={theme} compact={compact} navigation={navigation} initialScope={scopeId} onSelectScope={setScopeId} refresh={() => { void scopes.refetch(); }} />}
   </View>;
 }
 

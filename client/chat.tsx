@@ -109,7 +109,7 @@ function useHomeFileLinks(rows: readonly TranscriptRow[]) {
 /** Feature availability never selects a conversation. Only an explicit route can. */
 export function MateChat(props: Parameters<typeof GeneralMateChat>[0]) {
   const key = chatReturnKey(props.imageContext?.serverId ?? "local", props.imageContext?.home ?? "", props.mate.id);
-  return <ChatDestination {...props}>{active => <GeneralMateChat key={key} {...props} active={active} />}</ChatDestination>;
+  return <ChatDestination {...props}>{active => <GeneralMateChat key={key} {...props} active={active && props.active !== false} />}</ChatDestination>;
 }
 
 function GeneralMateChat({

@@ -26,3 +26,19 @@ it("announces neutral 1/8/30 second transitions once and offers only an explicit
   await act(async () => tree.root.findByProps({ accessibilityLabel: "Try again" }).props.onPress());
   expect(retry).toHaveBeenCalledOnce();
 });
+
+it("inherits a pending source's deadlines when mounted late or reopened", async () => {
+  vi.useFakeTimers(); vi.setSystemTime(100000);
+  const render = () => createElement(ReadProgress, { theme: attentionTheme, pending: true, pendingSince: 100000, quietInitially: true, onRetry() {} });
+  await act(async () => { tree = create(render()); });
+  expect(tree.toJSON()).toBeNull();
+  await act(async () => vi.advanceTimersByTime(8000));
+  expect(visibleText(tree.toJSON())).toContain("taking a little longer");
+  expect(tree.root.findAllByProps({ accessibilityLabel: "Try again" })).toHaveLength(0);
+  await act(async () => tree.unmount());
+  await act(async () => vi.advanceTimersByTime(22000));
+  await act(async () => { tree = create(render()); });
+  expect(tree.root.findByProps({ accessibilityLabel: "Try again" }).props.disabled).toBe(false);
+  expect(tree.root.findAllByProps({ accessibilityLiveRegion: "polite" })).toHaveLength(1);
+  expect(visibleText(tree.toJSON())).not.toContain("Can't connect");
+});

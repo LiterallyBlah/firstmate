@@ -75,6 +75,7 @@ jobs:
       - run: node docs/scoped-supervision/s05-ui/render.mjs
       - run: node docs/scoped-supervision/build-c-ui/render.mjs
       - run: node docs/smooth-rollout/render.mjs
+      - run: node docs/smooth-rollout/review-regressions.mjs
       - run: node docs/scoped-supervision/build-b-ui/render.mjs
       - uses: actions/upload-artifact@v4
         if: always()
@@ -89,6 +90,8 @@ jobs:
             .local/build-c/ui/results.json
             .local/smooth-rollout/screenshots/*.png
             .local/smooth-rollout/results.json
+            .local/smooth-rollout-review/after/screenshots/*.png
+            .local/smooth-rollout-review/after/independent-results.json
             .local/build-b-ui/*.png
             .local/build-b-ui/results.json
             .local/s01/ci-tests.json

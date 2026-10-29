@@ -28,6 +28,7 @@ import { discussionRequest, prepareDiscussion, routeDiscussion, type DecisionDis
 import { useWorkflowPlans } from "./workflow-plans";
 import { DecisionReadContext } from "./decision-read-context";
 import { decisionReadState } from "./decision-read-state";
+import { ReadProgress } from "./read-progress";
 
 const DecisionHandoffContext = createContext<{
   discussion: DecisionDiscussion | null;
@@ -249,6 +250,8 @@ export function DecisionSurface({
             pointerEvents={covered ? "none" : "auto"}
             style={{ flex: 1, minWidth: 0 }}
           >
+            {fleet.data && !destination ? <ReadProgress theme={theme} pending={query.isPending} pendingSince={query.pendingSince}
+              quietInitially label="Loading decisions…" onRetry={() => { void query.refetch({ cancelRefetch: false }); }} /> : null}
             {children}
           </View>
           {drawer && !paneCover ? (
