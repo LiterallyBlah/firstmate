@@ -12,10 +12,11 @@ import { PLAN_PAGE_SIZE, planBudgetUsed, planGroups, planStatus, planSteps, plan
 import { updatePlanBrowse, usePlanBrowse, type PlanBrowseState } from "./workflow-plan-state";
 import { WorkflowTaskActions } from "./workflow-task-actions";
 import { planOwner } from "../shared/workflow-plans";
+import { PlanHelpAction, PlanHelpSurface } from "./plan-help";
 
 export function WorkflowPlansView({ theme, showHeading = true, compact = false }: { theme: PluginTheme; showHeading?: boolean; compact?: boolean }) {
   const { snapshot, loading, error, refresh, open, scope } = useWorkflowPlans();
-  return <WorkflowPlanBrowser key={scope} theme={theme} sessionKey={scope} snapshot={snapshot} loading={loading} error={error} onRefresh={refresh} onOpen={open} showHeading={showHeading} compact={compact} />;
+  return <PlanHelpSurface key={scope} theme={theme}><WorkflowPlanBrowser theme={theme} sessionKey={scope} snapshot={snapshot} loading={loading} error={error} onRefresh={refresh} onOpen={open} showHeading={showHeading} compact={compact} /></PlanHelpSurface>;
 }
 
 /** One shared RPC snapshot; browsing, folding and searching never record a captain action. */
@@ -113,6 +114,7 @@ function PlanRow({ plan, plans, theme, onOpen, view, onList, sessionKey, browse 
     {summary.attention ? <Text style={{ ...meta, color: colors.statusWarning }}>Attention: {summary.attention}</Text> : null}
     {!expanded ? <Text style={meta}>Next: {summary.next}</Text> : null}
     {summary.decisions ? <Text style={{ ...meta, color: colors.foreground }}>Captain: {summary.decisions}</Text> : null}
+    <PlanHelpAction theme={theme} plan={plan} />
     {expanded ? <>
       {view === "graph" ? <WorkflowPlanGraph sessionKey={sessionKey} plan={plan} plans={plans} theme={theme} onOpen={onOpen} onList={onList} /> : planSteps(plan).map(({ node, reviews }) => <View key={node.id} testID={`workflow-step-${node.id}`} style={{ gap: 5, paddingTop: 8, borderTopWidth: 1, borderColor: colors.border }}>
         <Text style={{ color: colors.foreground, fontSize: 12 }}>{node.title} · {stepState(plan, node, plans)}</Text>

@@ -1,4 +1,9 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
+import { MigrationSettings } from "./migration-settings";
+import { acceptPolicyInventory, policyRef } from "./supervision-policy";
+import { SupervisionProjects } from "./supervision-projects";
+import { PolicySourceSchema } from "../shared/supervision-policy";
+import { workflowSnapshot } from "./workflow-board";
 import { mkdir, readFile, readdir, writeFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -40,6 +45,86 @@ afterEach(async () => { await activation?.stop(); await ledger?.stop(); });
 function make(enabled?: boolean) { return new SupervisionActivation(pluginDir(), { ...(enabled === undefined ? {} : { enabled }),
   adapters: () => legacyAdapters(null, () => ledger.read()), receiver: () => receiver }); }
 const api = {} as PaseoApi;
+async function guided() {
+  await activation.stop();
+  const backupSettings = new MigrationSettings(pluginDir()), runtime = new SupervisionRuntime(pluginDir());
+  const actor = { kind: "captain-ui", id: "fixture", source: "isolated-test" } as const;
+  const orders = "Reviewed project permissions.\n", sha = (s: string) => createHash("sha256").update(s).digest("hex");
+  await writeFile(join(home, "data/orders.md"), orders);
+  await runtime.mutate(home, async store => {
+    const source = PolicySourceSchema.parse({ id: randomUUID(), version: 1, path: "data/orders.md", lineStart: 1, lineEnd: 1,
+      fileHash: sha(orders), excerptHash: sha(orders.trimEnd()), provenance: actor, supersedes: [] });
+    await acceptPolicyInventory(store, home, randomUUID(), actor, { sources: [source], rules: [] }, true);
+    const projectId = randomUUID(), scopeId = randomUUID();
+    await store.transact([{ kind: "scope", id: scopeId, version: 0 }], randomUUID(), [{ kind: "scope", value: { id: scopeId, homeId: store.homeId,
+      kind: "project", projectIds: [projectId], sponsorId: null, version: 1, mode: "scoped", state: "active" } }]);
+    await new SupervisionProjects(store, { enabled: true }).recordProject(randomUUID(), actor, { projectId, expectedVersion: 0,
+      scopeId, name: "scheduler", aliases: [], state: "admitted", budget: { agents: 2, turns: 2 }, sourceVector: [policyRef("policy-source", source)] });
+  });
+  activation = new SupervisionActivation(pluginDir(), { enabled: true, runtime, backupSettings,
+    adapters: () => legacyAdapters(null, () => ledger.read()), receiver: () => receiver });
+  const destination = join(process.env.PASEO_HOME!, "independent-backups"); await mkdir(destination);
+  await activation.saveBackup({ homeId: prepare.homeId, expectedRevision: 0, requestId: randomUUID(), backup: { destination, retention: "Retain for 30 days; operator-managed." } });
+  return { runtime, backupSettings };
+}
+it("guided preview and backup configuration start no session; reviewed handover preserves bytes and only unlocks the original Attach", async () => {
+  const { runtime } = await guided();
+  try {
+    const before = await runtime.read(home), review = await activation.planHelp(prepare.homeId, "scheduler");
+    expect(review.problems).toEqual([]); expect(receiver.calls).toEqual([]);
+    expect((await runtime.read(home)).sequence).toBe(before.sequence);
+    const files = await readdir(join(workflowStore(home).root, "scheduler"));
+    const bytes = await Promise.all(files.filter(f => /^\d+\.json$/.test(f)).map(f => readFile(join(workflowStore(home).root, "scheduler", f), "utf8")));
+    const command = { ...prepare, scopeId: review.scopeId, projectId: review.projectId!, migrationId: review.migrationId, reviewHash: review.reviewHash };
+    await activation.migrate(command);
+    expect((await activation.planHelp(prepare.homeId, "scheduler")).preparation).toEqual(command);
+    expect(receiver.calls).toEqual([]); expect((await activation.read()).plans[0]?.canAttach).toBe(false);
+    for (const op of ["reconcile", "barrier", "commit"] as const) await activation.migrate({ homeId: prepare.homeId, migrationId: review.migrationId, op });
+    expect(receiver.calls).toEqual([]); expect((await activation.read()).plans[0]?.canAttach).toBe(true);
+    const receipt = (await activation.read()).migrations[0]!;
+    expect(receipt.prerequisites.snapshot?.retention).toContain("30 days");
+    expect(await Promise.all(files.filter(f => /^\d+\.json$/.test(f)).map(f => readFile(join(workflowStore(home).root, "scheduler", f), "utf8")))).toEqual(bytes);
+    const attached = await activation.attach(await attachment(), api);
+    expect(attached.plans[0]).toMatchObject({ binding: "active", opening: "succeeded" });
+    expect(attached.audits[0]?.source).toBe("client UI (unverified)");
+  } finally { await activation.stop(); await runtime.stop(); }
+});
+it("a changed reviewed source/backup or incomplete decision census holds guided handover before freeze", async () => {
+  const { runtime } = await guided();
+  try {
+    const review = await activation.planHelp(prepare.homeId, "scheduler");
+    const command = { ...prepare, scopeId: review.scopeId, projectId: review.projectId!, migrationId: review.migrationId, reviewHash: review.reviewHash };
+    vi.spyOn(ledger, "read").mockResolvedValueOnce(null as never);
+    expect((await activation.planHelp(prepare.homeId, "scheduler")).problems.join(" ")).toContain("Decisions haven't all been checked");
+    await activation.saveBackup({ homeId: prepare.homeId, requestId: randomUUID(), expectedRevision: 1, backup: { destination: (await activation.readBackup(prepare.homeId)).backup!.destination, retention: "Keep indefinitely" } });
+    await expect(activation.migrate(command)).rejects.toMatchObject({ code: "STALE" });
+    expect(await workflowStore(home).cutover("scheduler")).toBe(null);
+    await writeFile(join(home, "data/orders.md"), "changed permission source\n");
+    expect((await activation.planHelp(prepare.homeId, "scheduler")).problems.join(" ")).toContain("Permission evidence changed");
+    await expect(activation.migrate(command)).rejects.toMatchObject({ code: "HELD" });
+    expect(await workflowStore(home).cutover("scheduler")).toBe(null); expect(receiver.calls).toEqual([]);
+  } finally { await activation.stop(); await runtime.stop(); }
+});
+it("an interrupted freeze retains a named app recovery entry and resumes its exact saved preparation after restart", async () => {
+  const { runtime, backupSettings } = await guided();
+  let resumed: SupervisionRuntime | undefined;
+  try {
+    const review = await activation.planHelp(prepare.homeId, "scheduler");
+    const command = { ...prepare, scopeId: review.scopeId, projectId: review.projectId!, migrationId: review.migrationId, reviewHash: review.reviewHash };
+    const crash = vi.spyOn(SupervisionStore.prototype, "transact").mockRejectedValueOnce(new Error("interrupted before prepared receipt"));
+    await expect(activation.migrate(command)).rejects.toThrow("interrupted before prepared receipt"); crash.mockRestore();
+    expect(await workflowStore(home).cutover("scheduler")).toBe("freeze");
+    expect((await workflowSnapshot(home, await runtime.read(home))).planHelpPending).toEqual([{ plan: "scheduler", title: "Scheduler" }]);
+    await activation.stop(); await runtime.stop();
+    resumed = new SupervisionRuntime(pluginDir());
+    activation = new SupervisionActivation(pluginDir(), { enabled: true, runtime: resumed, backupSettings,
+      adapters: () => legacyAdapters(null, () => ledger.read()), receiver: () => receiver });
+    expect((await activation.planHelp(prepare.homeId, "scheduler")).preparation).toEqual(command);
+    const next = await activation.migrate({ ...command, op: "resume" });
+    expect(next.migrations).toHaveLength(1); expect(next.migrations[0]?.id).toBe(command.migrationId);
+    expect(next.plans[0]?.scopeId).toBe(command.scopeId); expect(next.audits).toEqual([]); expect(receiver.calls).toEqual([]);
+  } finally { await activation.stop(); await resumed?.stop(); await runtime.stop(); }
+});
 it("the shared runtime supports production migration and the existing Attach beyond the pilot history ceiling", async () => {
   const runtime = new SupervisionRuntime(pluginDir());
   try {
@@ -189,7 +274,7 @@ it("strict RPCs accept no actor/source and no attach operation exists on migrati
   expect(MigrationCommandSchema.safeParse({ ...prepare, op: "attach" }).success).toBe(false);
   const handlers: string[] = [];
   registerSupervisionActivation({ handle: (rpc: { name: string }) => { handlers.push(rpc.name); } } as never, activation);
-  expect(handlers).toEqual(["firstmate.supervision.activation", "firstmate.supervision.migrate", "firstmate.supervision.attach-ui"]);
+  expect(handlers).toEqual(["firstmate.supervision.backup.read", "firstmate.supervision.backup.set", "firstmate.supervision.plan-help.read", "firstmate.supervision.activation", "firstmate.supervision.migrate", "firstmate.supervision.attach-ui"]);
   for (const file of await readdir("templates/tools")) {
     const source = await readFile(join("templates/tools", file), "utf8");
     expect(source).not.toMatch(/attach-ui|attachSupervisorFromUi|attachFromUnverifiedUi/);

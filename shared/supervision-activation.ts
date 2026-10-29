@@ -32,7 +32,8 @@ export const attachSupervisorFromUi = defineRpc({ name: "firstmate.supervision.a
 const base = { homeId: z.string(), migrationId: SupervisionUuid };
 export const MigrationCommandSchema = z.discriminatedUnion("op", [
   z.object({ ...base, op: z.enum(["prepare", "resume"]), plan: PlanId, scopeId: SupervisionUuid, projectId: SupervisionUuid,
-    prerequisites: MigrationReceiptSchema.shape.prerequisites }).strict(),
+    prerequisites: MigrationReceiptSchema.shape.prerequisites,
+    reviewHash: SupervisionHash.optional() }).strict(),
   z.object({ ...base, op: z.enum(["reconcile", "barrier", "commit"]) }).strict(),
   z.object({ ...base, op: z.literal("abort"), reason: z.string().trim().min(1).max(2000) }).strict(),
   z.object({ ...base, op: z.literal("resolve-hold"), dispositionId: SupervisionUuid, route: z.enum(["drain-legacy", "already-handled"]),

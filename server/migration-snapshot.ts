@@ -18,6 +18,15 @@ const sha = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("he
 const contains = (root: string, path: string) => { const rel = relative(root, path); return !rel || !rel.startsWith("..") && !isAbsolute(rel); };
 export class MigrationSnapshots {
   constructor(private readonly approvedRoot: string, private readonly retention: string) {}
+  static async validateDestination(destination: string, sources: string[]) {
+    const root = await realpath(destination);
+    for (const source of sources) {
+      let path = resolve(source);
+      try { path = await realpath(source); } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e; }
+      if (contains(path, root) || contains(root, path)) refuse("HELD", "Choose a separate backup folder outside FirstMate's home and saved work. A folder inside them cannot protect this handover.");
+    }
+    return root;
+  }
   async capture(store: SupervisionStore, legacyRoot: string, home: string, migrationId: string, planId: string): Promise<Reference> {
     z.uuid().parse(migrationId);
     if (!isAbsolute(this.approvedRoot) || !this.retention.trim()) refuse("HELD", "Configure an approved independent snapshot destination and retention before migration.");

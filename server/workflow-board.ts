@@ -70,7 +70,8 @@ export async function workflowSnapshot(home: string, scoped?: import("../shared/
       if (decisionOwner(plan, node) === "captain") (planDecisionReady(plan, node, allPlans, unavailableDependencies) ? now : comingUp).push(need);
     }
   }
-  return { homeId: workflowHomeId(home), version: digest({ plans: allPlans.map(p => p.hash), problems: read.problems, warnings: read.warnings ?? [], unavailableDependencies: [...unavailableDependencies].sort() }), plans,
+  return { homeId: workflowHomeId(home), version: digest({ plans: allPlans.map(p => p.hash), held: [...held].sort(), problems: read.problems, warnings: read.warnings ?? [], unavailableDependencies: [...unavailableDependencies].sort() }), plans,
+    ...(held.size ? { planHelpPending: allPlans.filter(p => held.has(p.definition.id)).map(p => ({ plan: p.definition.id, title: p.definition.title })) } : {}),
     subjects: Object.fromEntries(plans.map(p => [p.definition.id, planSubjectHash(p)])), now, comingUp, problems: read.problems, warnings: read.warnings ?? [] };
 }
 async function backlog(home: string) { return parseBacklog(await readFile((await resolveInHome(home, "data/backlog.md")).absolute, "utf8")); }

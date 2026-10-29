@@ -10,7 +10,7 @@ import { readFirstmateConfig, resolveHome } from "./config";
 import { oneAtATime, requireNoMigration } from "./mate";
 import { serialized } from "./serialize";
 import { SupervisionStore } from "./supervision-store";
-import { SupervisionMigrator, type LegacyDeliveryAdapters } from "./supervision-migrate";
+import { migrationUuid, SupervisionMigrator, type LegacyDeliveryAdapters } from "./supervision-migrate";
 import { workflowStore } from "./workflow-service";
 import { SupervisionCommands } from "./supervision-commands";
 import { effectLogicalKey, stableId, refuse, SupervisionGateway } from "./supervision-effects";
@@ -23,6 +23,15 @@ import { SupervisionRuntime } from "./supervision-runtime";
 import { checkGeneralHeadroom, withScopeAdmission } from "./supervision-headroom";
 import { MigrationSnapshots } from "./migration-snapshot";
 import { join } from "node:path";
+import { readMigrationSettings, setMigrationSettings } from "../shared/migration-settings";
+import { readPlanHelp, type PlanHelpReview } from "../shared/plan-help";
+import { MigrationSettings } from "./migration-settings";
+import { digest, publish } from "./submissions";
+import { mkdir, readFile } from "node:fs/promises";
+import { MigrationCommandSchema } from "../shared/supervision-activation";
+import { checkPolicySource, policyRef, sameVector } from "./supervision-policy";
+import { planFinished, planOwner } from "../shared/workflow-plans";
+import { planBudgetUsed } from "../shared/workflow-plan-summary";
 const UI_CALL: SupervisionActor = { kind: "plugin-ui-unverified", id: "unauthenticated-plugin-call", source: "client UI (unverified)" };
 
 export function proposedSupervisor(scopeId: string) {
@@ -68,6 +77,7 @@ export interface ActivationOptions {
   config?: typeof readFirstmateConfig;
   receiver?: (paseo: PaseoApi) => GatewayReceiver;
   snapshots?: MigrationSnapshots;
+  backupSettings?: MigrationSettings;
   requireSnapshots?: boolean;
 }
 export class SupervisionActivation {
@@ -79,7 +89,75 @@ export class SupervisionActivation {
     this.runtime = options.runtime ?? new SupervisionRuntime(root); this.lock = `firstmate.activation:${root}`;
     this.attachLock = `firstmate.supervisor-attach:${root}`;
   }
-  private async snapshotRequired(home: string) { return !!this.options.requireSnapshots || !!(await this.runtime.features?.read(home))?.effective.planSupervisors; }
+  private async snapshotRequired(home: string) { return !!this.options.backupSettings || !!this.options.requireSnapshots || !!(await this.runtime.features?.read(home))?.effective.planSupervisors; }
+  private snapshots(home: string) { return this.options.backupSettings?.service(home) ?? Promise.resolve(this.options.snapshots); }
+  private preparationPath(home: string, plan: string) { return join(this.root, "plan-help-preparations", digest(workflowHomeIdentity(home)), `${digest(plan)}.json`); }
+  private async preparation(home: string, plan: string) {
+    try {
+      const bytes = await readFile(this.preparationPath(home, plan), "utf8");
+      if (Buffer.byteLength(bytes) > 32768) refuse("HELD", "Saved handover review exceeds its bounds.");
+      const raw = JSON.parse(bytes), input = MigrationCommandSchema.parse(raw.input);
+      if ((input.op !== "prepare" && input.op !== "resume") || input.homeId !== workflowHomeIdentity(home) || input.plan !== plan || digest(input) !== raw.hash)
+        refuse("HELD", "Saved handover review couldn't be checked. Inspect Advanced work details before continuing.");
+      return input;
+    } catch (e) { if ((e as NodeJS.ErrnoException).code === "ENOENT") return null; throw e; }
+  }
+  async readBackup(homeId: string) {
+    const home = resolveHome(await this.config());
+    if (homeId !== workflowHomeIdentity(home)) refuse("STALE", "FirstMate's home changed. Reopen this review.");
+    if (!this.options.backupSettings) refuse("UNSUPPORTED", "Backup setup isn't available in this build.");
+    return this.options.backupSettings.read(home);
+  }
+  async saveBackup(input: Parameters<MigrationSettings["set"]>[1]) {
+    return serialized(this.lock, async () => {
+      const { home } = await this.checkedConfig(input.homeId);
+      if (!this.options.backupSettings) refuse("UNSUPPORTED", "Backup setup isn't available in this build.");
+      return this.options.backupSettings.set(home, input);
+    });
+  }
+  async planHelp(homeId: string, planId: string): Promise<PlanHelpReview> {
+    const config = await this.config(), home = resolveHome(config);
+    if (workflowHomeIdentity(home) !== homeId) refuse("STALE", "FirstMate's home changed. Reopen this review.");
+    const legacy = await workflowStore(home).read(), status = await this.runtime.read(home);
+    const scoped = status.plans.find(p => p.plan.definition.id === planId && status.backends.some(b => b.planId === planId && b.ownerScopeId === p.scopeId && b.backend === "scoped" && b.state === "active"));
+    const plan = scoped?.plan ?? legacy.plans.find(p => p.definition.id === planId);
+    if (!plan) refuse("HELD", "This plan couldn't be checked. Refresh Plans before reviewing help.");
+    const problems: string[] = [];
+    if (config.migration || config.mateLaunch || !config.mateAgentId) problems.push("Finish FirstMate's current setup before reviewing a plan handover.");
+    const policy = await this.runtime.features?.read(home);
+    if (!(policy?.effective.scopedActivation ?? this.options.enabled)) problems.push("Plan handover is off. Open FirstMate settings, review Plan help, and save your choice.");
+    if (policy && !policy.effective.planSupervisors) problems.push("Ongoing plan help is off. Review Plan help in FirstMate settings before handing over a plan.");
+    if (legacy.problems.length || status.problems.length) problems.push("Some saved work couldn't be checked. Review Advanced work details before handing over this plan.");
+    if (planFinished(plan) || plan.status === "abandoned") problems.push("This plan has finished. Its history stays with its recorded owner.");
+    const names = [...new Set(plan.definition.nodes.flatMap(n => n.kind === "run" ? [n.launch.project.trim().toLowerCase()] : []))];
+    const projects = status.projects?.projects.filter(p => p.state === "admitted" && [p.name, ...p.aliases].some(n => names.includes(n.trim().toLowerCase()))) ?? [];
+    const project = names.length === 1 && projects.length === 1 ? projects[0] : null;
+    if (!project) problems.push("This plan needs one checked project setup. Review its project in FirstMate settings first; projects with different owners need a separate review.");
+    if (project && plan.definition.nodes.some(n => n.kind === "run" && n.launch.host.trim().toLowerCase() !== (project.owner?.hostId ?? "local").trim().toLowerCase()))
+      problems.push("This plan's host doesn't match its checked project setup. Review the project's original host before handing over this plan.");
+    const sources = project ? status.policySources.filter(s => project.sourceVector.some(ref => sameVector([ref], [policyRef("policy-source", s)])) && !status.policySources.some(next => next.supersedes.includes(s.id))) : [];
+    if (!sources.length || project && sources.length !== project.sourceVector.length) problems.push("The project's permission evidence is missing. Review its original permission sources before continuing.");
+    for (const source of sources) try { await checkPolicySource(home, source); } catch { problems.push(`Permission evidence changed or is unavailable: ${source.path}. Review that source before continuing.`); }
+    const decisions = await this.options.adapters(home).decisions();
+    if (!decisions || decisions.freshness.status !== "fresh" || !decisions.homeId || decisions.quarantined?.length)
+      problems.push("Decisions haven't all been checked. Refresh Needs you and resolve any unchecked work before handing over this plan.");
+    const migration = status.migrations?.find(m => m.planId === planId), scopeId = migration?.scopeId ?? migrationUuid(homeId, planId, "plan-help-scope");
+    const preparation = await this.preparation(home, planId);
+    const freeze = await workflowStore(home).cutover(planId).catch(() => "damaged");
+    if (freeze && !migration && !preparation) problems.push("A saved handover needs recovery. Use its original preparation in Advanced work details; don't start a second handover.");
+    const backup = this.options.backupSettings ? await this.options.backupSettings.read(home) : null;
+    if (!backup?.backup || backup.problems.length) problems.push(...(backup?.problems.length ? backup.problems : ["Choose a separate backup folder and how long to keep its files below."]));
+    const binding = status.bindings.find(b => b.scopeId === scopeId);
+    const backend = status.backends.find(b => b.planId === planId && b.backend === "scoped");
+    const opening = binding ? activationEffects(status, scopeId, binding.epoch).send?.state : null;
+    const body = { homeId, plan: planId, title: plan.definition.title, planHash: plan.hash,
+      currentOwner: binding ? binding.state === "active" && opening === "succeeded" ? "Dedicated plan helper" : "Saved plan helper; setup needs checking" :
+        backend?.state === "active" ? "Handover complete; waiting for the captain to attach a helper" : planOwner(plan) === "firstmate" ? "FirstMate" : "Captain",
+      projectId: project?.id ?? null, scopeId, migrationId: migration?.id ?? migrationUuid(homeId, planId, "plan-help-handover"),
+      supervisorId: binding?.agentId ?? proposedSupervisor(scopeId), budget: plan.definition.budget, spent: planBudgetUsed(plan),
+      problems, sourcePaths: sources.map(s => s.path), backupRevision: backup?.revision ?? 0 };
+    return { ...body, preparation, reviewHash: digest({ ...body, problems: [], sources, project, effective: policy?.effective ?? null }) };
+  }
   private config() { return (this.options.config ?? readFirstmateConfig)(); }
   private async checkedConfig(homeId: string, generalId?: string, settlement = false) {
     if ((!this.options.enabled && !this.runtime.features) || this.closed) refuse("UNSUPPORTED", "Scoped activation is disabled. No store or session was created.");
@@ -110,11 +188,24 @@ export class SupervisionActivation {
   }
   async migrate(input: MigrationCommand) {
     return this.mutate(input.homeId, async (home, store) => {
+      if ((input.op === "prepare" || input.op === "resume") && input.reviewHash && !(await store.read()).migrations?.some(m => m.id === input.migrationId)) {
+        const review = await this.planHelp(input.homeId, input.plan);
+        if (review.problems.length) refuse("HELD", review.problems.join(" "));
+        if (review.reviewHash !== input.reviewHash || review.scopeId !== input.scopeId || review.projectId !== input.projectId || review.migrationId !== input.migrationId)
+          refuse("STALE", "The plan, permissions or backup settings changed. Refresh and review plan help again.");
+        const original = await this.preparation(home, input.plan);
+        if (original && digest({ ...original, op: "prepare" }) !== digest({ ...input, op: "prepare" })) refuse("CONFLICT", "The saved handover has different inputs. Resume its original review.");
+        if (!original) {
+          const { dirname } = await import("node:path");
+          await mkdir(dirname(this.preparationPath(home, input.plan)), { recursive: true });
+          await publish(this.preparationPath(home, input.plan), { input, hash: digest(input) });
+        }
+      }
       const expected = { homeId: store.homeId, migrationId: input.migrationId,
         planId: "plan" in input ? input.plan : (await store.read()).migrations?.find(m => m.id === input.migrationId)?.planId ?? "" };
       let checked = input;
       if ((await this.snapshotRequired(home)) && input.op !== "abort" && input.op !== "resolve-hold") {
-        const snapshots = this.options.snapshots;
+        const snapshots = await this.snapshots(home);
         if (!snapshots) refuse("HELD", "An approved independent migration snapshot destination and retention are required.");
         if (input.op === "prepare" || input.op === "resume") {
           const saved = (await store.read()).migrations?.find(m => m.id === input.migrationId)?.prerequisites.snapshot;
@@ -169,8 +260,9 @@ export class SupervisionActivation {
         if (!("resume" in input)) {
           if ((await this.snapshotRequired(home)) && !(await store.read()).commands.some(c => c.id === input.requestId)) {
             const migration = (await store.read()).migrations?.find(m => m.scopeId === input.scopeId && m.planId === input.plan && m.state === "committed");
-            if (!migration?.prerequisites.snapshot || !this.options.snapshots) refuse("HELD", "This cutover has no verified independent snapshot; reconcile its evidence before a new attachment.");
-            await this.options.snapshots.verify(migration.prerequisites.snapshot, { homeId: store.homeId, migrationId: migration.id, planId: migration.planId });
+            const snapshots = await this.snapshots(home);
+            if (!migration?.prerequisites.snapshot || !snapshots) refuse("HELD", "This cutover has no verified independent snapshot; reconcile its evidence before a new attachment.");
+            await snapshots.verify(migration.prerequisites.snapshot, { homeId: store.homeId, migrationId: migration.id, planId: migration.planId });
           }
           await withScopeAdmission(input.homeId, async () => {
             const capacity = await this.runtime.features?.capacity(home);
@@ -214,6 +306,9 @@ export class SupervisionActivation {
   }
 }
 export function registerSupervisionActivation(server: Pick<PluginServerContext, "handle">, activation: SupervisionActivation) {
+  server.handle(readMigrationSettings, input => activation.readBackup(input.homeId));
+  server.handle(setMigrationSettings, input => activation.saveBackup(input));
+  server.handle(readPlanHelp, input => activation.planHelp(input.homeId, input.plan));
   server.handle(readSupervisionActivation, () => activation.read());
   server.handle(migrateSupervisionPlan, input => activation.migrate(input));
   // This RPC has no caller identity. UI-only is a convention; do not label its caller captain-ui.
