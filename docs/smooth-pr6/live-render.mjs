@@ -57,6 +57,11 @@ try {
       assert.equal(await page.getByRole('button', { name: 'Project mates and plans', exact: true }).getAttribute('aria-expanded'), 'false');
       assert.match(await page.locator('body').innerText(), /4 ready to create.*1 ready to set up.*2 on another machine/);
       assert.doesNotMatch(await page.locator('body').innerText(), /Stored state:|older-60|Ariadne archived plan|Refreshing|Updating/);
+    } else {
+      await page.getByRole('button', { name: 'Project mates and plans', exact: true }).click();
+      const text = await page.locator('body').innerText();
+      assert.match(text, /Plan older-60 has unresolved project or host membership/);
+      assert.match(text, /Stored state: admitted/);
     }
     await capture('details');
     if (stage === 'after') await page.getByRole('button', { name: 'Project mates and plans', exact: true }).click();
