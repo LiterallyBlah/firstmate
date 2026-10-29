@@ -78,6 +78,29 @@ it("loads only the named history, switches recipients and restores each draft on
   expect(input().props.value).toBe("Plan words");
   expect(rpc.send).not.toHaveBeenCalled();
 });
+
+it.each([false, true])("focuses the composer only for an explicit message action (compose=%s)", async focusComposer => {
+  const snapshot = fixture(), focus = vi.fn(); client = new QueryClient();
+  rpc.read.mockResolvedValue({ key: "project", title: "Project", messages: [] });
+  await act(async () => { tree = create(createElement(QueryClientProvider, { client }, createElement(ScopeDiscussion, {
+    snapshot, hostId: "local", theme: attentionTheme, compact: true, initialScope: "project", focusComposer, refresh() {},
+  })), { createNodeMock: node => node.type === "Input" ? { focus } : {} }); });
+  expect(focus).toHaveBeenCalledTimes(focusComposer ? 1 : 0);
+  expect(rpc.send).not.toHaveBeenCalled();
+});
+
+it("uses a readable stale timestamp only while the conversation read failed", async () => {
+  const snapshot = fixture(); client = new QueryClient();
+  rpc.read.mockResolvedValue({ key: "project", title: "Project", messages: [] });
+  const render = (offline: boolean) => createElement(QueryClientProvider, { client }, createElement(ScopeDiscussion, {
+    snapshot, offline, hostId: "local", theme: attentionTheme, compact: true, initialScope: "project", refresh() {},
+  }));
+  await act(async () => { tree = create(render(true)); });
+  expect(JSON.stringify(tree.toJSON())).toContain(new Date(snapshot.asOf).toLocaleString());
+  expect(JSON.stringify(tree.toJSON())).not.toContain(snapshot.asOf);
+  await act(async () => tree.update(render(false)));
+  expect(JSON.stringify(tree.toJSON())).not.toContain("Last updated");
+});
 it("shows the actual addressed recipient/context before sending and keeps ambiguous addresses intact", async () => {
   const snapshot = fixture(); snapshot.scopes[2]!.aliases = ["plan"];
   client = new QueryClient(); await mount(snapshot);

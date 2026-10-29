@@ -1,0 +1,20 @@
+import { act, createElement } from "react";
+import { create } from "react-test-renderer";
+import { expect, it, vi } from "vitest";
+import { attentionTheme } from "../test/attention-deck-fixture";
+import { ConversationSwitcher } from "./conversation-switcher";
+import type { MateConversation } from "./conversation-list";
+vi.mock("react-native", () => ({ View: "View", Text: "Text", Pressable: "Pressable", ScrollView: "ScrollView" }));
+vi.mock("@getpaseo/plugin/client/react-native", () => ({ Icon: "Icon" }));
+vi.mock("./web", () => ({ bindWebKeys: vi.fn() }));
+it("attributes the aggregate to other conversations and keeps each row's own unread count", async () => {
+  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  const mate = { scope: { id: "reader" }, name: "Reader helper", context: "Plan: Reader" } as MateConversation;
+  let tree!: ReturnType<typeof create>;
+  await act(async () => { tree = create(createElement(ConversationSwitcher, { theme: attentionTheme, mates: [mate], current: "general", counts: { general: 3, reader: 1 }, failed: false, onSelect() {}, onBack() {}, onExpand() {} })); });
+  const trigger = tree.root.findByProps({ accessibilityLabel: "Conversations: FirstMate, 1 unread elsewhere" });
+  await act(async () => trigger.props.onPress());
+  expect(tree.root.findByProps({ accessibilityLabel: "FirstMate, 3 unread" })).toBeDefined();
+  expect(tree.root.findByProps({ accessibilityLabel: "Reader helper, 1 unread" })).toBeDefined();
+  await act(async () => tree.unmount());
+});

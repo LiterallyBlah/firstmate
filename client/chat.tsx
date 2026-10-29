@@ -19,6 +19,8 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "reac
 import { Image, Platform, Pressable, SafeAreaView, ScrollView, Text, View, type TextInput } from "react-native";
 
 import { GrowingChatInput } from "./growing-chat-input";
+import { useMateMentions } from "./mate-mentions";
+import { useConversations } from "./conversation-context";
 
 import type { ImagePart } from "../shared/attachments";
 import { MAX_FILE_CANDIDATES, findHomeFiles } from "../shared/files";
@@ -187,6 +189,10 @@ function GeneralMateChat({
   const [draft, setDraftState] = useState(() => drafts.get(mate.id));
   /** What is attached to the draft, kept beside it for the same reasons — see `./attachments`. */
   const [attachments, setAttachmentsState] = useState(() => pendingAttachments.get(mate.id));
+  const mentions = useMateMentions({ draft, attached: attachments.length > 0, composer, theme, active });
+  const conversations = useConversations();
+  const replyIds = rows.filter(row => row.kind === "mate").map(row => row.key);
+  useEffect(() => { conversations?.generalRead(replyIds, active, !timeline.loading && !timeline.error); }, [conversations?.generalRead, JSON.stringify(replyIds), active, timeline.loading, timeline.error]);
   /**
    * The stores are the truth and this chat follows them, so a send that fails
    * after the chat that made it was unmounted — a tab switch mid-send on a
@@ -230,6 +236,7 @@ function GeneralMateChat({
   const usage = timeline.agent?.lastUsage;
 
   function setDraft(text: string): void {
+    mentions.resetCaret();
     drafts.set(mate.id, text);
     setDraftState(text);
   }
@@ -610,6 +617,8 @@ function GeneralMateChat({
               ))}
             </View>
           )}
+          {mentions.panel}
+          {mentions.panel ? <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>To: FirstMate</Text> : null}
           <View style={styles.inputRow}>
             <GrowingChatInput
               ref={composer}
@@ -618,15 +627,17 @@ function GeneralMateChat({
               accessibilityLabel="Message the first mate"
               value={draft}
               onChangeText={setDraft}
+              onSelectionChange={mentions.onSelectionChange}
               placeholder={placeholder}
               placeholderTextColor={theme.colors.foregroundMuted}
               multiline
               numberOfLines={1}
               onKeyPress={
-                submitOnEnter
+                submitOnEnter || mentions.panel
                   ? (event: WebKeyPressEvent) => {
+                      if (mentions.keyPress(event)) return;
                       // Nothing to send, or a send in flight: Enter is left alone, as Paseo leaves it.
-                      if (!isSendKey(event.nativeEvent) || sending || !hasContent(draft, attachments)) return;
+                      if (!submitOnEnter || !isSendKey(event.nativeEvent) || sending || !hasContent(draft, attachments)) return;
                       event.preventDefault();
                       sendDraft();
                     }
