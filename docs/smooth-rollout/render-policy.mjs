@@ -19,7 +19,7 @@ for (const variant of ["before", "after"]) await build({ entryPoints: [resolve(h
     b.onResolve({ filter: /^react-dom($|\/)/ }, a => ({ path: local.resolve(a.path) }));
     b.onResolve({ filter: /^react-native($|-web$)/ }, () => ({ path: local.resolve("react-native-web") }));
     if (variant === "before") b.onLoad({ filter: /client[\\/](project-ownership|maintenance-ownership|supervision-activation)\.tsx$/ }, args => ({
-      contents: execFileSync("git", ["show", `cb464d1:${args.path.slice(root.length + 1).replaceAll("\\", "/")}`], { cwd: root, encoding: "utf8" }), loader: "tsx", resolveDir: dirname(args.path),
+      contents: execFileSync("git", ["show", `ef92ef55:${args.path.slice(root.length + 1).replaceAll("\\", "/")}`], { cwd: root, encoding: "utf8" }), loader: "tsx", resolveDir: dirname(args.path),
     }));
   } }] });
 const server = createServer(async (req, res) => {
@@ -42,6 +42,6 @@ try {
     await page.screenshot({ path: resolve(out, `${variant}-${theme}-${device}.png`), fullPage: true });
     assert.deepEqual(errors, []); results.push({ variant, theme, device, errors, horizontalOverflow: false, mutations: 0 }); await page.close();
   }
-  await writeFile(resolve(out, "results.json"), JSON.stringify({ passed: true, baseline: "cb464d1", results }, null, 2));
+  await writeFile(resolve(out, "results.json"), JSON.stringify({ passed: true, baseline: "ef92ef55", results }, null, 2));
   console.log(JSON.stringify({ passed: true, cases: results.length, out }));
 } finally { await browser.close(); await new Promise(done => server.close(done)); }
