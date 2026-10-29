@@ -15,9 +15,9 @@ import { MaintenanceOwnershipBoard } from "./maintenance-ownership";
 import { SupervisionActivationBoard } from "./supervision-activation";
 import { useWorkflowPlans } from "./workflow-plans";
 
-export function WorkDetails({ theme, compact, hostId = "local", navigation, always = false }: {
+export function WorkDetails({ theme, compact, hostId = "local", navigation, always = false, showCount = true }: {
   theme: PluginTheme; compact: boolean; hostId?: string;
-  navigation?: PluginScreenProps["navigation"]; always?: boolean;
+  navigation?: PluginScreenProps["navigation"]; always?: boolean; showCount?: boolean;
 }) {
   const { activation, activationError, refreshActivation } = useWorkflowPlans();
   const readProjects = useRpc(readProjectRuntime), readChecks = useRpc(readMaintenance);
@@ -56,7 +56,7 @@ export function WorkDetails({ theme, compact, hostId = "local", navigation, alwa
       onPress={() => { setOpen(true); refresh(); }} style={{ minHeight: 44, minWidth: 44, paddingHorizontal: 8, flexDirection: "row", alignItems: "center", gap: 6, justifyContent: "center", borderWidth: 1, borderRadius: 7, borderColor: theme.colors.border }}>
       {!compact || always ? <Icon name="SlidersHorizontal" size={15} color={theme.colors.foregroundMuted} /> : null}
       <Text style={{ color: theme.colors.foreground, fontSize: 13 }}>{always ? "Advanced work details" : compact ? "Details" : "Work details"}</Text>
-      {available ? <View style={{ minWidth: 18, paddingHorizontal: 4, borderRadius: 9, backgroundColor: theme.colors.surface2, alignItems: "center" }}><Text style={{ color: theme.colors.foregroundMuted, fontSize: 11 }}>{available}</Text></View> : null}
+      {available && showCount ? <View style={{ minWidth: 18, paddingHorizontal: 4, borderRadius: 9, backgroundColor: theme.colors.surface2, alignItems: "center" }}><Text style={{ color: theme.colors.foregroundMuted, fontSize: 11 }}>{available}</Text></View> : null}
     </Pressable>
     <Modal title="Work details" open={open} onOpenChange={setOpen}><Modal.Content>
       <View style={{ gap: 16 }}>

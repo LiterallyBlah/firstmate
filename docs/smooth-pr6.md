@@ -169,8 +169,11 @@ over the report's suggested Updating label.
   captures with before/after geometry assertions, light/dark, 1440×1000 and
   390×844, plus 638px/900px headers with a nonempty Needs-you indicator. These
   assert a single row and no overlapping controls. The hosted Needs-you polish
-  check first caught the narrow desktop regression and passes with the compact
-  Details label. `live-evidence.mjs` produces the committed comparison sheets.
+  check first caught the narrow desktop regression. Narrow desktop uses the
+  compact Details label without a count badge, retaining its count in the
+  accessibility hint and project summary; this leaves room for wider platform
+  font metrics. Geometry assertions stay strict. `live-evidence.mjs` produces
+  the committed comparison sheets.
 - Existing Home harness: 146 capture/assertion cases; review regressions: 32 cases.
 - Full local suites use CI's two-worker/60s Windows settings. The missing-folder
   fixture uses an absolute path under its temporary home on both Windows and

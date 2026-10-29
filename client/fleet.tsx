@@ -754,7 +754,7 @@ function FleetViewBody({
         {shell !== undefined ? (
           <HubLauncher theme={theme} navigation={navigation} shell={shell} workspaceId={homeWorkspaceId} compact phone={compact} />
         ) : null}
-        {home ? <WorkDetails theme={theme} compact={compact || narrowHeader} hostId={host?.id ?? "local"} navigation={navigation} /> : null}
+        {home ? <WorkDetails theme={theme} compact={compact || narrowHeader} showCount={!narrowHeader} hostId={host?.id ?? "local"} navigation={navigation} /> : null}
         <HeaderActions
           theme={theme}
           navigation={navigation}

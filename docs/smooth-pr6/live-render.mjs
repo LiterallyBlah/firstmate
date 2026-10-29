@@ -96,9 +96,11 @@ try {
     const header = page.locator('#firstmate-home-header');
     assert.ok((await header.boundingBox()).height < 65, 'narrow header retains its single row');
     const controls = await header.getByRole('button').all(); let right = 0;
-    for (const control of controls) { const box = await control.boundingBox(); assert.ok(box.x >= right && box.x + box.width <= width, `header controls fit at ${width}: ${JSON.stringify(box)}`); right = box.x + box.width; }
+    const geometry = [];
+    for (const control of controls) { const box = await control.boundingBox(); geometry.push({ label: await control.getAttribute('aria-label'), ...box }); }
     const key = `${theme}-narrow-${width}-${stage}`;
     await page.screenshot({ path: resolve(out, 'screenshots', key + '.png') });
+    for (const box of geometry) { assert.ok(box.x >= right && box.x + box.width <= width, `${key} header controls fit: ${JSON.stringify(geometry)}`); right = box.x + box.width; }
     results.push({ key, text: await page.locator('body').innerText() }); await page.close();
   }
   await writeFile(resolve(out, 'results.json'), JSON.stringify({ passed: true, baseline, captures: results.filter(r => r.text).length, results }, null, 2));
