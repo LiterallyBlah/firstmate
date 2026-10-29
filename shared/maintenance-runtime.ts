@@ -3,7 +3,7 @@ import { defineRpc } from "@getpaseo/plugin";
 import { z } from "zod";
 import { SupervisionHash, SupervisionUuid } from "./supervision";
 import { MaintenanceAdmissionInputSchema, ScopedDecisionSchema, ScopedOutboxSchema } from "./supervision-policy";
-import { MaintenanceCaptainDecisionSchema } from "./maintenance-captain-decision";
+import { ScopedCaptainDecisionSchema } from "./scoped-captain-decision";
 import { PlanId } from "./workflow-plans";
 import { MaintenanceJobSchema, MaintenanceIncidentSchema, OccurrenceSchema, OccurrenceHostSchema, ResourceReservationSchema, ResourceClass, ResourceKey, HostId } from "./supervision-maintenance";
 
@@ -69,7 +69,7 @@ export const MaintenanceRuntimeSnapshotSchema = z.object({ enabled: z.boolean(),
   owners: z.array(z.object({ scopeId: SupervisionUuid, state: z.string(), agentId: z.string().nullable(), epoch: count,
     sessions: count, turns: count, uncertain: count, admission: MaintenanceAdmissionInputSchema.nullable(), opening: z.string().nullable() }).strict()),
   deliveries: z.array(z.object({ incidentId: SupervisionUuid, generation: count.min(1), effectId: SupervisionUuid.nullable(), state: z.string() }).strict()),
-  captainDecisions: z.array(MaintenanceCaptainDecisionSchema), decisions: z.array(ScopedDecisionSchema), outbox: z.array(ScopedOutboxSchema),
+  captainDecisions: z.array(ScopedCaptainDecisionSchema), decisions: z.array(ScopedDecisionSchema), outbox: z.array(ScopedOutboxSchema),
 }).strict();
 export type MaintenanceRuntimeSnapshot = z.infer<typeof MaintenanceRuntimeSnapshotSchema>;
 export const readMaintenance = defineRpc({ name: "firstmate.maintenance.read", input: z.object({}).strict(), output: MaintenanceRuntimeSnapshotSchema });

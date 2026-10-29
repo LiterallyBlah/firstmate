@@ -32,7 +32,9 @@ import { ScopedCaptainDecisionSchema } from "../shared/scoped-captain-decision";
 export function withScopedNeedsYou(snapshot: NeedsYouSnapshot, status: SupervisionStatus): NeedsYouSnapshot {
   if (snapshot.homeId !== null && snapshot.homeId !== status.homeId) throw new Error("Scoped and legacy decision homes differ.");
   const plans = status.plans.map(p => p.plan), problems = [...status.problems];
-  const rows = status.decisions.filter(d => d.state !== "superseded").flatMap(decision => {
+  // Maintenance owns its checked app answer/outbox transport. Never recast it as a plan
+  // or expose it through the plan-only answer context; D emits the shared presentation itself.
+  const rows = status.decisions.filter(d => !d.maintenance && d.state !== "superseded").flatMap(decision => {
     const plan = status.plans.find(p => p.scopeId === decision.ownerScopeId && p.plan.definition.id === decision.planId)?.plan;
     const node = plan?.definition.nodes.find(n => n.id === decision.nodeId);
     if (plan && node && decisionOwner(plan, node) === "firstmate") return [];
@@ -56,7 +58,7 @@ export function withScopedNeedsYou(snapshot: NeedsYouSnapshot, status: Supervisi
   const count = rows.filter(r => r.ready).length + holdPlans.size;
   const priorHoldPlans = new Set(snapshot.scopedHolds?.map(h => h.planId) ?? []);
   const priorCount = (snapshot.scopedDecisions?.filter(r => r.ready).length ?? 0) + priorHoldPlans.size;
-  const pending = status.outbox.filter(o => o.kind === "decision.answer" && o.state === "pending").length;
+  const pending = status.outbox.filter(o => !o.maintenance && o.kind === "decision.answer" && o.state === "pending").length;
   if (status.freshness !== "current") problems.push("Scoped decision inventory is incomplete; counts are a lower bound.");
   return { ...snapshot, homeId: snapshot.homeId ?? status.homeId, scopedDecisions: rows, scopedSequence: status.sequence, scopedProblems: problems, scopedHolds: holds, scopedComplete: status.freshness === "current", scopedPendingAnswerCount: pending,
     actionCount: snapshot.actionCount === null ? count || null : snapshot.actionCount - priorCount + count,

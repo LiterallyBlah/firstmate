@@ -43,8 +43,10 @@ Maintenance sessions use the existing reserved/verified lifecycle and a separate
 `server/maintenance-admission.ts` admits/creates an owner only through explicit captain app controls,
 retaining profile/caps and exact resume input; no helper/CLI Attach or background provisioning.
 `server/maintenance-decisions.ts` retains genuine authority/budget choices, checked answers and logical-owner
-outboxes. Routine incidents create no captain count. The local C-compatible presentation schema is
-`shared/maintenance-captain-decision.ts`; reconcile its import when C lands. App provenance stays unverified.
+outboxes. Routine incidents create no captain count. D uses C's real presentation contract at
+`shared/scoped-captain-decision.ts`; the plan-only Needs-you adapter never relabels these maintenance
+origins or routes them through plan answers. Maintenance choices use the owner board and D's checked
+app transport. App provenance stays unverified.
 Healthy and unchanged incidents wake nobody, changed
 incidents reserve one bounded owner turn, and uncertain sends never retry or refund spend. General reads
 the pure summary directly. The fresh timer census retains disabled watches and all approved host coverage,

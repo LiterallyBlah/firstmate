@@ -119,13 +119,15 @@ with checked result evidence. Exhausted owner caps keep the answer pending; no t
 borrowed to deliver it. Answers and handling use unverified same-user/app conventions,
 not authenticated IPC. Plan commands explicitly refuse maintenance decisions.
 
-Build C reconciliation: `shared/maintenance-captain-decision.ts` is a structurally
-identical local copy of PR 165's `shared/scoped-captain-decision.ts`, format
-`firstmate.scoped-captain-decision/1`. Replace the import when C lands. The read RPC
+Build C integration: D imports the real `shared/scoped-captain-decision.ts` from
+merged PR 165 (`254b9fe5`), format `firstmate.scoped-captain-decision/1`. The read RPC
 emits `captainDecisions` for C presentation, alongside D's separate durable `decisions`
 (checked maintenance origin) and `outbox`; presentation never authorizes a legacy send.
 Maintenance contexts use job/incident IDs in retained decision identity fields, not a
 workflow/backend grant. Other plan decisions/outboxes retain their original validation.
+The plan-only Needs-you adapter excludes maintenance rows/outboxes instead of inventing
+plan origins or offering the plan answer transport. Maintenance choices/counts remain
+in the Maintenance owners board with D's exact checked answer transport.
 
 Review F1/F2 checks were recorded in the PR before follow-up implementation. Production
 entry tests now construct the owner through the registered app RPC from a fresh home;

@@ -21,6 +21,8 @@ import type { PaseoApi } from "./host-types";
 import type { NativeTimerInventory } from "./archive-inventory";
 import type { SupervisionEffect } from "../shared/supervision";
 import { digest } from "./submissions";
+import { withScopedNeedsYou } from "./needs-you-service";
+import { attentionSnapshot } from "../test/attention-deck-fixture";
 
 vi.setConfig({ testTimeout: 30000 });
 const SCOPE = "00000000-0000-4000-8000-000000000001", JOB = "00000000-0000-4000-8000-000000000002";
@@ -127,6 +129,9 @@ it("F2/A20 a real zero-budget incident creates one scoped captain decision witho
   service.remember(api); clock = "2026-10-27T03:15:00Z"; await service.tick(); await observe("failed"); nextMinute(); await service.tick();
   const state = await runtime.read(home);
   expect(state.decisions.filter(d => d.state === "pending")).toHaveLength(1);
+  // C's checked plan transport must not relabel a maintenance origin or offer a plan answer.
+  const planInbox = withScopedNeedsYou({ ...attentionSnapshot([]), homeId: state.homeId }, state);
+  expect(planInbox.scopedDecisions).toEqual([]); expect(planInbox.actionCount).toBe(0);
   expect(state.outbox).toEqual([]); expect(receiver.sends).toHaveLength(1);
   nextMinute(); await service.tick(); expect((await runtime.read(home)).decisions).toEqual(state.decisions);
 });
@@ -146,6 +151,8 @@ it.each([false, true])("F2/A10/A20 checked app answers retain context/outbox acr
   await service.answer(answer, api); const accepted = await service.read();
   expect(accepted.captainDecisions).toEqual([]); expect(accepted.outbox).toMatchObject([{ id: answer.submissionId, ownerScopeId: SCOPE, state: "pending", maintenance: true }]);
   expect(accepted.decisions[0]!.answer).toMatchObject({ provenance: { kind: "plugin-ui-unverified" }, outboxId: answer.submissionId });
+  const planInbox = withScopedNeedsYou({ ...attentionSnapshot([]), homeId: accepted.homeId }, await runtime.read(home));
+  expect(planInbox.scopedDecisions).toEqual([]); expect(planInbox.scopedPendingAnswerCount).toBe(0);
   expect((await job()).budget).toEqual({ turns: 0 }); expect(receiver.sends).toHaveLength(1);
   await service.answer(answer, api); expect((await service.read()).sequence).toBe(accepted.sequence);
   await expect(service.answer({ ...answer, text: "Different answer" }, api)).rejects.toMatchObject({ code: "CONFLICT" });

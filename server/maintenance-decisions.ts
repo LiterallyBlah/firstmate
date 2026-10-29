@@ -4,7 +4,7 @@ import type { z } from "zod";
 import type { SupervisionActor, SupervisionStatus } from "../shared/supervision";
 import type { ScopedDecision, ScopedOutbox } from "../shared/supervision-policy";
 import { MaintenanceEscalationSchema, MaintenanceAnswerSchema, type MaintenanceAnswer } from "../shared/maintenance-runtime";
-import { MaintenanceCaptainDecisionSchema } from "../shared/maintenance-captain-decision";
+import { ScopedCaptainDecisionSchema } from "../shared/scoped-captain-decision";
 import { maintenanceRows, refuse } from "./supervision-resources";
 import { expectedFor, stableId } from "./supervision-effects";
 import { activationEffects, supervisorSpend } from "./supervisor-sessions";
@@ -24,7 +24,7 @@ export function maintenanceDecisionCurrent(s: SupervisionStatus, d: ScopedDecisi
     s.scopes.some(scope => scope.id === d.ownerScopeId && scope.kind === "maintenance" && ["active", "held"].includes(scope.state));
 }
 export function maintenanceCaptainDecisions(s: SupervisionStatus) {
-  return s.decisions.filter(d => d.maintenance && d.state === "pending").map(d => MaintenanceCaptainDecisionSchema.parse({
+  return s.decisions.filter(d => d.maintenance && d.state === "pending").map(d => ScopedCaptainDecisionSchema.parse({
     format: "firstmate.scoped-captain-decision/1", homeId: s.homeId, scope: { kind: "maintenance", id: d.ownerScopeId },
     decisionId: d.id, revision: d.revision, subjectHash: d.subjectHash, origin: { kind: "maintenance", id: d.maintenance!.incidentId },
     title: d.title, question: d.question, options: d.options.map((o, i) => ({ ...o, number: i + 1 })), recommendation: d.maintenance!.recommendation,
