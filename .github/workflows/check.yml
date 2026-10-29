@@ -21,6 +21,12 @@ jobs:
       - run: node docs/smooth-pr2/regressions.mjs
       - run: node docs/smooth-pr2/contact-sheets.mjs
       - run: node docs/smooth-pr5/render.mjs
+      - run: node docs/smooth-pr9/render.mjs
+      - run: node docs/smooth-pr9/work-details-render.mjs
+      - run: node docs/smooth-pr9/production-render.mjs
+      - run: node node_modules/vitest/vitest.mjs run server/plan-help-wiring.test.ts --maxWorkers=1
+        env:
+          PR175_CAPTURE: "1"
       - run: node docs/smooth-pr10/render.mjs
       # The reviewed D8 before snapshot predates rebases and is no longer in branch history.
       - run: git fetch origin de4dac1be70736cf0a0f417244f9ab895ed5354d
@@ -46,6 +52,12 @@ jobs:
             .local/smooth-pr2/regressions/screenshots/*.png
             .local/smooth-pr5/ui/results.json
             .local/smooth-pr5/ui/screenshots/*.png
+            .local/smooth-pr9/ui/results.json
+            .local/smooth-pr9/ui/screenshots/*.png
+            .local/smooth-pr9/production/*.png
+            .local/smooth-pr9/production/results.json
+            .local/smooth-pr9/work-details/*.png
+            .local/smooth-pr9/work-details/results.json
             .local/smooth-pr10/ui/results.json
             .local/smooth-pr10/ui/screenshots/*.png
             .local/smooth-pr10/delayed/*.png

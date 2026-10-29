@@ -1,0 +1,65 @@
+# Optional plan help (smooth rollout, slice 9)
+
+## Acceptance checks recorded before implementation
+
+- [x] An updating legacy plan keeps its current owner/history until an explicit reviewed handover completes. Selecting or viewing Plan help neither migrates nor attaches.
+- [x] The complete supported setup can be performed without environment edits or restart, including snapshot/retention configuration. Invalid backup location/retention remains held with an understandable in-app correction.
+- [x] Prepare/resume/barrier/commit/abort and answer holds retain existing rules, byte-for-byte history and immutable audits. No second writer, budget reset, new supervisor identity or unverified claim of authenticated captain identity is introduced.
+- [x] A lost create/opening response resumes the same attachment; active verified opening is required before labeling the helper ready. Unsupported strong capabilities remain refused.
+
+## Boundaries
+
+Only slice 9: contextual plan-help review, in-app independent snapshot/retention configuration, and the existing checked S07 handover and dedicated captain Attach review. Viewing creates nothing. No automatic handover, attachment, new attachment transport, budget increase, stronger capability claim, project setup, routine-check setup or introduction. The captain accepted D1–D8 on 2026-10-29; rollout remains opt-in. RPC provenance remains unverified.
+
+## Verification
+
+| Acceptance | Evidence |
+| --- | --- |
+| Viewing leaves ownership/history intact | `client/plan-help.test.ts` checks read/review/cancel have no mutation. `server/supervision-activation.test.ts` verifies guided preview leaves the journal sequence unchanged, handover causes no receiver calls, and the original event bytes remain identical. |
+| Complete app path; hot backup setup; actionable invalid settings | `server/migration-settings.test.ts` checks inert reads, persistence/reload, home binding, exact-request replay, two-client CAS, bad paths/retention, a junction alias and corruption. The production-component browser walkthrough saves backup settings, supplies reviewed evidence and confirms prepare/check/barrier/commit, then opens the existing Attach review. Invalid settings retain the draft and offer a fresh correction review. No environment change or restart is used. |
+| Existing S07 safety | Existing migration, recovery, gate and answer-hold tests retain their checks. New guided tests hold changed backup/source and incomplete decision inventory before freeze. A simulated interruption between freeze and prepared receipt retains the exact preparation and a named app recovery entry; a new runtime resumes the same scope/migration, with no attachment or receiver effects. |
+| Exact attachment recovery and truthful readiness | Existing Attach component and production recovery tests retain original profile/opening/request identity after lost create/opening replies. New readiness tests require an active binding, successful opening and a readable snapshot. Only `SupervisionActivationBoard` still calls `AttachConfirmation`; the new review calls no Attach transport. Existing strong-capability tests remain the refusal gate. |
+
+The supported guided handover requires one unambiguous admitted project, its current checked permission sources and a fresh decision inventory. Missing qualification is explained and held; it is never manufactured by an evidence checkbox. Multi-project/host ambiguity stays with specialist review. Existing project setup is a separate slice. Plan help never creates a project or imports permission authority.
+
+Ordinary evidence review shows the real S07 delivery inventory and the project's already accepted source excerpts. A confined Home files chooser opens the captain's saved rollback report, explains the build/location/recovery evidence it must contain, and requires explicit review. Reading a report does not certify its claims. If no report exists, the app explains how to ask FirstMate for a saved rollback-readiness report and return to review it. Raw operator references remain under Advanced evidence references. Files are bounded to 32 KiB, permission excerpts to 8 KiB each and 16 sources; missing, changed or unqualified evidence holds the handover. Final preparation rechecks the selected hashes and source qualification, and the verified independent backup retains the selected report's exact bytes. This adds no permission import or automatic qualification.
+
+Backup settings use strict immutable home-bound revisions, exclusive publication, CAS and exact request/body replay. Legacy backup environment configuration is retained only for its original home until an explicit app save. Saved settings apply on the next capture/verification without restart. Every production handover requires a verified independent backup, including a partially enabled pilot. Changing a folder or retention during a saved handover holds continuation until its original verified evidence is restored; no snapshot is moved, deleted or silently accepted under a different policy. Retention remains operator-managed; there is no automatic deletion or restore.
+
+The existing S07 importer, single-writer gate, answer-hold authorization, audits, scope/session budget and strong qualification are unchanged. Frozen-plan navigation metadata is read-only and never enters Needs-you, Coming up, work cards or counts. App action provenance stays unverified. No live daemon/home was changed. Automated browser checks establish the app path, browser keyboard focus and layout, not a human usability observation or native screen-reader validation; those remain slice 10 release checks.
+
+Focused typecheck, regression, browser and full-suite results are recorded in the PR, including the worker count and unchanged deadlines. Hosted unchanged-test timeouts are recorded separately; they do not stand in for regression verification.
+
+## Independent review corrections
+
+| Finding | Correction and regression evidence |
+| --- | --- |
+| R1: wrong home identity in production | The new review uses activation's normalized absolute-home identity; existing workflow actions retain their hashed identity. Reads check the captured pair together, refusing temporarily mismatched home caches before exposing a backup save or handover. The modal closes on a home switch. `server/plan-help-wiring.test.ts` composes actual registered workflow/activation/review handlers with the real UI. The opt-in browser bridge also opens a real prepared handover from Plans in all four theme/width combinations. |
+| R2: lost pilot backup configuration | Production contribution binds its legacy backup configuration to the same supervision identity. The production-wiring regression starts with the environment configured before contribution and verifies original-home preservation and changed-home isolation. Existing immutable-setting tests cover saved precedence. |
+| R3: refusal before freeze trapped corrections | A fresh, explicit correction is allowed only while no freeze or migration receipt exists. Reviews append to the immutable original with a checked previous-review link, and each unstarted attempt gets a new backup identity. Earlier input bytes and complete/partial snapshots remain in place. Server and UI regressions reproduce a one-time preflight refusal, corrected backup save, successful preparation and refusal to replace frozen input; a concurrent freeze prevents clearing an uncertain UI request. Scope/supervisor identity and spending do not change. |
+| R4: required unexplained evidence strings | The ordinary UI reads actual inventory/sources and lets the captain browse, read and select a real saved rollback report. Component, production-server and actual-RPC browser regressions require no manual operator references. Changed report bytes refuse before freezing; an outside-home selection refuses; successful preparation copies the original report into the verified backup without attaching a helper. |
+
+The original review reproductions were made failing regression tests before their fixes. Acceptance was recorded in PR 175 before implementation and the correction checks were added before these edits.
+
+The N1 re-review correction covers a nonempty inventory: a real approved Scheduler plan with a durable Database trial start intent, without a native worker. Ordinary text names that work and explains waiting for FirstMate to confirm its finish. Each delivery kind and disposition has a plain explanation; exact source names, original identities and diagnostic reasons appear only in collapsed Technical details. Inventory problems still disable review and are explained plainly, with their exact diagnostics in that disclosure. The underlying hash, counts and S07 guard inputs are unchanged. The server regression compares the actual inventory hash and retained hold; the component regression proves opening details cannot clear a problem or write. Both failed against 4d449201 before the correction. The actual registered-RPC browser matrix now uses this nonempty plan, asserts ordinary text contains no internal terms/UUIDs, and expands/collapses details without an RPC. `client/needs-you-state.ts` is untouched.
+
+`node docs/smooth-pr9/evidence-sheets.mjs` composes four `*-nonempty-evidence-comparison.png` sheets. Their before images are the independent review's actual 4d449201 reproduction, preserved byte for byte; after images come from the current registered-handler browser fixture in `.local/smooth-pr9/production/`. Each sheet includes the ordinary review and expanded technical disclosure, in light/dark at 1440 × 1000 and 390 × 844. These checks run as part of the existing hosted production-RPC walkthrough. No human usability or native accessibility claim is made.
+
+Captain feedback on installed main `fbdf3ae0` adds one small visibility correction: Work details hides Plan help when enabled activation has no plans, history, problem, pause or available specialist control. Available migration controls and retained work/problems still render. The unit regression and `node docs/smooth-pr9/work-details-render.mjs` reproduce the exact bare heading, then check its absence and retained problems through the registered Home/drawer in both themes and widths. Sixteen screenshot cases make no mutation or model call; committed before/after sheets are named `*-work-details-comparison.png`.
+
+## Visual evidence and copy
+
+| Theme / width | Before → after | Review, blocked setup, handover, Attach and 200% text |
+| --- | --- | --- |
+| Light desktop | [Comparison](smooth-pr9/evidence/light-desktop-comparison.png) | [Reviews](smooth-pr9/evidence/light-desktop-reviews.png) |
+| Dark desktop | [Comparison](smooth-pr9/evidence/dark-desktop-comparison.png) | [Reviews](smooth-pr9/evidence/dark-desktop-reviews.png) |
+| Light phone | [Comparison](smooth-pr9/evidence/light-phone-comparison.png) | [Reviews](smooth-pr9/evidence/light-phone-reviews.png) |
+| Dark phone | [Comparison](smooth-pr9/evidence/dark-phone-comparison.png) | [Reviews](smooth-pr9/evidence/dark-phone-reviews.png) |
+
+Baseline `9c3485e8` is read through `git show`, without changing the checkout. Eight original Plans screenshots are beside the comparison sheets. `node docs/smooth-pr9/render.mjs` produces 48 component captures/assertion cases using a synthetic host, validates no writes on view/cancel, checks guided evidence selection and the entire reviewed handover, verifies no Attach calls, and checks 44px targets, phone wrapping, 200% text and focus return. `node docs/smooth-pr9/contact-sheets.mjs` produces the committed review sheets. Bundles, per-case text/RPC logs and captures stay under ignored `.local/smooth-pr9/ui/` and are uploaded by CI.
+
+`node docs/smooth-pr9/production-render.mjs`, followed by `PR175_CAPTURE=1 node node_modules/vitest/vitest.mjs run server/plan-help-wiring.test.ts --maxWorkers=1`, uses the actual registered server handlers and distinct production identities. It compares the broken `fe5c65b3` review with the corrected review/evidence chooser in both themes and widths, then prepares through the existing handler and reopens the saved handover. `production-sheets.mjs` produces four [actual-RPC comparison sheets](smooth-pr9/evidence/light-phone-rpc-comparison.png). Both harnesses run in the hosted visual matrix and use disposable homes only. Browser validation does not establish native screen-reader behavior or human usability.
+
+Ordinary copy uses Plan help, plan helper, backup and handover. Identity, scope/version, migration controls and audits remain behind Attachment details or Advanced work details. The creation review names the actual selected model and permission mode; its warning explains that Paseo cannot verify who pressed Attach. Only a verified successful opening is called ready. No capacity, plan-budget or cleanup promise is added.
+
+Single biggest slowdown in the corrections: composing real production RPCs instead of interchangeable fixture identities, including the home-switch and saved-handover paths.

@@ -23,6 +23,14 @@ explicit controls; it does not perform those operations itself.
 
 ## Attach is a convention
 
+Optional plan help is reviewed inside its plan. The app can save a home-bound independent
+backup folder and operator retention without environment edits or restart. Reads and previews
+create no journal or session. Explicit preparation retains the exact reviewed input before the
+existing S07 freeze; a freeze interrupted before its receipt keeps a named Plans recovery entry.
+Source/inventory/backup changes hold the handover. Only a committed handover exposes the existing
+dedicated Attach review; reviewing, preparing and committing never attach a helper. Advanced
+JSON/runbook controls remain in settings. See [slice 9 acceptance and evidence](docs/smooth-pr9.md).
+
 The captain chose **captain-only by convention**: a dedicated Attach button in the plugin's client
 UI, with a confirmation naming the plan, supervisor identity, model, permission mode and opening.
 General's charter forbids invoking attach by any route or briefing a crewmate to do so. No shipped

@@ -17,11 +17,25 @@ const Manifest = z.object({ format: z.literal("firstmate.migration-snapshot/1"),
 const sha = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
 const contains = (root: string, path: string) => { const rel = relative(root, path); return !rel || !rel.startsWith("..") && !isAbsolute(rel); };
 export class MigrationSnapshots {
-  constructor(private readonly approvedRoot: string, private readonly retention: string) {}
-  async capture(store: SupervisionStore, legacyRoot: string, home: string, migrationId: string, planId: string): Promise<Reference> {
+  constructor(private readonly approvedRoot: string, private readonly retention: string, private readonly expectedRoot?: string) {}
+  private async approved() {
+    const root = await realpath(this.approvedRoot);
+    if (this.expectedRoot !== undefined && root !== this.expectedRoot) refuse("HELD", "The backup folder now points somewhere else. Review and save its location again before continuing.");
+    return root;
+  }
+  static async validateDestination(destination: string, sources: string[]) {
+    const root = await realpath(destination);
+    for (const source of sources) {
+      let path = resolve(source);
+      try { path = await realpath(source); } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e; }
+      if (contains(path, root) || contains(root, path)) refuse("HELD", "Choose a separate backup folder outside FirstMate's home and saved work. A folder inside them cannot protect this handover.");
+    }
+    return root;
+  }
+  async capture(store: SupervisionStore, legacyRoot: string, home: string, migrationId: string, planId: string, rollback?: { path: string; hash: string }): Promise<Reference> {
     z.uuid().parse(migrationId);
     if (!isAbsolute(this.approvedRoot) || !this.retention.trim()) refuse("HELD", "Configure an approved independent snapshot destination and retention before migration.");
-    const root = await realpath(this.approvedRoot), destination = join(root, migrationId);
+    const root = await this.approved(), destination = join(root, migrationId);
     const sources = [await realpath(store.root), await realpath(legacyRoot), await realpath(home)];
     if (sources.some(source => contains(source, destination) || contains(destination, source))) refuse("HELD", "Migration snapshot must be independent of the journal, legacy plans and home.");
     return store.exportSnapshot(async status => {
@@ -51,12 +65,14 @@ export class MigrationSnapshots {
         if (!before.isFile() || files.length >= 50000 || total + before.size > 256 * 1024 * 1024) refuse("HELD", "Migration snapshot inventory exceeds its reviewed bounds.");
         const bytes = await readFile(source), after = await lstat(source);
         if (["size", "mtimeMs", "ctimeMs", "ino"].some(k => before[k as keyof typeof before] !== after[k as keyof typeof after])) refuse("STALE", "Snapshot source changed during capture.");
+        if (name === "handover/rollback-report.txt" && sha(bytes) !== rollback?.hash) refuse("STALE", "The selected rollback report changed. Review it again before handover.");
         const target = join(destination, ...name.split("/")); await mkdir(dirname(target), { recursive: true });
         await publishBytes(target, bytes);
         files.push({ name, bytes: bytes.length, digest: sha(bytes) }); total += bytes.length;
       };
       await copy(store.root, "journal"); await copy(legacyRoot, "legacy");
       for (const source of status.policySources) await copy((await resolveInHome(home, source.path)).absolute, `policy/${source.id}`);
+      if (rollback) await copy((await resolveInHome(home, rollback.path)).absolute, "handover/rollback-report.txt");
       const body = { format: "firstmate.migration-snapshot/1" as const, homeId: store.homeId, migrationId, planId, sequence: status.sequence,
         journalHash: status.hash, retention: this.retention, at: new Date().toISOString(),
         restore: "External effects since this sequence require explicit reconciliation; this snapshot grants no restore or budget-reset authority." as const, files };
@@ -73,11 +89,11 @@ export class MigrationSnapshots {
   }
   async find(expected: { homeId: string; migrationId: string; planId: string }) {
     z.uuid().parse(expected.migrationId);
-    const reference = await this.reference(join(await realpath(this.approvedRoot), expected.migrationId));
+    const reference = await this.reference(join(await this.approved(), expected.migrationId));
     await this.verify(reference, expected); return reference;
   }
   async verify(reference: Reference, expected: { homeId: string; migrationId: string; planId: string }) {
-    const root = await realpath(this.approvedRoot), path = await realpath(reference.path);
+    const root = await this.approved(), path = await realpath(reference.path);
     if (path !== join(root, expected.migrationId) || await realpath(dirname(path)) !== root) refuse("HELD", "Snapshot is outside the approved independent destination.");
     const original = await this.reference(path);
     if (digest(original) !== digest(reference) || original.retention !== this.retention) refuse("HELD", "Snapshot identity or approved retention changed.");
