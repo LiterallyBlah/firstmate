@@ -161,6 +161,11 @@ it("a different runtime cannot dispatch a disabled discussion capability's reser
   await f.policy.set(change(f.home, 2, { planSupervisors: true }));
   await expect(f.liveGateway.dispatch(effect.id)).rejects.toMatchObject({ code: "UNSUPPORTED" });
   expect(f.receiver.calls).toEqual([]);
+  const handlers = new Map<string, () => Promise<unknown>>();
+  registerScopeRpcs({ handle: (rpc: any, handler: any) => handlers.set(rpc.name, handler) } as any, {
+    read: async () => ({ home: f.home, generalId: f.state.globalMate, status: await f.store.read() }), readNeeds: vi.fn(), policy: h => f.policy.read(h),
+  });
+  expect(readScopes.output.parse(await handlers.get(readScopes.name)!()).activation?.pause).toBe("Paused for new work; checking 3 saved operations");
   // The origin stamp is part of the store's immutable effect identity, not editable dispatch input.
   await expect(f.store.transact([{ kind: "effect", id: effect.id, version: effect.version }], randomUUID(), [
     { kind: "effect", value: { ...effect, featurePolicy: { capability: "planSupervisors", revision: 3 }, version: effect.version + 1 } },

@@ -1,4 +1,4 @@
-import type { FeaturePolicySnapshot } from "../shared/feature-settings";
+import { featurePause, type FeaturePolicySnapshot } from "../shared/feature-settings";
 /** Read-only routes plus separately gated explicit execution through Build C's owned runtime.
  * Reading constructs no receiver, writable store, session, timer or coordinator. */
 import type { PluginServerContext } from "@getpaseo/plugin/server";
@@ -36,7 +36,8 @@ export function registerScopeRpcs(server: Pick<PluginServerContext, "handle">, d
     const policy = await deps.policy?.(home);
     return { ...scopeSnapshot(status, generalId, { uiEnabled: policy?.effective.scopeUi ?? deps.uiEnabled ?? false, executionEnabled: policy?.effective.scopeExecution ?? deps.executionEnabled ?? false, admittedProjectsOnly: deps.admittedProjectsOnly }),
       ...((policy?.effective.scopeUi ?? deps.uiEnabled) ? { bearings: scopedBearings(status) } : {}),
-      activation: activationSnapshot(status, policy?.effective.scopedActivation ?? !!deps.activationEnabled) };
+      activation: { ...activationSnapshot(status, policy?.effective.scopedActivation ?? !!deps.activationEnabled),
+        pause: policy ? featurePause(status, policy.effective, "plan") : null } };
   });
   server.handle(readScopeConversation, async input => {
     const { home, status } = await deps.read();
