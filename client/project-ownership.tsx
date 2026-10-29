@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { ProjectRuntimeSnapshotSchema, provisionProjectFromUi, recoverProjectRuntimeFromUi, abortProjectProvisionFromUi, readProjectMemory, readProjectRuntime, type ProjectRuntimeSnapshot } from "../shared/project-runtime";
-import { workflowRequestId } from "./workflow-plans";
+import { workflowRequestId, useWorkflowPlans } from "./workflow-plans";
 import { errorText } from "./format";
 type Project = ProjectRuntimeSnapshot["projects"][number];
 function Action({ theme, label, onPress, disabled = false }: { theme: PluginTheme; label: string; onPress(): void; disabled?: boolean }) {
@@ -19,6 +19,7 @@ export function ProjectOwnershipBoard({ theme, compact, navigation, hostId = "lo
   theme: PluginTheme; compact: boolean; navigation?: PluginScreenProps["navigation"]; hostId?: string;
 }) {
   const read = useRpc(readProjectRuntime), provision = useRpc(provisionProjectFromUi);
+  const plans = useWorkflowPlans();
   const recover = useRpc(recoverProjectRuntimeFromUi), stop = useRpc(abortProjectProvisionFromUi);
   const query = useQuery({ queryKey: ["firstmate", "project-ownership", hostId], queryFn: async () => ProjectRuntimeSnapshotSchema.parse(await read({})), refetchInterval: 5000 });
   const [selected, select] = useState<Project | null>(null), [busy, setBusy] = useState(false), [error, setError] = useState<string | null>(null);
@@ -62,6 +63,7 @@ export function ProjectOwnershipBoard({ theme, compact, navigation, hostId = "lo
     <ProjectOwnershipView theme={theme} compact={compact} data={data} readError={query.isError} onRefresh={() => { void query.refetch(); }}
       {...(!selected ? { onRecover: () => { void repair(); }, recoveryBusy: busy } : {})}
       onProvision={p => { pending.current = null; setError(null); select(p); }}
+      onDiscuss={p => { if (p.scopeId) plans.discussScope?.(p.scopeId, data.homeId); }} canDiscuss={p => !!p.scopeId && !!plans.canDiscussScope?.(p.scopeId, data.homeId)}
       onOpen={navigation ? p => { if (p.agentId) navigation.openAgent({ agentId: p.agentId, ...(hostId === "local" ? {} : { serverId: hostId }) }); } : undefined} />
     {!selected && error ? <Text accessibilityRole="alert" style={{ color: theme.colors.statusDanger }}>{error}</Text> : null}
     {selected ? <Modal title={`${selected.provisionRequestId ? "Resume" : "Create"} project mate for ${selected.name}?`} open onOpenChange={open => { if (!open && !busy) select(null); }}>
@@ -83,9 +85,10 @@ export function ProjectOwnershipBoard({ theme, compact, navigation, hostId = "lo
     </Modal> : null}
   </>;
 }
-export function ProjectOwnershipView({ theme, compact, data, readError = false, onRefresh, onProvision, onOpen, onRecover, recoveryBusy = false }: {
+export function ProjectOwnershipView({ theme, compact, data, readError = false, onRefresh, onProvision, onOpen, onRecover, recoveryBusy = false, onDiscuss, canDiscuss }: {
   theme: PluginTheme; compact: boolean; data: ProjectRuntimeSnapshot; readError?: boolean; onRefresh(): void; onProvision(p: Project): void; onOpen?: ((p: Project) => void) | undefined;
   onRecover?: () => void; recoveryBusy?: boolean;
+  onDiscuss?: (p: Project) => void; canDiscuss?: (p: Project) => boolean;
 }) {
   const [expanded, expand] = useState(false), [memoryProject, setMemory] = useState<Project | null>(null), colors = theme.colors;
   const stale = readError || data.freshness !== "current";
@@ -116,6 +119,7 @@ export function ProjectOwnershipView({ theme, compact, data, readError = false, 
           {!p.plans.length ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>No associated plans in the stored inventory.</Text> : null}
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             {p.agentId && p.workspaceId && onOpen ? <Action theme={theme} label={`Open ${p.name} conversation`} onPress={() => onOpen(p)} /> : null}
+            {canDiscuss?.(p) && onDiscuss ? <Action theme={theme} label={`Discuss ${p.name} scope`} onPress={() => onDiscuss(p)} /> : null}
             {p.version > 0 ? <Action theme={theme} label={`Read ${p.name} memory${p.memoryPending ? ` (${p.memoryPending} proposals)` : ""}`} onPress={() => setMemory(p)} /> : null}
             {data.enabled && p.profile && p.state === "admitted" && (!p.provisionRequestId && !p.agentId || p.reason?.startsWith("Provisioning incomplete")) ?
               <Action theme={theme} label={`${p.provisionRequestId ? "Resume" : "Create"} ${p.name} mate`} disabled={stale || !!p.reason && !p.reason.startsWith("Provisioning incomplete")} onPress={() => onProvision(p)} /> : null}

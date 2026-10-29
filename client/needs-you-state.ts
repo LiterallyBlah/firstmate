@@ -111,6 +111,7 @@ export function decisionProblems(
     ...new Set([
       ...(snapshot?.planProblems ?? []),
       ...(snapshot?.scopedProblems ?? []),
+      ...(snapshot?.quarantined?.map(row => row.problem) ?? []),
       ...(offline
         ? ["Could not refresh decision data. Check the host connection."]
         : []),
@@ -198,6 +199,7 @@ export function mergeDecisionSnapshot(
   const contribution = (s: NeedsYouSnapshot) => (s.scopedDecisions?.filter(r => r.ready).length ?? 0) + new Set(s.scopedHolds?.map(h => h.planId)).size;
   const complete = scoped.scopedComplete === true && next.scopedComplete !== false;
   return { ...base, scopedDecisions: scoped.scopedDecisions, scopedSequence: scoped.scopedSequence, scopedHolds: scoped.scopedHolds,
+    scopeDirectory: scoped.scopeDirectory, scopeFiltersEnabled: next.scopeFiltersEnabled === true,
     scopedComplete: complete, scopedAnswersEnabled: scoped.scopedAnswersEnabled === true && next.scopedAnswersEnabled !== false,
     scopedProblems: complete ? scoped.scopedProblems : [...new Set([...(scoped.scopedProblems ?? []), ...(next.scopedProblems ?? []), "Scoped decisions could not be confirmed; counts are a lower bound."])],
     scopedPendingAnswerCount: scoped.scopedPendingAnswerCount,

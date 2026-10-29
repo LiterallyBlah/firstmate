@@ -13,6 +13,8 @@ import { NEEDS_YOU_QUERY_KEY } from "./needs-you-query";
 import { mergeDecisionSnapshot } from "./needs-you-state";
 import { workflowRequestId, useWorkflowPlans } from "./workflow-plans";
 import { errorText } from "./format";
+import { ScopedCaptainDecisionDetails } from "./scoped-captain-decision";
+import type { ScopedCaptainDecision } from "../shared/scoped-captain-decision";
 
 type Row = NonNullable<NeedsYouSnapshot["scopedDecisions"]>[number];
 export function scopedDecisionRequest(row: Row): NeedsYouRequest {
@@ -38,6 +40,10 @@ function ScopedDecisionRow({ row, snapshot, theme, compact, offline }: { row: Ro
   const answer = useRpc(answerScopeDecision), read = useRpc(readScopeNeeds), cache = useQueryClient(), plans = useWorkflowPlans();
   const [open, setOpen] = useState(false), [busy, setBusy] = useState(false), gate = useRef(false);
   const d = row.decision, key = JSON.stringify(["firstmate.scope-answer/1", snapshot.homeId, d.id, d.revision, d.subjectHash]);
+  const presentation: ScopedCaptainDecision = row.captain ?? { format: "firstmate.scoped-captain-decision/1", homeId: snapshot.homeId!,
+    scope: { kind: "plan", id: d.ownerScopeId }, origin: { kind: "plan", id: d.planId }, decisionId: d.id, revision: d.revision, subjectHash: d.subjectHash,
+    title: d.title, question: d.question, options: d.options.map((o, i) => ({ ...o, number: i + 1 })), recommendation: null,
+    evidence: d.sourceVector.map(v => ({ ref: `${v.kind}/${v.id}@${v.version}`, digest: v.digest ?? null })), projectIds: [], permittedActions: ["answer"] };
   const text = useSyncExternalStore(drafts.subscribe, () => drafts.get(key));
   const option = useSyncExternalStore(drafts.subscribe, () => drafts.get(`${key}:option`));
   const pending = useSyncExternalStore(drafts.subscribe, () => drafts.get(`${key}:pending`));
@@ -79,16 +85,19 @@ function ScopedDecisionRow({ row, snapshot, theme, compact, offline }: { row: Ro
       onConverse={() => {}} onChanged={() => { void refresh().catch(e => drafts.set(errorKey, errorText(e))); }} onAnswer={() => setOpen(v => !v)} />
     <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>Scope {d.ownerScopeId} · Plan {d.planId} · {row.ownerEpoch === null ? "owner unavailable or transferring" : `owner epoch ${row.ownerEpoch}`}</Text>
     {plans.canDiscussPlan?.(d.planId) ? button("Discuss with this plan's owner", () => plans.discussPlan?.(d.planId)) : null}
+    {plans.canDiscussScope?.(d.ownerScopeId, snapshot.homeId!) ? button("Open decision scope", () => plans.discussScope?.(d.ownerScopeId, snapshot.homeId!)) : null}
     {open ? <View style={{ gap: 8 }}>
-      <Text style={{ color: theme.colors.foreground }}>{d.question}</Text>
-      {d.options.map(o => button(`${option === o.id ? "Selected: " : ""}${o.label}`, () => drafts.set(`${key}:option`, o.id), disabled))}
+      {snapshot.scopeFiltersEnabled ? <ScopedCaptainDecisionDetails decision={presentation} theme={theme} selected={option} onSelect={id => drafts.set(`${key}:option`, id)} disabled={disabled || !presentation.permittedActions.includes("answer")} /> : <>
+        <Text style={{ color: theme.colors.foreground }}>{d.question}</Text>
+        {d.options.map(o => <View key={o.id}>{button(`${option === o.id ? "Selected: " : ""}${o.label}`, () => drafts.set(`${key}:option`, o.id), disabled)}</View>)}
+        <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>Evidence: {d.sourceVector.map(v => `${v.kind}/${v.id}@${v.version}`).join(", ")}</Text>
+      </>}
       <TextInput accessibilityLabel={`Answer notes: ${d.title}`} multiline value={text} editable={!disabled} onChangeText={value => drafts.set(key, value)}
         style={{ color: theme.colors.foreground, backgroundColor: theme.colors.surface0, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 7, minHeight: 44, padding: 10 }} />
       {!snapshot.scopedAnswersEnabled ? <Text style={{ color: theme.colors.foregroundMuted }}>Scoped answers are disabled pending activation.</Text> : null}
       {error ? <Text accessibilityRole="alert" style={{ color: theme.colors.statusDanger }}>{error}</Text> : null}
       {button(answered ? "Answer committed" : pending ? "Answer unconfirmed · original submission retained" : rejected ? "Refresh before reconsidering answer" : "Submit scoped answer", () => { void submit(); }, disabled || !!rejected || !option)}
       {button("Refresh scoped decisions", () => { void refresh().catch(e => drafts.set(errorKey, errorText(e))); }, busy)}
-      <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>Evidence: {d.sourceVector.map(v => `${v.kind}/${v.id}@${v.version}`).join(", ")}</Text>
     </View> : null}
   </View>;
 }

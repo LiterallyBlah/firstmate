@@ -16,7 +16,7 @@ const state = vi.hoisted(() => ({ data: null as ProjectRuntimeSnapshot | null, r
 vi.mock("@getpaseo/plugin/client", () => ({ useRpc: (rpc: { name: string }) => rpc.name.endsWith("provision-ui") ? state.provision : rpc.name.endsWith("recover-ui") ? state.recover : rpc.name.endsWith("abort-ui") ? state.abort : state.read }));
 vi.mock("react-native", () => ({ Pressable: "Pressable", ScrollView: "ScrollView", Text: "Text", View: "View" }));
 vi.mock("@getpaseo/plugin/client/react-native", () => ({ Modal: Object.assign(({ open, children }: { open: boolean; children: ReactNode }) => open ? children : null, { Content: "Content" }) }));
-vi.mock("./workflow-plans", () => ({ workflowRequestId: () => "00000000-0000-4000-8000-000000000099" }));
+vi.mock("./workflow-plans", () => ({ useWorkflowPlans: () => ({}), workflowRequestId: () => "00000000-0000-4000-8000-000000000099" }));
 import { ProjectOwnershipBoard } from "./project-ownership";
 let renderer: ReactTestRenderer | undefined, cache: QueryClient;
 beforeEach(() => {

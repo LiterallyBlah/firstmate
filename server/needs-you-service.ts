@@ -26,6 +26,7 @@ import type { SupervisionStatus } from "../shared/supervision";
 import { decisionOwner } from "../shared/workflow-plans";
 import { planDecisionReady } from "../shared/plan-readiness";
 import { scopeAnswerContext } from "./scope-answer-context";
+import { ScopedCaptainDecisionSchema } from "../shared/scoped-captain-decision";
 
 /** Read-only opt-in composition seam for S05/S06. No polling/wake/send or legacy mutation. */
 export function withScopedNeedsYou(snapshot: NeedsYouSnapshot, status: SupervisionStatus): NeedsYouSnapshot {
@@ -41,8 +42,14 @@ export function withScopedNeedsYou(snapshot: NeedsYouSnapshot, status: Supervisi
     const ready = status.freshness === "current" && backend?.backend === "scoped" && backend.state === "active" && owner?.kind === "plan" && owner.mode === "scoped" && ["active", "held", "transferring"].includes(owner.state) &&
       !held && !!plan && !!node && decision.state === "pending" && planDecisionReady(plan, node, plans);
     const answerContext = scopeAnswerContext(status, decision);
+    const captain = ScopedCaptainDecisionSchema.parse({ format: "firstmate.scoped-captain-decision/1", homeId: status.homeId,
+      scope: { kind: "plan", id: decision.ownerScopeId }, decisionId: decision.id, revision: decision.revision, subjectHash: decision.subjectHash,
+      origin: { kind: "plan", id: decision.planId }, title: decision.title, question: decision.question,
+      options: decision.options.map((o, i) => ({ ...o, number: i + 1 })), recommendation: node?.kind === "decision" ? node.recommendation ?? null : null,
+      evidence: decision.sourceVector.map(v => ({ ref: `${v.kind}/${v.id}@${v.version}`, digest: v.digest ?? null })),
+      projectIds: owner?.projectIds ?? [], permittedActions: ready && answerContext ? ["answer"] : [] });
     return [{ decision, ready, waitingFor: decision.state === "answered" ? null : ready ? null : "Waiting for current plan evidence or ownership reconciliation.",
-      ownerEpoch: binding?.state === "active" ? binding.epoch : null, ...(answerContext ? { answerContext } : {}) }];
+      ownerEpoch: binding?.state === "active" ? binding.epoch : null, captain, ...(answerContext ? { answerContext } : {}) }];
   });
   const holds = status.operationHolds.filter(h => h.state === "held");
   const holdPlans = new Set(holds.map(h => h.planId));

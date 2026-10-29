@@ -35,6 +35,8 @@ import { supervisionInboxStatus, hasScopedWorker } from "./server/supervision-st
 import { isScopedSourceWorker, refuseScopedRemoteMutation } from "./server/supervision-sources";
 import { readSupervisionInbox } from "./shared/supervision-rpc";
 import { registerScopeRpcs } from "./server/scope-rpc";
+import { ScopeRuntime } from "./server/scope-runtime";
+import { withScopeInboxContext } from "./server/scope-inbox";
 import { withScopedNeedsYou } from "./server/needs-you-service";
 import { listDeckSettings, readDeckEngine, readDeckSetting } from "./server/deck-settings";
 import { listDeckSettings as listDeckSettingsRpc, loadDeckEngine, loadDeckSetting } from "./shared/deck-rpc";
@@ -110,7 +112,7 @@ import {
 } from "./shared/remote-crew";
 
 export default function contribute(server: PluginServerContext) {
-  // Read-only S02 surface. No initialize/coordinator, ingress attachment, offer runner or activation flag.
+  // One shared owner. Reads never initialize/acquire; only explicit gated operations mutate.
   const supervisionRuntime = new SupervisionRuntime(pluginDir());
   // Display routes may serve an earlier committed head after 750 ms of overlapping writes;
   // crew-seen decides whether to clear attention, so it always waits for the newest head.
@@ -153,24 +155,29 @@ export default function contribute(server: PluginServerContext) {
   const projects = new ProjectRuntime(supervisionRuntime, { enabled: process.env.FIRSTMATE_PROJECT_MATES === "1",
     ...(process.env.FIRSTMATE_PROJECT_MATES === "1" ? { slots: Number(process.env.FIRSTMATE_PROJECT_SLOTS ?? 4), generalHeadroom: Number(process.env.FIRSTMATE_GENERAL_HEADROOM ?? 1) } : {}) });
   registerProjectRuntime(server, projects);
+  const scopeUiEnabled = process.env.FIRSTMATE_SCOPE_UI === "1", scopeExecutionEnabled = process.env.FIRSTMATE_SCOPE_EXECUTION === "1";
   const stopWorkflows = startWorkflowService(() => projects.processRequests());
   const readCombinedNeeds = async (given?: Awaited<ReturnType<typeof decisions.read>>) => {
     const snapshot = given ?? await decisions.read();
     const config = await readFirstmateConfig(), home = resolveHome(config);
-    const base = await withWorkflowNeeds(snapshot, home);
+    const workflow = await workflowSnapshot(home), base = await withWorkflowNeeds(snapshot, home, workflow);
     try {
       const status = await readSupervision(home);
-      return status.scopes.length || status.problems.length ? withScopedNeedsYou(base, status) : base;
+      const combined = status.scopes.length || status.problems.length ? withScopedNeedsYou(base, status) : base;
+      return { ...(scopeUiEnabled ? withScopeInboxContext(combined, status, workflow.plans, (await remotes.read()).localServerId ?? "local") : combined), scopedAnswersEnabled: scopeExecutionEnabled };
     } catch {
       return { ...base, scopedComplete: false, scopedProblems: ["Scoped decisions unavailable. Existing decisions remain available; the total is incomplete."] };
     }
   };
   registerNeedsYouRpc(server, decisions, readCombinedNeeds);
-  // UI and execution stay separately disabled. Activation requires separately reviewed wiring.
+  // Startup controls are independent. Enabling UI or restoring a view creates no resources.
+  const scopeRuntime = new ScopeRuntime(supervisionRuntime, { enabled: scopeExecutionEnabled, uiEnabled: scopeUiEnabled,
+    slots: projects.slots, generalHeadroom: projects.headroom });
   registerScopeRpcs(server, { read: async () => {
     const config = await readFirstmateConfig(), home = resolveHome(config);
     return { home, generalId: config.mateAgentId || null, status: await readSupervision(home) };
-  }, readNeeds: () => readCombinedNeeds(), uiEnabled: false, executionEnabled: false,
+  }, readNeeds: () => readCombinedNeeds(), uiEnabled: scopeUiEnabled, executionEnabled: scopeExecutionEnabled,
+    admittedProjectsOnly: true, execute: scopeRuntime.execute.bind(scopeRuntime),
     activationEnabled: process.env.FIRSTMATE_SCOPED_ACTIVATION === "1" });
   server.handle(readWorkflowPlans, async () => workflowSnapshot(resolveHome(await readFirstmateConfig())));
   server.handle(actOnWorkflowPlan, async ({ homeId, requestId, command }, { paseo }) => {

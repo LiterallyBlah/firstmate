@@ -3,7 +3,7 @@ import type { SupervisionStatus } from "../shared/supervision";
 import { ScopeSnapshotSchema, type ScopeSnapshot } from "../shared/supervision-rpc";
 import { goalStatus } from "./supervision-continuation";
 
-export function scopeSnapshot(status: SupervisionStatus, generalId: string | null, options: { uiEnabled?: boolean; executionEnabled?: boolean } = {}, now = Date.now()): ScopeSnapshot {
+export function scopeSnapshot(status: SupervisionStatus, generalId: string | null, options: { uiEnabled?: boolean; executionEnabled?: boolean; admittedProjectsOnly?: boolean | undefined } = {}, now = Date.now()): ScopeSnapshot {
   const goals = goalStatus(status, now).goals;
   const coverage = (ids: string[]) => {
     const sources = status.inbox.sources.filter(s => s.agentId && ids.includes(s.agentId));
@@ -18,9 +18,10 @@ export function scopeSnapshot(status: SupervisionStatus, generalId: string | nul
     names.set(project.id, new Set([project.name]));
   }
   // Ambiguous human names are retained as separate candidates; no arbitrary winner.
-  const projects = [...names].flatMap(([id, labels]) => [...(labels.size ? labels : [id])].map(name => ({ id, name })));
+  const projects = (options.admittedProjectsOnly ? [] : [...names].flatMap(([id, labels]) => [...(labels.size ? labels : [id])].map(name => ({ id, name }))));
+  if (options.admittedProjectsOnly) for (const p of status.projects?.projects.filter(p => p.state === "admitted") ?? []) projects.push({ id: p.id, name: p.name });
   for (const project of status.projects?.projects ?? []) for (const name of project.aliases)
-    if (!projects.some(p => p.id === project.id && p.name === name)) projects.push({ id: project.id, name });
+    if ((!options.admittedProjectsOnly || project.state === "admitted") && !projects.some(p => p.id === project.id && p.name === name)) projects.push({ id: project.id, name });
   const scoped = status.scopes.filter(s => s.kind !== "general").map(scope => {
     const binding = status.bindings.find(b => b.scopeId === scope.id), ownGoals = goals.filter(g => g.scopeId === scope.id || scope.kind === "project" && g.projectIds.some(p => scope.projectIds.includes(p)));
     const plan = status.plans.find(p => p.scopeId === scope.id)?.plan;
@@ -44,7 +45,7 @@ export function scopeSnapshot(status: SupervisionStatus, generalId: string | nul
   });
   return ScopeSnapshotSchema.parse({ homeId: status.homeId, sequence: status.sequence, freshness: status.freshness,
     uiEnabled: options.uiEnabled ?? false, executionEnabled: options.executionEnabled ?? false, projects, problems: status.problems, asOf: new Date(now).toISOString(),
-    scopes: [{ id: "general", title: "FirstMate", aliases: ["firstmate", "general"], kind: "general", planId: null, discussionOnly: false,
+    scopes: [{ id: "general", title: "FirstMate", aliases: ["mate", "firstmate", "general"], kind: "general", planId: null, discussionOnly: false,
       target: { homeId: status.homeId, scopeId: "general", scopeVersion: 0, epoch: 0, agentId: generalId }, workspaceId: null,
       hostId: "local", state: generalId ? "active" : "dormant", session: generalId ? "unknown" : "not-created", observedAt: null, goals, lastEffectFailure: null, coverage: coverage(status.attempts.flatMap(a => a.worker ? [a.worker.agentId] : [])),
       activeWorkers: goals.reduce((n, g) => n + g.activeWorkers, 0), activeEffects: status.effects.filter(e => ["reserved", "dispatching", "uncertain", "accepted"].includes(e.state)).length,

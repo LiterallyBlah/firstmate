@@ -1,4 +1,4 @@
-/** S05 discussion composition. Fixture-only enablement; no live adapter or coordinator is installed.
+/** S05 discussion composition. Build C injects the default-off production adapter/runtime.
  * Reuses the existing thread transport and S04 reservations, verification, budget and dispatch.
  */
 import type { z } from "zod";
@@ -21,6 +21,10 @@ import { SupervisionError } from "./supervision-store";
 const ACTOR: SupervisionActor = { kind: "captain-ui", id: "scope-discussion", source: "firstmate.scope.discuss" };
 export interface ScopeDiscussionOptions {
   enabled?: boolean; uiEnabled?: boolean;
+  admittedProjectsOnly?: boolean;
+  actor?: SupervisionActor;
+  reserve?: <T>(run: () => Promise<T>) => Promise<T>;
+  projectContext?: (projectIds: string[]) => Promise<unknown>;
   generalId(): Promise<string | null>;
   /** Server-owned profile/budget qualification; never accepted from a composer tag. */
   profile(scopeId: string): Promise<AgentProfile>;
@@ -32,7 +36,8 @@ export class ScopeDiscussions {
       refuse("CONFLICT", "Discussion, session and gateway authority stores/receivers must match.");
   }
   async read(): Promise<ScopeSnapshot> {
-    return scopeSnapshot(await this.store.read(), await this.options.generalId(), { uiEnabled: this.options.uiEnabled ?? false, executionEnabled: this.options.enabled ?? false });
+    return scopeSnapshot(await this.store.read(), await this.options.generalId(), { uiEnabled: this.options.uiEnabled ?? false, executionEnabled: this.options.enabled ?? false,
+      admittedProjectsOnly: this.options.admittedProjectsOnly });
   }
   async conversation(homeId: string, scopeId: string, conversationId: string): Promise<ItemThread> {
     if (homeId !== this.store.homeId) refuse("STALE", "The configured home changed. Preserve this draft and refresh.");
@@ -66,7 +71,7 @@ export class ScopeDiscussions {
       // Neither other scopes' histories nor reply bodies are forwarded.
       const prompt = await message(TEMPLATES.scopeDiscuss, { home: this.home, reply, text: input.text,
         contextJson: JSON.stringify({ recipient: route.recipient, scopeId: route.target.scopeId, conversationId: route.conversationId,
-          replyTo: route.replyTo, projectContext: snapshot.projects.filter(p => route.projectIds.includes(p.id)) }) });
+          replyTo: route.replyTo, projectContext: this.options.projectContext ? await this.options.projectContext(route.projectIds) : snapshot.projects.filter(p => route.projectIds.includes(p.id)) }) });
       return sendRecordedDiscussion(this.home, key, route.recipient, { id: input.id, text: input.text, route, requestHash: digest(input) }, async beforeSend => {
         if (route.target.scopeId === "general") {
           if (!route.target.agentId) refuse("UNKNOWN_OWNER", "FirstMate has no current session. Open its launch controls.");
@@ -78,8 +83,9 @@ export class ScopeDiscussions {
         }
         const { gateway } = this.sessions;
         if (route.target.epoch === 0) {
-          await this.sessions.prepare({ requestId: input.id, scopeId: route.target.scopeId, scopeVersion: route.target.scopeVersion,
-            profile: await this.options.profile(route.target.scopeId), opening: prompt, purpose: "discussion" }, ACTOR);
+          const reserve = async () => this.sessions.prepare({ requestId: input.id, scopeId: route.target.scopeId, scopeVersion: route.target.scopeVersion,
+            profile: await this.options.profile(route.target.scopeId), opening: prompt, purpose: "discussion" }, this.options.actor ?? ACTOR);
+          await (this.options.reserve ? this.options.reserve(reserve) : reserve());
           const status = await this.store.read(), binding = status.bindings.find(b => b.scopeId === route.target.scopeId)!;
           await beforeSend(binding.agentId); // record before workspace/create/send
           const effects = activationEffects(status, binding.scopeId, binding.epoch);
@@ -90,12 +96,13 @@ export class ScopeDiscussions {
           await this.sessions.verify(binding.scopeId, binding.epoch);
           if ((await gateway.dispatch(effects.send!.id)).state !== "succeeded") throw new Error("Opening send is uncertain; never resend it automatically.");
         } else {
-          const effectId = await this.sessions.reserveTurnWith({ requestId: input.id, scopeId: route.target.scopeId, epoch: route.target.epoch,
-            causation: `discussion:${route.conversationId}:${input.id}`, text: prompt }, ACTOR, current => {
+          const reserve = () => this.sessions.reserveTurnWith({ requestId: input.id, scopeId: route.target.scopeId, epoch: route.target.epoch,
+            causation: `discussion:${route.conversationId}:${input.id}`, text: prompt }, this.options.actor ?? ACTOR, current => {
             const scope = current.scopes.find(s => s.id === route.target.scopeId), binding = current.bindings.find(b => b.scopeId === scope?.id);
             if (scope?.version !== route.target.scopeVersion || binding?.agentId !== route.target.agentId) refuse("STALE", "Binding changed at reservation; preserve the captured target.");
             return [];
           });
+          const effectId = await (this.options.reserve ? this.options.reserve(reserve) : reserve());
           await beforeSend(route.target.agentId!);
           if ((await gateway.dispatch(effectId)).state !== "succeeded") throw new Error("Send outcome is uncertain or held; reconcile this original message.");
         }

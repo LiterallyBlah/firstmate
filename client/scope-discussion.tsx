@@ -96,6 +96,7 @@ export function ScopeDiscussion({ snapshot, offline = false, hostId, theme, comp
         {offline ? "Offline · retained status" : `${snapshot.freshness} · sequence ${snapshot.sequence}`} · as of {snapshot.asOf} · Reading starts no model turn
       </Text>
       {snapshot.problems.map((p, i) => <Text key={i} style={{ color: colors.statusDanger }}>{p}</Text>)}
+      {showStatus && snapshot.bearings ? <Text selectable style={{ color: colors.foregroundMuted, fontSize: 13 }}>{snapshot.bearings}</Text> : null}
       {unconfirmed.map(state => <View key={state.pending!.id} style={{ gap: 4 }}>
         <Text numberOfLines={3} style={{ color: state.error ? colors.statusWarning : colors.foregroundMuted, fontSize: 12 }}>{state.running ? "Sending" : "Unconfirmed message"} to {state.pending!.route.recipient}: {state.pending!.addressedText}</Text>
         {state.error ? <Text style={{ color: colors.statusDanger, fontSize: 12 }}>{state.error}</Text> : null}
