@@ -78,11 +78,15 @@ await new Promise(done => server.listen(0, "127.0.0.1", done));
 const browser = await chromium.launch({ ...(process.platform === "win32" ? { channel: "msedge" } : {}), headless: true });
 const base = `http://127.0.0.1:${server.address().port}`, results = [], errors = [];
 async function actual(page, id) {
-  await page.waitForFunction(id => {
+  try { await page.waitForFunction(id => {
     const canvases = document.querySelectorAll("canvas[data-firstmate-deck]");
     return canvases.length === 1 && canvases[0].getAttribute("data-firstmate-deck-setting") === id
       && canvases[0].hasAttribute("data-firstmate-deck-motion");
-  }, id);
+  }, id); } catch (error) {
+    console.error(JSON.stringify({ errors, ...await page.evaluate(() => ({ text: document.body.innerText,
+      canvases: [...document.querySelectorAll("canvas")].map(canvas => ({ setting: canvas.getAttribute("data-firstmate-deck-setting"), motion: canvas.getAttribute("data-firstmate-deck-motion"), width: canvas.clientWidth, height: canvas.clientHeight })) })) }, null, 2));
+    throw error;
+  }
 }
 async function open(surface, light, pollSeconds = 120) {
   await restore({ deckSetting: "ship", pollSeconds, homePane: "deck" }); log.length = 0;

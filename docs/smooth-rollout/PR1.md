@@ -58,7 +58,10 @@ No test timeout or assertion was weakened. The existing Deck browser assertions
 now require the exact recorded timestamp: Attention Deck passes 9 render cases;
 Needs-you passes 40 header cases, 14 layouts, 6 task views and 4 raised-decision
 cases. Their previous expectation of an undated stale legend contradicted this
-slice's freshness contract.
+slice's freshness contract. The shared browser fixture now returns config schema
+defaults and the SDK's agent refresh shape, so pending recovery is exercised with
+a valid host response. Scene switching passes all eight theme/surface cases and
+both Deck → Board → Deck cancellation cases.
 
 The return cache has the existing draft lifetime: the running app, including bundle
 reevaluation and view remounts. It is keyed by host/home/agent and bounded to 16
