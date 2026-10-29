@@ -8,7 +8,7 @@ import { refuse } from "./supervision-effects";
 import { sendWithoutInterrupting } from "./send";
 
 export class SupervisionUiReceiver implements GatewayReceiver {
-  constructor(private readonly paseo: PaseoApi, private readonly root: string, private readonly options: { projectMates?: boolean } = {}) {}
+  constructor(private readonly paseo: PaseoApi, private readonly root: string, private readonly options: { projectMates?: boolean; maintenanceMates?: boolean } = {}) {}
   async capabilities() { return { version: 1 as const, receiver: "paseo-sdk/cooperative-attach", qualification: "cooperative-paseo" as const,
     selectedAgentIds: true, createReceiptLookup: true, workspaceIntentLookup: false, persistedInventory: false,
     sendReceiptLookup: false as const, conditionalArchive: false as const }; }
@@ -22,7 +22,8 @@ export class SupervisionUiReceiver implements GatewayReceiver {
   }
   async findWorkspace(_intent: WorkspaceIntent) { return null; } // No negative lookup or automatic replay.
   async createAgent(intent: AgentCreateIntent) {
-    if (!(intent.labels["firstmate.role"] === "plan-supervisor" || this.options.projectMates && intent.labels["firstmate.role"] === "project-mate") || intent.labels["paseo.parent-agent-id"])
+    if (!(intent.labels["firstmate.role"] === "plan-supervisor" || this.options.projectMates && intent.labels["firstmate.role"] === "project-mate" ||
+      this.options.maintenanceMates && intent.labels["firstmate.role"] === "maintenance-mate") || intent.labels["paseo.parent-agent-id"])
       refuse("UNSUPPORTED", "This adapter creates only explicitly enabled independent scope owners.");
     const agent = await this.paseo.workspaces.ref(intent.workspaceId).agents.create({ agentId: intent.agentId,
       idempotencyKey: intent.agentId, config: { provider: intent.profile.provider,

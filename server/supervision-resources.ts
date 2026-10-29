@@ -96,7 +96,8 @@ export const ReleaseSchema = z.object({ reservationId: SupervisionUuid, expected
   kind: z.enum(["succeeded", "failed", "not-admitted", "withdrawn"]), evidence: Evidence }).strict();
 
 export class SupervisionResources {
-  constructor(readonly store: SupervisionStore, private readonly options: { enabled?: boolean; now?: () => string } = {}) {}
+  constructor(readonly store: SupervisionStore, private readonly options: { enabled?: boolean; now?: () => string;
+    requestHash?: string; commandCheck?: (status: SupervisionStatus) => Promise<void> } = {}) {}
   private now() { return this.options.now?.() ?? new Date().toISOString().replace(/\.\d{3}Z$/, "Z"); }
   private enabled() { if (!this.options.enabled) refuse("UNSUPPORTED", "S10 resource arbitration is disabled."); }
   private command(requestId: string, input: unknown, actorInput: SupervisionActor, step: Step,
@@ -104,9 +105,11 @@ export class SupervisionResources {
     this.enabled();
     const actor = structuredClone(SupervisionActorSchema.parse(actorInput));
     return this.store.transactCommand(requestId, digest(input), actor, async status => {
+      await this.options.commandCheck?.(status);
       if (stepRoom(status, step) === "skip") refuse("HELD", "Past the admission ceiling this change is not recorded.");
       const mutations = prepare(status, actor);
-      return { expectedVersions: expected(status, mutations), mutations, result: emptyResult() };
+      return { expectedVersions: expected(status, mutations), mutations, result: { ...emptyResult(),
+        ...(this.options.requestHash ? { maintenanceRequest: { inputHash: this.options.requestHash } } : {}) } };
     });
   }
   private authorize(status: SupervisionStatus, actor: SupervisionActor, scopeId: string) {

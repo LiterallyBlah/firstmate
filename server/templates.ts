@@ -77,6 +77,8 @@ export const TEMPLATES = {
   launchHelper: "tools/launch.mjs",
   workflowHelper: "tools/workflow.mjs",
   projectHelper: "tools/projects.mjs",
+  maintenanceHelper: "tools/maintenance.mjs",
+  maintenanceGuide: "data/maintenance.md",
   projectGuide: "data/project-mates.md",
   /** S04 scope helper: registered, deliberately not seeded into homes until activation. */
   scopeHelper: "tools/scope.mjs",

@@ -37,3 +37,15 @@ it("project creation is refused by the Attach receiver unless explicitly enabled
   expect(create).toHaveBeenCalledWith({ agentId: id, idempotencyKey: id, config: { provider: "codex/test", modeId: "full-access", thinkingOptionId: "xhigh" }, title: "Project mate", labels: { "firstmate.role": "project-mate" } });
   expect(create.mock.calls[0]![0]).not.toHaveProperty("prompt"); expect(create.mock.calls[0]![0]).not.toHaveProperty("parent");
 });
+
+it("maintenance creation requires its own explicit receiver switch and never accepts a native parent", async () => {
+  const id = randomUUID(), create = vi.fn(async (_input: unknown) => ({ id })), api = { workspaces: { ref: () => ({ agents: { create } }) } } as unknown as PaseoApi;
+  const intent = { agentId: id, workspaceId: "independent-maintenance", cwd: "C:/maintenance", profile: { provider: "codex/test", modeId: "full-access", thinkingOptionId: "xhigh" },
+    title: "Maintenance mate", labels: { "firstmate.role": "maintenance-mate" } };
+  await expect(new SupervisionUiReceiver(api, process.env.PASEO_HOME!).createAgent(intent)).rejects.toMatchObject({ code: "UNSUPPORTED" });
+  await expect(new SupervisionUiReceiver(api, process.env.PASEO_HOME!, { projectMates: true }).createAgent(intent)).rejects.toMatchObject({ code: "UNSUPPORTED" });
+  const receiver = new SupervisionUiReceiver(api, process.env.PASEO_HOME!, { maintenanceMates: true });
+  await expect(receiver.createAgent({ ...intent, labels: { ...intent.labels, "paseo.parent-agent-id": "general" } })).rejects.toMatchObject({ code: "UNSUPPORTED" });
+  expect(create).not.toHaveBeenCalled(); await receiver.createAgent(intent);
+  expect(create).toHaveBeenCalledTimes(1); expect(create.mock.calls[0]![0]).not.toHaveProperty("prompt"); expect(create.mock.calls[0]![0]).not.toHaveProperty("parent");
+});

@@ -36,6 +36,16 @@ The single drawer filters its shared snapshot by scope/ancestry, keeps global to
 quarantines visible, and uses the checked logical-owner answer outbox with unverified app provenance.
 Projects/Plans/Needs-you reuse scope chat and native links; compact Bearings reads storage only.
 See `docs/scoped-supervision/build-c.md` and the both-theme/width harness under `build-c-ui/`.
+Build D adds `server/maintenance-runtime.ts` behind `FIRSTMATE_MAINTENANCE=1`, sharing that
+runtime and the existing workflow clock. Its strict RPC/helper transport records S10 observe jobs,
+verified host results, evidence-bound timer retirement, resources and exact-owner incident acknowledgements.
+Maintenance sessions use the existing reserved/verified lifecycle and a separately enabled receiver role;
+this service exposes no provisioning or Attach. Healthy and unchanged incidents wake nobody, changed
+incidents reserve one bounded owner turn, and uncertain sends never retry or refund spend. General reads
+the pure summary directly. The fresh timer census retains disabled watches and all approved host coverage,
+reconciles managed Take-the-Initiative, and records retirement only for an exact known-owner timer freshly
+observed disabled with evidence. It changes no timer itself. Automatic cleanup stays visibly held by G8;
+no executor or corrective-plan dispatch ships here. See `docs/scoped-supervision/build-d.md`.
 
 Plans (workflows slice 1) are additive. `shared/workflow-plans.ts` owns strict one-step `task@1` and
 `scout@1` contracts, dependency reasons, bounds and posture. `server/workflow-plans.ts` owns the

@@ -69,6 +69,8 @@ export const ProjectProvisionInputSchema = z.object({ homeId: z.string(), reques
 export const ScopedCommandResultSchema = z.object({
   planId: PlanId.nullable(), planHash: SupervisionHash.nullable(), decisionId: SupervisionUuid.nullable(), outboxId: SupervisionUuid.nullable(),
   projectProvision: ProjectProvisionInputSchema.optional(),
+  /** Build D transport identity only; preserves exact accepted replay before mutable timer/owner checks. */
+  maintenanceRequest: z.object({ inputHash: SupervisionHash }).strict().optional(),
   /** UI convention only. Kept in the immutable accepted command, never authentication evidence. */
   attachmentAudit: z.object({ at: SupervisionUtc, plan: PlanId, supervisor: SupervisionUuid,
     source: z.literal("client UI (unverified)"), authorization: z.literal("by convention, not verified"),

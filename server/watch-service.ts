@@ -15,6 +15,7 @@
  */
 import { createHash, randomUUID } from "node:crypto";
 import { join } from "node:path";
+import { open } from "node:fs/promises";
 
 import type { PluginLifecycleRegistration } from "@getpaseo/plugin/server";
 
@@ -51,7 +52,16 @@ export async function readTimerInventory(home: string, config: FirstmateConfig, 
   native: NativeTimerInventory = { complete: false, reason: "Native schedule inventory was not read." },
   jobs: readonly MaintenanceJob[] = []): Promise<TimerInventory> {
   const [scripts, saved, configFingerprint] = await Promise.all([listWatches(home), store.read(), store.fingerprint()]);
-  return timerInventory({ scripts: scripts.map((s) => ({ name: s.name, scheduleText: s.scheduleText, invalid: s.invalid })),
+  const described = await Promise.all(scripts.map(async s => {
+    const file = await open(s.path, "r");
+    try {
+      if ((await file.stat()).size > 512 * 1024) throw new Error(`Timer census script ${s.name} exceeds 512 KiB; retirement remains held.`);
+      const buffer = Buffer.alloc(512 * 1024 + 1), { bytesRead } = await file.read(buffer, 0, buffer.length, 0);
+      if (bytesRead > 512 * 1024) throw new Error(`Timer census script ${s.name} grew beyond 512 KiB; retirement remains held.`);
+      return { name: s.name, scheduleText: s.scheduleText, invalid: s.invalid, fingerprint: createHash("sha256").update(buffer.subarray(0, bytesRead)).digest("hex") };
+    } finally { await file.close(); }
+  }));
+  return timerInventory({ scripts: described,
     disabledWatches: config.disabledWatches, managed: saved.watches, native, mateAgentId: config.mateAgentId.trim(), jobs, configFingerprint });
 }
 

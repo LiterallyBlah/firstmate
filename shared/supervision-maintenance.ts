@@ -2,6 +2,7 @@
  * Reservations are advisory (cooperative); a receiver that enforces fences is S11's, never assumed here.
  */
 import { z } from "zod";
+import { capacityHeld } from "./supervision-capacity";
 import { SupervisionActorSchema, SupervisionHash, SupervisionUtc, SupervisionUuid, type SupervisionStatus } from "./supervision";
 
 const version = z.number().int().positive();
@@ -154,7 +155,7 @@ export function maintenanceSummary(status: SupervisionStatus, starvationAfter = 
   const open = rows.incidents.filter(i => i.state === "open");
   // Past the admission ceiling, waiting states and new outages are no longer written (the relabel tier), so stored
   // coverage can look fresher than it is. Say so, and read every count as a lower bound (as S08 does at 128).
-  const exhausted = status.sequence >= MAINTENANCE_ADMISSION_CEILING;
+  const exhausted = capacityHeld(status, "maintenance", MAINTENANCE_ADMISSION_CEILING);
   return {
     format: "firstmate.maintenance/1", homeId: status.homeId, sequence: status.sequence, freshness: status.freshness,
     lowerBound: status.freshness !== "current" || exhausted, enforcement: "advisory",
