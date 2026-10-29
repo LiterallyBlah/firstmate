@@ -55,6 +55,11 @@ provisioning receipts remain separate. Unknown operations retain their identity
 and spend; Check saved setup is read-only. Explicit continuation uses the saved
 request and cannot replay an uncertain opening.
 
+The app review and older Advanced creation path also compare request ownership
+under the same journal append boundary. A concurrently accepted older request
+cannot be adopted as the new review's child. The loser retains the original
+operation rather than creating or pinning another setup identity.
+
 Adding a folder invokes a native folder picker on the host (Windows/macOS/Linux
 with Zenity), validates its canonical local identity and updates the registry
 through its existing content-CAS writer. Canceling changes nothing. There is no
@@ -83,7 +88,9 @@ receives a named Help-settings step; enablement is never inferred from opening i
 ## Validation
 
 - Typecheck and `git diff --check` pass.
-- Focused acceptance: 48 tests across project setup, settings and template inventory.
+- Focused project setup/runtime checks: **67 passed**, including a regression that
+  first reproduced the concurrent older-request adoption and passes with the
+  atomic guard. Component recovery, settings and template checks also pass.
 - The existing slice 5 Settings harness passes all 72 captures/assertion cases,
   retaining its persistence assertions after returning from the new chooser.
 - `node docs/smooth-pr6/render.mjs`: 44 captures/assertion cases across light/dark,
@@ -91,10 +98,9 @@ receives a named Help-settings step; enablement is never inferred from opening i
   instruction save, lost reply, uncertain opening and 200% text. No page exceptions
   or document overflow; controls meet 44×44 and keyboard focus returns.
 - The Impeccable mechanical scan reported no findings in the changed UI targets.
-- Final committed-tree local suite: **247 files passed; 3,446 tests passed and four
-  skipped**, using CI's two-worker/20s Windows settings. The known launch-tool
-  flake did not occur in this run. The missing-folder fixture uses an absolute
-  path under its temporary home on both Windows and Linux.
+- Full local suites use CI's two-worker/20s Windows settings. The missing-folder
+  fixture uses an absolute path under its temporary home on both Windows and
+  Linux. Final full-suite results are recorded on the PR alongside hosted checks.
 - Current hosted results are attached to [PR #174's checks](https://github.com/LiterallyBlah/firstmate/pull/174/checks).
 
 The browser host and receiver are synthetic. No real project/session/timer was

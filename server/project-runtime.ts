@@ -312,7 +312,7 @@ export class ProjectRuntime {
     await this.mutate(input.homeId, async (home, store, config) => {
       await validate(await store.read());
       await store.transactCommand(stableId("project-setup-input", input.requestId), digest(input), actor,
-        async () => ({ mutations: [], expectedVersions: [], result: { ...result, projectSetup: input } }));
+        async status => { await validate(status); return { mutations: [], expectedVersions: [], result: { ...result, projectSetup: input } }; });
       const project = (await store.read()).projects?.projects.find(p => p.id === input.review.projectId);
       if (!project?.owner) await this.admit(home, store, stableId("project-setup-admit", input.requestId), actor, {
         op: "admit", registryDigest: input.review.registryDigest, name: input.review.name, aliases: input.review.aliases,
@@ -364,6 +364,8 @@ export class ProjectRuntime {
       if (!accepted && project.version !== input.projectVersion) refuse("STALE", "Project allocation or ownership changed; refresh before provisioning.");
       await store.transactCommand(stableId("project-provision-input", input.requestId), digest(input), UI,
         async current => {
+          if (!setup && current.commands.some(c => c.result.projectSetup?.review.projectId === project.id))
+            refuse("STALE", "A newer app review owns this project's setup. Use Check saved setup to continue its exact request.");
           const owner = current.projects?.projects.find(p => p.id === project.id);
           if (owner?.version !== input.projectVersion || owner.state !== "admitted") refuse("STALE", "Project admission changed before recording provisioning.");
           return { mutations: [], expectedVersions: [], result: { ...result, projectProvision: input } };

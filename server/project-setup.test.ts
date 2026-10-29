@@ -135,6 +135,21 @@ it("a source change after workspace creation is caught before agent creation or 
   const project = (await service.status(input.homeId)).snapshot.projects[0]!;
   expect(project.sessions).toBe(1); expect(project.turns).toBe(1);
 });
+it("a concurrent older creation cannot be adopted as this app review's setup request", async () => {
+  const draft = await review(), actor = { kind: "mate-chat" as const, id: "general", source: "project administration (same-user role convention, unverified)" };
+  await projects.admin({ homeId: draft.homeId, requestId: randomUUID(), actorId: "general", command: { op: "admit", name: draft.review.name, aliases: [], registryDigest: draft.review.registryDigest,
+    source: { ...draft.review.source, provenance: actor }, profile, budget: draft.review.budget, limits: draft.review.limits } });
+  const preview = await service.preview(await choices(), api), input = ProjectSetupInputSchema.parse({ homeId: draft.homeId, requestId: randomUUID(), review: preview.review, reviewDigest: preview.reviewDigest });
+  const original = projects.admitSetup.bind(projects), oldRequestId = randomUUID();
+  vi.spyOn(projects, "admitSetup").mockImplementationOnce(async (...args) => {
+    await projects.provision({ homeId: input.homeId, requestId: oldRequestId, projectId: input.review.projectId, projectVersion: input.review.projectVersion }, api);
+    return original(...args);
+  });
+  await expect(service.commit(input, api)).rejects.toMatchObject({ code: "STALE" });
+  expect((await service.status(input.homeId)).requests).toEqual([]);
+  expect(receiver.agents.size).toBe(1); expect(receiver.sends).toHaveLength(1);
+  expect((await projects.read()).projects[0]?.provisionInput?.requestId).toBe(oldRequestId);
+});
 it("fresh capacity guard keeps General headroom and exposes a capacity repair before effects", async () => {
   const input = await review(); projects = new ProjectRuntime(runtime, { enabled: true, slots: 2, generalHeadroom: 1, receiver: () => receiver });
   service = new ProjectSetupService(projects, { models: async () => models });

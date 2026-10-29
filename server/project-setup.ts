@@ -131,6 +131,9 @@ export class ProjectSetupService {
       if (other) refuse("CONFLICT", "This project already has a saved setup. Check that original request before making any change.");
       const validate = async (observed?: SupervisionStatus) => {
         const c = await this.context(input.homeId, observed), row = c.catalog.rows.find(p => p.projectId === r.projectId);
+        if (c.status.commands.some(command => command.result.projectProvision?.projectId === r.projectId &&
+          command.result.projectProvision.requestId !== stableId("project-setup-provision", input.requestId)))
+          refuse("STALE", "Another setup request already owns this project. Check its original saved setup or open its conversation; this review creates nothing.");
         if (c.catalog.digest !== r.registryDigest || !row || row.reason || row.name !== r.name || c.config.mateAgentId !== r.generalAgentId)
           refuse("STALE", "The project list, folder, name or FirstMate changed. Review the current project before any new setup effect.");
         for (const ref of r.sourceVector) {
@@ -160,7 +163,9 @@ export class ProjectSetupService {
       }
       await this.projects.admitSetup(input, PROJECT_SETUP_UI, validate);
       const p = (await this.projects.read()).projects.find(p => p.projectId === r.projectId)!;
-      const provision = p.provisionInput ?? { homeId: input.homeId, projectId: r.projectId, projectVersion: p.version, requestId: stableId("project-setup-provision", input.requestId) };
+      const requestId = stableId("project-setup-provision", input.requestId);
+      if (p.provisionInput && p.provisionInput.requestId !== requestId) refuse("STALE", "Another setup request owns this project. Keep and inspect its original saved operation.");
+      const provision = p.provisionInput ?? { homeId: input.homeId, projectId: r.projectId, projectVersion: p.version, requestId };
       return this.projects.provision(provision, paseo, { opening: r.opening, validate });
     });
   }
