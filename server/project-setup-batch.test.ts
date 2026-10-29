@@ -79,13 +79,71 @@ it("a lost batch response, app reload and daemon restart retain every exact requ
   const saved = await batches.status(homeId); expect(saved[0]?.commit).toEqual(input); expect(receiver.calls).toHaveLength(calls);
   await batches.commit(input, api); expect(receiver.calls).toHaveLength(calls); expect(receiver.sends).toHaveLength(2);
 });
-it.each(["createAgent", "send"] as const)("unknown %s remains held during read and duplicate/continue; successful sibling stays ready", async op => {
+it.each(["send"] as const)("unknown %s remains held during read and duplicate/continue; successful sibling stays ready", async op => {
   const input = await review(); receiver.faults[op] = ["lose"];
   const result = await batches.commit(input, api); expect(result.children[0]?.state).toBe("checking"); expect(result.children[0]?.canContinue).toBe(false); expect(result.children[1]?.state).toBe("ready");
   const calls = receiver.calls.length; await batches.status(homeId); await batches.continue(homeId, input.manifest.batchId, api); await batches.commit(input, api);
   expect(receiver.calls).toHaveLength(calls); expect(receiver.calls.filter(c => c.op === op)).toHaveLength(2);
   await runtime.stop(); runtime = projectRuntimeFixture(data); make(); expect((await batches.status(homeId))[0]?.commit).toEqual(input);
   expect((await batches.status(homeId))[0]?.children[0]).toMatchObject({ state: "checking", sessions: 1, turns: 1, canContinue: false });
+});
+it("P2-1: unrelated fleet occupancy may change when the entire reviewed batch still fits", async () => {
+  const input = await review(), extra = await setup.preview(choices("gamma"), api);
+  await setup.commit({ homeId, requestId: randomUUID(), review: extra.review!, reviewDigest: extra.reviewDigest! }, api);
+  const current = await batches.preview(homeId, input.manifest.batchId, [choices("alpha"), choices("beta")], api);
+  expect(current.capacity).toMatchObject({ occupied: 1, available: 2 }); expect(current.reasons).toEqual([]);
+  const result = await batches.commit(input, api);
+  expect(result.commit).toEqual(input); expect(result.children.map(c => c.state)).toEqual(["ready", "ready"]);
+  expect(receiver.agents.size).toBe(3); expect(receiver.sends).toHaveLength(3);
+});
+it("P2-1: occupancy churn at the final capacity boundary is a threshold, not an exact observation", async () => {
+  const input = await review(), original = batches.preview.bind(batches);
+  vi.spyOn(batches, "preview").mockImplementationOnce(async (...args) => {
+    const result = await original(...args), extra = await setup.preview(choices("gamma"), api);
+    await setup.commit({ homeId, requestId: randomUUID(), review: extra.review!, reviewDigest: extra.reviewDigest! }, api);
+    return result;
+  });
+  expect((await batches.commit(input, api)).children.map(c => c.state)).toEqual(["ready", "ready"]);
+  expect(receiver.agents.size).toBe(3); expect(receiver.sends).toHaveLength(3);
+});
+it("P2-1: occupancy that leaves too little room still refuses before selected child effects", async () => {
+  const input = await review();
+  for (const name of ["gamma", "delta"]) {
+    const extra = await setup.preview(choices(name), api);
+    await setup.commit({ homeId, requestId: randomUUID(), review: extra.review!, reviewDigest: extra.reviewDigest! }, api);
+  }
+  const calls = receiver.calls.length;
+  await expect(batches.commit(input, api)).rejects.toMatchObject({ code: "STALE" });
+  expect(receiver.calls).toHaveLength(calls); expect(await batches.status(homeId)).toEqual([]);
+});
+it("P2-2: lost create resumes the exact recoverable child after restart without a duplicate create", async () => {
+  const input = await review(); receiver.faults.createAgent = ["lose"];
+  const first = await batches.commit(input, api), child = input.manifest.children[0]!;
+  expect((await setup.status(homeId)).recoverableCreates).toContain(child.requestId);
+  expect(first.children[0]).toMatchObject({ state: "checking", canContinue: true, sessions: 1, turns: 1 });
+  const calls = receiver.calls.length; await batches.status(homeId); expect(receiver.calls).toHaveLength(calls);
+  await runtime.stop(); runtime = projectRuntimeFixture(data); make();
+  const saved = (await batches.status(homeId))[0]!; expect(saved.commit).toEqual(input); expect(saved.children[0]?.canContinue).toBe(true);
+  const result = await batches.continue(homeId, input.manifest.batchId, api);
+  expect(result.children.map(c => c.state)).toEqual(["ready", "ready"]); expect(result.children[0]?.agentId).toBe(first.children[0]?.agentId);
+  expect(receiver.calls.filter(c => c.op === "createAgent")).toHaveLength(2); expect(receiver.agents.size).toBe(2); expect(receiver.sends).toHaveLength(2);
+  expect(result.children[0]).toMatchObject({ sessions: 1, turns: 1 });
+  expect((await setup.status(homeId)).requests).toEqual(expect.arrayContaining(input.manifest.children));
+  const settledCalls = receiver.calls.length; await batches.commit(input, api); expect(receiver.calls).toHaveLength(settledCalls);
+});
+it("P2-2: a missing create lookup never recreates or sends; later exact evidence may finish the same mate", async () => {
+  const input = await review(); receiver.faults.createAgent = ["hide"];
+  const first = await batches.commit(input, api), identity = first.children[0]!.agentId!;
+  expect(first.children[0]).toMatchObject({ state: "checking", canContinue: true });
+  const calls = receiver.calls.length;
+  await batches.continue(homeId, input.manifest.batchId, api);
+  expect(receiver.calls).toHaveLength(calls); expect(receiver.sends).toHaveLength(1);
+  expect((await batches.status(homeId))[0]!.children[0]).toMatchObject({ agentId: identity, sessions: 1, turns: 1 });
+  receiver.reveal(identity);
+  const result = await batches.continue(homeId, input.manifest.batchId, api);
+  expect(result.children.map(c => c.state)).toEqual(["ready", "ready"]);
+  expect(receiver.calls.filter(c => c.op === "createAgent")).toHaveLength(2); expect(receiver.sends).toHaveLength(2);
+  expect(result.children[0]).toMatchObject({ agentId: identity, sessions: 1, turns: 1 });
 });
 it("changed source holds only the remaining affected child and records its readable diagnostic", async () => {
   const input = await review(), original = setup.commit.bind(setup);

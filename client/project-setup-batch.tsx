@@ -8,17 +8,21 @@ import type { ProjectSetupCatalog, ProjectSetupChoices } from "../shared/project
 import { cancelProjectBatch, commitProjectBatch, continueProjectBatch, previewProjectBatch, readProjectBatches,
   ProjectBatchPreviewSchema, ProjectBatchStatusSchema, type ProjectBatchCommit, type ProjectBatchPreview } from "../shared/project-setup-batch";
 import { permissionPower, SetupAction, type ProjectSetupProps } from "./project-setup";
-import { workflowRequestId } from "./workflow-plans";
 import { errorText } from "./format";
 import { HelpSettings } from "./help-settings";
 
-export function ProjectBatchPanel({ theme, home, hostId, online = true, navigation, onClose, onBack, onRefresh, data, choices }: {
+/** Retained by the setup destination while moving between the chooser and review. */
+export type ProjectBatchDraft = { batchId: string; review: ProjectBatchPreview | null; exact: ProjectBatchCommit | null };
+
+export function ProjectBatchPanel({ theme, home, hostId, online = true, navigation, onClose, onBack, onRefresh, data, choices, draft }: {
   theme: PluginTheme; home: string; hostId: string; online?: boolean; navigation?: ProjectSetupProps["navigation"]; onClose(): void;
-  onBack(): void; onRefresh(): Promise<void>; data?: ProjectSetupCatalog | undefined; choices?: ProjectSetupChoices[];
+  onBack(): void; onRefresh(): Promise<void>; data?: ProjectSetupCatalog | undefined; choices?: ProjectSetupChoices[]; draft: { current: ProjectBatchDraft };
 }) {
   const preview = useRpc(previewProjectBatch), commit = useRpc(commitProjectBatch), status = useRpc(readProjectBatches), resume = useRpc(continueProjectBatch), cancel = useRpc(cancelProjectBatch);
-  const [review, setReview] = useState<ProjectBatchPreview | null>(null), [busy, setBusy] = useState(false), [failure, fail] = useState<string | null>(null), [details, showDetails] = useState(false);
-  const batchId = useRef(workflowRequestId()), exact = useRef<ProjectBatchCommit | null>(null), gate = useRef(false), mounted = useRef(true);
+  const attempt = draft.current;
+  const [review, setReviewState] = useState<ProjectBatchPreview | null>(attempt.exact ? attempt.review : null), [busy, setBusy] = useState(false), [failure, fail] = useState<string | null>(null), [details, showDetails] = useState(false);
+  const gate = useRef(false), mounted = useRef(true);
+  function setReview(next: ProjectBatchPreview | null) { attempt.review = next; setReviewState(next); }
   const started = useRef(false), [capacityOpen, openCapacity] = useState(false);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const saved = useQuery({ queryKey: ["firstmate", "project-batches", hostId, home], queryFn: async () => ProjectBatchStatusSchema.array().parse(await status({ homeId: home })), retry: false, refetchInterval: busy ? 1000 : false });
@@ -28,36 +32,46 @@ export function ProjectBatchPanel({ theme, home, hostId, online = true, navigati
     try { await work(); } catch (e) { if (mounted.current) fail(`Check saved setup before continuing. ${errorText(e)}`); }
     finally { await saved.refetch(); await onRefresh(); gate.current = false; if (mounted.current) setBusy(false); }
   }
-  const current = saved.data?.find(s => s.commit.manifest.batchId === batchId.current), disabled = busy || !online || saved.isError;
+  async function recheck() {
+    if (!choices) return;
+    const before = await saved.refetch({ cancelRefetch: false });
+    if (before.isError || !before.data) throw Error("Saved setup couldn't be checked. Keep the original confirmation and try checking again.");
+    if (before.data.some(s => s.commit.manifest.batchId === attempt.batchId)) return;
+    const next = ProjectBatchPreviewSchema.parse(await preview({ homeId: home, batchId: attempt.batchId, choices }));
+    const after = await saved.refetch({ cancelRefetch: false });
+    if (after.isError || !after.data) throw Error("Saved setup couldn't be checked. Keep the original confirmation and try checking again.");
+    if (after.data.some(s => s.commit.manifest.batchId === attempt.batchId)) return;
+    // Rechecking changes no identity. A late original confirmation still owns this same batch
+    // ID and must either match or conflict at publication; it cannot create a second batch.
+    attempt.exact = null; if (mounted.current) setReview(next);
+  }
+  const current = saved.data?.find(s => s.commit.manifest.batchId === attempt.batchId), disabled = busy || !online || saved.isError;
+  const reviewedNames = attempt.exact?.manifest.children.map(c => c.review.name) ?? choices?.map(c => c.name) ?? [];
   useEffect(() => {
-    if (choices && !started.current) { started.current = true; void act(async () => {
-      const next = ProjectBatchPreviewSchema.parse(await preview({ homeId: home, batchId: batchId.current, choices })); if (mounted.current) setReview(next);
-    }); }
+    if (choices && !started.current) { started.current = true; void act(attempt.exact ? async () => {} : recheck); }
   }, [choices]);
   if (capacityOpen) return <HelpSettings theme={theme} home={home} hostId={hostId} online={online} capacityReview={{ onClose: () => { openCapacity(false); setReview(null); } }} />;
   return <View style={{ gap: 16 }}>
     {choices && !current ? <>
       <Text style={{ ...text, fontWeight: "600", fontSize: 18 }}>Review selected project mates</Text>
-      <Text style={text}>{choices.length} selected: {choices.map(c => c.name).join(", ")}. Each keeps its own model, permissions, allocation and total turn limit.</Text>
+      <Text style={text}>{reviewedNames.length} selected: {reviewedNames.join(", ")}. Each keeps its own model, permissions, allocation and total turn limit.</Text>
       {!review ? <Text style={note}>Check the whole selection before creating anything. FirstMate's reserved capacity and every project's existing spending limits stay in place.</Text> : null}
-      {review?.capacity ? <Text style={text}>{choices.length} selected; room for {review.capacity.available}. FirstMate retains {review.capacity.generalHeadroom} of {review.capacity.slots} plugin slots. Provider quota is unknown.</Text> : null}
-      {review?.reasons.map((r, i) => <Text key={i} style={text}>{r}</Text>)}
+      {review?.capacity ? <Text style={text}>{reviewedNames.length} selected; room for {review.capacity.available}. FirstMate retains {review.capacity.generalHeadroom} of {review.capacity.slots} plugin slots. Provider quota is unknown.</Text> : null}
+      {review?.reasons.map((r, i) => <Text key={i} style={text}>{review.capacity && r.startsWith(`${reviewedNames.length} selected; room for `) ? "Choose fewer projects or review capacity before creating mates." : r}</Text>)}
       {review && data ? <BatchReview theme={theme} data={data} review={review} /> : null}
-      {review?.commit ? <Text style={text}>What starts now: {choices.length} separate project conversations and {choices.length} opening messages. Each project keeps its own result if another needs a change. Plan execution and release actions keep their separate approvals. Your FirstMate chat stays where it is.</Text> : null}
+      {review?.commit ? <Text style={text}>What starts now: {reviewedNames.length} separate project conversations and {reviewedNames.length} opening messages. Each project keeps its own result if another needs a change. Plan execution and release actions keep their separate approvals. Your FirstMate chat stays where it is.</Text> : null}
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-        {!exact.current ? <SetupAction theme={theme} label="Check selected projects" disabled={disabled} onPress={() => { void act(async () => {
-          const next = ProjectBatchPreviewSchema.parse(await preview({ homeId: home, batchId: batchId.current, choices })); if (mounted.current) setReview(next);
-        }); }} /> : null}
-        {review?.commit ? <SetupAction theme={theme} primary label={`Create ${choices.length} project ${choices.length === 1 ? "mate" : "mates"}`} disabled={disabled || !!exact.current} onPress={() => { void act(async () => {
-          const input = exact.current ?? review.commit!; exact.current = input;
+        {!review || review.reasons.length || failure || attempt.exact ? <SetupAction theme={theme} label="Re-check selected projects" disabled={disabled} onPress={() => { void act(recheck); }} /> : null}
+        {review?.commit ? <SetupAction theme={theme} primary label={`Create ${reviewedNames.length} project ${reviewedNames.length === 1 ? "mate" : "mates"}`} disabled={disabled || !!attempt.exact} onPress={() => { void act(async () => {
+          const input = attempt.exact ?? review.commit!; attempt.exact = input;
           await commit(input);
         }); }} /> : null}
-        <SetupAction theme={theme} label="Choose fewer projects or review settings" disabled={busy || !!exact.current} onPress={onBack} />
         {review?.capacity && choices.length > review.capacity.available ? <SetupAction theme={theme} label="Review capacity" disabled={busy} onPress={() => openCapacity(true)} /> : null}
       </View>
-      {exact.current ? <Text style={text}>The exact batch request is kept. Check saved setup after a lost reply; no replacement batch or uncertain message is sent.</Text> : null}
-      {exact.current && !current ? <SetupAction theme={theme} label="Retry exact batch confirmation" disabled={disabled} onPress={() => { void act(async () => { await commit(exact.current!); }); }} /> : null}
+      {attempt.exact ? <Text style={text}>The original confirmation is kept. Check saved setup after a lost reply. Re-checking keeps this batch's identity and never changes an already saved request.</Text> : null}
+      {attempt.exact && !current ? <SetupAction theme={theme} label="Check original confirmation" disabled={disabled} onPress={() => { void act(async () => { await commit(attempt.exact!); }); }} /> : null}
     </> : null}
+    {choices ? <SetupAction theme={theme} label="Back to projects" disabled={busy} onPress={onBack} /> : null}
     {failure ? <Text accessibilityRole="alert" style={text}>{failure}</Text> : null}
     {saved.isError ? <Text style={text}>Saved batches couldn't be checked. Reconnect and check saved setup before starting another batch.</Text> : null}
     {saved.data?.map(s => <View key={s.commit.manifest.batchId} style={{ gap: 14 }}>

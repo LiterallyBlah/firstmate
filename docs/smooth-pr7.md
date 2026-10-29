@@ -42,8 +42,10 @@ available in Details.
 
 The app's batch preview/commit/status/continue/cancel RPCs retain a home-bound,
 immutable manifest in plugin data. A content digest binds the batch ID,
-registry/policy fingerprints, aggregate capacity observation and all exact child
-requests. Publication is exclusive and precedes every child's admission/native
+registry/policy fingerprints, the original capacity observation and all exact child
+requests. Confirmation keeps configured slots/headroom exact and rechecks that the
+entire batch still fits fresh capacity; unrelated live occupancy changes alone do
+not invalidate the review. Publication is exclusive and precedes every child's admission/native
 effects. A second batch cannot replace waiting child identities. Intent and
 failure diagnostics are not claimed as native outcomes: each result is rebuilt
 from the existing individual setup receipts, project binding and effect state.
@@ -59,13 +61,15 @@ added to reads.
 | --- | --- |
 | One/all eligible; six remain selected with room for three; separate existing/invalid counts | Server tests exercise one and two actual synthetic creations and six-project capacity refusal before publication. Component/browser tests check explicit selection, zero-selection guard, existing/invalid exclusion and retained six-project selection. Review capacity reuses the existing checked capacity-impact review inside setup; it retains selection and changes no provider quota or plan cap. |
 | Duplicate/two-client confirmation, mismatched body, reload/restart, exact children | Server tests confirm exact retries and two service instances produce one agent/opening per child. Changed bodies and overlapping batch IDs refuse. Restart reconstructs the same manifest/requests; completed siblings are skipped. Corrupt manifests remain held. |
-| Mixed success, changed source, offline/provider refusal, capacity exhaustion, unknown opening, cancellation | Tests cover per-child refusal/uncertainty, a source/capacity change after a sibling succeeds, read-only status with no receiver calls, and cancellation while a native effect is in flight. That effect settles; later undispatched projects are cancelled. Batch continuation refuses uncertain creates/openings and failed/cancelled effects. Exact identities and spend remain. |
+| Mixed success, changed source, offline/provider refusal, capacity exhaustion, unknown opening, cancellation | Tests cover per-child refusal/uncertainty, a source/capacity change after a sibling succeeds, read-only status with no receiver calls, and cancellation while a native effect is in flight. That effect settles; later undispatched projects are cancelled. Batch continuation reuses the individual service's exact create-lookup recovery when the opening is still reserved. Uncertain openings, unknown state and failed/cancelled effects remain held. Exact identities and spend remain. |
 | Original General chat, explicit opening, no decision-count inflation | No Home transcript, sender, decision projection or routine-check transport changes. Server tests assert no attachment audit or captain decision. Browser checks assert no implicit navigation after results, and native conversation links require an explicit press. |
 
 ## Verification and copy
 
 - Typecheck, focused setup/runtime/headroom/settings/component checks and
   `git diff --check` pass. Final full-suite/hosted results are recorded on PR #178.
+- Review-fix verification: full local suite **255 files passed, 3,556 tests passed,
+  5 skipped**; focused batch/client **41 passed**; browser matrix **128 captures**.
 - `node docs/smooth-pr7/render.mjs` exercises the actual pinned-before and current
   components in light/dark at 1440×1000 and 390×844: chooser, review, results,
   capacity-impact review, unknown opening, lost reply and 200% text. It checks
@@ -89,3 +93,35 @@ Browser fixtures do not establish native phone/screen-reader fidelity.
 | Dark desktop | [Comparison](smooth-pr7/evidence/dark-desktop.png) |
 | Light phone | [Comparison](smooth-pr7/evidence/light-phone.png) |
 | Dark phone | [Comparison](smooth-pr7/evidence/dark-phone.png) |
+
+## Independent review corrections
+
+The review of `87273f5e` reproduced two P2s. Regression tests failed before the
+fixes: exact occupancy invalidated a still-fitting batch; refused confirmation hid
+Back/Re-check; and recoverable create replies offered no batch continuation.
+
+- Capacity is now a fresh threshold at both preflight and the final admission
+  boundary. Slots/headroom, projects, sources, profiles, policies and limits remain
+  exact. Tests also reject a batch that no longer fits before publication/effects.
+- Back retains selection/settings and any unconfirmed exact input. Re-check reads
+  saved status before and after preview and keeps the same batch ID, so a delayed
+  original confirmation cannot create a second batch. A known saved batch retains
+  its recovery controls while a different explicit selection gets a new ID.
+- A lost create can be continued only when the individual setup status proves the
+  same request recoverable. Restart/replay tests retain identity and spend without
+  another create. A missing lookup sends/recreates nothing; later exact evidence
+  can finish the original mate. Uncertain sends remain held and checks are inert.
+- Cheap copy corrections remove the repeated capacity/state text and redundant
+  successful-review check, and name the project whose reviewed settings are saved.
+  Batch history ordering/pagination is left for separate work.
+
+The browser harness pins both production client components to `87273f5e` for the
+review-before comparisons. Synthetic status projections represent the old/new
+classification; server regressions separately prove actual native recovery.
+
+| Review fixes before/after, both reported paths and settings copy | Screenshots |
+| --- | --- |
+| Light desktop | [Comparison](smooth-pr7/evidence/review-light-desktop.png) |
+| Dark desktop | [Comparison](smooth-pr7/evidence/review-dark-desktop.png) |
+| Light phone | [Comparison](smooth-pr7/evidence/review-light-phone.png) |
+| Dark phone | [Comparison](smooth-pr7/evidence/review-dark-phone.png) |

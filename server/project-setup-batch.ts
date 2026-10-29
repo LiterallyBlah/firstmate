@@ -84,12 +84,15 @@ export class ProjectBatchService {
       const known = !problems.length, waiting = known && !receipt && !other && !p?.provisionInput && !p?.agentId;
       const ready = !!exact && !!p?.agentId && !p.reason && p.state === "admitted" && p.sessions > 0 && p.turns > 0;
       const checking = !known || !!p?.uncertain;
+      const recoverableCreate = !!exact && saved.recoverableCreates.includes(child.requestId);
       const binding = c.status.bindings.find(b => b.scopeId === p?.scopeId), effects = binding ? activationEffects(c.status, binding.scopeId, binding.epoch) : null;
       const failed = effects && [effects.workspace, effects.create, effects.send].some(e => e && ["failed", "cancelled"].includes(e.state));
-      const canContinue = !cancelled && known && !ready && !other && !p?.uncertain && !failed && (waiting || !!exact) && p?.state !== "stopped" && !p?.reason?.startsWith("Provisioning stopped");
+      const canContinue = !cancelled && known && !ready && !other && (!p?.uncertain || recoverableCreate) && !failed && (waiting || !!exact) && p?.state !== "stopped" && !p?.reason?.startsWith("Provisioning stopped");
       return { requestId: child.requestId, projectId: child.review.projectId, name: child.review.name,
         state: ready ? "ready" : waiting && cancelled ? "cancelled" : checking ? "checking" : waiting && !diagnostic ? "waiting" : "needs-change",
-        reason: ready ? "Ready" : waiting && cancelled ? "Cancelled before project admission. Its reviewed identity is kept; no spending was refunded." : checking ? "Checking whether setup finished. Unknown operations are never automatically repeated." : diagnostic ? `Saved setup needs a check: ${diagnostic}` : waiting ? "Waiting to start" : other ? "Another saved setup owns this project. Check its original request." : p?.reason ?? "Needs a change. Check this project's recorded setup before continuing.",
+        reason: ready ? "Ready" : waiting && cancelled ? "Cancelled before project admission. Its reviewed identity is kept; no spending was refunded." : checking ?
+          canContinue && recoverableCreate ? "The setup reply was lost. Continue saved batch to find the same mate and finish its first message once creation is confirmed. Its model, permissions and spending limits are kept." :
+          "Check saved setup to inspect the result. An uncertain opening stays held and won't be sent again." : diagnostic ? `Saved setup needs a check: ${diagnostic}` : waiting ? "Waiting to start" : other ? "Another saved setup owns this project. Check its original request." : p?.reason ?? "Needs a change. Check this project's recorded setup before continuing.",
         agentId: exact ? p?.agentId ?? null : null, sessions: p?.sessions ?? 0, turns: p?.turns ?? 0, canContinue, canCancel: waiting && !cancelled };
     }));
     return { commit: input, children, problems };
@@ -117,13 +120,18 @@ export class ProjectBatchService {
         refuse("STALE", "A saved batch already owns one of these projects. Check and continue its original setup, or explicitly cancel its waiting projects before a new review.");
       const choices = input.manifest.children.map(c => ({ homeId, name: c.review.name, sourcePath: c.review.source.path, profile: c.review.profile, limits: c.review.limits, budget: c.review.budget }));
       const current = await this.preview(homeId, batchId, choices, paseo);
-      if (!current.commit || digest(current.commit) !== digest(input)) refuse("STALE", current.reasons.join(" ") || "The aggregate review changed. Review all selected projects again.");
+      // Occupancy is a read-time observation, not reviewed authority. Keep all durable choices
+      // exact, including configured capacity/headroom, and admit only while the whole set fits.
+      const reviewed = (value: ProjectBatchCommit) => ({ ...value.manifest,
+        capacity: { slots: value.manifest.capacity.slots, generalHeadroom: value.manifest.capacity.generalHeadroom } });
+      if (!current.commit || digest(reviewed(current.commit)) !== digest(reviewed(input))) refuse("STALE", current.reasons.join(" ") || "The aggregate review changed. Review all selected projects again.");
       // Only the final capacity observation/publication shares the admission queue. Source/model
       // review and all child effects stay outside it and never borrow General's conversation lock.
       await withScopeAdmission(homeId, async () => {
         const c = await this.context(homeId), limits = await this.setup.projects.capacity(c.home);
         const occupied = await pluginOccupancy(c.status, this.setup.projects.setupReceiver(paseo));
-        if (digest({ ...limits, occupied, available: Math.max(0, limits.slots - limits.generalHeadroom - occupied) }) !== digest(input.manifest.capacity))
+        if (limits.slots !== input.manifest.capacity.slots || limits.generalHeadroom !== input.manifest.capacity.generalHeadroom ||
+          input.manifest.children.length > limits.slots - limits.generalHeadroom - occupied)
           refuse("STALE", "Available capacity changed. Keep your selection and review capacity again before creating mates.");
         const path = this.path(homeId, batchId); await mkdir(this.directory(homeId), { recursive: true });
         try { await publish(path, input); }

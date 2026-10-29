@@ -13,7 +13,7 @@ import type { z } from "zod";
 import { OptionPicker } from "./option-picker";
 import { workflowRequestId } from "./workflow-plans";
 import { errorText } from "./format";
-import { ProjectBatchPanel } from "./project-setup-batch";
+import { ProjectBatchPanel, type ProjectBatchDraft } from "./project-setup-batch";
 import { readProjectBatches, ProjectBatchStatusSchema } from "../shared/project-setup-batch";
 import { checkboxKeyProps } from "./checkbox-keyboard";
 
@@ -53,6 +53,7 @@ function ProjectSetupSession({ theme, compact, home, hostId, onClose, navigation
   const [request, setRequest] = useState<z.infer<typeof ProjectSetupInputSchema> | null>(null), [busy, setBusy] = useState(false), [failure, fail] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null), [details, setDetails] = useState(false), [folderName, setFolderName] = useState("");
   const [selected, setSelected] = useState<string[]>([]), [batchChoices, saveBatchChoices] = useState<Record<string, ProjectSetupChoices>>({}), [batch, showBatch] = useState(false);
+  const batchDraft = useRef<ProjectBatchDraft>({ batchId: workflowRequestId(), review: null, exact: null });
   const [instructions, setInstructions] = useState(""), instructionRequest = useRef<Parameters<typeof saveInstructions>[0] | null>(null);
   const gate = useRef(false), mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
@@ -108,14 +109,14 @@ function ProjectSetupSession({ theme, compact, home, hostId, onClose, navigation
       {data?.problems.map((s, i) => <Text key={i} style={text}>{s}</Text>)}
       {failure ? <Text accessibilityRole="alert" style={text}>{failure}</Text> : null}
       {result ? <Text accessibilityLiveRegion="polite" style={text}>{result}</Text> : null}
-      {batch && data ? <ProjectBatchPanel theme={theme} home={home} hostId={hostId} online={online} navigation={navigation} onClose={onClose}
+      {batch && data ? <ProjectBatchPanel theme={theme} home={home} hostId={hostId} online={online} navigation={navigation} onClose={onClose} draft={batchDraft}
         choices={selected.map(name => batchChoices[name] ?? data.reviewed.find(r => r.name === name) ?? { homeId: home, name, profile: null, limits: null, budget: null, sourcePath: null })}
         data={data} onBack={() => showBatch(false)} onRefresh={refresh} /> : review?.review && !result ? <>
         <ProjectSetupReview theme={theme} data={data!} review={review} />
         <Text style={note}>This creates a separate project conversation and one opening message. Your FirstMate chat stays where it is. Plan execution and release actions keep their separate approvals.</Text>
         {request ? <Text style={text}>This request keeps its original model, permissions and limits. Check saved setup after a lost reply; uncertain messages are never automatically resent.</Text> : null}
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-          {selected.includes(review.review.name) && !request ? <SetupAction theme={theme} primary label="Use these settings for selected projects" disabled={disabled} onPress={() => {
+          {selected.includes(review.review.name) && !request ? <SetupAction theme={theme} primary label={`Use reviewed settings for ${review.review.name}`} disabled={disabled} onPress={() => {
             saveBatchChoices({ ...batchChoices, [review.review!.name]: review.choices }); choose(null); setReview(null);
           }} /> : !result ? <SetupAction theme={theme} primary label={busy ? "Setting up…" : request ? "Continue exact setup" : "Create project mate"} disabled={disabled} onPress={() => { void confirm(); }} /> : null}
           {!request ? <SetupAction theme={theme} label="Back to projects" disabled={busy} onPress={() => setReview(null)} /> : null}
@@ -133,7 +134,13 @@ function ProjectSetupSession({ theme, compact, home, hostId, onClose, navigation
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             <SetupAction theme={theme} label="Select all eligible projects" disabled={disabled || !eligible.length || eligible.length > 64} onPress={() => setSelected(eligible.map(p => p.name))} />
             {selected.length ? <SetupAction theme={theme} label="Clear selection" disabled={disabled} onPress={() => setSelected([])} /> : null}
-            <SetupAction theme={theme} primary label={`Review ${selected.length} selected ${selected.length === 1 ? "project" : "projects"}`} disabled={disabled || !selected.length || selected.length > 64} onPress={() => showBatch(true)} />
+            <SetupAction theme={theme} primary label={`Review ${selected.length} selected ${selected.length === 1 ? "project" : "projects"}`} disabled={disabled || !selected.length || selected.length > 64} onPress={() => {
+              // A known saved batch keeps its own recovery controls below. A new explicit review
+              // may start a different batch; an unconfirmed request must retain its original ID.
+              if (batches.data?.some(b => b.commit.manifest.batchId === batchDraft.current.batchId))
+                batchDraft.current = { batchId: workflowRequestId(), review: null, exact: null };
+              showBatch(true);
+            }} />
           </View>
           {selected.length ? <Text style={text}>{selected.length} selected. {selected.filter(name => !batchChoices[name] && !data.reviewed.some(r => r.name === name)).length} need model, permissions, limits and instructions reviewed. Use each project's Review action below.</Text> : null}
           {eligible.length > 64 ? <Text style={text}>Select up to 64 projects for one reviewed setup.</Text> : null}
@@ -211,7 +218,7 @@ function ProjectSetupSession({ theme, compact, home, hostId, onClose, navigation
           <Text style={note}>Choosing a folder only adds it to this home's project list. Setup still needs a fresh review.</Text>
         </View> : !choices ? <Text style={text}>To add a folder, open setup on this project's original computer. Remote folder identities cannot be guessed.</Text> : null}
       </> : null}
-      {!batch ? <ProjectBatchPanel theme={theme} home={home} hostId={hostId} online={online} navigation={navigation} onClose={onClose} data={data}
+      {!batch ? <ProjectBatchPanel theme={theme} home={home} hostId={hostId} online={online} navigation={navigation} onClose={onClose} data={data} draft={batchDraft}
         onBack={() => {}} onRefresh={refresh} /> : null}
       {saved.data?.requests.filter(input => !batches.data?.some(b => b.commit.manifest.children.some(c => c.requestId === input.requestId))).map(input => {
         const project = saved.data.snapshot.projects.find(p => p.projectId === input.review.projectId), ready = !!project?.agentId && !project.reason && project.state !== "stopped";
