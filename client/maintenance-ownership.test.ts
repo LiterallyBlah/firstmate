@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { MaintenanceRuntimeSnapshot } from "../shared/maintenance-runtime";
 import { attentionTheme as theme } from "../test/attention-deck-fixture";
+import { visibleText } from "../test/visible-text";
 const mocks = vi.hoisted(() => ({ read: vi.fn(), admit: vi.fn(), answer: vi.fn(), models: vi.fn() }));
 vi.mock("@getpaseo/plugin/client", () => ({ useRpc: (rpc: { name: string }) => rpc.name.endsWith("admit-ui") ? mocks.admit : rpc.name.endsWith("answer-ui") ? mocks.answer : rpc.name.endsWith("maintenance.read") ? mocks.read : mocks.models }));
 vi.mock("react-native", () => ({ Pressable: "Pressable", ScrollView: "ScrollView", Text: "Text", View: "View" }));
@@ -26,8 +27,30 @@ afterEach(async () => { await act(async () => renderer?.unmount()); renderer = u
 const button = (label: string) => renderer!.root.find(n => n.type === "Pressable" as never && n.props.accessibilityLabel === label);
 async function mount(extra: Partial<Parameters<typeof MaintenanceOwnershipBoard>[0]> = {}) {
   await act(async () => { renderer = create(createElement(QueryClientProvider, { client: cache }, createElement(MaintenanceOwnershipBoard, { theme, compact: true, advanced: true, ...extra }))); });
-  await vi.waitFor(async () => { await act(async () => { await new Promise(done => setTimeout(done, 0)); }); expect(button("Refresh maintenance")).toBeDefined(); });
+  await vi.waitFor(async () => { await act(async () => { await new Promise(done => setTimeout(done, 0)); }); expect(renderer!.root.findByProps({ testID: "maintenance-ownership" })).toBeDefined(); });
 }
+it("the empty drawer explains cleanup plainly and keeps every exact gate behind an initially collapsed disclosure", async () => {
+  data.cleanup = { state: "held", reason: "G8: no qualified no-follow executor", conditions: [
+    { id: "realpath", satisfied: true, reasons: [] }, { id: "N7", satisfied: false, reasons: ["Not acknowledged at the advisory gate."] },
+  ] };
+  await mount();
+  const text = () => visibleText(renderer!.toJSON());
+  expect(text()).toContain("Automatic clean-up isn't available yet; routine checks only report problems.");
+  expect(text()).not.toMatch(/G8|realpath|N7|advisory gate|Refresh maintenance|Refresh routine checks/);
+  expect(button("Technical details").props.accessibilityState.expanded).toBe(false);
+  await act(async () => button("Technical details").props.onPress());
+  expect(button("Technical details").props.accessibilityState.expanded).toBe(true);
+  expect(text()).toContain("Cleanup: held · G8: no qualified no-follow executor · realpath: met · N7: Not acknowledged at the advisory gate.");
+  await act(async () => button("Technical details").props.onPress());
+  expect(text()).not.toContain("G8"); expect(mocks.admit).not.toHaveBeenCalled(); expect(mocks.answer).not.toHaveBeenCalled();
+});
+it("retained checks keep a plain read-only refresh action", async () => {
+  data.owners = [{ scopeId: id, state: "retired", agentId: "saved-checks", epoch: 2, sessions: 1, turns: 1, uncertain: 1, admission: null, opening: "uncertain" }];
+  await mount(); const before = mocks.read.mock.calls.length;
+  await act(async () => button("Refresh routine checks").props.onPress());
+  expect(mocks.read.mock.calls.length).toBeGreaterThan(before);
+  expect(mocks.admit).not.toHaveBeenCalled(); expect(mocks.answer).not.toHaveBeenCalled();
+});
 async function setup(extra: Partial<Parameters<typeof RoutineCheckSetup>[0]> = {}) {
   await act(async () => { renderer = create(createElement(QueryClientProvider, { client: cache }, createElement(RoutineCheckSetup,
     { theme, compact: true, homeId: data.homeId, hostId: "local", online: true, canEnable: true, onEnable: vi.fn(), onClose: vi.fn(), ...extra }))); });

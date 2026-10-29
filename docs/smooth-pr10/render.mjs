@@ -17,7 +17,7 @@ for (const stage of ['before', 'after']) await build({ entryPoints: [resolve(her
   b.onResolve({ filter: /^react-dom($|\/)/ }, a => ({ path: local.resolve(a.path) }));
   b.onResolve({ filter: /^react-native($|-web$)/ }, () => ({ path: local.resolve('react-native-web') }));
   b.onResolve({ filter: /^lucide-react$/ }, () => ({ path: local.resolve('lucide-react') }));
-  if (stage === 'before') b.onLoad({ filter: /(help-settings|maintenance-ownership)[.]tsx$/ }, a => ({ contents: execFileSync('git', ['show', `${baseline}:${relative(root, a.path).replaceAll('\\', '/')}`], { cwd: root, encoding: 'utf8' }), loader: 'tsx' }));
+  if (stage === 'before') b.onLoad({ filter: /(help-settings|maintenance-ownership|feature-settings-model)[.]tsx?$/ }, a => ({ contents: execFileSync('git', ['show', `${baseline}:${relative(root, a.path).replaceAll('\\', '/')}`], { cwd: root, encoding: 'utf8' }), loader: 'tsx' }));
 } }] });
 assert.doesNotMatch(await readFile(resolve(out, 'before.js'), 'utf8'), /function RoutineCheckSetup/, 'before bundle must use the pinned settings flow');
 const server = createServer(async (req, res) => { const stage = req.url.includes('before') ? 'before' : 'after';
@@ -35,7 +35,7 @@ try {
     const surface = ['advanced','introduction'].includes(name) ? name : 'settings';
     await page.goto(base + '/?' + new URLSearchParams({ stage, theme, case: scenario, surface, home: 'upgraded', features: 'on' }), { waitUntil: 'networkidle' });
     if (!['settings','advanced','introduction'].includes(name)) {
-      await page.getByRole('button', { name: 'Review routine checks', exact: true }).click();
+      await page.getByRole('button', { name: stage === 'before' ? 'Review routine checks' : 'Set up routine checks', exact: true }).click();
       if (stage === 'after' && name === 'opt-in') await page.getByRole('button', { name: 'Review routine-check opt-in', exact: true }).click();
       if (stage === 'after' && name === 'profile') await page.getByRole('button', { name: 'Review checks profile', exact: true }).click();
       if (stage === 'after' && name === 'saved') {

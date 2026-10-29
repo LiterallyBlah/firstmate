@@ -123,7 +123,7 @@ it("holds duplicate confirm while a save is in flight", async () => {
 it("checks a lost reply through a read without issuing another save", async () => {
   const save = state.set.getMockImplementation()!;
   state.set.mockImplementationOnce(async input => { await save(input); throw new Error("lost reply"); });
-  await mount(); await press("Review routine checks");
+  await mount(); await press("Set up routine checks");
   await vi.waitFor(async () => { await act(async () => { await new Promise(done => setTimeout(done, 0)); }); expect(button("Review routine-check opt-in")).toBeDefined(); });
   await press("Review routine-check opt-in"); await press("Save help settings");
   await press("Check saved settings"); expect(state.set).toHaveBeenCalledTimes(1); expect(text()).toContain("Your settings are saved and applied here.");

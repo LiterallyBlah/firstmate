@@ -87,7 +87,7 @@ try{
     const sizes=nodes.map(el=>({el,size:parseFloat(getComputedStyle(el).fontSize),line:parseFloat(getComputedStyle(el).lineHeight)}));
     for(const{el,size,line}of sizes){el.style.fontSize=`${size*2}px`;if(Number.isFinite(line))el.style.lineHeight=`${line*2}px`;}
    });
-   await page.getByRole('button',{name:'Refresh maintenance',exact:true}).scrollIntoViewIfNeeded();
+   await page.getByRole('button',{name:stage==='before'?'Refresh maintenance':'Technical details',exact:true}).scrollIntoViewIfNeeded();
    evidence.buttons=await page.getByRole('dialog',{name:'Work details',exact:true}).evaluate(dialog=>{
     const bounds=dialog.getBoundingClientRect();return[...dialog.querySelectorAll('[role="button"],button')].map(el=>{
      const r=el.getBoundingClientRect();let clipped=r.left<bounds.left-.5||r.right>bounds.right+.5;

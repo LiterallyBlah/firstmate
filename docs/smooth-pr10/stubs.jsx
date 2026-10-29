@@ -4,6 +4,16 @@ import { clone, homeId, maintenance, params } from '../smooth-pr2/data';
 export * from '../smooth-pr5/stubs';
 const methods = new Map();
 if (params.get('case') === 'saved') { window.review.features.requested.maintenance = true; window.review.features.effective.maintenance = true; }
+if (params.has('drawer-diagnostics')) {
+  window.review.features.requested.maintenance = true; window.review.features.effective.maintenance = true;
+  maintenance.cleanup = { state: 'held', reason: 'G8: automatic cleanup is held; no qualified no-follow executor or reviewed installed-version reader evidence.', conditions: [
+    ...['realpath','E1','E2','E3'].map(id => ({ id, satisfied: true, reasons: [] })),
+    { id: 'no-follow-delete', satisfied: false, reasons: ['No qualified no-follow executor.'] },
+    { id: 'live-readers', satisfied: false, reasons: ['No reviewed installed-version reader evidence.'] },
+    { id: 'N7', satisfied: false, reasons: ['Not acknowledged at the advisory gate.'] },
+    { id: 'receiver', satisfied: false, reasons: ['Receiver acknowledgement unavailable.'] },
+  ] };
+}
 if (params.get('features') === 'ui-only') {
   window.review.scope.uiEnabled = true; window.review.scope.executionEnabled = false;
   window.review.features.requested.scopeUi = true; window.review.features.effective.scopeUi = true;

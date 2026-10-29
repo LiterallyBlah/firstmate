@@ -30,11 +30,11 @@ try {
     const page = await browser.newPage({ viewport: { width,height } }), errors = []; page.on('pageerror', e => errors.push(e.message));
     await page.clock.install({ time: new Date('2026-10-29T12:00:00Z') });
     await page.goto(`http://127.0.0.1:${server.address().port}/?` + new URLSearchParams({ stage,theme,case:'pilot',home:'upgraded',features:'on','delay-routine':'' }), { waitUntil: 'networkidle' });
-    await page.getByRole('button', { name:'Review routine checks',exact:true }).click();
+    await page.getByRole('button', { name:'Set up routine checks',exact:true }).click();
     const dialog = page.getByRole('dialog', { name:'Set up routine checks',exact:true });
     const pendingReads = await page.evaluate(() => window.review.calls.filter(c => c.name === 'firstmate.maintenance.read').length);
     for (const [elapsed,advance] of [[1,1000],[8,7000],[30,22000]]) {
-      if (elapsed === 30) { await dialog.getByRole('button', { name:'Back to settings',exact:true }).click(); await page.clock.fastForward(advance); await page.getByRole('button', { name:'Review routine checks',exact:true }).click(); }
+      if (elapsed === 30) { await dialog.getByRole('button', { name:'Back to settings',exact:true }).click(); await page.clock.fastForward(advance); await page.getByRole('button', { name:'Set up routine checks',exact:true }).click(); }
       else await page.clock.fastForward(advance);
       const state = await page.evaluate(() => ({ text: document.body.innerText,overflow:document.documentElement.scrollWidth>innerWidth,calls:window.review.calls }));
       assert.deepEqual(errors, []); assert.equal(state.overflow,false); assert.doesNotMatch(state.text,/Can't connect/);

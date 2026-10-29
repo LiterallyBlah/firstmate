@@ -16,8 +16,8 @@ import { maintenanceHasHistory } from "./ownership-state";
 import { SetupButton } from "./setup-button";
 
 type Owner = MaintenanceRuntimeSnapshot["owners"][number];
-function Action({ theme, label, disabled = false, onPress }: { theme: PluginTheme; label: string; disabled?: boolean; onPress(): void }) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress}
+function Action({ theme, label, disabled = false, expanded, onPress }: { theme: PluginTheme; label: string; disabled?: boolean; expanded?: boolean; onPress(): void }) {
+  return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled, ...(expanded === undefined ? {} : { expanded }) }} disabled={disabled} onPress={onPress}
     style={{ minHeight: 44, maxWidth: "100%", minWidth: 0, flexShrink: 1, paddingHorizontal: 12, paddingVertical: 10, justifyContent: "center", borderWidth: 1, borderColor: theme.colors.border, borderRadius: 7, opacity: disabled ? 0.5 : 1 }}>
     <Text style={{ color: theme.colors.foreground, flexShrink: 1 }}>{label}</Text>
   </Pressable>;
@@ -26,16 +26,17 @@ export function MaintenanceOwnershipBoard({ theme, compact, hostId = "local", na
   const read = useRpc(readMaintenance);
   const query = useQuery({ queryKey: ["firstmate", "maintenance-ownership", hostId], queryFn: async () => MaintenanceRuntimeSnapshotSchema.parse(await read({})), refetchInterval: 5000 });
   const [admission, selectAdmission] = useState<Owner | null>(null);
+  const [technicalDetails, setTechnicalDetails] = useState(false);
   const data = query.data;
-  useEffect(() => { selectAdmission(null); }, [hostId, data?.homeId]);
+  useEffect(() => { selectAdmission(null); setTechnicalDetails(false); }, [hostId, data?.homeId]);
   if (!data) return query.isError ? <Text accessibilityRole="alert" style={{ color: theme.colors.statusWarning }}>Routine checks could not be read. Close and reopen details to check again.</Text> : null;
   if (!maintenanceHasHistory(data) && !data.problems.length && !data.pause && data.freshness !== "held" && !query.isError && !(advanced && data.enabled)) return null;
   const stale = query.isError || !data.enabled, colors = theme.colors;
   return <View testID="maintenance-ownership" style={{ gap: 8, padding: compact ? 12 : 16, borderBottomWidth: 1, borderColor: colors.border }}>
     <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "600" }}>Routine checks</Text>
-    <Text style={{ color: colors.foregroundMuted }}>Checks report problems for review. Automatic cleanup is unavailable.</Text>
+    <Text style={{ color: colors.foregroundMuted }}>Automatic clean-up isn't available yet; routine checks only report problems.</Text>
     {data.pause ? <Text accessibilityLiveRegion="polite" style={{ color: colors.foregroundMuted }}>{data.pause}</Text> : null}
-    {query.isError ? <Text accessibilityRole="alert" style={{ color: colors.statusWarning }}>Maintenance could not be refreshed. Actions are unavailable; refresh before continuing.</Text> : null}
+    {query.isError ? <Text accessibilityRole="alert" style={{ color: colors.statusWarning }}>Routine checks could not be refreshed. Actions are unavailable; refresh before continuing.</Text> : null}
     {data.problems.map(p => <Text key={p} accessibilityRole="alert" style={{ color: colors.statusWarning }}>{p}</Text>)}
     <View style={{ gap: 8 }}>
       {data.owners.map(owner => <View key={owner.scopeId} style={{ gap: 4 }}>
@@ -47,10 +48,11 @@ export function MaintenanceOwnershipBoard({ theme, compact, hostId = "local", na
       </View>)}
     </View>
     {data.incidents.map(incident => <Text key={incident.id} accessibilityRole="alert" style={{ color: colors.statusWarning }}>{incident.detail}</Text>)}
-    <Text selectable style={{ color: colors.foregroundMuted, fontSize: 12 }}>Cleanup: {data.cleanup.state} · {data.cleanup.reason}{data.cleanup.conditions.map(c => ` · ${c.id}: ${c.satisfied ? "met" : c.reasons.join("; ")}`).join("")}</Text>
-    <Text style={{ color: colors.foregroundMuted }}>To create a checks conversation, open Routine checks in FirstMate settings.</Text>
+    <Action theme={theme} label="Technical details" expanded={technicalDetails} onPress={() => setTechnicalDetails(!technicalDetails)} />
+    {technicalDetails ? <Text selectable style={{ color: colors.foregroundMuted, fontSize: 12 }}>Cleanup: {data.cleanup.state} · {data.cleanup.reason}{data.cleanup.conditions.map(c => ` · ${c.id}: ${c.satisfied ? "met" : c.reasons.join("; ")}`).join("")}</Text> : null}
+    <Text style={{ color: colors.foregroundMuted }}>Set up routine checks in FirstMate settings.</Text>
     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-      <Action theme={theme} label="Refresh maintenance" onPress={() => { void query.refetch(); }} />
+      {maintenanceHasHistory(data) ? <Action theme={theme} label="Refresh routine checks" onPress={() => { void query.refetch(); }} /> : null}
     </View>
     {admission ? <MaintenanceAdmissionConfirmation key={`${data.homeId}:${admission.scopeId}`} theme={theme} compact={compact} homeId={data.homeId}
       owner={admission} stale={stale || data.freshness === "held" || !!data.problems.length} onClose={() => selectAdmission(null)} onRead={() => { void query.refetch(); }} /> : null}

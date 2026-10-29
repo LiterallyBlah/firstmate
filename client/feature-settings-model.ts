@@ -7,7 +7,7 @@ export const HELP = {
     capabilities: ["projectMates", "scopeUi", "scopeExecution"], owners: ["projectMates"] },
   plans: { title: "Plan help", action: "Review plan help", description: "Choose help for an individual plan. Existing work stays with FirstMate until you review the change.",
     capabilities: ["planSupervisors", "scopedActivation", "scopeUi", "scopeExecution"], owners: ["planSupervisors", "scopedActivation"] },
-  checks: { title: "Routine checks", action: "Review routine checks", description: "Checks report problems for review. Automatic cleanup is unavailable.",
+  checks: { title: "Routine checks", action: "Set up routine checks", description: "Checks report problems for review. Automatic cleanup is unavailable.",
     capabilities: ["maintenance"], owners: ["maintenance"] },
 } satisfies Record<HelpKind, { title: string; action: string; description: string; capabilities: FeatureCapability[]; owners: FeatureCapability[] }>;
 export const CAPABILITY_LABELS: Record<FeatureCapability, string> = {
