@@ -91,11 +91,11 @@ receives a named Help-settings step; enablement is never inferred from opening i
   instruction save, lost reply, uncertain opening and 200% text. No page exceptions
   or document overflow; controls meet 44×44 and keyboard focus returns.
 - The Impeccable mechanical scan reported no findings in the changed UI targets.
-- Final frozen-tree full local suite and hosted checks are pending at this update.
-  An earlier default-worker run hit Windows timing failures. A later two-worker run
-  passed 3,438 tests with four skipped and one template-inventory mismatch because
-  its module was loaded before a template was added during that run; the final
-  focused inventory passes. The final run uses CI's two-worker/20s Windows settings.
+- Final committed-tree local suite: **247 files passed; 3,446 tests passed and four
+  skipped**, using CI's two-worker/20s Windows settings. The known launch-tool
+  flake did not occur in this run. The missing-folder fixture uses an absolute
+  path under its temporary home on both Windows and Linux.
+- Current hosted results are attached to [PR #174's checks](https://github.com/LiterallyBlah/firstmate/pull/174/checks).
 
 The browser host and receiver are synthetic. No real project/session/timer was
 created, no live plugin was reloaded, and no source was written in the captain's
