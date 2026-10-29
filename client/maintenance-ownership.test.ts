@@ -46,6 +46,7 @@ it("fresh-home app reads/opening create nothing; explicit confirmation retains e
   await act(async () => { const press = button("Create checks conversation").props.onPress; press(); press(); });
   expect(mocks.admit).toHaveBeenCalledTimes(1);
   expect(mocks.admit.mock.calls[0]![0]).toMatchObject({ homeId: "fixture-home", name: "Storage", limits: { supervisorSessions: 1, supervisorTurns: 20 } });
+  await act(async () => button("Check saved setup").props.onPress()); expect(mocks.admit).toHaveBeenCalledTimes(1);
   await act(async () => button("Retry exact checks setup").props.onPress());
   expect(mocks.admit.mock.calls[1]![0]).toEqual(mocks.admit.mock.calls[0]![0]);
 });
@@ -53,7 +54,7 @@ it("a fresh client resumes the recorded maintenance request and a failed refresh
   const admission = { homeId: data.homeId, requestId: id, scopeId: id, name: "Storage", profile: { provider: "codex/test", modeId: "full-access" }, limits: { supervisorSessions: 1 as const, supervisorTurns: 20 } };
   data.owners = [{ scopeId: id, state: "transferring", agentId: "reserved-owner", epoch: 1, sessions: 1, turns: 1, uncertain: 1, opening: "reserved", admission }];
   mocks.admit.mockRejectedValue(new Error("held")); await mount(); await act(async () => button("Resume Storage").props.onPress());
-  expect(mocks.models).not.toHaveBeenCalled(); await act(async () => button("Check saved checks setup").props.onPress());
+  expect(mocks.models).not.toHaveBeenCalled(); await act(async () => button("Resume saved checks setup").props.onPress());
   expect(mocks.admit.mock.calls[0]![0]).toEqual({ homeId: data.homeId, requestId: id, resume: true });
   mocks.read.mockRejectedValue(new Error("offline")); await act(async () => { await cache.refetchQueries(); await new Promise(done => setTimeout(done, 20)); });
   expect(button("Retry exact checks setup").props.disabled).toBe(true);

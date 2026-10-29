@@ -17,6 +17,11 @@ const state = window.review.features = FeatureReadResultSchema.parse({ homeId, r
 if (scenario === 'held') Object.assign(state, { state: 'held', revision: null, capacity: null, writesAvailable: false, problems: ['Saved policy hash mismatch.'] });
 const methods = new Map(), receipts = new Map();
 export function useRpc(contract) {
+  // Routine-check previews use their independent policy, not the broad fixture flag.
+  if (contract.name === 'firstmate.maintenance.read') return async input => {
+    window.review.calls.push({ name: contract.name, input: clone(input) });
+    return { ...clone(window.review.maintenance), enabled: state.effective.maintenance };
+  };
   if (!contract.name.startsWith('firstmate.features.')) return original(contract);
   if (!methods.has(contract.name)) methods.set(contract.name, async input => {
     window.review.calls.push({ name: contract.name, input: clone(input) });

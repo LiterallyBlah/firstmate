@@ -17,8 +17,9 @@ for (const stage of ['before', 'after']) await build({ entryPoints: [resolve(her
   b.onResolve({ filter: /^react-dom($|\/)/ }, a => ({ path: local.resolve(a.path) }));
   b.onResolve({ filter: /^react-native($|-web$)/ }, () => ({ path: local.resolve('react-native-web') }));
   b.onResolve({ filter: /^lucide-react$/ }, () => ({ path: local.resolve('lucide-react') }));
-  if (stage === 'before') b.onLoad({ filter: /client[\/](help-settings|maintenance-ownership)\.tsx$/ }, a => ({ contents: execFileSync('git', ['show', `${baseline}:${relative(root, a.path).replaceAll('\\', '/')}`], { cwd: root, encoding: 'utf8' }), loader: 'tsx' }));
+  if (stage === 'before') b.onLoad({ filter: /(help-settings|maintenance-ownership)[.]tsx$/ }, a => ({ contents: execFileSync('git', ['show', `${baseline}:${relative(root, a.path).replaceAll('\\', '/')}`], { cwd: root, encoding: 'utf8' }), loader: 'tsx' }));
 } }] });
+assert.doesNotMatch(await readFile(resolve(out, 'before.js'), 'utf8'), /function RoutineCheckSetup/, 'before bundle must use the pinned settings flow');
 const server = createServer(async (req, res) => { const stage = req.url.includes('before') ? 'before' : 'after';
   res.setHeader('Content-Type', req.url.endsWith('.js') ? 'application/javascript' : 'text/html');
   res.end(req.url.endsWith('.js') ? await readFile(resolve(out, stage + '.js')) : `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body,#root{margin:0;width:100%;height:100%;overflow:hidden;font-family:system-ui}*{box-sizing:border-box}button,input,select{font:inherit}button{min-height:44px;min-width:44px}:focus-visible{outline:2px solid currentColor;outline-offset:2px}</style><div id="root"></div><script src="/${stage}.js"></script>`);
@@ -38,8 +39,8 @@ try {
       if (stage === 'after' && name === 'opt-in') await page.getByRole('button', { name: 'Review routine-check opt-in', exact: true }).click();
       if (stage === 'after' && name === 'profile') await page.getByRole('button', { name: 'Review checks profile', exact: true }).click();
       if (stage === 'after' && name === 'saved') {
-        // Retained setup remains inspectable with controls paused. No new admission is offered.
         await page.getByText('Storage checks · Setup needs review', { exact: true }).waitFor();
+        await page.getByRole('button', { name: 'Review saved setup for Storage checks', exact: true }).click();
       }
       if (stage === 'after' && name === 'inventory') {
         await page.getByRole('button', { name: 'Details', exact: true }).click();
@@ -68,7 +69,7 @@ try {
   // All ordinary destinations remain unchanged: update/fresh, off/on/UI-only, both widths/themes.
   for (const theme of ['light','dark']) for (const [device,width,height] of [['desktop',1440,1000],['phone',390,844]]) for (const home of ['fresh','upgraded']) for (const features of ['off','on','ui-only']) for (const surface of ['home','plans','discussion','needs','board']) {
     const page = await browser.newPage({ viewport: { width,height } }), errors = []; page.on('pageerror', e => errors.push(e.message));
-    await page.goto(base + '/?' + new URLSearchParams({ stage: 'after', theme, home, features, surface }), { waitUntil: 'networkidle' });
+    await page.goto(base + '/?' + new URLSearchParams({ stage: 'after', theme, home, features, surface, case: features === 'on' ? 'pilot' : 'default' }), { waitUntil: 'networkidle' });
     const next = await state(page), key = `${theme}-${device}-${home}-${features}-${surface}`;
     assert.deepEqual(errors, [], key); assert.equal(next.overflow, false, key); assert.doesNotMatch(next.text, /A mate for each project/, 'production introduction stays dark');
     assert.equal(next.calls.filter(c => /admit-ui|attach|provision|\.set$|\.admin$/.test(c.name)).length, 0, key + ': navigation effects');

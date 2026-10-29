@@ -72,7 +72,7 @@ try {
         for (const [action, name] of [['Review plan help', 'plan-review'], ['Review routine checks', 'checks-review']]) {
           await page.getByRole('button', { name: action, exact: true }).click();
           await capture(page, `${theme}-${device}-${name}`); await checkControls(page); assert.deepEqual(await mutations(page), []);
-          await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+          await page.getByRole('button', { name: action === 'Review routine checks' ? 'Back to settings' : 'Cancel', exact: true }).click();
         }
         await page.getByRole('button', { name: 'Set up project mates', exact: true }).click();
         await capture(page, `${theme}-${device}-project-review`); await checkControls(page); assert.deepEqual(await mutations(page), []);

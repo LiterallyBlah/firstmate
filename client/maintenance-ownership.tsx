@@ -59,7 +59,7 @@ export function MaintenanceOwnershipBoard({ theme, compact, hostId = "local", na
 export function MaintenanceAdmissionConfirmation({ theme, compact, homeId, owner, stale, onClose, onRead }: {
   theme: PluginTheme; compact: boolean; homeId: string; owner: Owner | null; stale: boolean; onClose(): void; onRead(): void;
 }) {
-  const admit = useRpc(admitMaintenanceFromUi), catalog = useRpc(migrationTargets), resume = owner?.admission;
+  const admit = useRpc(admitMaintenanceFromUi), read = useRpc(readMaintenance), catalog = useRpc(migrationTargets), resume = owner?.admission;
   const models = useQuery({ queryKey: ["firstmate", "maintenance-models", homeId], queryFn: () => catalog({}), enabled: !resume });
   const [name, setName] = useState(""), [provider, setProvider] = useState(""), [mode, setMode] = useState(""), [turns, setTurns] = useState("20");
   const [busy, setBusy] = useState(false), [error, setError] = useState<string | null>(null);
@@ -78,6 +78,21 @@ export function MaintenanceAdmissionConfirmation({ theme, compact, homeId, owner
       if (current?.state === "active" && current.opening === "succeeded") onClose();
       else setError("Your setup is saved, but the conversation isn't ready. Check this saved setup before continuing. A message with an unknown result won't be sent again.");
     } catch (e) { setError(`Couldn't confirm this checks setup. It may already be saved. Check the saved setup before trying this exact request again. ${errorText(e)}`); }
+    finally { gate.current = false; setBusy(false); }
+  }
+  async function checkSaved() {
+    if (gate.current) return;
+    const requestId = pending.current?.requestId ?? resume?.requestId;
+    if (!requestId) return;
+    gate.current = true; setBusy(true); setError(null);
+    try {
+      const next = MaintenanceRuntimeSnapshotSchema.parse(await read({}));
+      if (next.homeId !== homeId) throw new Error("FirstMate's home changed. Reopen settings for the current home.");
+      onRead();
+      const current = next.owners.find(o => o.admission?.requestId === requestId);
+      if (current?.state === "active" && current.opening === "succeeded") onClose();
+      else setError(current ? "Your setup is saved, but the conversation isn't ready. Resuming keeps its original model, limits and identity; unknown messages stay held." : "Saved setup isn't visible yet. Check again before continuing; your exact request is kept.");
+    } catch (e) { setError(`Can't check this saved setup right now. Your exact request is kept. ${errorText(e)}`); }
     finally { gate.current = false; setBusy(false); }
   }
   const field = { color: theme.colors.foreground, backgroundColor: theme.colors.surface1, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 7, padding: 12, fontSize: 16 };
@@ -100,8 +115,9 @@ export function MaintenanceAdmissionConfirmation({ theme, compact, homeId, owner
       {error ? <Text accessibilityRole="alert" style={{ color: theme.colors.statusWarning }}>{error}</Text> : null}
       <SetupButton theme={theme} label="Setup details" onPress={() => setDetails(!details)} />
       {details ? <Text selectable style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>This app action is recorded as unverified: Paseo supplies no caller identity. No cleanup or corrective work is authorized.{resume ? ` Saved request ${resume.requestId} · scope ${resume.scopeId}.` : ""}</Text> : null}
-      <SetupButton theme={theme} label={busy ? "Saving checks setup…" : pending.current ? "Retry exact checks setup" : resume ? "Check saved checks setup" : "Create checks conversation"}
+      <SetupButton theme={theme} label={busy ? "Working on checks setup…" : pending.current ? "Retry exact checks setup" : resume ? "Resume saved checks setup" : "Create checks conversation"}
         disabled={busy || stale || !valid && !pending.current} onPress={() => { void confirm(); }} />
+      {pending.current || resume ? <SetupButton theme={theme} label="Check saved setup" disabled={busy} onPress={() => { void checkSaved(); }} /> : null}
       <SetupButton theme={theme} label={pending.current ? "Close review" : "Cancel"} disabled={busy} onPress={onClose} />
     </View>
   </Modal.Content></Modal>;

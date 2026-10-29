@@ -3,7 +3,11 @@ import { useRpc as original } from '../smooth-pr5/stubs';
 import { clone, homeId, maintenance, params } from '../smooth-pr2/data';
 export * from '../smooth-pr5/stubs';
 const methods = new Map();
-if (params.get('features') === 'ui-only') { window.review.scope.uiEnabled = true; window.review.scope.executionEnabled = false; }
+if (params.get('case') === 'saved') { window.review.features.requested.maintenance = true; window.review.features.effective.maintenance = true; }
+if (params.get('features') === 'ui-only') {
+  window.review.scope.uiEnabled = true; window.review.scope.executionEnabled = false;
+  window.review.features.requested.scopeUi = true; window.review.features.effective.scopeUi = true;
+}
 export function useRpc(contract) {
   if (!contract.name.startsWith('firstmate.maintenance.') && !contract.name.startsWith('firstmate.introduction.')) return original(contract);
   if (!methods.has(contract.name)) methods.set(contract.name, async input => {
