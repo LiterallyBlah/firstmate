@@ -124,10 +124,11 @@ export async function checkPolish(pageAt, output) {
     await page.locator("canvas[data-firstmate-deck-setting=ship]").waitFor();
     await page.evaluate(async () => { const s = window.attentionSnapshot; s.freshness.status = "stale"; s.version++; await window.refreshDecisions(); });
     const legend = page.getByTestId("firstmate-deck-decision-legend");
-    await legend.getByText("3 need you ·", { exact: true }).waitFor();
+    const asOf = await page.evaluate(() => new Date(window.attentionSnapshot.freshness.asOf).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+    await legend.getByText(`3 need you · as of ${asOf} ·`, { exact: true }).waitFor();
     assert.equal(await page.getByText("Decision data is stale", { exact: false }).count(), 0);
     assert.equal(await page.getByText("the first mate is waiting at the bow", { exact: false }).count(), 0);
-    assert.equal(await page.getByText(/as of/).count(), 0);
+    assert.equal(await page.getByText(/as of/).count(), 1);
     await page.getByTestId("firstmate-deck-decision-tag").click();
     assert.equal(await drawerFor(page).count(), 0);
     await page.getByRole("dialog", { name: "First mate needs you", exact: true })

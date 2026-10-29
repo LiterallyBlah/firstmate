@@ -111,7 +111,8 @@ try {
           requests: [],
           freshness: { ...snapshot.freshness, status, problems: ["Backlog source is unreadable."] },
         })), status);
-        await page.getByTestId("firstmate-deck-decision-legend").getByText(status === "unknown" ? "Can't read decisions ·" : "6 need you ·", { exact: true }).waitFor();
+        const expected = status === "unknown" ? "Can't read decisions ·" : `6 need you · as of ${await page.evaluate(() => new Date(window.fixtureDecisionAsOf).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }))} ·`;
+        await page.getByTestId("firstmate-deck-decision-legend").getByText(expected, { exact: true }).waitFor();
         assert.equal(await page.getByText("Decision data is stale", { exact: false }).count(), 0);
         assert.equal(await page.getByText(/^0 needs you/).count(), 0);
         if (setting === "ship") await page.screenshot({ path: join(out, `legend-${status}.png`) });

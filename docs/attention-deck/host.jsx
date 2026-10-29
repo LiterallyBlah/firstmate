@@ -9,6 +9,7 @@ window.fixtureCalls = [];
 window.decisionActions = [];
 function Harness() {
   const [snapshot, setSnapshot] = React.useState(attentionSnapshot());
+  window.fixtureDecisionAsOf = snapshot.freshness.asOf;
   window.setDecisionSnapshot = setSnapshot;
   const theme = params.get("theme") === "light" ? { ...attentionTheme, colors: { ...attentionTheme.colors, surface0: "#F4F5F3", surface1: "#FFFFFF", surface2: "#E8EBE7", foreground: "#202522", foregroundMuted: "#5B665F", border: "#C9D1CB" } } : attentionTheme;
   return <View style={{ flex: 1, backgroundColor: theme.colors.surface0 }}>

@@ -54,7 +54,11 @@ Validation: typecheck; full local suite with hosted Windows settings (`--maxWork
 Hosted CI reruns the full suite and browser harness against the submitted head.
 The initial unrestricted-worker/default-five-second run timed out in unchanged
 file-heavy tests; using the existing hosted Windows budget resolved those failures.
-No test timeout or assertion was weakened.
+No test timeout or assertion was weakened. The existing Deck browser assertions
+now require the exact recorded timestamp: Attention Deck passes 9 render cases;
+Needs-you passes 40 header cases, 14 layouts, 6 task views and 4 raised-decision
+cases. Their previous expectation of an undated stale legend contradicted this
+slice's freshness contract.
 
 The return cache has the existing draft lifetime: the running app, including bundle
 reevaluation and view remounts. It is keyed by host/home/agent and bounded to 16
