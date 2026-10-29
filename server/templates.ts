@@ -54,6 +54,7 @@ export const TEMPLATES = {
   itemDiscuss: "messages/item-discuss.md",
   scopeDiscuss: "messages/scope-discuss.md",
   projectMateOpening: "messages/project-mate-opening.md",
+  projectSetupInstructions: "parts/project-setup-instructions.md",
   itemGraduate: "messages/item-graduate.md",
   itemWorkDiscussion: "messages/item-work-discussion.md",
   relaunch: "messages/relaunch.md",

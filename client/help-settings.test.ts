@@ -13,6 +13,7 @@ vi.mock("./option-picker", () => ({ OptionPicker: "OptionPicker" }));
 vi.mock("@getpaseo/plugin/client/react-native", () => ({ TextInput: "TextInput",
   Modal: Object.assign(({ open, children }: { open: boolean; children: unknown }) => open ? children : null, { Content: ({ children }: { children: unknown }) => children }) }));
 vi.mock("./workflow-plans", () => ({ workflowRequestId: () => state.id() }));
+vi.mock("./project-setup", () => ({ ProjectSetup: ({ open }: { open: boolean }) => open ? "Shared project setup" : null }));
 import { FEATURE_SETTINGS_QUERY_KEY, HelpSettings } from "./help-settings";
 
 const home = "C:/fixture/home", id = "00000000-0000-4000-8000-000000000001";
@@ -60,6 +61,7 @@ it("applies only the reviewed project dependencies, immediately, without a sessi
   expect(state.set).toHaveBeenCalledExactlyOnceWith({ home, expectedRevision: 0, requestId: id, change: {
     requested: { ...FEATURES_OFF, projectMates: true, scopeUi: true, scopeExecution: true }, capacity: { slots: 4, generalHeadroom: 1 } } });
   expect(text()).toContain("Your settings are saved and applied here."); expect(text()).toContain("Turn off project mates");
+  expect(text()).toContain("Shared project setup");
 });
 
 it.each(["plans", "checks"] as const)("enables only %s and its reviewed dependencies", async kind => {

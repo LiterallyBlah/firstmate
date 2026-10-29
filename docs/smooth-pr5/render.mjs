@@ -32,6 +32,15 @@ await new Promise(done => server.listen(0, '127.0.0.1', done));
 const origin = `http://127.0.0.1:${server.address().port}`, browser = await chromium.launch({ ...(process.platform === 'win32' ? { channel: 'msedge' } : {}), headless: true, args: ['--disable-gpu'] });
 const results = [];
 const mutations = page => page.evaluate(() => window.review.calls.filter(c => c.name !== 'firstmate.deck.settings' && !/\.(read|load|find|targets|list|compare|status)$/.test(c.name)));
+async function savedSettings(page) {
+  // Slice 6 now hands project enablement to the shared chooser. Retain slice 5's
+  // settings assertions after returning from that separate, read-only destination.
+  const notice = page.getByText('Your settings are saved and applied here.', { exact: true });
+  await notice.waitFor({ state: 'attached' });
+  const close = page.getByRole('button', { name: 'Close setup', exact: true });
+  if (await close.count()) await close.click();
+  await notice.waitFor();
+}
 async function capture(page, key) {
   const state = await page.evaluate(() => ({ text: document.body.innerText, overflow: document.documentElement.scrollWidth > innerWidth, calls: window.review.calls }));
   assert.equal(state.overflow, false, key + ': document overflow');
@@ -80,7 +89,7 @@ try {
         assert.equal(await page.getByRole('button', { name: 'Set up project mates', exact: true }).evaluate(el => el === document.activeElement), true, 'focus returns');
         await page.getByRole('button', { name: 'Set up project mates', exact: true }).click();
         await page.getByRole('button', { name: 'Save help settings', exact: true }).click();
-        await page.getByText('Your settings are saved and applied here.', { exact: true }).waitFor();
+        await savedSettings(page);
         const writes = await mutations(page); assert.equal(writes.length, 1); assert.equal(writes[0].name, 'firstmate.features.set');
         assert.deepEqual(writes[0].input.change.requested, { projectMates: true, planSupervisors: false, scopedActivation: false, scopeUi: true, scopeExecution: true, maintenance: false });
         await capture(page, `${theme}-${device}-project-applied`);
@@ -95,20 +104,20 @@ try {
         await capture(page, `${theme}-${device}-pilot`);
         await page.getByRole('button', { name: 'Keep existing setup', exact: true }).click();
         await page.getByRole('button', { name: 'Save help settings', exact: true }).click();
-        await page.getByText('Your settings are saved and applied here.', { exact: true }).waitFor();
+        await savedSettings(page);
         assert.ok(Object.values((await mutations(page))[0].input.change.requested).every(Boolean));
       } else if (scenario === 'partial') {
         await page.getByRole('button', { name: 'Help details', exact: true }).click();
         await page.getByRole('button', { name: 'Keep existing setup', exact: true }).click();
         await capture(page, `${theme}-${device}-partial-review`);
         await page.getByRole('button', { name: 'Save help settings', exact: true }).click();
-        await page.getByText('Your settings are saved and applied here.', { exact: true }).waitFor();
+        await savedSettings(page);
         assert.deepEqual((await mutations(page))[0].input.change.requested, { projectMates: false, planSupervisors: false, scopedActivation: false, scopeUi: false, scopeExecution: true, maintenance: false });
       } else if (scenario === 'off-review') {
         await page.getByRole('button', { name: 'Turn off project mates', exact: true }).click();
         await capture(page, `${theme}-${device}-off-review`);
         await page.getByRole('button', { name: 'Save help settings', exact: true }).click();
-        await page.getByText('Your settings are saved and applied here.', { exact: true }).waitFor();
+        await savedSettings(page);
         assert.equal((await mutations(page))[0].input.change.requested.projectMates, false);
         assert.equal((await mutations(page))[0].input.change.requested.planSupervisors, true);
       } else if (['save-failure', 'lost-reply'].includes(scenario)) {
@@ -119,11 +128,11 @@ try {
         const original = (await mutations(page))[0].input;
         if (scenario === 'lost-reply') {
           await page.getByRole('button', { name: 'Check saved settings', exact: true }).click();
-          await page.getByText('Your settings are saved and applied here.', { exact: true }).waitFor();
+          await savedSettings(page);
           assert.equal((await mutations(page)).length, 1);
         } else {
           await page.getByRole('button', { name: 'Retry exact settings save', exact: true }).click();
-          await page.getByText('Your settings are saved and applied here.', { exact: true }).waitFor();
+          await savedSettings(page);
           assert.deepEqual((await mutations(page))[1].input, original);
         }
       } else if (scenario === 'capacity') {
@@ -133,7 +142,7 @@ try {
         await capture(page, `${theme}-${device}-capacity`);
         assert.deepEqual(await mutations(page), []);
         await page.getByRole('button', { name: 'Save help settings', exact: true }).click();
-        await page.getByText('Your settings are saved and applied here.', { exact: true }).waitFor();
+        await savedSettings(page);
         assert.deepEqual((await mutations(page))[0].input.change.capacity, { slots: 6, generalHeadroom: 1 });
         assert.ok(Object.values((await mutations(page))[0].input.change.requested).every(v => !v));
       } else if (scenario === 'stale') {

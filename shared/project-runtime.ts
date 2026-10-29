@@ -29,11 +29,12 @@ const PlanAssociation = z.object({ id: z.string(), title: z.string(), backend: z
   state: z.string(), projectIds: z.array(SupervisionUuid), sponsorScopeId: SupervisionUuid.nullable(), ownerScopeId: SupervisionUuid.nullable() }).strict();
 export const ProjectRuntimeSnapshotSchema = z.object({ enabled: z.boolean(), homeId: z.string(), registryDigest: SupervisionHash.nullable(),
   pause: z.string().nullable().optional(), sequence: count, hash: SupervisionHash.nullable(), freshness: z.string(), problems: z.array(z.string()),
+  associationWarnings: z.array(z.string()).optional(),
   recovery: z.object({ sequence: count, hash: SupervisionHash.nullable() }).strict().nullable().optional(),
   general: z.object({ agentId: z.string().nullable(), scopeId: SupervisionUuid.nullable(), headroom: FeatureCapacitySchema.shape.generalHeadroom, slots: FeatureCapacitySchema.shape.slots,
     providerAvailability: z.literal("unknown") }).strict(),
   projects: z.array(z.object({ name: z.string(), projectId: SupervisionUuid.nullable(), scopeId: SupervisionUuid.nullable(), hostId: z.string().nullable(),
-    directory: z.string().nullable(), state: z.string(), reason: z.string().nullable(), version: count, aliases: z.array(z.string()),
+    directory: z.string().nullable(), registryLocation: z.string().nullable().optional(), state: z.string(), reason: z.string().nullable(), version: count, aliases: z.array(z.string()),
     agentId: z.string().nullable(), workspaceId: z.string().nullable(), provisionRequestId: SupervisionUuid.nullable(),
     provisionInput: ProjectProvisionInputSchema.nullable().optional(),
     sessions: count, turns: count, uncertain: count, memoryPending: count, profile: AgentProfileSchema.nullable(),

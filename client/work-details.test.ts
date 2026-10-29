@@ -4,16 +4,18 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { attentionTheme as theme } from "../test/attention-deck-fixture";
 import { visibleText } from "../test/visible-text";
-const state = vi.hoisted(() => ({ projects: {} as any, checks: {} as any, activation: {} as any, calls: [] as string[], fail: false, activationError: false, refreshActivation: vi.fn() }));
+const state = vi.hoisted(() => ({ projects: {} as any, checks: {} as any, activation: {} as any, calls: [] as string[], hold: null as Promise<void> | null, fail: false, activationError: false, refreshActivation: vi.fn() }));
 vi.mock("react-native", () => ({ Pressable: "Pressable", Text: "Text", View: "View" }));
 vi.mock("@getpaseo/plugin/client", () => ({ useRpc: (rpc: { name: string }) => async () => {
   state.calls.push(rpc.name);
+  await state.hold;
   if (state.fail) throw new Error("read unavailable");
   if (rpc.name === "firstmate.projects.read") return structuredClone(state.projects);
   if (rpc.name === "firstmate.maintenance.read") return structuredClone(state.checks);
   throw new Error(`Unexpected effect: ${rpc.name}`);
 } }));
-vi.mock("@getpaseo/plugin/client/react-native", () => ({ Modal: Object.assign(({ open, children }: { open: boolean; children: ReactNode }) => open ? children : null, { Content: "Content" }) }));
+vi.mock("@getpaseo/plugin/client/react-native", () => ({ Icon: () => null, Modal: Object.assign(({ open, children }: { open: boolean; children: ReactNode }) => open ? children : null, { Content: "Content" }) }));
+vi.mock("./project-setup", () => ({ ProjectSetup: (props: { open: boolean }) => props.open ? createElement("ProjectSetup", props) : null }));
 vi.mock("./workflow-plans", () => ({ useWorkflowPlans: () => ({ activation: state.activation, activationError: state.activationError, refreshActivation: state.refreshActivation }) }));
 vi.mock("./project-ownership", () => ({ ProjectOwnershipBoard: "ProjectOwnershipBoard" }));
 vi.mock("./maintenance-ownership", () => ({ MaintenanceOwnershipBoard: "MaintenanceOwnershipBoard" }));
@@ -22,7 +24,7 @@ import { WorkDetails } from "./work-details";
 let renderer: ReactTestRenderer | undefined, cache: QueryClient;
 beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-  state.calls = []; state.fail = false; state.activationError = false; state.refreshActivation.mockReset();
+  state.calls = []; state.hold = null; state.fail = false; state.activationError = false; state.refreshActivation.mockReset();
   state.activation = { enabled: true, homeId: "fixture", problems: [], plans: [], audits: [], migrations: [], dispositions: [] };
   state.projects = { enabled: true, homeId: "fixture", registryDigest: null, sequence: 0, hash: null, freshness: "uninitialized", problems: [],
     general: { agentId: null, scopeId: null, slots: 4, headroom: 1, providerAvailability: "unknown" }, projects: [] };
@@ -36,6 +38,17 @@ async function mount(always = false) {
   await vi.waitFor(async () => { await act(async () => { await new Promise(done => setTimeout(done, 10)); }); expect(cache.isFetching()).toBe(0); });
 }
 const text = () => visibleText(renderer!.toJSON());
+it("refreshing a saved snapshot is silent and keeps its ordinary button label", async () => {
+  await mount(true);
+  await act(async () => renderer!.root.find(n => n.type === "Pressable" as never).props.onPress());
+  await act(async () => { await cache.refetchQueries(); });
+  let release!: () => void; state.hold = new Promise<void>(done => { release = done; });
+  try {
+    await act(async () => renderer!.root.find(n => n.type === "Pressable" as never && n.props.accessibilityLabel === "Refresh details").props.onPress());
+    expect(cache.isFetching()).toBeGreaterThan(0);
+    expect(text()).toContain("Refresh details"); expect(text()).not.toMatch(/Refreshing|Updating/);
+  } finally { await act(async () => { release(); state.hold = null; await new Promise(done => setTimeout(done, 0)); }); }
+});
 it("enabled empty inventories use no main-screen space, while settings keeps a details entry", async () => {
   await mount(); expect(renderer!.toJSON()).toBe(null);
   await act(async () => renderer!.unmount()); await mount(true);
@@ -46,7 +59,7 @@ it("disabled controls keep a failed opening/audit reachable and opening details 
   state.activation.enabled = false; state.projects.enabled = false; state.checks.enabled = false;
   state.activation.audits = [{ at: "2026-10-29T09:00:00Z", plan: "reader", supervisor: "saved-supervisor", source: "client UI (unverified)" }];
   state.activation.plans = [{ binding: "retired", opening: "failed" }];
-  await mount(); expect(text()).toContain("Review details before continuing");
+  await mount(); expect(text()).toContain("Details"); expect(text()).not.toContain("before continuing");
   await act(async () => renderer!.root.find(n => n.type === "Pressable" as never).props.onPress());
   expect(renderer!.root.findByType("SupervisionActivationBoard" as never).props.advanced).toBe(true);
   expect(state.calls).toContain("firstmate.projects.read"); expect(state.calls).toContain("firstmate.maintenance.read");
@@ -54,8 +67,20 @@ it("disabled controls keep a failed opening/audit reachable and opening details 
 });
 it("cold read failure stays visible even with no saved inventory", async () => {
   state.fail = true; await mount();
-  expect(text()).toContain("Some work couldn't be checked");
+  expect(text()).toContain("Details"); expect(text()).not.toContain("couldn't be checked");
   expect(text()).not.toContain("No saved project mates");
+});
+it("normal project setup opportunities use one compact neutral entry, without a warning strip", async () => {
+  state.projects.projects = [{ name: "Starpath", projectId: "00000000-0000-4000-8000-000000000001", scopeId: "00000000-0000-4000-8000-000000000002", hostId: "local", directory: "C:/Starpath", state: "unadmitted", reason: "Awaiting reviewed admission and allocation.", version: 0, aliases: [], agentId: null, workspaceId: null, provisionRequestId: null, sessions: 0, turns: 0, uncertain: 0, memoryPending: 0, profile: null, limits: null, plans: [] }];
+  state.projects.problems = ["Plan old-plan has unresolved project or host membership; no ownership was guessed."];
+  await mount(); expect(text()).not.toContain("couldn't be checked"); expect(text()).not.toContain("available to set up");
+  const entry = renderer!.root.findByProps({ testID: "work-details-entry" });
+  expect(entry.props.style.borderTopWidth).toBeUndefined(); expect(text()).toContain("1");
+  await act(async () => renderer!.root.find(n => n.type === "Pressable" as never && n.props.accessibilityLabel === "Work details").props.onPress());
+  await act(async () => renderer!.root.findByType("ProjectOwnershipBoard" as never).props.onSetup({ name: "Starpath" }));
+  const destination = renderer!.root.findByType("ProjectSetup" as never);
+  expect(destination.props.initialProjectName).toBe("Starpath"); expect(destination.props.home).toBe("fixture");
+  expect(state.calls.every(name => name.endsWith(".read"))).toBe(true);
 });
 it("F1: accepted project navigation dismisses the containing details dialog", async () => {
   await mount(true);

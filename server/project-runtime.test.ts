@@ -126,7 +126,7 @@ it.each(["project", "Attach"] as const)("a stalled %s capacity lookup times out 
 }, 60000);
 it("production RPCs are registered; off and enabled reads create nothing, account every registry entry, and never provision", async () => {
   const handles: string[] = []; registerProjectRuntime({ handle: ((rpc: { name: string }) => { handles.push(rpc.name); }) as never }, make(false));
-  expect(handles).toHaveLength(6); expect(handles).toContain("firstmate.projects.recover-ui"); expect(handles).toContain("firstmate.projects.abort-ui");
+  expect(handles).toHaveLength(13); expect(handles).toContain("firstmate.projects.recover-ui"); expect(handles).toContain("firstmate.projects.abort-ui");
   expect((await service.read()).projects).toHaveLength(4);
   expect((await service.read()).projects.find(p => p.name === "remote")?.reason).toMatch(/canonical local/);
   service = make(false); const read = await service.read();
@@ -134,6 +134,16 @@ it("production RPCs are registered; off and enabled reads create nothing, accoun
   await expect(service.abort({ homeId: read.homeId, projectId: randomUUID(), projectVersion: 1, provisionRequestId: randomUUID() })).rejects.toMatchObject({ code: "UNSUPPORTED" });
   await expect(service.provision({ homeId: read.homeId, requestId: randomUUID(), projectId: randomUUID(), projectVersion: 1 }, api)).rejects.toMatchObject({ code: "UNSUPPORTED" });
   await expect(stat(join(data, "supervision"))).rejects.toMatchObject({ code: "ENOENT" }); expect(receiver.calls).toEqual([]);
+});
+it("read-only presentation metadata identifies legacy membership warnings without removing guard problems", async () => {
+  const definition = workflowFixture();
+  for (const node of definition.nodes) if (node.kind === "run") node.launch.project = "older-unlinked-project";
+  await workflowStore(home).execute({ op: "draft", definition }, randomUUID(), "general");
+  const read = await service.read();
+  expect(read.associationWarnings).toEqual(["Plan scheduler has unresolved project or host membership; no ownership was guessed."]);
+  expect(read.problems).toEqual(expect.arrayContaining(read.associationWarnings!));
+  expect(read.projects.find(p => p.name === "remote")).toMatchObject({ registryLocation: "https://example.invalid/repo", state: "held", directory: null });
+  expect(receiver.calls).toEqual([]); expect((await runtime.read(home)).sequence).toBe(0);
 });
 it("review F1: General chat and another admitted project finish while a project's native workspace call waits", async () => {
   await admit(); const read = await admit("beta"), a = read.projects.find(p => p.name === "scheduler")!, b = read.projects.find(p => p.name === "beta")!;

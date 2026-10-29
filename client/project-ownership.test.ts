@@ -15,7 +15,7 @@ import { attentionTheme as theme } from "../test/attention-deck-fixture";
 const state = vi.hoisted(() => ({ data: null as ProjectRuntimeSnapshot | null, read: vi.fn(), provision: vi.fn(), recover: vi.fn(), abort: vi.fn(), discuss: vi.fn(), canDiscuss: false }));
 vi.mock("@getpaseo/plugin/client", () => ({ useRpc: (rpc: { name: string }) => rpc.name.endsWith("provision-ui") ? state.provision : rpc.name.endsWith("recover-ui") ? state.recover : rpc.name.endsWith("abort-ui") ? state.abort : state.read }));
 vi.mock("react-native", () => ({ Pressable: "Pressable", ScrollView: "ScrollView", Text: "Text", View: "View" }));
-vi.mock("@getpaseo/plugin/client/react-native", () => ({ Modal: Object.assign(({ open, children }: { open: boolean; children: ReactNode }) => open ? children : null, { Content: "Content" }) }));
+vi.mock("@getpaseo/plugin/client/react-native", () => ({ Icon: () => null, Modal: Object.assign(({ open, children }: { open: boolean; children: ReactNode }) => open ? children : null, { Content: "Content" }) }));
 vi.mock("./workflow-plans", () => ({ useWorkflowPlans: () => ({ discussScope: state.discuss, canDiscussScope: () => state.canDiscuss }), workflowRequestId: () => "00000000-0000-4000-8000-000000000099" }));
 import { ProjectOwnershipBoard } from "./project-ownership";
 import { visibleText } from "../test/visible-text";
@@ -37,6 +37,28 @@ async function mount(extra: Partial<Parameters<typeof ProjectOwnershipBoard>[0]>
     expect(button("Project mates and plans")).toBeDefined();
   }, { timeout: 20000 });
 }
+it("keeps the live-shaped project inventory compact, with nested technical and plan disclosures", async () => {
+  const original = state.data!.projects[0]!;
+  state.data!.projects = ["Ariadne", "firstmate", "Starpath", "blahsec-business"].map((name, i) => ({ ...original, name, projectId: `00000000-0000-4000-8000-00000000000${i + 1}`, plans: i ? [] : [{ id: "older", title: "Older associated plan", backend: "legacy" as const, state: "Pending migration; project oversight only", projectIds: [original.projectId!], sponsorScopeId: null, ownerScopeId: null }] }));
+  state.data!.projects.push(...["Blahsec", "blahsec-site"].map(name => ({ ...original, name, state: "held", directory: null, registryLocation: `remote-host:/Projects/${name}`, reason: "A canonical local project directory is required." })));
+  state.data!.associationWarnings = Array.from({ length: 60 }, (_, i) => `Plan old-${i} has unresolved project or host membership; no ownership was guessed.`);
+  state.data!.problems = [...state.data!.associationWarnings];
+  await mount({ advanced: true });
+  expect(visibleText(renderer!.toJSON())).toContain("4 ready to create · 2 on another machine");
+  expect(visibleText(renderer!.toJSON())).not.toContain("Ariadne");
+  await act(async () => button("Project mates and plans").props.onPress());
+  let words = visibleText(renderer!.toJSON());
+  expect(words).toContain("Some older plans aren't linked to a project. No action needed.");
+  expect(words).not.toContain("no ownership was guessed"); expect(words).not.toContain("Stored state:"); expect(words).not.toContain("Older associated plan");
+  expect(button("Create Ariadne mate").props.disabled).toBe(false);
+  await act(async () => button("Show Ariadne details").props.onPress());
+  words = visibleText(renderer!.toJSON()); expect(words).toContain("Stored state: admitted"); expect(words).toContain("1 plan"); expect(words).not.toContain("Older associated plan");
+  await act(async () => button("Ariadne plans: 1").props.onPress());
+  expect(visibleText(renderer!.toJSON())).toContain("Older associated plan");
+  await act(async () => button("Project technical details").props.onPress());
+  expect(visibleText(renderer!.toJSON())).toContain("Plan old-59 has unresolved project or host membership");
+  expect(state.provision).not.toHaveBeenCalled(); expect(state.recover).not.toHaveBeenCalled(); expect(state.abort).not.toHaveBeenCalled();
+});
 it("opening, reading and remounting creates no session; explicit confirmation retains the request after uncertainty", async () => {
   state.provision.mockRejectedValue(new Error("reply lost")); await mount();
   await act(async () => button("Project mates and plans").props.onPress());
@@ -61,13 +83,15 @@ it("feature-off history keeps a stopped project without an agent inspectable", a
     reason: "Provisioning stopped; identity and spend retained. Inspect any uncertain operation." });
   await mount();
   await act(async () => button("Project mates and plans").props.onPress());
-  expect(visibleText(renderer!.toJSON())).toContain("identity and spend retained");
+  await act(async () => button("Show Alpha details").props.onPress());
+  expect(visibleText(renderer!.toJSON())).toContain("saved mate and spending are kept");
   expect(state.provision).not.toHaveBeenCalled(); expect(state.abort).not.toHaveBeenCalled();
 });
 it("F1: dismisses details after a checked discussion route and keeps it open if eligibility changed", async () => {
   const order: string[] = [], onNavigate = vi.fn(() => order.push("dismiss"));
   state.canDiscuss = true; state.discuss.mockImplementation(() => order.push("discuss"));
   await mount({ onNavigate }); await act(async () => button("Project mates and plans").props.onPress());
+  await act(async () => button("Show Alpha details").props.onPress());
   const discuss = button("Discuss Alpha scope").props.onPress;
   state.canDiscuss = false;
   await act(async () => discuss());
@@ -86,6 +110,27 @@ it("F1: native conversation navigation preserves the host and agent before dismi
   await act(async () => button("Open Alpha conversation").props.onPress());
   expect(openAgent).toHaveBeenCalledExactlyOnceWith({ agentId: "recorded-agent", serverId: "other-host" });
   expect(order).toEqual(["open", "dismiss"]); expect(state.provision).not.toHaveBeenCalled();
+});
+it("shows concrete per-project blockers and opens the shared setup for the ready project without provisioning", async () => {
+  const ready = { ...state.data!.projects[0]!, name: "Starpath", state: "unadmitted", version: 0, profile: null, limits: null, reason: "Awaiting reviewed admission and allocation." };
+  const remote = { ...ready, name: "Ariadne", projectId: null, scopeId: null, hostId: null, directory: null, registryLocation: "ariadne-dev:/home/ariadne/Projects/Aradne", state: "held", reason: "A canonical local project directory is required; URLs and remote locations need explicit mapping." };
+  const missing = { ...remote, name: "FirstMate", registryLocation: "C:/Projects/firstmate (clone of https://example.test/repository)", reason: "Project directory is unavailable; identity was not guessed." };
+  state.data!.projects = [remote, missing, ready]; state.data!.freshness = "uninitialized"; state.data!.sequence = 0; state.data!.hash = null;
+  state.data!.problems = ["Plan old-plan has unresolved project or host membership; no ownership was guessed."];
+  const onSetup = vi.fn(); await mount({ advanced: true, onSetup });
+  expect(button("Project mates and plans").props.accessibilityState.expanded).toBe(false);
+  await act(async () => button("Project mates and plans").props.onPress());
+  await act(async () => button("Show Ariadne details").props.onPress());
+  expect(visibleText(renderer!.toJSON())).toContain("another computer (ariadne-dev)");
+  expect(visibleText(renderer!.toJSON())).toContain("ariadne-dev:/home/ariadne/Projects/Aradne");
+  await act(async () => button("Show FirstMate details").props.onPress());
+  const words = visibleText(renderer!.toJSON());
+  expect(words).toContain("On another machine");
+  expect(words).toContain("Folder not found: C:/Projects/firstmate"); expect(words).toContain("clone note");
+  expect(words).not.toContain("need review"); expect(words).not.toContain("couldn't be checked"); expect(words).not.toContain("refresh before continuing");
+  expect(button("Set up a mate for Starpath").props.disabled).toBe(false);
+  await act(async () => button("Set up a mate for Starpath").props.onPress());
+  expect(onSetup).toHaveBeenCalledExactlyOnceWith(ready); expect(state.provision).not.toHaveBeenCalled();
 });
 
 it.each(["mounted", "remounted", "stop"])("review F2: %s app repairs through the production RPC and resumes the same recorded input", async mode => {
@@ -130,7 +175,10 @@ it.each(["mounted", "remounted", "stop"])("review F2: %s app repairs through the
     expect(button("Recover project records").props.disabled).toBe(false);
     await act(async () => { button("Recover project records").props.onPress(); await state.recover.mock.results.at(-1)!.value; await cache.refetchQueries(); await new Promise(done => setTimeout(done, 20)); });
     expect(state.recover).toHaveBeenCalledTimes(1); expect(receiver.calls).toHaveLength(0);
-    if (mode === "remounted") await act(async () => button("Resume Alpha mate").props.onPress());
+    if (mode === "remounted") {
+      await act(async () => button("Show Alpha details").props.onPress());
+      await act(async () => button("Resume Alpha mate").props.onPress());
+    }
     if (mode === "stop") receiver.faults.send = ["lose"];
     await act(async () => { button(mode !== "remounted" ? "Resume recorded request" : "Resume project provisioning").props.onPress(); await state.provision.mock.results.at(-1)!.value; await new Promise(done => setTimeout(done, 20)); });
     expect(state.provision.mock.calls[1]![0]).toEqual(input);

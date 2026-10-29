@@ -49,6 +49,7 @@ try{
   const key=`${theme}-${device}-${scenario}-${stage}`,evidence={};
   if(scenario==='discuss'){
    await page.getByRole('button',{name:'Project mates and plans',exact:true}).click();
+   if(stage==='after')await page.getByRole('button',{name:'Show Reader details',exact:true}).first().click();
    await page.getByRole('button',{name:'Discuss Reader scope',exact:true}).click();
    if(stage==='after')await page.getByRole('dialog',{name:'Work details',exact:true}).waitFor({state:'hidden'});
    evidence.navigation=await page.evaluate(()=>window.review.navigation);

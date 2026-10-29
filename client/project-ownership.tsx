@@ -1,14 +1,15 @@
 import type { PluginTheme } from "@getpaseo/plugin";
 import type { PluginScreenProps } from "@getpaseo/plugin/client";
 import { useRpc } from "@getpaseo/plugin/client";
-import { Modal } from "@getpaseo/plugin/client/react-native";
+import { Icon, Modal } from "@getpaseo/plugin/client/react-native";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { ProjectRuntimeSnapshotSchema, provisionProjectFromUi, recoverProjectRuntimeFromUi, abortProjectProvisionFromUi, readProjectMemory, readProjectRuntime, type ProjectRuntimeSnapshot } from "../shared/project-runtime";
 import { workflowRequestId, useWorkflowPlans } from "./workflow-plans";
 import { errorText } from "./format";
-import { projectHasHistory, projectHasProblem, projectSetupAvailable } from "./ownership-state";
+import { projectHasHistory, projectSetupAvailable } from "./ownership-state";
+import { projectReadiness, projectReadProblems, projectSetupReadable, projectReadyToCreate, projectAssociationWarnings } from "./project-readiness";
 type Project = ProjectRuntimeSnapshot["projects"][number];
 function Action({ theme, label, onPress, disabled = false }: { theme: PluginTheme; label: string; onPress(): void; disabled?: boolean }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress}
@@ -16,8 +17,8 @@ function Action({ theme, label, onPress, disabled = false }: { theme: PluginThem
     <Text style={{ color: theme.colors.foreground, fontSize: 13, flexShrink: 1 }}>{label}</Text>
   </Pressable>;
 }
-export function ProjectOwnershipBoard({ theme, compact, navigation, hostId = "local", advanced = false, onNavigate }: {
-  theme: PluginTheme; compact: boolean; navigation?: PluginScreenProps["navigation"]; hostId?: string; advanced?: boolean; onNavigate?(): void;
+export function ProjectOwnershipBoard({ theme, compact, navigation, hostId = "local", advanced = false, onNavigate, onSetup }: {
+  theme: PluginTheme; compact: boolean; navigation?: PluginScreenProps["navigation"]; hostId?: string; advanced?: boolean; onNavigate?(): void; onSetup?(project: Project): void;
 }) {
   const read = useRpc(readProjectRuntime), provision = useRpc(provisionProjectFromUi);
   const plans = useWorkflowPlans();
@@ -64,6 +65,7 @@ export function ProjectOwnershipBoard({ theme, compact, navigation, hostId = "lo
   }
   return <>
     <ProjectOwnershipView theme={theme} compact={compact} data={data} readError={query.isError} onRefresh={() => { void query.refetch(); }}
+      {...(onSetup ? { onSetup } : {})}
       {...(!selected ? { onRecover: () => { void repair(); }, recoveryBusy: busy } : {})}
       onProvision={p => { pending.current = null; setError(null); select(p); }}
       onDiscuss={p => { if (p.scopeId && plans.canDiscussScope?.(p.scopeId, data.homeId) && plans.discussScope) { plans.discussScope(p.scopeId, data.homeId); onNavigate?.(); } }} canDiscuss={p => !!p.scopeId && !!plans.canDiscussScope?.(p.scopeId, data.homeId)}
@@ -88,51 +90,74 @@ export function ProjectOwnershipBoard({ theme, compact, navigation, hostId = "lo
     </Modal> : null}
   </>;
 }
-export function ProjectOwnershipView({ theme, compact, data, readError = false, onRefresh, onProvision, onOpen, onRecover, recoveryBusy = false, onDiscuss, canDiscuss }: {
+export function ProjectOwnershipView({ theme, compact, data, readError = false, onRefresh, onProvision, onOpen, onRecover, recoveryBusy = false, onDiscuss, canDiscuss, onSetup, initiallyExpanded = false }: {
   theme: PluginTheme; compact: boolean; data: ProjectRuntimeSnapshot; readError?: boolean; onRefresh(): void; onProvision(p: Project): void; onOpen?: ((p: Project) => void) | undefined;
   onRecover?: () => void; recoveryBusy?: boolean;
   onDiscuss?: (p: Project) => void; canDiscuss?: (p: Project) => boolean;
+  onSetup?: (p: Project) => void; initiallyExpanded?: boolean;
 }) {
-  const [expanded, expand] = useState(false), [memoryProject, setMemory] = useState<Project | null>(null), colors = theme.colors;
-  const stale = readError || data.freshness !== "current";
+  const [expanded, expand] = useState(initiallyExpanded), [memoryProject, setMemory] = useState<Project | null>(null), [technical, showTechnical] = useState<string | null>(null), colors = theme.colors;
+  const [globalDetails, showGlobalDetails] = useState(false), [planList, showPlanList] = useState<string | null>(null);
+  const stale = readError || data.freshness !== "current" || !!projectReadProblems(data).length;
   const available = data.projects.filter(projectSetupAvailable).length;
-  const held = data.projects.filter(projectHasProblem).length;
+  const problems = projectReadProblems(data);
+  const warnings = projectAssociationWarnings(data);
+  const ready = data.projects.filter(projectReadyToCreate).length, remote = data.projects.filter(p => projectReadiness(p).label.startsWith("On another machine")).length;
+  const missing = data.projects.filter(p => ["Folder not found", "Not a folder", "Local folder needed"].includes(projectReadiness(p).label)).length;
+  const active = data.projects.filter(p => projectReadiness(p).label === "Mate active").length;
+  const summary = [ready ? `${ready} ready to create` : "", available ? `${available} ready to set up` : "", active ? `${active} ${active === 1 ? "mate active" : "mates active"}` : "", remote ? `${remote} on another machine` : "", missing ? `${missing} ${missing === 1 ? "folder needs fixing" : "folders need fixing"}` : ""].filter(Boolean).join(" · ");
   return <View testID="project-ownership" style={{ borderBottomWidth: 1, borderColor: colors.border, padding: compact ? 12 : 16, gap: 8 }}>
     <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-      <Pressable accessibilityRole="button" accessibilityLabel="Project mates and plans" accessibilityState={{ expanded }} onPress={() => expand(!expanded)} style={{ minHeight: 44, justifyContent: "center", flexGrow: 1, flexShrink: 1, minWidth: 0, flexBasis: "100%" }}>
-        <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "600" }}>Project mates{available ? ` · ${available} available to set up` : ""}{held ? ` · ${held} need review` : ""}</Text>
+      <Pressable accessibilityRole="button" accessibilityLabel="Project mates and plans" accessibilityState={{ expanded }} aria-expanded={expanded} onPress={() => expand(!expanded)} style={{ minHeight: 44, flexDirection: "row", alignItems: "center", gap: 8, flexGrow: 1, flexShrink: 1, minWidth: 0, flexBasis: "100%" }}>
+        <Icon name={expanded ? "ChevronDown" : "ChevronRight"} size={18} color={colors.foregroundMuted} />
+        <View style={{ flex: 1, gap: 3 }}><Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "600" }}>Project mates</Text>
+          {summary ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{summary}</Text> : null}</View>
       </Pressable>
-      {expanded ? <Action theme={theme} label="Refresh projects" onPress={onRefresh} /> : null}
     </View>
     {data.pause ? <Text accessibilityLiveRegion="polite" style={{ color: colors.foregroundMuted }}>{data.pause}</Text> : null}
     {readError ? <Text accessibilityRole="alert" style={{ color: colors.statusDanger }}>Project status could not be refreshed. Showing the last received census; actions are unavailable.</Text> : null}
-    {data.problems.length || data.freshness === "held" ? <Text accessibilityRole="alert" style={{ color: colors.statusWarning }}>Some projects couldn't be checked. Open project details and refresh before continuing.</Text> : null}
     {expanded ? <>
-      {data.problems.map((p, i) => <Text key={i} accessibilityRole="alert" style={{ color: colors.statusWarning }}>{p}</Text>)}
+      {problems.map((p, i) => <Text key={i} accessibilityRole="alert" style={{ color: colors.statusWarning }}>{p}</Text>)}
       {data.recovery && onRecover ? <View style={{ gap: 8 }}><Text style={{ color: colors.foregroundMuted }}>Recover the inspected project records before resuming. Recovery validates history and creates no workspace, agent or turn.</Text>
         <Action theme={theme} label="Recover project records" disabled={!data.enabled || readError || recoveryBusy} onPress={onRecover} /></View> : null}
-      <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>General retains {data.general.headroom} of {data.general.slots} plugin admission slots. Provider capacity is unknown.</Text>
+      {warnings.length ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>Some older plans aren't linked to a project. No action needed.</Text> : null}
+      <Pressable accessibilityRole="button" accessibilityLabel="Project technical details" accessibilityState={{ expanded: globalDetails }} aria-expanded={globalDetails} onPress={() => showGlobalDetails(!globalDetails)} style={{ minHeight: 44, flexDirection: "row", gap: 6, alignItems: "center" }}>
+        <Icon name={globalDetails ? "ChevronDown" : "ChevronRight"} size={14} color={colors.foregroundMuted} /><Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>Technical details</Text>
+      </Pressable>
+      {globalDetails ? <View style={{ gap: 6 }}><Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>General retains {data.general.headroom} of {data.general.slots} plugin admission slots. Provider capacity is unknown.</Text>
+        {warnings.map((warning, i) => <Text key={i} style={{ color: colors.foregroundMuted, fontSize: 12 }}>{warning}</Text>)}
+        <Action theme={theme} label="Refresh projects" onPress={onRefresh} /></View> : null}
       {!data.projects.length && !data.problems.length && !readError && (data.freshness === "current" || data.freshness === "uninitialized") ? <Text style={{ color: colors.foregroundMuted }}>No projects have been set up.</Text> : null}
       <View style={{ gap: 16 }}>
-        {data.projects.map((p, i) => <View key={`${p.projectId ?? p.name}:${i}`} style={{ gap: 6 }}>
-          <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "600" }}>{p.name} · {projectSetupAvailable(p) ? "Review this project's setup" : p.state}{p.agentId ? " · mate reserved" : ""}</Text>
-          {p.reason && !projectSetupAvailable(p) ? <Text style={{ color: colors.foregroundMuted, fontSize: 13 }}>{p.reason} Review the saved details before resuming.</Text> : null}
+        {data.projects.map((p, i) => { const readiness = projectReadiness(p), key = `${p.projectId ?? p.name}:${i}`; return <View key={key} style={{ gap: 6 }}>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+            <View style={{ flex: 1, minWidth: 100, gap: 3 }}><Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "600" }}>{p.name}</Text><Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{readiness.label}</Text></View>
+            {projectReadyToCreate(p) ? <Action theme={theme} label={`Create ${p.name} mate`} disabled={!data.enabled || stale} onPress={() => onProvision(p)} /> : null}
+            {onSetup && readiness.setup ? <Action theme={theme} label={`Set up a mate for ${p.name}`} disabled={!projectSetupReadable(data, readError)} onPress={() => onSetup(p)} /> : null}
+            {onSetup && readiness.inspect ? <Action theme={theme} label={`Open ${p.name} setup`} disabled={readError} onPress={() => onSetup(p)} /> : null}
+            {p.agentId && p.workspaceId && onOpen ? <Action theme={theme} label={`Open ${p.name} conversation`} onPress={() => onOpen(p)} /> : null}
+            <Pressable accessibilityRole="button" accessibilityLabel={`${technical === key ? "Hide" : "Show"} ${p.name} details`} accessibilityState={{ expanded: technical === key }} aria-expanded={technical === key} onPress={() => showTechnical(technical === key ? null : key)} style={{ minHeight: 44, minWidth: 44, paddingHorizontal: 6, flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>Details</Text><Icon name={technical === key ? "ChevronDown" : "ChevronRight"} size={14} color={colors.foregroundMuted} /></Pressable>
+          </View>
+          {technical === key ? <View style={{ gap: 6 }}>
+          <Text selectable style={{ color: colors.foregroundMuted, fontSize: 13 }}>{readiness.description}</Text>
           <Text selectable style={{ color: colors.foregroundMuted, fontSize: 12 }}>Stored state: {p.state} · version {p.version} · project {p.projectId ?? "not recorded"} · scope {p.scopeId ?? "not recorded"}{p.reason ? ` · ${p.reason}` : ""}</Text>
-          <Text selectable style={{ color: colors.foregroundMuted, fontSize: 12 }}>{p.hostId ?? "Host not recorded"} · {p.directory ?? "Folder not recorded"}</Text>
+          <Text selectable style={{ color: colors.foregroundMuted, fontSize: 12 }}>{p.hostId ?? "Host not recorded"} · {p.directory ?? p.registryLocation ?? "Folder not recorded"}</Text>
           {p.agentId ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{p.sessions} sessions · {p.turns} turns spent{p.uncertain ? ` · ${p.uncertain} uncertain` : ""}</Text> : null}
-          {p.plans.map(plan => <View key={plan.id} style={{ gap: 2 }}>
+          {p.plans.length ? <Pressable accessibilityRole="button" accessibilityLabel={`${p.name} plans: ${p.plans.length}`} accessibilityState={{ expanded: planList === key }} aria-expanded={planList === key} onPress={() => showPlanList(planList === key ? null : key)} style={{ minHeight: 44, flexDirection: "row", alignItems: "center", gap: 6 }}><Icon name={planList === key ? "ChevronDown" : "ChevronRight"} size={14} color={colors.foregroundMuted} /><Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{p.plans.length} {p.plans.length === 1 ? "plan" : "plans"}</Text></Pressable> : null}
+          {planList === key ? p.plans.map(plan => <View key={plan.id} style={{ gap: 2 }}>
             <Text style={{ color: colors.foreground, fontSize: 13 }}>{plan.title}</Text>
             <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{plan.state}{plan.projectIds.length > 1 ? " · shared across projects" : ""}{plan.sponsorScopeId ? ` · sponsor ${plan.sponsorScopeId === data.general.scopeId ? "FirstMate" : data.projects.find(p => p.scopeId === plan.sponsorScopeId)?.name ?? plan.sponsorScopeId.slice(0, 8)}` : ""}{plan.ownerScopeId ? ` · execution scope ${plan.ownerScopeId.slice(0, 8)}` : ""}</Text>
-          </View>)}
+          </View>) : null}
           {!p.plans.length ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>No associated plans in the stored inventory.</Text> : null}
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-            {p.agentId && p.workspaceId && onOpen ? <Action theme={theme} label={`Open ${p.name} conversation`} onPress={() => onOpen(p)} /> : null}
             {canDiscuss?.(p) && onDiscuss ? <Action theme={theme} label={`Discuss ${p.name} scope`} onPress={() => onDiscuss(p)} /> : null}
             {p.version > 0 ? <Action theme={theme} label={`Read ${p.name} memory${p.memoryPending ? ` (${p.memoryPending} proposals)` : ""}`} onPress={() => setMemory(p)} /> : null}
-            {data.enabled && p.profile && p.state === "admitted" && (!p.provisionRequestId && !p.agentId || p.reason?.startsWith("Provisioning incomplete")) ?
+            {!projectReadyToCreate(p) && data.enabled && p.profile && p.state === "admitted" && (!p.provisionRequestId && !p.agentId || p.reason?.startsWith("Provisioning incomplete")) ?
               <Action theme={theme} label={`${p.provisionRequestId ? "Resume" : "Create"} ${p.name} mate`} disabled={stale || !!p.reason && !p.reason.startsWith("Provisioning incomplete")} onPress={() => onProvision(p)} /> : null}
           </View>
-        </View>)}
+          </View> : null}
+        </View>; })}
       </View>
     </> : null}
     {memoryProject?.projectId ? <ProjectMemoryView theme={theme} homeId={data.homeId} project={memoryProject} onClose={() => setMemory(null)} /> : null}
