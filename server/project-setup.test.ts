@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, readdir, rename, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, realpath, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { ProjectRuntime } from "./project-runtime";
@@ -108,7 +108,7 @@ it("corrects the reviewed missing unadmitted row without creating work, then req
   expect(issue).toMatchObject({ name: "alpha", location: missing, canReplace: true });
   const fixed = await service.folder({ homeId: catalog.snapshot.homeId, registryDigest: catalog.snapshot.registryDigest!, name: "alpha", replace: { location: issue.location, rowDigest: issue.rowDigest } });
   expect(fixed.projects).toHaveLength(1); expect(fixed.projects[0]?.directory).toBeTruthy();
-  expect(await readFile(join(home, "data/projects.md"), "utf8")).toBe(`# Projects\n- alpha [worktree +yolo] - ${join(home, "extra")} - Keep this description\n`);
+  expect(await readFile(join(home, "data/projects.md"), "utf8")).toBe(`# Projects\n- alpha [worktree +yolo] - ${await realpath(join(home, "extra"))} - Keep this description\n`);
   expect(receiver.calls).toEqual([]); expect((await runtime.read(home)).freshness).toBe("uninitialized");
   expect((await service.preview(await choices(), api)).reasons).toEqual([]);
 });
