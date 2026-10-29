@@ -9,6 +9,8 @@ import assert from 'node:assert/strict';
 const here = dirname(fileURLToPath(import.meta.url)), root = resolve(here, '../..'), out = resolve(root, '.local/smooth-pr6/ui');
 const repo = createRequire(resolve(root, 'package.json')), local = createRequire(resolve(root, 'docs/board-list/package.json'));
 const { build } = local('esbuild'), { chromium } = local('playwright'), baseline = '9c3485e';
+// The reviewed 8f05e974 component's blob also belongs to the rebased ancestor; pin content across rebases.
+const reviewBaselineBlob = 'e433ca0f0072b4aeba4e86a34030ea0c31a4585c';
 await mkdir(resolve(out, 'screenshots'), { recursive: true });
 for (const stage of ['before', 'after', 'review-before']) await build({ entryPoints: [resolve(here, 'panel.jsx')], outfile: resolve(out, stage + '.js'), bundle: true,
   jsx: 'automatic', logLevel: 'warning', define: { 'process.env.NODE_ENV': '"development"' }, plugins: [{ name: 'setup-fixture', setup(b) {
@@ -22,7 +24,7 @@ for (const stage of ['before', 'after', 'review-before']) await build({ entryPoi
       contents: execFileSync('git', ['show', `${baseline}:${relative(root, a.path).replaceAll('\\', '/')}`], { cwd: root, encoding: 'utf8' }), loader: 'tsx',
     }));
     if (stage === 'review-before') b.onLoad({ filter: /[\\/]client[\\/]project-setup\.tsx$/ }, a => ({
-      contents: execFileSync('git', ['show', `8f05e974:${relative(root, a.path).replaceAll('\\', '/')}`], { cwd: root, encoding: 'utf8' }), loader: 'tsx',
+      contents: execFileSync('git', ['show', reviewBaselineBlob], { cwd: root, encoding: 'utf8' }), loader: 'tsx',
     }));
   } }] });
 const server = createServer(async (req, res) => {
