@@ -1,8 +1,8 @@
-/** Prepared app transport. Intentionally not registered in index.server.ts in slice 3.
- * Even explicit registration cannot save until fresh runtime effect guards ship in slice 4. */
+/** App transport. Saves require the installed live policy/fence, never a caller actor or bypass. */
+import { FeaturePolicyRuntime } from "./feature-policy-runtime";
 import type { PluginServerContext } from "@getpaseo/plugin/server";
 import { isAbsolute } from "node:path";
-import { FeatureReadResultSchema, FeatureSetInputSchema, readFeatureSettings, setFeatureSettings,
+import { featurePause, FeatureReadResultSchema, FeatureSetInputSchema, readFeatureSettings, setFeatureSettings,
   type FeatureInventory, type FeatureSetInput } from "../shared/feature-settings";
 import type { SupervisionStatus } from "../shared/supervision";
 import { FeatureSettingsError, FeatureSettingsStore, type LegacyFeatureSettings } from "./feature-settings";
@@ -25,6 +25,8 @@ export function featureInventory(status: SupervisionStatus): FeatureInventory {
 export interface FeatureSettingsDependencies {
   home(): Promise<string>;
   legacy?: LegacyFeatureSettings;
+  runtime?: FeaturePolicyRuntime;
+  changed?(home: string): Promise<void>;
   readInventory?(home: string): Promise<SupervisionStatus>;
 }
 export class FeatureSettingsService {
@@ -40,23 +42,29 @@ export class FeatureSettingsService {
   }
   async read(input: { home: string }) {
     const current = await this.guard(input.home);
-    const policy = await new FeatureSettingsStore(this.root, current, this.deps.legacy).read();
-    let inventory: FeatureInventory;
+    const policy = await (this.deps.runtime?.read(current) ?? new FeatureSettingsStore(this.root, current, this.deps.legacy).read());
+    let inventory: FeatureInventory, pause: string | null = null;
     try {
       const status = await (this.deps.readInventory?.(current) ?? this.reader.read(current));
       if (status.homeId !== policy.homeId) throw new Error("The saved-work inventory belongs to a different home.");
       inventory = featureInventory(status);
+      pause = featurePause(status, policy.effective);
     } catch {
       inventory = { complete: false, coverage: [], sequence: null, active: null, pending: null, uncertain: null,
         problems: ["Saved work couldn't be checked. Keep the existing setup and try reading again.", missingCoverage] };
     }
     await this.guard(current);
-    return FeatureReadResultSchema.parse({ ...policy, inventory });
+    return FeatureReadResultSchema.parse({ ...policy, inventory, pause });
   }
-  async set(input: FeatureSetInput): Promise<never> {
+  async set(input: FeatureSetInput) {
     const request = FeatureSetInputSchema.parse(input);
     await this.guard(request.home);
-    // Never accept a caller actor/role or expose a boolean bypass for this prerequisite.
+    if (this.deps.runtime) {
+      const result = await this.deps.runtime.set(request, () => this.guard(request.home));
+      await this.deps.changed?.(request.home).catch(error => console.error("[firstmate] helper availability:", error));
+      return result;
+    }
+    // No caller boolean bypass: only the installed server-owned policy can unlock saves.
     throw new FeatureSettingsError("HELD", "In-app feature changes are not available yet. Your existing setup stays in use.");
   }
 }

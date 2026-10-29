@@ -1,3 +1,4 @@
+import { FEATURE_CAPABILITIES } from "./feature-settings";
 /** Scoped storage/status contracts. No transport or session activation is installed. */
 import { z } from "zod";
 import { PlanId, type WorkflowPlan } from "./workflow-plans";
@@ -47,6 +48,8 @@ export const SupervisionBindingSchema = z.object({
 }).strict().refine(b => b.workspaceId !== null || (b.workspaceIntent !== undefined && b.state !== "active"),
   "An unverified binding needs a workspace intent and cannot be active.");
 export const SupervisionEffectSchema = z.object({
+  /** The reserving capability/revision survives pause, resume and another service's dispatch. */
+  featurePolicy: z.object({ capability: z.enum(FEATURE_CAPABILITIES), revision: z.number().int().nonnegative() }).strict().optional(),
   id: SupervisionUuid, logicalKey: text(1024), requestId: SupervisionUuid, requestHash: SupervisionHash,
   scopeId: SupervisionUuid, epoch: positive, attemptId: SupervisionUuid.nullable(), operation: text(),
   planRevision: positive.nullable(), subjectHash: SupervisionHash,

@@ -1,3 +1,4 @@
+import { featurePause } from "../shared/feature-settings";
 /** Build A production service. No background model turns, attach path or worker dispatcher. */
 import { readFile, readdir, realpath, stat } from "node:fs/promises";
 import { z } from "zod";
@@ -89,17 +90,21 @@ export class ProjectRuntime {
     if (!Number.isSafeInteger(this.slots) || !Number.isSafeInteger(this.headroom) || this.headroom < 1 || this.slots <= this.headroom)
       throw new Error("Project slots must leave at least one configured General slot.");
   }
+  private capacity(home: string) { return this.runtime.features?.capacity(home) ?? Promise.resolve({ slots: this.slots, generalHeadroom: this.headroom }); }
   private config() { return (this.options.config ?? readFirstmateConfig)(); }
-  private async checkedConfig(homeId: string, generalId?: string) {
-    if (!this.options.enabled) refuse("UNSUPPORTED", "Project mates are disabled; no store or session was created.");
+  private async checkedConfig(homeId: string, generalId?: string, settlement = false) {
+    if (!this.options.enabled && !this.runtime.features) refuse("UNSUPPORTED", "Project mates are disabled; no store or session was created.");
     const config = await this.config(); requireNoMigration(config); const home = resolveHome(config);
     if (homeId !== workflowHomeIdentity(home) || generalId !== undefined && generalId !== config.mateAgentId)
       refuse("STALE", "Home or General ownership changed; refresh before acting.");
+    if (!settlement) await this.runtime.features?.check(home, "projectMates");
+    else if (this.runtime.features && !(await this.runtime.features.read(home)).effective.projectMates &&
+      (await this.runtime.read(home)).freshness === "uninitialized") refuse("UNSUPPORTED", "There is no saved work to check for this paused help.");
     return { config, home };
   }
   /** Uses the existing workflow clock, outside its lifecycle lock; no second timer or model wake. */
   async processRequests() {
-    if (!this.options.enabled) return;
+    if (!this.options.enabled && !this.runtime.features) return;
     const config = await this.config(), home = resolveHome(config);
     if (config.migration || config.mateLaunch) return;
     const { absolute: directory } = await resolveInHome(home, "data/project-requests");
@@ -139,17 +144,21 @@ export class ProjectRuntime {
   }
   async read(): Promise<ProjectRuntimeSnapshot> {
     const { config, status, catalog, legacy, problems } = await this.inputs();
+    const policy = await this.runtime.features?.read(status.homeId);
+    const capacity = policy?.capacity ?? { slots: this.slots, generalHeadroom: this.headroom };
+    if (policy) problems.push(...policy.problems);
     const associations = planAssociations(status, legacy, catalog.rows);
     for (const plan of associations.filter(p => !p.projectIds.length)) problems.push(`Plan ${plan.id} has unresolved project or host membership; no ownership was guessed.`);
     const rows = [...catalog.rows];
     for (const p of status.projects?.projects ?? []) if (!rows.some(r => r.projectId === p.id)) rows.push({ name: p.name, directory: p.owner?.directory ?? null,
       projectId: p.id, scopeId: p.scopeId, reason: "Admitted project is absent from the current registry; retained for reconciliation." });
-    return ProjectRuntimeSnapshotSchema.parse({ enabled: !!this.options.enabled, homeId: status.homeId, registryDigest: catalog.digest,
+    return ProjectRuntimeSnapshotSchema.parse({ enabled: policy?.effective.projectMates ?? !!this.options.enabled, homeId: status.homeId, registryDigest: catalog.digest,
+      pause: policy ? featurePause(status, policy.effective, "project") : null,
       sequence: status.sequence, hash: status.hash, freshness: status.freshness, problems: [...status.problems, ...problems],
       recovery: status.problems.length && status.problems.every(p => p.startsWith("Checkpoint validation failed;") || p === "Final transaction awaits publication.")
         ? { sequence: status.sequence, hash: status.hash } : null,
       general: { agentId: config.mateAgentId || null, scopeId: status.scopes.find(s => s.kind === "general")?.id ?? null,
-        headroom: this.headroom, slots: this.slots, providerAvailability: "unknown" },
+        headroom: capacity.generalHeadroom, slots: capacity.slots, providerAvailability: "unknown" },
       projects: rows.map(row => {
         const project = status.projects?.projects.find(p => p.id === row.projectId), scope = status.scopes.find(s => s.id === project?.scopeId),
           binding = status.bindings.find(b => b.scopeId === scope?.id), spend = scope ? supervisorSpend(status, scope.id) : { sessions: 0, turns: 0, uncertain: 0 };
@@ -168,25 +177,27 @@ export class ProjectRuntime {
           plans: associations.filter(a => row.projectId && a.projectIds.includes(row.projectId)) };
       }) });
   }
-  private mutate<T>(homeId: string, run: (home: string, store: SupervisionStore, config: Awaited<ReturnType<typeof readFirstmateConfig>>) => Promise<T>, independent = false) {
+  private mutate<T>(homeId: string, run: (home: string, store: SupervisionStore, config: Awaited<ReturnType<typeof readFirstmateConfig>>) => Promise<T>, independent = false, settlement = false, admission = false) {
     const work = async () => {
-      const { config, home } = await this.checkedConfig(homeId);
+      const { config, home } = await this.checkedConfig(homeId, undefined, settlement);
       return this.runtime.mutate(home, async store => {
         if ((await store.read()).problems.includes("Final transaction awaits publication.")) await store.recoverPublication();
-        await store.enableLongLived(); return run(home, store, config);
+        await store.enableLongLived();
+        const commit = async () => { await this.checkedConfig(homeId, config.mateAgentId, settlement); return run(home, store, config); };
+        return admission && this.runtime.features ? this.runtime.features.boundary(home, commit) : commit();
       }, true);
     };
     // Mate-authored administration keeps its role lock. Project app work never borrows General's conversation queue.
     return independent ? work() : oneAtATime(work);
   }
   async recover(input: { homeId: string; sequence: number; hash: string | null }) {
-    const { home } = await this.checkedConfig(input.homeId), observed = await this.runtime.read(home);
+    const { home } = await this.checkedConfig(input.homeId, undefined, true), observed = await this.runtime.read(home);
     if (observed.freshness === "uninitialized") refuse("HELD", "There are no recorded project records to recover.");
     if (observed.sequence !== input.sequence || observed.hash !== input.hash) refuse("STALE", "Recovery observation changed; refresh and inspect again.");
     if (observed.freshness !== "current" && !observed.problems.every(p => p.startsWith("Checkpoint validation failed;") || p === "Final transaction awaits publication."))
       refuse("HELD", "Authority history needs deliberate reconciliation; app recovery cannot reconstruct it.");
     await this.runtime.mutate(home, async store => {
-      await this.checkedConfig(input.homeId);
+      await this.checkedConfig(input.homeId, undefined, true);
       const current = await store.read();
       if (current.sequence !== input.sequence || current.hash !== input.hash) refuse("STALE", "Recovery observation changed; refresh and inspect again.");
       if (current.problems.includes("Final transaction awaits publication.")) await store.recoverPublication(input);
@@ -211,11 +222,12 @@ export class ProjectRuntime {
             { kind: "scope" as const, value: { ...scope, state: "transferring" as const, version: scope.version + 1 } }] : [])];
         return { mutations, expectedVersions: expected(status, mutations), result };
       });
-    }, true);
+    }, true, true);
     return this.read();
   }
   async admin(input: { homeId: string; requestId: string; actorId: string; command: ProjectAdmin }) {
     const command = ProjectAdminSchema.parse(input.command);
+    const settlement = command.op === "release-sponsor" || command.op === "project" && command.state === "stopped";
     const observedConfig = await this.config();
     if (!observedConfig.mateAgentId || observedConfig.mateAgentId !== input.actorId) refuse("UNKNOWN_OWNER", "Current first-mate role required for recorded project administration.");
     await this.mutate(input.homeId, async (home, store, config) => {
@@ -259,7 +271,7 @@ export class ProjectRuntime {
         case "memory-propose": await memory.propose(actor, data as Parameters<typeof memory.propose>[1], input.requestId); break;
         case "memory-decide": await memory.decide(input.requestId, actor, data as Parameters<typeof memory.decide>[2]); break;
       }
-    });
+    }, false, settlement, true);
     return this.read();
   }
   private async admit(home: string, store: SupervisionStore, requestId: string, actor: SupervisionActor, input: Extract<ProjectAdmin, { op: "admit" }>, generalId: string) {
@@ -270,6 +282,7 @@ export class ProjectRuntime {
     if (digest(input.source.provenance) !== digest(actor)) refuse("CONFLICT", "Reviewed source must retain the adapter's unverified mate-chat provenance.");
     await acceptPolicyInventory(store, home, stableId("project-source", requestId), actor, { sources: [input.source], rules: [], reviewedHolds: [] }, true);
     await store.transactCommand(stableId("project-scopes", requestId), digest(input), actor, async status => {
+      await this.checkedConfig(store.homeId, generalId);
       const mutations = [], general = status.scopes.filter(s => s.kind === "general");
       if (general.length > 1 || general.length === 1 && general[0]!.id !== generalScopeId(home)) refuse("CONFLICT", "General scope requires explicit identity reconciliation.");
       if (!general.length) mutations.push({ kind: "scope" as const, value: { id: generalScopeId(home), homeId: store.homeId, kind: "general" as const,
@@ -283,6 +296,7 @@ export class ProjectRuntime {
       projectId: entry.projectId, scopeId: entry.scopeId, expectedVersion: 0, name: input.name, aliases: input.aliases, state: "admitted", budget: input.budget,
       sourceVector: [policyRef("policy-source", input.source)] });
     await store.transactCommand(requestId, digest(input), actor, async status => {
+      await this.checkedConfig(store.homeId, generalId);
       const project = status.projects!.projects.find(p => p.id === entry.projectId)!;
       if (project.owner) refuse("CONFLICT", "This project already has durable ownership; use versioned allocation commands.");
       const value: ProjectRecord = { ...project, version: project.version + 1, owner: { directory: entry.directory!, hostId: "local", registryDigest: catalog.digest,
@@ -337,8 +351,8 @@ export class ProjectRuntime {
       const catalog = await registry(home), entry = catalog.rows.find(p => p.projectId === project.id);
       if (!entry || entry.reason || entry.directory !== project.owner.directory || ![project.name, ...project.aliases].some(name => normalizedName(name) === normalizedName(entry.name))) refuse("HELD", "Current registry identity or reviewed alias does not match admitted ownership.");
       const receiver = this.options.receiver?.(paseo) ?? new SupervisionUiReceiver(paseo, this.runtime.root, { projectMates: true });
-      const commands = new SupervisionCommands(store, home, { enabled: true }), gateway = new SupervisionGateway(store, commands, home, receiver, { enabled: true,
-        admissionCheck: async current => {
+      const commands = new SupervisionCommands(store, home, { enabled: true }), gateway = new SupervisionGateway(store, commands, home, receiver, { enabled: true, policyFence: this.runtime.features?.gateway(home, "projectMates", () => store.read()),
+        admissionCheck: async (current, effect) => {
           await this.checkedConfig(input.homeId, config.mateAgentId);
           const owner = current.projects?.projects.find(p => p.id === project.id);
           if (owner?.version !== input.projectVersion || owner.state !== "admitted") refuse("STALE", "Project admission changed before dispatch.");
@@ -347,10 +361,14 @@ export class ProjectRuntime {
             if (!source || !sameVector([ref], [policyRef("policy-source", source)]) || current.policySources.some(s => s.supersedes.includes(ref.id))) refuse("STALE", "Project admission source changed.");
             await checkPolicySource(home, source);
           }
+          const capacity = await this.capacity(home);
+          await checkGeneralHeadroom(current, receiver, capacity.slots, capacity.generalHeadroom, effect.id);
           const live = (await registry(home)).rows.find(r => r.projectId === project.id);
           if (!live || live.reason || live.directory !== project.owner!.directory) refuse("HELD", "Registry ownership changed before dispatch.");
         } });
-      const sessions = new SupervisorSessions(store, gateway, receiver, { enabled: true, limits: project.owner.limits,
+      const sessions = new SupervisorSessions(store, gateway, receiver, { enabled: true,
+        featurePolicy: async () => this.runtime.features?.reservation(home, "projectMates"),
+        reserveBoundary: run => this.runtime.features ? this.runtime.features.boundary(home, run) : run(), limits: project.owner.limits,
         globalMateId: async () => (await this.checkedConfig(input.homeId, config.mateAgentId)).config.mateAgentId || null,
         reserveCheck: async current => {
           await this.checkedConfig(input.homeId, config.mateAgentId);
@@ -366,7 +384,8 @@ export class ProjectRuntime {
           await this.checkedConfig(input.homeId, config.mateAgentId);
           status = await store.read();
           if (status.commands.some(c => c.id === stableId("project-provision-abort", input.requestId))) refuse("HELD", "Provisioning was stopped before admission.");
-          await checkGeneralHeadroom(status, receiver, this.slots, this.headroom);
+          const capacity = await this.capacity(home);
+          await checkGeneralHeadroom(status, receiver, capacity.slots, capacity.generalHeadroom);
           await sessions.prepare({ requestId: input.requestId, scopeId: project.scopeId, scopeVersion: status.scopes.find(s => s.id === project.scopeId)!.version,
             profile: project.owner!.profile, opening, purpose: "work" }, UI);
         });

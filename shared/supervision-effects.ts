@@ -54,9 +54,13 @@ export interface AgentObservation {
 }
 export interface InventoryChild { id: string; labels: Record<string, string>; workspaceId: string | null }
 
-/** The S04 receiver seam. Synthetic fixtures implement it; a live Paseo adapter is an integration item. */
+/** New-work mutators initiate the native API before their first await; replies/verification may await.
+ * Workspace adapters with async preparation expose it separately, before the final claim. */
 export interface GatewayReceiver {
   capabilities(): Promise<ReceiverCapabilities>;
+  /** Filesystem/project preparation happens before the claim/fence. The returned function
+   * must invoke the native workspace API synchronously, before its first await. */
+  prepareWorkspace?(intent: WorkspaceIntent): Promise<() => Promise<WorkspaceReceipt>>;
   openWorkspace(intent: WorkspaceIntent): Promise<WorkspaceReceipt>;
   findWorkspace(intent: WorkspaceIntent): Promise<WorkspaceReceipt | null>;
   createAgent(intent: AgentCreateIntent): Promise<{ agentId: string }>;

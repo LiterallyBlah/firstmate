@@ -6,7 +6,7 @@ import { AgentProfileSchema } from "./supervision-effects";
 import { ScopedCommandResultSchema } from "./supervision-policy";
 import { MigrationReceiptSchema, LegacyDeliveryDispositionSchema } from "./supervision-migration";
 import { PlanId } from "./workflow-plans";
-export const ActivationSnapshotSchema = z.object({ enabled: z.boolean(), operatorEnabled: z.boolean().optional(), homeId: z.string(), problems: z.array(z.string()),
+export const ActivationSnapshotSchema = z.object({ pause: z.string().nullable().optional(), enabled: z.boolean(), operatorEnabled: z.boolean().optional(), homeId: z.string(), problems: z.array(z.string()),
   resumeMigrations: z.array(z.object({ migrationId: SupervisionUuid, plan: PlanId, scopeId: SupervisionUuid, projectId: SupervisionUuid,
     prerequisites: MigrationReceiptSchema.shape.prerequisites }).strict()).optional(),
   audits: z.array(ScopedCommandResultSchema.shape.attachmentAudit.unwrap()),

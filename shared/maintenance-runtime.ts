@@ -63,7 +63,7 @@ export const MaintenanceSummarySchema = z.object({ format: z.literal("firstmate.
     detail: z.string(), generation: count.min(1) }).strict()),
   resources: z.object({ held: count, queued: count, suspect: count, starving: z.array(z.object({ id: SupervisionUuid, keys: z.array(z.string()), waitingSince: count }).strict()) }).strict(),
 }).strict();
-export const MaintenanceRuntimeSnapshotSchema = z.object({ enabled: z.boolean(), homeId: z.string(), sequence: count,
+export const MaintenanceRuntimeSnapshotSchema = z.object({ pause: z.string().nullable().optional(), enabled: z.boolean(), homeId: z.string(), sequence: count,
   freshness: z.string(), lowerBound: z.boolean(), problems: z.array(z.string()),
   cleanup: z.object({ state: z.literal("held"), reason: z.string(), conditions: z.array(z.object({ id: z.string(), satisfied: z.boolean(), reasons: z.array(z.string()) }).strict()) }).strict(),
   jobs: z.array(MaintenanceJobSchema), occurrences: z.array(OccurrenceSchema), hosts: z.array(OccurrenceHostSchema),

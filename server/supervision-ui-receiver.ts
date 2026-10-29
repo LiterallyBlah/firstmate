@@ -13,12 +13,17 @@ export class SupervisionUiReceiver implements GatewayReceiver {
     selectedAgentIds: true, createReceiptLookup: true, workspaceIntentLookup: false, persistedInventory: false,
     sendReceiptLookup: false as const, conditionalArchive: false as const }; }
   async openWorkspace(intent: WorkspaceIntent) {
+    return (await this.prepareWorkspace(intent))();
+  }
+  async prepareWorkspace(intent: WorkspaceIntent) {
     if (intent.purpose !== "supervisor" || intent.hostId !== "local" || !/^ws-[0-9a-f-]{36}$/.test(intent.key))
       refuse("UNSUPPORTED", "Only a reserved local supervisor workspace is supported.");
     const directory = join(this.root, "supervisor-workspaces", intent.key);
     await mkdir(directory, { recursive: true });
-    const workspace = await this.paseo.workspaces.open(directory);
-    return { workspaceId: workspace.id, directory };
+    return async () => {
+      const workspace = await this.paseo.workspaces.open(directory);
+      return { workspaceId: workspace.id, directory };
+    };
   }
   async findWorkspace(_intent: WorkspaceIntent): Promise<WorkspaceReceipt | null> { return null; } // No negative lookup or automatic replay.
   async createAgent(intent: AgentCreateIntent) {

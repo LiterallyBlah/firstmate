@@ -273,7 +273,7 @@ export async function commandText(command: MateCommand, args: string): Promise<s
   const { workflowBearings } = await import("./workflow-board");
   const home = resolveHome(await readFirstmateConfig());
   let plans = await workflowBearings(home);
-  if (process.env.FIRSTMATE_SCOPE_UI === "1") {
+  if ((await (await import("./feature-policy-runtime")).currentFeaturePolicy(home)).effective.scopeUi) {
     const [{ SupervisionStatusReader }, { scopedBearings }, { bearingsOverview }] = await Promise.all([
       import("./supervision-status-reader"), import("./scope-bearings"), import("../shared/bearings")]);
     try { plans = bearingsOverview(plans, scopedBearings(await new SupervisionStatusReader(pluginDir()).read(home, { settleAfterMs: 750 }))); }
@@ -292,7 +292,8 @@ export async function commandMessage(command: MateCommand, args: string): Promis
  * see `shared/attachments.ts`. Nothing is written until the first mate is known to exist. The chat's
  * `messageId` becomes the timeline item's `clientMessageId`, by which the chat finds the images it kept.
  */
-export async function askMate(paseo: PaseoApi, message: CaptainMessage, beforeSend?: (agentId: string) => Promise<void>): Promise<string> {
+export async function askMate(paseo: PaseoApi, message: CaptainMessage, beforeSend?: (agentId: string) => Promise<void>,
+  effectBoundary?: (start: () => Promise<void>) => Promise<{ pending: Promise<void> }>): Promise<string> {
   return oneAtATime(async () => {
     requireNoMigration(await readFirstmateConfig());
     const agentId = await requireMate(paseo);
@@ -300,11 +301,13 @@ export async function askMate(paseo: PaseoApi, message: CaptainMessage, beforeSe
     const attachments = await Promise.all((message.files ?? []).map((file) => writeUpload(file)));
     // Update requests claim their verified identity here, after the lifecycle guards and immediately before delivery.
     await beforeSend?.(agentId);
-    await sendWithoutInterrupting(paseo, agentId, message.text.trim(), {
+    const start = () => sendWithoutInterrupting(paseo, agentId, message.text.trim(), {
       ...(images.length > 0 ? { images } : {}),
       ...(attachments.length > 0 ? { attachments } : {}),
       ...(message.messageId === undefined ? {} : { messageId: message.messageId }),
     }, { channel: "mate-ask", actor: "captain", mateRecipient: true });
+    if (effectBoundary) await (await effectBoundary(start)).pending;
+    else await start();
     return agentId;
   });
 }

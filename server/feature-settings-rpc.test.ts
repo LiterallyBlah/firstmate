@@ -29,7 +29,7 @@ it("reads fresh home without creating a policy, supervision journal, coordinator
   await expect(readdir(root)).rejects.toMatchObject({ code: "ENOENT" });
 });
 
-it("refuses public saves unconditionally while still exposing the strict read/write transport shapes", async () => {
+it("refuses saves without the installed runtime fence while exposing strict transport shapes", async () => {
   const { root, home, input } = fixture(), service = new FeatureSettingsService(root, { home: async () => home });
   const handlers = new Map<string, (input: any) => Promise<unknown>>();
   registerFeatureSettingsRpc({ handle: (rpc: any, handler: any) => { handlers.set(rpc.name, handler); } } as any, service);

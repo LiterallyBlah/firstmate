@@ -1,3 +1,4 @@
+import { featurePause } from "../shared/feature-settings";
 /** Default-off production wiring. Views never initialize a store or acquire a coordinator.
  * Attach is an app convention, NOT a verified captain principal. Build B's operating loop is separate. */
 import type { PluginServerContext } from "@getpaseo/plugin/server";
@@ -61,7 +62,7 @@ export function activationSnapshot(status: SupervisionStatus, enabled: boolean, 
 export interface ActivationOptions {
   runtime?: SupervisionRuntime;
   headroom?: { slots: number; reserved: number };
-  /** One switch, sampled at plugin start; absent/anything except exactly 1 is off. */
+  /** Standalone/test compatibility. Production reads the home's live feature policy. */
   enabled?: boolean;
   adapters(home: string): LegacyDeliveryAdapters;
   config?: typeof readFirstmateConfig;
@@ -78,24 +79,33 @@ export class SupervisionActivation {
     this.runtime = options.runtime ?? new SupervisionRuntime(root); this.lock = `firstmate.activation:${root}`;
     this.attachLock = `firstmate.supervisor-attach:${root}`;
   }
+  private async snapshotRequired(home: string) { return !!this.options.requireSnapshots || !!(await this.runtime.features?.read(home))?.effective.planSupervisors; }
   private config() { return (this.options.config ?? readFirstmateConfig)(); }
-  private async checkedConfig(homeId: string, generalId?: string) {
-    if (!this.options.enabled || this.closed) refuse("UNSUPPORTED", "Scoped activation is disabled. No store or session was created.");
+  private async checkedConfig(homeId: string, generalId?: string, settlement = false) {
+    if ((!this.options.enabled && !this.runtime.features) || this.closed) refuse("UNSUPPORTED", "Scoped activation is disabled. No store or session was created.");
     const config = await this.config(); requireNoMigration(config);
     const home = resolveHome(config);
     if (homeId !== workflowHomeIdentity(home) || generalId !== undefined && config.mateAgentId !== generalId)
       refuse("STALE", "Home or General ownership changed. Refresh before acting.");
+    if (!settlement) await this.runtime.features?.check(home, "scopedActivation");
+    else if (this.runtime.features && !(await this.runtime.features.read(home)).effective.scopedActivation &&
+      (await this.runtime.read(home)).freshness === "uninitialized") refuse("UNSUPPORTED", "There is no saved work to check for this paused help.");
     return { home, config };
   }
   async read() {
     const home = resolveHome(await this.config()), id = workflowHomeIdentity(home);
-    return activationSnapshot(await this.runtime.read(home), !!this.options.enabled, !!this.options.requireSnapshots);
+    const status = await this.runtime.read(home), policy = await this.runtime.features?.read(home);
+    return { ...activationSnapshot(status, policy?.effective.scopedActivation ?? !!this.options.enabled, await this.snapshotRequired(home)),
+      pause: policy ? featurePause(status, policy.effective, "plan") : null };
   }
-  private mutate<T>(homeId: string, run: (home: string, store: SupervisionStore) => Promise<T>, recoverIndex = false) {
+  private mutate<T>(homeId: string, run: (home: string, store: SupervisionStore) => Promise<T>, recoverIndex = false, settlement = false) {
     // Same lock order as legacy delivery: lifecycle -> gate/queue/store. Cleanup waits for all writes.
     return oneAtATime(() => serialized(this.lock, async () => {
-      const { home } = await this.checkedConfig(homeId);
-      return this.runtime.mutate(home, store => run(home, store), recoverIndex);
+      const { home } = await this.checkedConfig(homeId, undefined, settlement);
+      return this.runtime.mutate(home, store => {
+        const commit = async () => { await this.checkedConfig(homeId, undefined, settlement); return run(home, store); };
+        return !settlement && this.runtime.features ? this.runtime.features.boundary(home, commit) : commit();
+      }, recoverIndex);
     }));
   }
   async migrate(input: MigrationCommand) {
@@ -103,7 +113,7 @@ export class SupervisionActivation {
       const expected = { homeId: store.homeId, migrationId: input.migrationId,
         planId: "plan" in input ? input.plan : (await store.read()).migrations?.find(m => m.id === input.migrationId)?.planId ?? "" };
       let checked = input;
-      if (this.options.requireSnapshots && input.op !== "abort" && input.op !== "resolve-hold") {
+      if ((await this.snapshotRequired(home)) && input.op !== "abort" && input.op !== "resolve-hold") {
         const snapshots = this.options.snapshots;
         if (!snapshots) refuse("HELD", "An approved independent migration snapshot destination and retention are required.");
         if (input.op === "prepare" || input.op === "resume") {
@@ -128,8 +138,8 @@ export class SupervisionActivation {
         // Deliberate recovery only: validates the complete event+tip, never reconstructs missing history.
         case "resume": await store.recoverPublication(); await migrator.resume(checked); break;
       }
-      return activationSnapshot(await store.read(), true, !!this.options.requireSnapshots);
-    }, input.op === "resume" || input.op === "abort");
+      return activationSnapshot(await store.read(), true, await this.snapshotRequired(home));
+    }, input.op === "resume" || input.op === "abort", ["abort", "reconcile", "resolve-hold"].includes(input.op));
   }
   async attach(input: AttachSupervisorInput | ResumeSupervisorInput, paseo: PaseoApi) {
     // Neither this queue nor capacity/receiver IO may be awaited under General's lifecycle lock.
@@ -140,10 +150,16 @@ export class SupervisionActivation {
         const checkOwner = async () => { await this.checkedConfig(input.homeId, config.mateAgentId); };
         const receiver = this.options.receiver?.(paseo) ?? new SupervisionUiReceiver(paseo, this.root);
         const commands = new SupervisionCommands(store, home, { enabled: true });
-        const gateway = new SupervisionGateway(store, commands, home, receiver, { enabled: true, admissionCheck: checkOwner });
-        const sessions = new SupervisorSessions(store, gateway, receiver, { enabled: true, unverifiedUiAttach: true,
+        const gateway = new SupervisionGateway(store, commands, home, receiver, { enabled: true, policyFence: this.runtime.features?.gateway(home, "scopedActivation", () => store.read()), admissionCheck: async (status, effect) => {
+          await checkOwner();
+          const capacity = await this.runtime.features?.capacity(home);
+          if (capacity) await checkGeneralHeadroom(status, receiver, capacity.slots, capacity.generalHeadroom, effect.id);
+        } });
+        const sessions = new SupervisorSessions(store, gateway, receiver, { enabled: true,
+        featurePolicy: async () => this.runtime.features?.reservation(home, "scopedActivation"),
+        reserveBoundary: run => this.runtime.features ? this.runtime.features.boundary(home, run) : run(), unverifiedUiAttach: true,
           limits: { supervisorSessions: 1, supervisorTurns: 1 }, reserveCheck: checkOwner,
-          ...(this.options.requireSnapshots ? { openingContext: (s: SupervisionStatus, scopeId: string) => ({
+          ...((await this.snapshotRequired(home)) ? { openingContext: (s: SupervisionStatus, scopeId: string) => ({
             guide: join(home, "data", "plan-supervisors.md"), helper: join(home, "tools", "scope.mjs"),
             rules: s.planRules?.filter(r => r.scopeId === scopeId && s.plans.some(p => p.scopeId === scopeId && p.plan.revision === r.revision)),
             instruction: "Read the guide. Retain current rules/evidence; routine repairs stay delegated. Missing report evidence alone does not justify rerunning. Opening counts against the durable continuing-turn cap. Attach provenance is unverified." }) } : {}),
@@ -151,14 +167,15 @@ export class SupervisionActivation {
         // Explicit app retry can finish an exact pending publication, but never reconstruct lost history.
         await store.recoverPublication();
         if (!("resume" in input)) {
-          if (this.options.requireSnapshots && !(await store.read()).commands.some(c => c.id === input.requestId)) {
+          if ((await this.snapshotRequired(home)) && !(await store.read()).commands.some(c => c.id === input.requestId)) {
             const migration = (await store.read()).migrations?.find(m => m.scopeId === input.scopeId && m.planId === input.plan && m.state === "committed");
             if (!migration?.prerequisites.snapshot || !this.options.snapshots) refuse("HELD", "This cutover has no verified independent snapshot; reconcile its evidence before a new attachment.");
             await this.options.snapshots.verify(migration.prerequisites.snapshot, { homeId: store.homeId, migrationId: migration.id, planId: migration.planId });
           }
           await withScopeAdmission(input.homeId, async () => {
-            if (this.options.headroom && !(await store.read()).commands.some(c => c.id === input.requestId))
-              await checkGeneralHeadroom(await store.read(), receiver, this.options.headroom.slots, this.options.headroom.reserved);
+            const capacity = await this.runtime.features?.capacity(home);
+            if ((capacity || this.options.headroom) && !(await store.read()).commands.some(c => c.id === input.requestId))
+              await checkGeneralHeadroom(await store.read(), receiver, capacity?.slots ?? this.options.headroom!.slots, capacity?.generalHeadroom ?? this.options.headroom!.reserved);
             await sessions.attachFromUnverifiedUi({ requestId: input.requestId, scopeId: input.scopeId, scopeVersion: input.scopeVersion,
               planId: input.plan, planHash: input.planHash, supervisorId: input.supervisorId, profile: input.profile, opening: input.opening });
           });
@@ -179,12 +196,12 @@ export class SupervisionActivation {
           if (effect.state === "succeeded") continue;
           const next = ["dispatching", "uncertain", "accepted"].includes(effect.state)
             ? await gateway.reconcile(effect.id) : await gateway.dispatch(effect.id);
-          if (next.state !== "succeeded") return activationSnapshot(await store.read(), true, !!this.options.requireSnapshots);
+          if (next.state !== "succeeded") return activationSnapshot(await store.read(), true, await this.snapshotRequired(home));
         }
         if (binding.state === "prepared") await sessions.verify(binding.scopeId, binding.epoch);
         if (!effects.send || effects.send.requestId !== input.requestId) refuse("HELD", "Opening is not this attachment's reserved effect.");
         if (effects.send.state === "reserved") await gateway.dispatch(effects.send.id);
-        return activationSnapshot(await store.read(), true, !!this.options.requireSnapshots);
+        return activationSnapshot(await store.read(), true, await this.snapshotRequired(home));
       }, true);
     });
   }

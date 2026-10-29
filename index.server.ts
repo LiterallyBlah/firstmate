@@ -1,3 +1,7 @@
+import { FeaturePolicyRuntime, installFeaturePolicy } from "./server/feature-policy-runtime";
+import { legacyFeatureSettings } from "./server/feature-settings";
+import { FeatureSettingsService, registerFeatureSettingsRpc } from "./server/feature-settings-rpc";
+import { syncFeatureHelpers } from "./server/home";
 import { PlanRules } from "./server/plan-rules";
 import { planSupervisorGatewayLimits } from "./shared/plan-supervisor-limits";
 import type { PluginServerContext } from "@getpaseo/plugin/server";
@@ -121,10 +125,17 @@ import {
 
 export default function contribute(server: PluginServerContext) {
   // One shared owner. Reads never initialize/acquire; only explicit gated operations mutate.
-  const supervisionRuntime = new SupervisionRuntime(pluginDir());
-  const projects = new ProjectRuntime(supervisionRuntime, { enabled: process.env.FIRSTMATE_PROJECT_MATES === "1",
-    ...([process.env.FIRSTMATE_PROJECT_MATES, process.env.FIRSTMATE_PLAN_SUPERVISORS].includes("1") ? { slots: Number(process.env.FIRSTMATE_PROJECT_SLOTS ?? 4), generalHeadroom: Number(process.env.FIRSTMATE_GENERAL_HEADROOM ?? 1) } : {}) });
-  const plans = new PlanRuntime(supervisionRuntime, { enabled: process.env.FIRSTMATE_PLAN_SUPERVISORS === "1", slots: projects.slots, headroom: projects.headroom });
+  migrateLegacyFiles();
+  const legacyEnvironment = { ...process.env };
+  const features = new FeaturePolicyRuntime(pluginDir(), readFirstmateConfig().then(c => legacyFeatureSettings(resolveHome(c), legacyEnvironment)));
+  const uninstallFeatures = installFeaturePolicy(features);
+  const supervisionRuntime = new SupervisionRuntime(pluginDir(), undefined, features);
+  registerFeatureSettingsRpc(server, new FeatureSettingsService(pluginDir(), {
+    home: async () => resolveHome(await readFirstmateConfig()), runtime: features,
+    readInventory: home => supervisionRuntime.read(home), changed: syncFeatureHelpers,
+  }));
+  const projects = new ProjectRuntime(supervisionRuntime);
+  const plans = new PlanRuntime(supervisionRuntime);
   plans.register(server);
   // Display routes may serve an earlier committed head after 750 ms of overlapping writes;
   // crew-seen decides whether to clear attention, so it always waits for the newest head.
@@ -135,7 +146,6 @@ export default function contribute(server: PluginServerContext) {
   const updates = new UpdateService();
   server.handle(checkUpdate, () => updates.check());
   server.handle(requestUpdate, ({ token }, { paseo }) => updates.request(token, (text, beforeSend) => askMate(paseo, { text }, beforeSend)));
-  migrateLegacyFiles();
   const reports = new ReportCache();
   const attention = new AttentionObserver(readFirstmateConfig);
   const steers = new CaptainSteers();
@@ -159,18 +169,12 @@ export default function contribute(server: PluginServerContext) {
   });
   const activation = new SupervisionActivation(pluginDir(), {
     runtime: supervisionRuntime,
-    ...(process.env.FIRSTMATE_PLAN_SUPERVISORS === "1" ? { requireSnapshots: true,
-      snapshots: new MigrationSnapshots(process.env.FIRSTMATE_MIGRATION_BACKUP_ROOT ?? "", process.env.FIRSTMATE_MIGRATION_RETENTION ?? "") } : {}),
-    ...(process.env.FIRSTMATE_PROJECT_MATES === "1" ? { headroom: { slots: Number(process.env.FIRSTMATE_PROJECT_SLOTS ?? 4), reserved: Number(process.env.FIRSTMATE_GENERAL_HEADROOM ?? 1) } } : {}),
-    enabled: process.env.FIRSTMATE_SCOPED_ACTIVATION === "1",
+    snapshots: new MigrationSnapshots(process.env.FIRSTMATE_MIGRATION_BACKUP_ROOT ?? "", process.env.FIRSTMATE_MIGRATION_RETENTION ?? ""),
     adapters: () => legacyAdapters(watches.runner, () => decisions.read()),
   });
   registerSupervisionActivation(server, activation);
   registerProjectRuntime(server, projects);
-  const scopeUiEnabled = process.env.FIRSTMATE_SCOPE_UI === "1", scopeExecutionEnabled = process.env.FIRSTMATE_SCOPE_EXECUTION === "1";
-  const maintenanceEnabled = process.env.FIRSTMATE_MAINTENANCE === "1";
-  const maintenance = new MaintenanceRuntime(supervisionRuntime, { enabled: maintenanceEnabled,
-    headroom: { slots: projects.slots, reserved: projects.headroom },
+  const maintenance = new MaintenanceRuntime(supervisionRuntime, {
     inventory: async (home, config, jobs) => readTimerInventory(home, config, new WatchConfigStore(join(pluginDir(), "watch-config.json")), await nativeSchedules(), jobs) });
   const unregisterMaintenance = registerMaintenanceRuntime(server, maintenance);
   const stopWorkflows = startWorkflowService(async () => {
@@ -184,23 +188,23 @@ export default function contribute(server: PluginServerContext) {
     try {
       const status = await readSupervision(home);
       const combined = status.scopes.length || status.problems.length ? withScopedNeedsYou(base, status) : base;
-      return { ...(scopeUiEnabled ? withScopeInboxContext(combined, status, workflow.plans, (await remotes.read()).localServerId ?? "local") : combined),
-        scopedAnswersEnabled: scopeExecutionEnabled, maintenanceAnswersEnabled: maintenanceEnabled };
+      const policy = await features.read(home);
+      return { ...(policy.effective.scopeUi ? withScopeInboxContext(combined, status, workflow.plans, (await remotes.read()).localServerId ?? "local") : combined),
+        scopedAnswersEnabled: policy.effective.scopeExecution, maintenanceAnswersEnabled: policy.effective.maintenance };
     } catch {
       return { ...base, scopedComplete: false, scopedProblems: ["Scoped decisions unavailable. Existing decisions remain available; the total is incomplete."] };
     }
   };
   registerNeedsYouRpc(server, decisions, readCombinedNeeds);
   // Startup controls are independent. Enabling UI or restoring a view creates no resources.
-  const scopeRuntime = new ScopeRuntime(supervisionRuntime, { enabled: scopeExecutionEnabled, uiEnabled: scopeUiEnabled,
-    slots: projects.slots, generalHeadroom: projects.headroom,
-    ...(process.env.FIRSTMATE_PLAN_SUPERVISORS === "1" ? { planLimits: planSupervisorGatewayLimits, planBudgetRefused: (store, home, scopeId) => new PlanRules(store, home).budgetDecision(scopeId) } : {}) });
+  const scopeRuntime = new ScopeRuntime(supervisionRuntime, {
+    planLimits: planSupervisorGatewayLimits, planBudgetRefused: (store, home, scopeId) => new PlanRules(store, home).budgetDecision(scopeId),
+  });
   registerScopeRpcs(server, { read: async () => {
     const config = await readFirstmateConfig(), home = resolveHome(config);
     return { home, generalId: config.mateAgentId || null, status: await readSupervision(home) };
-  }, readNeeds: () => readCombinedNeeds(), uiEnabled: scopeUiEnabled, executionEnabled: scopeExecutionEnabled,
-    admittedProjectsOnly: true, execute: scopeRuntime.execute.bind(scopeRuntime),
-    activationEnabled: process.env.FIRSTMATE_SCOPED_ACTIVATION === "1" });
+  }, readNeeds: () => readCombinedNeeds(), policy: home => features.read(home),
+    admittedProjectsOnly: true, execute: scopeRuntime.execute.bind(scopeRuntime) });
   server.handle(readWorkflowPlans, async (_input, { paseo }) => { plans.remember(paseo); return workflowSnapshot(resolveHome(await readFirstmateConfig())); });
   server.handle(actOnWorkflowPlan, async ({ homeId, requestId, command }, { paseo }) => {
     if (await plans.act({ homeId, requestId, command }, paseo)) return workflowSnapshot(resolveHome(await readFirstmateConfig()));
@@ -459,6 +463,7 @@ export default function contribute(server: PluginServerContext) {
     watches.stop();
     remotes.stop();
     await decisions.stop();
+    uninstallFeatures();
   };
 }
 

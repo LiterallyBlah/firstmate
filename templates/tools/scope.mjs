@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Plugin-owned scope transport for a plan supervisor, a home guest bound to one scope epoch.
-// Seeded/served only with FIRSTMATE_PLAN_SUPERVISORS=1. tools/role.mjs remains the only
+// Plugin-owned scope transport for a project mate or plan supervisor bound to one scope epoch.
+// Seeded when project or plan help is enabled; retained for read/receipt reconciliation while paused. tools/role.mjs remains the only
 // global first-mate check; this helper never grants or borrows that role. Request files are
 // cooperative same-user transport, not authenticated identity. Never repeat a create.
 import { execFile } from "node:child_process";
@@ -20,7 +20,7 @@ export async function submit(kind, input, id = randomUUID()) {
   if (!/^[0-9a-f-]{36}$/.test(id)) throw new Error("Use a UUID request id.");
   if (!process.env.PASEO_AGENT_ID) throw new Error("A scope supervisor needs its own PASEO_AGENT_ID.");
   const role = await execute(process.execPath, [join(home, "tools/role.mjs")], { cwd: home, env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" }, windowsHide: true, timeout: 30000 });
-  if (role.stdout.trim() === "first-mate" && !["policy", "rules", "artifact"].includes(kind)) throw new Error("The global first mate uses tools/workflow.mjs; scope commands belong to plan supervisors.");
+  if (role.stdout.trim() === "first-mate" && !["policy", "rules", "artifact"].includes(kind)) throw new Error("The global first mate uses tools/workflow.mjs; scope commands belong to their bound owners.");
   const directory = join(home, "data/scope-requests"); await mkdir(directory, { recursive: true });
   await inside("data/scope-requests");
   const path = join(directory, `${id}.json`), bytes = JSON.stringify({ id, actor: process.env.PASEO_AGENT_ID, kind, input });

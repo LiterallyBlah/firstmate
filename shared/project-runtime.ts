@@ -1,3 +1,4 @@
+import { FeatureCapacitySchema } from "./feature-settings";
 import { defineRpc } from "@getpaseo/plugin";
 import { z } from "zod";
 import { SupervisionHash, SupervisionUuid, SupervisionVersionRefSchema } from "./supervision";
@@ -27,9 +28,9 @@ export type ProjectAdmin = z.infer<typeof ProjectAdminSchema>;
 const PlanAssociation = z.object({ id: z.string(), title: z.string(), backend: z.enum(["legacy", "scoped"]),
   state: z.string(), projectIds: z.array(SupervisionUuid), sponsorScopeId: SupervisionUuid.nullable(), ownerScopeId: SupervisionUuid.nullable() }).strict();
 export const ProjectRuntimeSnapshotSchema = z.object({ enabled: z.boolean(), homeId: z.string(), registryDigest: SupervisionHash.nullable(),
-  sequence: count, hash: SupervisionHash.nullable(), freshness: z.string(), problems: z.array(z.string()),
+  pause: z.string().nullable().optional(), sequence: count, hash: SupervisionHash.nullable(), freshness: z.string(), problems: z.array(z.string()),
   recovery: z.object({ sequence: count, hash: SupervisionHash.nullable() }).strict().nullable().optional(),
-  general: z.object({ agentId: z.string().nullable(), scopeId: SupervisionUuid.nullable(), headroom: count, slots: count,
+  general: z.object({ agentId: z.string().nullable(), scopeId: SupervisionUuid.nullable(), headroom: FeatureCapacitySchema.shape.generalHeadroom, slots: FeatureCapacitySchema.shape.slots,
     providerAvailability: z.literal("unknown") }).strict(),
   projects: z.array(z.object({ name: z.string(), projectId: SupervisionUuid.nullable(), scopeId: SupervisionUuid.nullable(), hostId: z.string().nullable(),
     directory: z.string().nullable(), state: z.string(), reason: z.string().nullable(), version: count, aliases: z.array(z.string()),

@@ -1,3 +1,4 @@
+import { featurePause, type FeaturePolicySnapshot } from "../shared/feature-settings";
 /** Read-only routes plus separately gated explicit execution through Build C's owned runtime.
  * Reading constructs no receiver, writable store, session, timer or coordinator. */
 import type { PluginServerContext } from "@getpaseo/plugin/server";
@@ -17,6 +18,7 @@ import { scopedBearings } from "./scope-bearings";
 export interface ScopeRpcDependencies {
   read(): Promise<{ home: string; generalId: string | null; status: SupervisionStatus }>;
   readNeeds(): Promise<NeedsYouSnapshot>;
+  policy?(home: string): Promise<FeaturePolicySnapshot>;
   uiEnabled?: boolean; executionEnabled?: boolean;
   activationEnabled?: boolean;
   admittedProjectsOnly?: boolean;
@@ -25,14 +27,17 @@ export interface ScopeRpcDependencies {
 }
 export function registerScopeRpcs(server: Pick<PluginServerContext, "handle">, deps: ScopeRpcDependencies) {
   const combined = async () => {
-    const [base, { status }] = await Promise.all([deps.readNeeds(), deps.read()]);
-    return { ...withScopedNeedsYou(base, status), scopedAnswersEnabled: !!deps.executionEnabled && !!(deps.commands || deps.execute) };
+    const [base, { status, home }] = await Promise.all([deps.readNeeds(), deps.read()]);
+    const policy = await deps.policy?.(home);
+    return { ...withScopedNeedsYou(base, status), scopedAnswersEnabled: (policy?.effective.scopeExecution ?? !!deps.executionEnabled) && !!(deps.commands || deps.execute) };
   };
   server.handle(readScopes, async () => {
-    const { status, generalId } = await deps.read();
-    return { ...scopeSnapshot(status, generalId, { uiEnabled: deps.uiEnabled ?? false, executionEnabled: deps.executionEnabled ?? false, admittedProjectsOnly: deps.admittedProjectsOnly }),
-      ...(deps.uiEnabled ? { bearings: scopedBearings(status) } : {}),
-      activation: activationSnapshot(status, !!deps.activationEnabled) };
+    const { status, generalId, home } = await deps.read();
+    const policy = await deps.policy?.(home);
+    return { ...scopeSnapshot(status, generalId, { uiEnabled: policy?.effective.scopeUi ?? deps.uiEnabled ?? false, executionEnabled: policy?.effective.scopeExecution ?? deps.executionEnabled ?? false, admittedProjectsOnly: deps.admittedProjectsOnly }),
+      ...((policy?.effective.scopeUi ?? deps.uiEnabled) ? { bearings: scopedBearings(status) } : {}),
+      activation: { ...activationSnapshot(status, policy?.effective.scopedActivation ?? !!deps.activationEnabled),
+        pause: policy ? featurePause(status, policy.effective, "plan") : null } };
   });
   server.handle(readScopeConversation, async input => {
     const { home, status } = await deps.read();
@@ -42,7 +47,7 @@ export function registerScopeRpcs(server: Pick<PluginServerContext, "handle">, d
   });
   server.handle(activateScope, () => ({ state: "unsupported" as const, reason: "Use explicit Send to create a discussion session. Reading and standalone activation never create resources." }));
   server.handle(discussScope, async (input, context) => {
-    if (!deps.executionEnabled) return { outcome: "refused" as const, code: "UNSUPPORTED", message: "Discussion execution is disabled. No fallback to General." };
+    if (!(deps.policy ? (await deps.policy((await deps.read()).home)).effective.scopeExecution : deps.executionEnabled)) return { outcome: "refused" as const, code: "UNSUPPORTED", message: "Discussion execution is disabled. No fallback to General." };
     if (deps.execute) {
       try { return await deps.execute(input.route.target.homeId, input.route.target.scopeId, context.paseo, services => services.discussions.result(input)); }
       catch (error) { return { outcome: "uncertain" as const, message: error instanceof Error ? error.message : String(error) }; }
@@ -51,7 +56,7 @@ export function registerScopeRpcs(server: Pick<PluginServerContext, "handle">, d
   });
   server.handle(readScopeNeeds, combined);
   server.handle(answerScopeDecision, async (input, context) => {
-    if (!deps.executionEnabled || !(deps.commands || deps.execute)) throw new SupervisionError("UNSUPPORTED", "Scoped answer execution is disabled; no legacy answer substitution.");
+    if (!(deps.policy ? (await deps.policy((await deps.read()).home)).effective.scopeExecution : deps.executionEnabled) || !(deps.commands || deps.execute)) throw new SupervisionError("UNSUPPORTED", "Scoped answer execution is disabled; no legacy answer substitution.");
     const act = async (commands: SupervisionCommands, unverified: boolean) => {
     try {
       const { status } = await deps.read();

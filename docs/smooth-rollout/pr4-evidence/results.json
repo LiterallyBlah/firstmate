@@ -1,0 +1,70 @@
+{
+  "passed": true,
+  "baseline": "ef92ef55",
+  "results": [
+    {
+      "variant": "before",
+      "theme": "light",
+      "device": "desktop",
+      "errors": [],
+      "horizontalOverflow": false,
+      "mutations": 0
+    },
+    {
+      "variant": "after",
+      "theme": "light",
+      "device": "desktop",
+      "errors": [],
+      "horizontalOverflow": false,
+      "mutations": 0
+    },
+    {
+      "variant": "before",
+      "theme": "light",
+      "device": "phone",
+      "errors": [],
+      "horizontalOverflow": false,
+      "mutations": 0
+    },
+    {
+      "variant": "after",
+      "theme": "light",
+      "device": "phone",
+      "errors": [],
+      "horizontalOverflow": false,
+      "mutations": 0
+    },
+    {
+      "variant": "before",
+      "theme": "dark",
+      "device": "desktop",
+      "errors": [],
+      "horizontalOverflow": false,
+      "mutations": 0
+    },
+    {
+      "variant": "after",
+      "theme": "dark",
+      "device": "desktop",
+      "errors": [],
+      "horizontalOverflow": false,
+      "mutations": 0
+    },
+    {
+      "variant": "before",
+      "theme": "dark",
+      "device": "phone",
+      "errors": [],
+      "horizontalOverflow": false,
+      "mutations": 0
+    },
+    {
+      "variant": "after",
+      "theme": "dark",
+      "device": "phone",
+      "errors": [],
+      "horizontalOverflow": false,
+      "mutations": 0
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # Operating a scoped plan
 
-This helper is served only with `FIRSTMATE_PLAN_SUPERVISORS=1`. It uses cooperative
+This helper is supplied when the captain enables plan help in the home's saved feature policy. Changes apply while services are running. Existing environment-only pilots keep their exact original-home selection until saved. The helper remains available for reads and receipts while new work is paused. It uses cooperative
 same-user request files, not authenticated IPC. Never impersonate another agent.
 Attach remains the captain's app button, labelled unverified. No helper attaches,
 provisions, takes over, archives, lands or mutates remote work.
