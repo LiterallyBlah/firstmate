@@ -310,7 +310,7 @@ export function DecisionDrawer({
     <>
       <ReadProgress theme={theme} pending={presentation.loading} pendingSince={read.pendingSince} failed={presentation.failed} fetching={read.fetching === true}
         label="Loading decisions…" onRetry={() => { void cache.refetchQueries({ queryKey: NEEDS_YOU_QUERY_KEY }, { cancelRefetch: false }); }} />
-      {presentation.updating ? <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>{presentation.label}</Text> : null}
+      {presentation.lastUpdated ? <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>{presentation.lastUpdated}</Text> : null}
       {filtered ? (
         <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>
           Filters don’t hide decisions
@@ -332,7 +332,7 @@ export function DecisionDrawer({
           >
             {snapshot?.freshness.status === "stale" ||
             (offline && snapshot?.freshness.asOf)
-              ? `Showing the list from ${decisionClock(snapshot!.freshness.asOf!)}. You can answer once FirstMate can read the backlog again.`
+              ? "Decisions may be out of date. You can answer once FirstMate can read the backlog again."
               : snapshot?.freshness.status === "disabled"
                 ? "Decision observation is disabled"
                 : snapshot?.freshness.status === "fresh"

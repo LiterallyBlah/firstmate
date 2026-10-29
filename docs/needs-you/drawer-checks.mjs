@@ -300,7 +300,7 @@ export async function checkDrawer(pageAt, output) {
           : state === "clear"
             ? text.includes("Nothing needs you")
             : state === "stale"
-              ? text.includes("as of")
+              ? text.includes("Last updated")
               : state === "new"
                 ? text.includes("new")
                 : !text.includes("new");

@@ -60,9 +60,9 @@ export function WorkDetails({ theme, compact, hostId = "local", navigation, alwa
         <Text style={{ color: theme.colors.foregroundMuted }}>Saved project mates, plan help and routine checks. Advanced controls keep their existing reviews and limits.</Text>
         {projects.isPending || checks.isPending || !activation && !activationError ? <Text style={{ color: theme.colors.foregroundMuted }}>Loading saved work…</Text> : null}
         {activationError ? <Text accessibilityRole="alert" style={{ color: theme.colors.statusWarning }}>Plan help could not be refreshed. Refresh details to check again; actions remain unavailable.</Text> : null}
-        <Pressable accessibilityRole="button" accessibilityLabel={refreshing ? "Refreshing details…" : "Refresh details"} accessibilityState={{ disabled: refreshing }} disabled={refreshing}
+        <Pressable accessibilityRole="button" accessibilityLabel="Refresh details" accessibilityState={{ disabled: refreshing }} disabled={refreshing}
           onPress={refresh} style={{ minHeight: 44, maxWidth: "100%", minWidth: 0, justifyContent: "center", padding: 10, borderWidth: 1, borderRadius: 7, borderColor: theme.colors.border, opacity: refreshing ? 0.5 : 1 }}>
-          <Text style={{ color: theme.colors.foreground, flexShrink: 1 }}>{refreshing ? "Refreshing details…" : "Refresh details"}</Text>
+          <Text style={{ color: theme.colors.foreground, flexShrink: 1 }}>Refresh details</Text>
         </Pressable>
         <SupervisionActivationBoard theme={theme} compact={compact} advanced />
         <ProjectOwnershipBoard theme={theme} compact={compact} hostId={hostId} {...(navigation ? { navigation } : {})} onNavigate={() => setOpen(false)} advanced />

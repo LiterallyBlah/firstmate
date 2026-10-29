@@ -146,7 +146,7 @@ export function HeaderActions({
                   <IconButton
                     theme={theme}
                     icon="RefreshCw"
-                    label={refreshing ? "Refreshing" : "Refresh"}
+                    label="Refresh"
                     showLabel
                     disabled={refreshing}
                     onPress={() => choose(onRefresh)}

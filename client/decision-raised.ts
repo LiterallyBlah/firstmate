@@ -5,7 +5,6 @@
  * a copy of the decision of its own. Pure.
  */
 import { quarantinesSource, type DecisionAnswerOption, type NeedsYouRequest, type NeedsYouSnapshot } from "../shared/needs-you";
-import { decisionClock } from "./decision-copy";
 import { boundAnswers, decisionProblems } from "./needs-you-state";
 import type { TimelineEntry, TranscriptRow } from "./transcript-rows";
 
@@ -136,7 +135,7 @@ export function raisedWarning(
   return {
     headline:
       (status === "stale" || offline) && snapshot.freshness.asOf != null
-        ? `Showing this decision as of ${decisionClock(snapshot.freshness.asOf)}. You can answer once FirstMate can read the backlog again.`
+        ? "This decision may be out of date. You can answer once FirstMate can read the backlog again."
         : status === "disabled"
           ? "Decision observation is disabled"
           : "Can’t read decisions",

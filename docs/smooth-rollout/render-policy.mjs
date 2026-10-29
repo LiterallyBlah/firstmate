@@ -37,7 +37,8 @@ try {
     await page.getByTestId("maintenance-ownership").waitFor();
     assert.equal(await page.getByText("Paused for new work; checking 2 saved operations", { exact: true }).count(), variant === "after" ? 3 : 0);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
-    assert.equal(await page.getByRole("button", { name: "Create maintenance owner", exact: true }).isDisabled(), true);
+    if (variant === "before") assert.equal(await page.getByRole("button", { name: "Create maintenance owner", exact: true }).isDisabled(), true);
+    else assert.equal(await page.getByRole("button", { name: "Create maintenance owner", exact: true }).count(), 0, "New conversations are reviewed from settings");
     assert.deepEqual(await page.evaluate(() => [...new Set(window.policyReads)]), ["firstmate.maintenance.read"]);
     await page.screenshot({ path: resolve(out, `${variant}-${theme}-${device}.png`), fullPage: true });
     assert.deepEqual(errors, []); results.push({ variant, theme, device, errors, horizontalOverflow: false, mutations: 0 }); await page.close();

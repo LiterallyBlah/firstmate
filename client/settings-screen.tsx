@@ -105,7 +105,7 @@ export function SettingsScreen({ theme, layout, host, navigation }: PluginSurfac
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} automaticallyAdjustKeyboardInsets>
       <SettingsGroup title="Help with your work">
         {config.data ? <HelpSettings key={`${host?.id ?? "local"}:${config.data.resolvedHome}`} theme={theme}
-          home={config.data.resolvedHome} hostId={host?.id ?? "local"} /> : config.isError ? <SettingsAction label="Can't read FirstMate's home" hint="Check the connection, then try reading settings again. Your existing setup stays in use."
+          home={config.data.resolvedHome} hostId={host?.id ?? "local"} compact={layout.compact} /> : config.isError ? <SettingsAction label="Can't read FirstMate's home" hint="Check the connection, then try reading settings again. Your existing setup stays in use."
           actionLabel="Refresh settings" disabled={config.isFetching} onPress={() => { void config.refetch({ cancelRefetch: false }); }} /> : <Text accessibilityLiveRegion="polite" style={styles.note}>Loading help settings…</Text>}
       </SettingsGroup>
       <SettingsGroup title="Work details">

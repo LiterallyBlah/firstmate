@@ -61,10 +61,9 @@ export function deckDecisions(cards: readonly FleetCard[], snapshot: NeedsYouSna
 /** Ledger total, never the number of figures at the bow. */
 export function deckDecisionLabel(snapshot: NeedsYouSnapshot | undefined, offline = false, includeFreshness = true, read: DecisionReadState = {}): string {
   const state = indicatorState(snapshot, offline, read);
-  if (state.loading || state.updating || state.partialPlans || state.partialScoped || snapshot?.scopedComplete === false || snapshot?.planProblems?.length || read.readiness === "partial") return state.label;
+  if (state.loading || state.partialPlans || state.partialScoped || snapshot?.scopedComplete === false || snapshot?.planProblems?.length || read.readiness === "partial") return state.label + (includeFreshness && state.lastUpdated ? ` · ${state.lastUpdated}` : "");
   if (snapshot?.freshness.status === "disabled") return "Decisions are off";
   if (!snapshot || snapshot.actionCount === null || snapshot.freshness.status === "unknown") return "Can't read decisions";
   const label = snapshot.actionCount === 0 ? "Nothing needs you" : `${snapshot.actionCount} ${snapshot.actionCount === 1 ? "needs" : "need"} you`;
-  return includeFreshness && (state.failed || snapshot.freshness.status === "stale")
-    ? `${label} · as of ${snapshot.freshness.asOf === null ? "last good read" : new Date(snapshot.freshness.asOf).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : label;
+  return includeFreshness && state.lastUpdated ? `${label} · ${state.lastUpdated}` : label;
 }

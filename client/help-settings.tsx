@@ -10,6 +10,7 @@ import { FEATURE_CAPABILITIES, FeatureCapacitySchema, FeatureReadResultSchema, F
 import { CAPABILITY_LABELS, HELP, changedCapabilities, helpSelection, helpState, retainedWork, type HelpKind } from "./feature-settings-model";
 import { workflowRequestId } from "./workflow-plans";
 import { errorText } from "./format";
+import { RoutineCheckSetup } from "./routine-check-setup";
 
 export const FEATURE_SETTINGS_QUERY_KEY = ["firstmate", "feature-settings"] as const;
 type Review = { kind: HelpKind | "keep" | "capacity"; enabled: boolean; snapshot: FeatureReadResult;
@@ -28,7 +29,7 @@ function HelpButton({ label, onPress, disabled = false, primary = false, theme }
   </Pressable>;
 }
 
-export function HelpSettings({ theme, home, hostId, online = true }: { theme: PluginTheme; home: string; hostId: string; online?: boolean }) {
+export function HelpSettings({ theme, home, hostId, online = true, compact = false }: { theme: PluginTheme; home: string; hostId: string; online?: boolean; compact?: boolean }) {
   const read = useRpc(readFeatureSettings), set = useRpc(setFeatureSettings), cache = useQueryClient();
   const key = [...FEATURE_SETTINGS_QUERY_KEY, hostId, home];
   const query = useQuery({ queryKey: key, queryFn: async () => FeatureReadResultSchema.parse(await read({ home })),
@@ -36,6 +37,7 @@ export function HelpSettings({ theme, home, hostId, online = true }: { theme: Pl
   const snapshot = query.data;
   const [review, setReview] = useState<Review | null>(null), [open, setOpen] = useState(false), [advanced, setAdvanced] = useState(false);
   const [busy, setBusy] = useState(false), [failure, setFailure] = useState<string | null>(null), [notice, setNotice] = useState<string | null>(null);
+  const [routineOpen, setRoutineOpen] = useState(false);
   const pending = useRef(false), mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const text = { color: theme.colors.foreground, fontSize: 14, lineHeight: 21 };
@@ -90,6 +92,7 @@ export function HelpSettings({ theme, home, hostId, online = true }: { theme: Pl
       } else {
         setNotice(applied.data?.revision === result.policy.revision ? "Your settings are saved and applied here." : "Your change was saved. Settings changed again; review the current setup.");
         setReview(null); setOpen(false);
+        if (review.kind === "checks" && review.enabled) setRoutineOpen(true);
       }
     } catch (error) {
       if (mounted.current) setFailure(`Couldn't confirm this settings save. Your review is kept. Check saved settings, or retry this exact save. ${errorText(error)}`);
@@ -121,7 +124,7 @@ export function HelpSettings({ theme, home, hostId, online = true }: { theme: Pl
         {r.code === "DEPENDENCY_DISABLED" ? "Contextual sending is paused. Review this setup to enable its conversation controls together." : "This help is unavailable. Refresh settings and review Advanced work details."}
       </Text>)}
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-        <HelpButton theme={theme} label={HELP[kind].action} primary={kind === "projects"} disabled={!mutable || busy || !!review?.request} onPress={() => begin(kind)} />
+        <HelpButton theme={theme} label={HELP[kind].action} primary={kind === "projects"} disabled={!mutable || busy || !!review?.request} onPress={() => kind === "checks" ? setRoutineOpen(true) : begin(kind)} />
         {snapshot && HELP[kind].owners.some(k => snapshot.requested[k]) ? <HelpButton theme={theme} label={`Turn off ${HELP[kind].title.toLowerCase()}`} disabled={!mutable || busy || !!review?.request} onPress={() => begin(kind, false)} /> : null}
       </View>
     </View>)}
@@ -177,5 +180,7 @@ export function HelpSettings({ theme, home, hostId, online = true }: { theme: Pl
         </View>
       </View> : null}
     </Modal.Content></Modal>
+    {routineOpen && snapshot ? <RoutineCheckSetup key={`${hostId}:${snapshot.homeId}`} theme={theme} compact={compact} homeId={snapshot.homeId} hostId={hostId} online={online} canEnable={mutable && !busy && !review?.request}
+      onEnable={() => { setRoutineOpen(false); begin("checks"); }} onClose={() => setRoutineOpen(false)} /> : null}
   </View>;
 }

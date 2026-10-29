@@ -11,7 +11,7 @@ const repo=createRequire(resolve(root,'package.json')),local=createRequire(resol
 const {build}=local('esbuild'),{chromium}=local('playwright');
 const baseline='d74a30ccdcdabffecd3afaf740acf86f074dc43c';
 await mkdir(resolve(out,'screenshots'),{recursive:true});
-const changed=new Set(['fleet.tsx','settings-screen.tsx','supervision-activation.tsx','project-ownership.tsx','maintenance-ownership.tsx','scope-discussion.tsx','launch.tsx','decision-drawer.tsx','decision-surface.tsx','needs-you-state.ts']);
+const changed=new Set(['fleet.tsx','settings-screen.tsx','supervision-activation.tsx','project-ownership.tsx','maintenance-ownership.tsx','scope-discussion.tsx','launch.tsx','decision-drawer.tsx','decision-surface.tsx','needs-you-state.ts','decision-raised-card.tsx','decision-raised.ts','needs-you.tsx','deck-decisions.ts','task-list.tsx','task-board.tsx','header-actions.tsx']);
 for(const stage of ['before','after']) await build({entryPoints:[resolve(here,'panel.jsx')],outfile:resolve(out,stage+'.js'),bundle:true,jsx:'automatic',logLevel:'warning',define:{'process.env.NODE_ENV':'"development"'},plugins:[{name:'isolated-host',setup(b){
  b.onResolve({filter:/^@getpaseo\/plugin$/},()=>({path:resolve(root,'docs/board-list/contracts.js')}));
  b.onResolve({filter:/^@getpaseo\/plugin\//},()=>({path:resolve(here,'stubs.jsx')}));
