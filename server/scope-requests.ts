@@ -116,7 +116,8 @@ export async function handleScopeRequest(request: z.infer<typeof ScopeRequestSch
     if (input.page === "inbox") return supervisionInboxStatus(status, { scopeId: input.scopeId, after: input.after });
     const rows = status.outbox.filter(o => o.ownerScopeId === input.scopeId && o.state === "pending");
     const entries = rows.slice(input.after, input.after + 8).map(row => ({ ...row,
-      projectInput: status.commands.find(c => c.id === row.causationId)?.result.projectInput }));
+      projectInput: status.commands.find(c => c.id === row.causationId)?.result.projectInput,
+      decision: row.decisionId ? status.decisions.find(d => d.id === row.decisionId) : undefined }));
     return { freshness: status.freshness, sequence: status.sequence, entries, nextAfter: input.after + entries.length,
       hasMore: rows.length > input.after + entries.length };
   }

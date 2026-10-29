@@ -1,3 +1,4 @@
+import { projectAnswerContext } from "./project-captain";
 import type { SupervisionStatus } from "../shared/supervision";
 import type { ScopedDecision } from "../shared/supervision-policy";
 import { ScopedAnswerContextSchema } from "../shared/scoped-commands";
@@ -6,6 +7,7 @@ import { planBudgetException } from "../shared/plan-supervisor-limits";
 
 /** The displayed decision pins S03's actual read set. An answer never substitutes new vectors. */
 export function scopeAnswerContext(status: SupervisionStatus, decision: ScopedDecision) {
+  const project = projectAnswerContext(status, decision); if (project) return ScopedAnswerContextSchema.parse(project);
   const scope = status.scopes.find(s => s.id === decision.ownerScopeId), binding = status.bindings.find(b => b.scopeId === scope?.id);
   const plan = status.plans.find(p => p.scopeId === scope?.id && p.plan.definition.id === decision.planId)?.plan;
   const node = plan?.definition.nodes.find(n => n.id === decision.nodeId);

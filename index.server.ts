@@ -1,3 +1,5 @@
+import { PlanRules } from "./server/plan-rules";
+import { planSupervisorGatewayLimits } from "./shared/plan-supervisor-limits";
 import type { PluginServerContext } from "@getpaseo/plugin/server";
 import { startWorkflowService, workflowStore, queuePlanNotes } from "./server/workflow-service";
 import { workflowHomeId, workflowSnapshot, withWorkflowNeeds, withWorkflowFleet } from "./server/workflow-board";
@@ -191,7 +193,8 @@ export default function contribute(server: PluginServerContext) {
   registerNeedsYouRpc(server, decisions, readCombinedNeeds);
   // Startup controls are independent. Enabling UI or restoring a view creates no resources.
   const scopeRuntime = new ScopeRuntime(supervisionRuntime, { enabled: scopeExecutionEnabled, uiEnabled: scopeUiEnabled,
-    slots: projects.slots, generalHeadroom: projects.headroom });
+    slots: projects.slots, generalHeadroom: projects.headroom,
+    ...(process.env.FIRSTMATE_PLAN_SUPERVISORS === "1" ? { planLimits: planSupervisorGatewayLimits, planBudgetRefused: (store, home, scopeId) => new PlanRules(store, home).budgetDecision(scopeId) } : {}) });
   registerScopeRpcs(server, { read: async () => {
     const config = await readFirstmateConfig(), home = resolveHome(config);
     return { home, generalId: config.mateAgentId || null, status: await readSupervision(home) };

@@ -91,3 +91,13 @@ no retained dependents and no unsettled effects. Imported live callbacks remain
 held until the known original owner is explicitly drained/reconciled. Migration
 controls use an approved independent verified snapshot and retention; restoration
 still requires external-effect reconciliation and never refunds spend.
+
+For an exceptional project judgment that needs the captain's authority, `project-result`
+may include `captain: {title, question, reason, options: [{id, label}, ...], recommendation}`.
+Keep ordinary conflicts and memory review delegated. The exception requires the current
+input and an actual evidence digest; it creates one numbered shared-inbox question,
+never a grant. Read its `decision.answer` outbox and record the resulting evidenced
+judgment with `project-result`. A changed source needs `disposition: "source-changed"`.
+General must separately import reviewed `decision.answer` policy for exactly the admitted
+project scope and its logical `project-<projectId>` target; that target permits no worker
+or model operations. A captain answer does not change allocation, policy or work authority.

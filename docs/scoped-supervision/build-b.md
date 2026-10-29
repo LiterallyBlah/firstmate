@@ -110,12 +110,25 @@ An older committed cutover without that proof remains held for deliberate
 reconciliation. No restore/deletion service ships; restored external effects
 still require reconciliation and spend is never reset.
 
-`shared/plan-supervisor-limits.ts` is C's pure durable cap read interface: effective
-record identity, limits, cumulative spent/remaining counts and uncertain effect
-IDs. `planBudgetException` supplies the checked domain answer context. The
-presentation-only `shared/scoped-captain-decision.ts` is copied unchanged from C
-commit `3a9cb57104ec14df58378688a927e2fdbd5e8e88` (#165); reconcile the identical
-shared file and overlapping Needs-you/index wiring when integrating C.
+`shared/plan-supervisor-limits.ts` supplies C's landed `ScopeRuntimeOptions.planLimits`
+seam with the effective revision's durable cap. Discussion, initiative and opening
+turns share cumulative reservations, including cancellation and uncertainty.
+General retains its independent transport. Cap refusal emits one checked budget
+question; neither an answer nor a presentation record grants additional spend.
+
+Rebased on C's merged `254b9fe5` (#165), using its real
+`shared/scoped-captain-decision.ts` contract. Plan and project exceptions retain
+exact checked context and logical-owner outboxes separately from presentation.
+Relevant project inputs stay owner work unless the exact bound project owner
+records a current, evidenced captain exception with a reason, numbered choices
+and recommendation. Its answer requires source-bound `decision.answer` policy,
+fresh project/source identity and explicit app/chat provenance. The narrow
+project policy target cannot grant worker/model operations. Answers wake only
+that project owner; routine completion creates no summary cascade. Changed
+sources hold the question and preserve the draft; replay cannot duplicate it.
+`scope-runtime` and `project-judgments` tests cover the real shared composition,
+answer outboxes, wrong owners, changed sources, historical reread and counted
+cap refusal. Maintenance captain exceptions remain Build D's responsibility.
 
 Verification uses Node 24, isolated temporary homes, synthetic providers and
 real temporary git worktrees. It makes no live activation, install, provider or

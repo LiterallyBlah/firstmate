@@ -1,3 +1,4 @@
+import { projectCaptainException } from "../shared/project-captain";
 /** Lifecycle-owned backlog observation; no Paseo handle, agent turn or mounted UI required. */
 import { createHash, randomUUID } from "node:crypto";
 import { watch, type FSWatcher } from "node:fs";
@@ -48,10 +49,13 @@ export function withScopedNeedsYou(snapshot: NeedsYouSnapshot, status: Supervisi
     const owner = status.scopes.find(s => s.id === decision.ownerScopeId), binding = status.bindings.find(b => b.scopeId === decision.ownerScopeId);
     const backend = status.backends.find(b => b.planId === decision.planId);
     const held = status.operationHolds.some(h => h.scopeId === decision.ownerScopeId && h.planId === decision.planId && h.state === "held" && h.operations.includes("decision.answer"));
-    const ready = status.freshness === "current" && backend?.backend === "scoped" && backend.state === "active" && owner?.kind === "plan" && owner.mode === "scoped" && ["active", "held", "transferring"].includes(owner.state) &&
-      !held && !!plan && decision.state === "pending" && (!!node && planDecisionReady(plan, node, plans) || !!planBudgetException(status, decision));
+    const projectException = projectCaptainException(status, decision);
     const answerContext = scopeAnswerContext(status, decision);
-    const captain = ScopedCaptainDecisionSchema.parse({ format: "firstmate.scoped-captain-decision/1", homeId: status.homeId,
+    const planReady = status.freshness === "current" && backend?.backend === "scoped" && backend.state === "active" && owner?.kind === "plan" && owner.mode === "scoped" && ["active", "held", "transferring"].includes(owner.state) &&
+      !held && !!plan && decision.state === "pending" && (!!node && planDecisionReady(plan, node, plans) || !!planBudgetException(status, decision));
+    const ready = planReady || !!(projectException?.current && answerContext && !held && decision.state === "pending");
+    const emitted = projectException ? status.commands.find(c => c.result.projectException?.decisionId === decision.id)?.result.captainDecisions?.find(c => c.decisionId === decision.id) : undefined;
+    const captain = emitted ? { ...emitted, permittedActions: ready ? ["answer" as const] : [] } : ScopedCaptainDecisionSchema.parse({ format: "firstmate.scoped-captain-decision/1", homeId: status.homeId,
       scope: { kind: "plan", id: decision.ownerScopeId }, decisionId: decision.id, revision: decision.revision, subjectHash: decision.subjectHash,
       origin: { kind: "plan", id: decision.planId }, title: decision.title, question: decision.question,
       options: decision.options.map((o, i) => ({ ...o, number: i + 1 })), recommendation: node?.kind === "decision" ? node.recommendation ?? null : null,

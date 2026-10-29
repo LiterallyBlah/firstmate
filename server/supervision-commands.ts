@@ -1,3 +1,4 @@
+import { prepareProjectAnswer } from "./project-captain";
 /** Disabled cooperative pilot command seam. No RPC registration, executor or external effects. */
 import { createHash, randomUUID } from "node:crypto";
 import { readFile, stat } from "node:fs/promises";
@@ -112,6 +113,8 @@ export class SupervisionCommands {
       if (!decision || decision.ownerScopeId !== answer.scopeId) fail("UNKNOWN_OWNER", "Decision does not belong to this logical scope.");
       if (decision.state !== "pending" || decision.answer || decision.revision !== answer.revision || decision.subjectHash !== answer.subjectHash)
         fail("STALE", "This decision was answered or its subject changed. Preserve the draft and reread.");
+      if (status.commands.some(c => c.result.projectException?.decisionId === decision.id))
+        return prepareProjectAnswer(this.home, status, decision, answer, actor, uiAnswer, this.options.now?.() ?? new Date().toISOString());
       const knownBudget = status.commands.some(c => c.result.budgetException?.decisionId === decision.id);
       if (knownBudget) {
         const exception = planBudgetException(status, decision), scope = this.checkOwner(status, answer, actor, "decision.answer", uiAnswer), binding = status.bindings.find(b => b.scopeId === scope.id);

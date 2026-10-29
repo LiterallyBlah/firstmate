@@ -95,6 +95,9 @@ export const ScopedCommandResultSchema = z.object({
   evidenceArtifact: z.object({ digest: SupervisionHash, bytes: z.number().int().positive().max(512 * 1024) }).strict().optional(),
   projectInput: z.object({ scopeId: SupervisionUuid, projectId: SupervisionUuid, kind: z.enum(["conflict", "memory-proposal", "memory"]), recordId: SupervisionUuid,
     recordVersion: z.number().int().positive(), subjectHash: SupervisionHash }).strict().optional(),
+  projectException: z.object({ scopeId: SupervisionUuid, projectId: SupervisionUuid, decisionId: SupervisionUuid,
+    sourceCommandId: SupervisionUuid, inputOutboxId: SupervisionUuid, projectVersion: version, subjectHash: SupervisionHash,
+    evidenceDigest: SupervisionHash, reason: z.string().min(1).max(2000) }).strict().optional(),
   projectJudgment: z.object({ scopeId: SupervisionUuid, epoch: z.number().int().positive(), outboxId: SupervisionUuid,
     subjectHash: SupervisionHash, evidenceDigest: SupervisionHash, summary: z.string().min(1).max(2000), disposition: z.enum(["judged", "source-changed"]).optional() }).strict().optional(),
   /** UI convention only. Kept in the immutable accepted command, never authentication evidence. */

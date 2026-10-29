@@ -22,3 +22,10 @@ export function planBudgetException(status: SupervisionStatus, decision: ScopedD
     e.limits.sessions === cap.limits.sessions && e.limits.turns === cap.limits.turns && e.spent.sessions === cap.spent.sessions && e.spent.turns === cap.spent.turns &&
     cap.spent.turns >= cap.limits.turns && status.outbox.some(o => o.id === command.result.outboxId && o.ownerScopeId === e.scopeId && o.causationId === command.id) ? e : undefined;
 }
+
+/** C conversation and B initiative turns consume the same cumulative reservation cap. */
+export function planSupervisorGatewayLimits(status: SupervisionStatus, scopeId: string) {
+  const current = planSupervisorLimits(status, scopeId);
+  if (!current.limits) throw new Error("A reviewed durable supervisor continuing-turn cap is required.");
+  return { supervisorSessions: current.limits.sessions, supervisorTurns: current.limits.turns };
+}

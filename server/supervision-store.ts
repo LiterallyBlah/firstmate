@@ -658,6 +658,21 @@ export class SupervisionStore {
   }
   private validateIndexes(frames: Map<string, Frame>): void {
     const get = (kind: Frame["kind"], id: string) => frames.get(key(kind, id))?.value;
+    // A project exception must retain the owner judgment and original checked logical input.
+    // It does not acquire a fabricated workflow backend.
+    const projectDecisionOwner = (row: z.infer<typeof ScopedDecisionSchema>) => {
+      const command = [...frames.values()].filter(f => f.kind === "command").map(f => f.value as z.infer<typeof AcceptedScopedCommandSchema>)
+        .find(c => c.actor.kind === "agent" && c.result.projectException?.decisionId === row.id);
+      const e = command?.result.projectException, inputCommand = e ? get("command", e.sourceCommandId) as z.infer<typeof AcceptedScopedCommandSchema> | undefined : undefined;
+      const input = inputCommand?.result.projectInput, project = e ? get("project", e.projectId) as { scopeId: string } | undefined : undefined;
+      const original = e ? get("outbox", e.inputOutboxId) as z.infer<typeof ScopedOutboxSchema> | undefined : undefined;
+      return !!(e && input && project && original && project.scopeId === row.ownerScopeId && e.scopeId === row.ownerScopeId &&
+        row.planId === `project-${e.projectId}` && e.subjectHash === row.subjectHash && input.scopeId === row.ownerScopeId && input.projectId === e.projectId &&
+        inputCommand?.actor.kind === "system" && inputCommand.actor.id === "project-judgment-input" && original.causationId === inputCommand.id &&
+        original.state === "handled" && original.subjectHash === input.subjectHash && original.resultRef === `command:${command.id}` &&
+        command.result.projectJudgment?.outboxId === original.id && command.result.projectJudgment.disposition === "judged" &&
+        command.result.captainDecisions?.some(c => c.decisionId === row.id && c.subjectHash === row.subjectHash && c.scope.kind === "project" && c.scope.id === row.ownerScopeId && c.origin.kind === "project" && c.origin.id === e.projectId));
+    };
     const aliases = new Set<string>(), effects = new Set<string>(), workers = new Set<string>(), ordinals = new Set<string>();
     const currentWorkerTasks = new Map<string, string>();
     const reservations = ownership(frames).workflows.flatMap(w => w.inventory.scopes.map(scope => ({ ...scope, plan: w.plan })));
@@ -753,7 +768,7 @@ export class SupervisionStore {
           const scope = get("scope", row.ownerScopeId) as z.infer<typeof SupervisionScopeSchema> | undefined;
           if (scope?.kind !== "maintenance" || job?.scopeId !== row.ownerScopeId || incident?.jobId !== job.id || row.planId !== job.id || row.nodeId !== incident.id)
             fail("UNKNOWN_OWNER", "Maintenance decision must retain its exact logical job, incident and maintenance owner.");
-        } else if (!backend || backend.ownerScopeId !== row.ownerScopeId) fail("UNKNOWN_OWNER", "Decision and plan owner must agree.");
+        } else if (!(backend?.ownerScopeId === row.ownerScopeId || projectDecisionOwner(row))) fail("UNKNOWN_OWNER", "Decision and checked logical owner must agree.");
         if ((row.state === "answered") !== !!row.answer) fail("CONFLICT", "Decision answer and state must agree.");
         if (row.answer) {
           const outbox = get("outbox", row.answer.outboxId) as z.infer<typeof ScopedOutboxSchema> | undefined;
@@ -769,10 +784,13 @@ export class SupervisionStore {
         const projectOwned = input && introduced?.actor.kind === "system" && introduced.actor.id === "project-judgment-input" &&
           introduced.result.outboxId === row.id && input.scopeId === row.ownerScopeId && project?.scopeId === row.ownerScopeId &&
           row.planId === `project-${input.projectId}` && row.kind === "plan.command" && row.decisionId === null && row.subjectHash === input.subjectHash;
+        const projectAnswer = row.decisionId ? get("decision", row.decisionId) as z.infer<typeof ScopedDecisionSchema> | undefined : undefined;
+        const exceptionOwned = projectAnswer && projectDecisionOwner(projectAnswer) && projectAnswer.ownerScopeId === row.ownerScopeId &&
+          projectAnswer.planId === row.planId && projectAnswer.subjectHash === row.subjectHash && row.kind === "decision.answer" && projectAnswer.answer?.outboxId === row.id;
         if ((row.maintenance ? !maintenanceDecision || !maintenanceDecision.maintenance || maintenanceDecision.ownerScopeId !== row.ownerScopeId || maintenanceDecision.planId !== row.planId || row.kind !== "decision.answer"
-          : !(backend?.ownerScopeId === row.ownerScopeId || projectOwned)) || (row.state === "handled") !== !!(row.handledEpoch && row.resultRef))
+          : !(backend?.ownerScopeId === row.ownerScopeId || projectOwned || exceptionOwned)) || (row.state === "handled") !== !!(row.handledEpoch && row.resultRef))
           fail("CONFLICT", "Outbox ownership or handled receipt is inconsistent.");
-        if (projectOwned && row.state === "handled") {
+        if ((projectOwned || exceptionOwned) && row.state === "handled") {
           const id = /^command:([0-9a-f-]{36})$/.exec(row.resultRef!)?.[1], command = id ? get("command", id) as z.infer<typeof AcceptedScopedCommandSchema> | undefined : undefined;
           const judgment = command?.result.projectJudgment;
           if (command?.actor.kind !== "agent" || !judgment || judgment.scopeId !== row.ownerScopeId || judgment.outboxId !== row.id || judgment.subjectHash !== row.subjectHash || judgment.epoch !== row.handledEpoch)

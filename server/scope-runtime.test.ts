@@ -137,3 +137,32 @@ it("A16: untagged and @mate use the existing checked General sender, never a sco
   expect(mutate).not.toHaveBeenCalled();
   await runtime.stop();
 });
+
+it("B/C A10/A20: discussion and initiative reservations share the durable cap, counted cancellations and one checked exception", async () => {
+  const { ruleFixture } = await import("../test/plan-rules-fixture"), { planSupervisorGatewayLimits, planSupervisorLimits } = await import("../shared/plan-supervisor-limits");
+  const f = await ruleFixture(), projectScope = randomUUID(), s = await f.store.read();
+  f.record.version++; f.record.supervisorLimits.turns = 2; await f.rules.import(randomUUID(), f.record, captain);
+  const rows = [{ kind: "scope" as const, value: { id: projectScope, version: 1, homeId: s.homeId, kind: "project" as const,
+    projectIds: [f.scope.projectId], sponsorId: null, mode: "scoped" as const, state: "dormant" as const } },
+    { kind: "project" as const, value: { id: f.scope.projectId, version: 1, scopeId: projectScope, name: f.scope.project, aliases: [], state: "admitted" as const,
+      budget: { agents: 4, turns: 4 }, sourceVector: [policyRef("policy-source", s.policySources[0]!)], provenance: captain } }];
+  await f.store.transact(expectedFor(await f.store.read(), rows), randomUUID(), rows);
+  const runtime = new SupervisionRuntime(join(f.home, "store"), () => f.store), config = FirstmateConfigSchema.parse({ home: f.home, mateAgentId: f.state.globalMate });
+  const service = new ScopeRuntime(runtime, { enabled: true, config: async () => config, receiver: () => f.receiver,
+    planLimits: planSupervisorGatewayLimits, planBudgetRefused: (_store, _home, scope) => f.rules.budgetDecision(scope) });
+  await expect(service.execute(s.homeId, "general", {} as PaseoApi, async () => "General remains independent")).resolves.toBe("General remains independent");
+  const actor = { kind: "system" as const, id: "discussion-composition", source: "test reservation" };
+  const reserve = (id: string) => service.execute(s.homeId, f.scope.id, {} as PaseoApi, ({ discussions }) => discussions.sessions.reserveTurn({
+    requestId: id, scopeId: f.scope.id, epoch: 1, causation: id, text: "An explicit scoped discussion turn." }, actor));
+  for (let i = 0; i < 2; i++) {
+    const id = randomUUID(), effectId = await reserve(id), current = await f.store.read(), effect = current.effects.find(e => e.id === effectId)!;
+    expect(await reserve(id)).toBe(effectId);
+    const cancelled = { kind: "effect" as const, value: { ...effect, version: effect.version + 1, state: "cancelled" as const } };
+    await f.store.transact(expectedFor(current, [cancelled]), randomUUID(), [cancelled]);
+  }
+  expect(planSupervisorLimits(await f.store.read(), f.scope.id).spent.turns).toBe(2);
+  await expect(reserve(randomUUID())).rejects.toThrow("budget is exhausted");
+  await expect(reserve(randomUUID())).rejects.toThrow("budget is exhausted");
+  const after = await f.store.read(); expect(after.decisions).toHaveLength(1); expect(after.commands.flatMap(c => c.result.captainDecisions ?? [])).toHaveLength(1);
+  expect(f.receiver.calls).toEqual([]); await runtime.stop();
+});

@@ -114,9 +114,10 @@ targets, drafts, threads and native links; one shared Needs-you snapshot gains s
 filters with global totals and retained quarantines. Stored status and compact scoped Bearings
 wake no model. General sends do not acquire a scoped writer. The app's answer press records
 unverified provenance and uses the existing logical-owner outbox; it cannot approve a plan or
-attach a supervisor. Plan sessions use B's durable cap when its explicit switch is enabled; otherwise caps stay 1/1. The shared captain
-decision shape adapts real plan decisions; project/maintenance origins require their domain
-owners to emit actual captain escalations. See [Build C](docs/scoped-supervision/build-c.md).
+attach a supervisor. Plan sessions use B's durable cap when its explicit switch is enabled;
+otherwise caps stay 1/1. The shared captain decision shape adapts real plan and evidenced
+project-owner exceptions. Maintenance origins await Build D's actual captain escalations.
+See [Build C](docs/scoped-supervision/build-c.md) and [Build B](docs/scoped-supervision/build-b.md).
 
 Scoped workflow commands, source ingress, inbox offering and worker dispatch require
 Build B's separate switch. Discussion execution remains Build C's separate integration.

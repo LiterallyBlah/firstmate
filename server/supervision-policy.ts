@@ -122,8 +122,12 @@ export async function acceptPolicyInventory(store: SupervisionStore, home: strin
     const sources = [...status.policySources.filter(s => !data.sources.some(n => n.id === s.id)), ...data.sources];
     for (const rule of data.rules) for (const scopeId of rule.selector.scopeIds) {
       const scope = status.scopes.find(s => s.id === scopeId);
+      const projectAnswer = scope?.kind === "project" && rule.operations.every(op => op === "decision.answer") &&
+        rule.selector.projectIds.length === 1 && scope.projectIds.length === 1 && rule.selector.planIds.length === 1 &&
+        status.projects?.projects.some(p => p.scopeId === scope.id && p.state === "admitted" && p.id === rule.selector.projectIds[0] &&
+          rule.selector.planIds[0] === `project-${p.id}` && [p.name, ...p.aliases].includes(rule.selector.projectNames[p.id]!));
       if (!scope || scope.mode !== "scoped" || rule.selector.projectIds.some(id => !scope.projectIds.includes(id) || !rule.selector.projectNames[id]) ||
-        rule.selector.planIds.some(id => !status.backends.some(b => b.planId === id && b.ownerScopeId === scopeId && b.backend === "scoped"))) refuse("CONFLICT", "Policy selector must name registered scoped ownership and exact project aliases.");
+        (!projectAnswer && rule.selector.planIds.some(id => !status.backends.some(b => b.planId === id && b.ownerScopeId === scopeId && b.backend === "scoped")))) refuse("CONFLICT", "Policy selector must name registered scoped ownership and exact project aliases.");
     }
     for (const rule of data.rules) for (const ref of rule.sources) {
       const source = sources.find(s => s.id === ref.id);
