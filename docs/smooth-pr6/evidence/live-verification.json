@@ -1,0 +1,229 @@
+{
+  "passed": true,
+  "baseline": "fbdf3ae0",
+  "captures": 44,
+  "cases": [
+    "light-desktop-geometry-before",
+    "light-desktop-home-before",
+    "light-desktop-board-before",
+    "light-desktop-details-before",
+    "light-desktop-projects-before",
+    "light-phone-geometry-before",
+    "light-phone-home-before",
+    "light-phone-board-before",
+    "light-phone-details-before",
+    "light-phone-projects-before",
+    "dark-desktop-geometry-before",
+    "dark-desktop-home-before",
+    "dark-desktop-board-before",
+    "dark-desktop-details-before",
+    "dark-desktop-projects-before",
+    "dark-phone-geometry-before",
+    "dark-phone-home-before",
+    "dark-phone-board-before",
+    "dark-phone-details-before",
+    "dark-phone-projects-before",
+    "light-desktop-geometry-after",
+    "light-desktop-home-after",
+    "light-desktop-board-after",
+    "light-desktop-details-after",
+    "light-desktop-projects-after",
+    "light-desktop-project-details-after",
+    "light-desktop-plans-after",
+    "light-desktop-setup-after",
+    "light-phone-geometry-after",
+    "light-phone-home-after",
+    "light-phone-board-after",
+    "light-phone-details-after",
+    "light-phone-projects-after",
+    "light-phone-project-details-after",
+    "light-phone-plans-after",
+    "light-phone-setup-after",
+    "dark-desktop-geometry-after",
+    "dark-desktop-home-after",
+    "dark-desktop-board-after",
+    "dark-desktop-details-after",
+    "dark-desktop-projects-after",
+    "dark-desktop-project-details-after",
+    "dark-desktop-plans-after",
+    "dark-desktop-setup-after",
+    "dark-phone-geometry-after",
+    "dark-phone-home-after",
+    "dark-phone-board-after",
+    "dark-phone-details-after",
+    "dark-phone-projects-after",
+    "dark-phone-project-details-after",
+    "dark-phone-plans-after",
+    "dark-phone-setup-after"
+  ],
+  "geometry": [
+    {
+      "key": "light-desktop-geometry-before",
+      "entryBox": {
+        "x": 0,
+        "y": 920,
+        "width": 1440,
+        "height": 80
+      },
+      "chat": {
+        "x": 0,
+        "y": 98,
+        "width": 648,
+        "height": 721
+      },
+      "board": {
+        "x": 666,
+        "y": 141,
+        "width": 774,
+        "height": 779
+      }
+    },
+    {
+      "key": "light-phone-geometry-before",
+      "entryBox": {
+        "x": 0,
+        "y": 747,
+        "width": 390,
+        "height": 97
+      },
+      "chat": {
+        "x": 0,
+        "y": 236,
+        "width": 390,
+        "height": 380
+      },
+      "board": {
+        "x": 0,
+        "y": 315,
+        "width": 390,
+        "height": 432
+      }
+    },
+    {
+      "key": "dark-desktop-geometry-before",
+      "entryBox": {
+        "x": 0,
+        "y": 920,
+        "width": 1440,
+        "height": 80
+      },
+      "chat": {
+        "x": 0,
+        "y": 98,
+        "width": 648,
+        "height": 721
+      },
+      "board": {
+        "x": 666,
+        "y": 141,
+        "width": 774,
+        "height": 779
+      }
+    },
+    {
+      "key": "dark-phone-geometry-before",
+      "entryBox": {
+        "x": 0,
+        "y": 747,
+        "width": 390,
+        "height": 97
+      },
+      "chat": {
+        "x": 0,
+        "y": 236,
+        "width": 390,
+        "height": 380
+      },
+      "board": {
+        "x": 0,
+        "y": 315,
+        "width": 390,
+        "height": 432
+      }
+    },
+    {
+      "key": "light-desktop-geometry-after",
+      "entryBox": {
+        "x": 1210.9375,
+        "y": 45,
+        "width": 134.09375,
+        "height": 44
+      },
+      "chat": {
+        "x": 0,
+        "y": 98,
+        "width": 648,
+        "height": 801
+      },
+      "board": {
+        "x": 666,
+        "y": 141,
+        "width": 774,
+        "height": 859
+      }
+    },
+    {
+      "key": "light-phone-geometry-after",
+      "entryBox": {
+        "x": 218.28125,
+        "y": 45,
+        "width": 80.75,
+        "height": 44
+      },
+      "chat": {
+        "x": 0,
+        "y": 236,
+        "width": 390,
+        "height": 477
+      },
+      "board": {
+        "x": 0,
+        "y": 315,
+        "width": 390,
+        "height": 529
+      }
+    },
+    {
+      "key": "dark-desktop-geometry-after",
+      "entryBox": {
+        "x": 1210.9375,
+        "y": 45,
+        "width": 134.09375,
+        "height": 44
+      },
+      "chat": {
+        "x": 0,
+        "y": 98,
+        "width": 648,
+        "height": 801
+      },
+      "board": {
+        "x": 666,
+        "y": 141,
+        "width": 774,
+        "height": 859
+      }
+    },
+    {
+      "key": "dark-phone-geometry-after",
+      "entryBox": {
+        "x": 218.28125,
+        "y": 45,
+        "width": 80.75,
+        "height": 44
+      },
+      "chat": {
+        "x": 0,
+        "y": 236,
+        "width": 390,
+        "height": 477
+      },
+      "board": {
+        "x": 0,
+        "y": 315,
+        "width": 390,
+        "height": 529
+      }
+    }
+  ]
+}

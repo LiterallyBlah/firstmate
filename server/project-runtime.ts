@@ -153,13 +153,15 @@ export class ProjectRuntime {
     const capacity = policy?.capacity ?? { slots: this.slots, generalHeadroom: this.headroom };
     if (policy) problems.push(...policy.problems);
     const associations = planAssociations(status, legacy, catalog.rows);
+    const associationWarnings = associations.filter(p => p.backend === "legacy" && !p.projectIds.length)
+      .map(p => `Plan ${p.id} has unresolved project or host membership; no ownership was guessed.`);
     for (const plan of associations.filter(p => !p.projectIds.length)) problems.push(`Plan ${plan.id} has unresolved project or host membership; no ownership was guessed.`);
     const rows = [...catalog.rows];
     for (const p of status.projects?.projects ?? []) if (!rows.some(r => r.projectId === p.id)) rows.push({ name: p.name, location: p.owner?.directory ?? null, directory: p.owner?.directory ?? null,
       projectId: p.id, scopeId: p.scopeId, reason: "Admitted project is absent from the current registry; retained for reconciliation." });
     return ProjectRuntimeSnapshotSchema.parse({ enabled: policy?.effective.projectMates ?? !!this.options.enabled, homeId: status.homeId, registryDigest: catalog.digest,
       pause: policy ? featurePause(status, policy.effective, "project") : null,
-      sequence: status.sequence, hash: status.hash, freshness: status.freshness, problems: [...status.problems, ...problems],
+      sequence: status.sequence, hash: status.hash, freshness: status.freshness, problems: [...status.problems, ...problems], associationWarnings,
       recovery: status.problems.length && status.problems.every(p => p.startsWith("Checkpoint validation failed;") || p === "Final transaction awaits publication.")
         ? { sequence: status.sequence, hash: status.hash } : null,
       general: { agentId: config.mateAgentId || null, scopeId: status.scopes.find(s => s.kind === "general")?.id ?? null,
@@ -174,7 +176,7 @@ export class ProjectRuntime {
         const reason = row.reason ?? (!aliasKnown ? "Registry name changed; record a reviewed alias before provisioning." : !project ? "Awaiting reviewed admission and allocation." : !project.owner ? "Durable profile and caps are missing." :
           stopped ? "Provisioning stopped; identity and spend retained. Inspect any uncertain operation." :
           !binding ? provisionInput ? "Provisioning incomplete; inspect and resume the recorded request." : null : binding.state !== "active" || effects?.send?.state !== "succeeded" ? "Provisioning incomplete; inspect and resume the recorded request." : null);
-        return { name: row.name, directory: row.directory, hostId: project?.owner?.hostId ?? (row.directory ? "local" : null), projectId: row.projectId, scopeId: project?.scopeId ?? row.scopeId,
+        return { name: row.name, directory: row.directory, registryLocation: row.location, hostId: project?.owner?.hostId ?? (row.directory ? "local" : null), projectId: row.projectId, scopeId: project?.scopeId ?? row.scopeId,
           reason, state: row.reason ? "held" : project?.state ?? "unadmitted", version: project?.version ?? 0, aliases: project?.aliases ?? [],
           agentId: binding?.agentId ?? null, workspaceId: binding?.workspaceId ?? null, provisionRequestId: effects?.create?.requestId ?? provisionInput?.requestId ?? null, provisionInput,
           ...spend, profile: project?.owner?.profile ?? null, limits: project?.owner?.limits ?? null,

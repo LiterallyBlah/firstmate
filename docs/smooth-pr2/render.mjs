@@ -53,6 +53,7 @@ try {
    if(stage==='after')await page.getByRole('button',{name:'Work details',exact:true}).click();
    const projectDetails=page.getByRole('button',{name:'Project mates and plans',exact:true});
    if(stage==='after'||await projectDetails.count())await projectDetails.click();
+   if(stage==='after'&&name==='problem-details')await page.getByRole('button',{name:'Show Starpath details',exact:true}).click();
   }
   if(name==='discussion-details')await page.getByRole('button',{name:stage==='after'?'Details':'Show stored status',exact:true}).click();
   if(name==='fresh-details'&&stage==='after')await page.getByRole('button',{name:'FirstMate setup details',exact:true}).click();
@@ -64,7 +65,7 @@ try {
   if(stage==='after'){
    if(name.startsWith('fresh-')){assert.match(state.text,/Welcome to FirstMate/);assert.equal(await page.getByRole('button',{name:'Set up FirstMate',exact:true}).count(),1);assert.doesNotMatch(state.text,/Unavailable recipient|To FirstMate|Project mates · 0/);}
    if(['home','board','plans','empty-home'].includes(name))assert.doesNotMatch(state.text,/Plan supervisors|Maintenance owners|Migration controls|Project mates · 0/);
-   if(name==='details'){assert.match(state.text,/6 available to set up/);assert.doesNotMatch(state.text,/6 awaiting attention/);}
+   if(name==='details'){assert.match(state.text,/6 ready to set up/);assert.doesNotMatch(state.text,/6 awaiting attention/);}
    if(name==='problem-details')for(const text of ['Journal hash mismatch','retired · opening failed','client UI (unverified)','epoch 2','Provisioning stopped; identity and spend retained'])assert.ok(state.text.includes(text),text);
    if(name==='all-empty')assert.match(state.text,/No decisions right now/);
    if(name==='all-pending'||name==='all-partial')assert.doesNotMatch(state.text,/No decisions right now/);

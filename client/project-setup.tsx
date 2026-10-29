@@ -27,12 +27,12 @@ export function SetupAction({ theme, label, onPress, disabled = false, primary =
   </Pressable>;
 }
 export type ProjectSetupProps = { theme: PluginTheme; compact: boolean; home: string; hostId: string; open: boolean; onClose(): void;
-  navigation?: PluginSurfaceProps["navigation"]; online?: boolean };
+  navigation?: PluginSurfaceProps["navigation"]; online?: boolean; initialProjectName?: string };
 /** Slice 10 can mount this same destination; no separate Home setup logic is needed. */
 export function ProjectSetup(props: ProjectSetupProps) {
   return props.open ? <ProjectSetupSession key={`${props.hostId}:${props.home}`} {...props} /> : null;
 }
-function ProjectSetupSession({ theme, compact, home, hostId, onClose, navigation, online = true }: ProjectSetupProps) {
+function ProjectSetupSession({ theme, compact, home, hostId, onClose, navigation, online = true, initialProjectName }: ProjectSetupProps) {
   const read = useRpc(readProjectSetup), preview = useRpc(previewProjectSetup), commit = useRpc(commitProjectSetup), status = useRpc(readSavedProjectSetup), resume = useRpc(resumeProjectSetup), folder = useRpc(addProjectSetupFolder), saveInstructions = useRpc(saveProjectSetupInstructions);
   const cache = useQueryClient(), query = useQuery({ queryKey: ["firstmate", "project-setup", hostId, home], queryFn: async () => ProjectSetupCatalogSchema.parse(await read({ homeId: home })), retry: false });
   const saved = useQuery({ queryKey: ["firstmate", "project-setup-saved", hostId, home], queryFn: async () => ProjectSetupStatusSchema.parse(await status({ homeId: home })), retry: false });
@@ -56,6 +56,14 @@ function ProjectSetupSession({ theme, compact, home, hostId, onClose, navigation
     choose(existing ?? { homeId: home, name, profile: null, limits: null, budget: null, sourcePath: null }); setReview(null); fail(null); setResult(null);
     setInstructions(""); instructionRequest.current = null;
   }
+  const initialChosen = useRef(false);
+  useEffect(() => {
+    if (!initialProjectName || !data || initialChosen.current) return;
+    initialChosen.current = true;
+    const project = data.snapshot.projects.find(p => p.name === initialProjectName);
+    if (project?.directory && !project.agentId && !project.provisionInput && !project.uncertain && project.state !== "stopped") select(project.name);
+    else if (!project) fail("This project is no longer listed. Choose its current entry below.");
+  }, [initialProjectName, data]);
   function outcome(snapshot: Awaited<ReturnType<typeof commit>>, name: string) {
     const p = snapshot.projects.find(p => p.name === name);
     return p?.agentId && !p.reason && p.state !== "stopped" ? `${name} is ready. Open its conversation when you want to talk.` :
@@ -99,7 +107,7 @@ function ProjectSetupSession({ theme, compact, home, hostId, onClose, navigation
           <Text selectable style={note}>Review {review.reviewDigest}. Recorded app action; caller identity is unverified.</Text></View> : null}
       </> : data && !result ? <>
         {!choices ? <Text style={text}>Choose a project to give it a separate mate. Review its instructions, permissions and spending limits before anything starts.</Text> : null}
-        {!choices ? data.snapshot.projects.map((project, i) => {
+        {!choices ? [...data.snapshot.projects].sort((a, b) => Number(b.name === initialProjectName) - Number(a.name === initialProjectName)).map((project, i) => {
           const savedRequest = saved.data?.requests.find(r => r.review.projectId === project.projectId), ready = !!project.agentId && !project.reason && project.state !== "stopped";
           const issue = data.folderIssues.find(r => r.name === project.name);
           return <View key={`${project.name}:${i}`} style={{ gap: 8, paddingBottom: 14, borderBottomWidth: 1, borderColor: theme.colors.border }}>

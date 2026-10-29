@@ -124,7 +124,6 @@ export function FleetSurface(props: FleetSurfaceProps) {
   return (
     <WorkflowSurface key={key} theme={props.theme} hostId={props.host?.id} view={props.view} shell={props.shell} params={props.params}><DecisionSurface shell={props.shell} view={props.view} key={key} theme={props.theme} compact={props.layout.compact} params={props.params ?? {}}>
       <FleetViewBody {...props} stateKey={key} />
-      <WorkDetails theme={props.theme} compact={props.layout.compact} hostId={props.host?.id ?? "local"} navigation={props.navigation} />
     </DecisionSurface></WorkflowSurface>
   );
 }
@@ -755,6 +754,7 @@ function FleetViewBody({
         {shell !== undefined ? (
           <HubLauncher theme={theme} navigation={navigation} shell={shell} workspaceId={homeWorkspaceId} compact phone={compact} />
         ) : null}
+        {home ? <WorkDetails theme={theme} compact={compact} hostId={host?.id ?? "local"} navigation={navigation} /> : null}
         <HeaderActions
           theme={theme}
           navigation={navigation}

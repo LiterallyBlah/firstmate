@@ -85,6 +85,8 @@ cannot be rebound: the app shows the original path and restoration instructions.
 Branch: `fm/fm-smooth-pr6`. File: `client/project-setup.tsx`.
 `ProjectSetup` is exported with controlled `open` / `onClose`, plus `theme`,
 `compact`, canonical `home`, `hostId`, optional `navigation` and `online` props.
+The additive optional `initialProjectName` opens a named eligible project without
+previewing, admitting or creating anything. Existing callers remain compatible.
 Home's welcome card can mount it on an explicit press; Settings already uses this
 same component. It remounts on host/home changes and reads only while open.
 Opening a conversation calls the supplied host navigation explicitly; setup never
@@ -103,7 +105,7 @@ receives a named Help-settings step; enablement is never inferred from opening i
 ## Independent review fixes
 
 Both P2 reproductions at `8f05e974` are regression tests now. The exported
-`ProjectSetup` component and all its props remain unchanged for slice 10.
+`ProjectSetup` component retains every existing prop for slice 10.
 
 | Review finding | Acceptance and regression evidence |
 | --- | --- |
@@ -113,6 +115,41 @@ Both P2 reproductions at `8f05e974` are regression tests now. The exported
 The browser compares the actual component at `8f05e974` with the corrected
 component for both reproductions and retained-folder protection in both themes
 and widths. The injected picker and synthetic host create no real project work.
+
+## Captain's live Work details feedback
+
+Read-only inspection used `$PASEO_CLI project ls --json` and the existing
+`firstmate.projects.read` RPC. The native project list and FirstMate registry are
+distinct; no same-name remote-to-local ownership was inferred. The final census
+had four admitted local projects, one unadmitted local project, two remote
+projects, and 60 legacy plan membership warnings. An optional project-memory
+read refused the existing bounded-context limit; that guard was retained and
+the read was not retried. No live files or project/session state were changed.
+
+Work details is a compact header entry with only a neutral actionable count.
+The full-width bottom strip is removed. Project mates has an obvious chevron,
+starts collapsed, and summarizes ready-to-create, ready-to-set-up and remote
+projects. Each compact row names its status and keeps its existing primary
+action. Unadmitted local projects open the shared `ProjectSetup`; admitted
+projects retain the existing explicit creation confirmation and native guards.
+Remote hosts and missing paths are explained in each project's Details, with
+the supported next step. No refresh is proposed for an unsupported remote host.
+
+Project identity, path, saved state, versions and scope are under Details. Plans
+expand from a count. Expected legacy association warnings become one muted
+"Some older plans aren't linked to a project. No action needed." line with the
+full list under Technical details. The RPC still returns every original problem
+and all guard behavior; additive presentation metadata identifies only known
+legacy association warnings. Actual read/corruption failures remain blocking.
+Refreshes are silent while pending, following the captain's newer standing rule
+over the report's suggested Updating label.
+
+| Live feedback acceptance | Regression evidence |
+| --- | --- |
+| Compact header, full chat and board height | `live-render.mjs` compares actual Home at installed `fbdf3ae0` against this branch; checks entry geometry, header ancestry and increased chat/board height in both themes and widths. |
+| Concrete project reasons and primary actions | `project-readiness.test.ts` covers remote host/URL, missing paths, ready, active, stopped and uncertain state. Component and browser checks open the named shared setup without native effects; admitted Create still opens the existing confirmation. |
+| Collapsed section, compact rows, nested plan/technical disclosures | Component regression uses four admitted projects, two remote projects and 60 warnings. Browser fixture matches the live seven-row census and 28 associated Ariadne plans; metadata and plan titles remain hidden until requested. |
+| Silent refresh and unchanged safety | Deferred-read test retains the Refresh details label with no Refreshing/Updating text. Read-only runtime regression preserves original warnings and remote identity, with zero native calls and no journal events. Existing recovery/provision tests still pass. |
 
 ## Validation
 
@@ -128,7 +165,11 @@ and widths. The injected picker and synthetic host create no real project work.
   missing-folder correction, retained-folder restoration and 200% text. No page exceptions
   or document overflow; controls meet 44×44 and keyboard focus returns.
 - The Impeccable mechanical scan reported no findings in the changed UI targets.
-- Full local suites use CI's two-worker/20s Windows settings. The missing-folder
+- `node docs/smooth-pr6/live-render.mjs`: 44 actual Home/board/details/setup
+  captures with before/after geometry assertions, light/dark, 1440×1000 and
+  390×844. `live-evidence.mjs` produces the committed comparison sheets.
+- Existing Home harness: 146 capture/assertion cases; review regressions: 32 cases.
+- Full local suites use CI's two-worker/60s Windows settings. The missing-folder
   fixture uses an absolute path under its temporary home on both Windows and
   Linux. Final full-suite results are recorded on the PR alongside hosted checks.
 - Current hosted results are attached to [PR #174's checks](https://github.com/LiterallyBlah/firstmate/pull/174/checks).
@@ -158,6 +199,13 @@ are illustrative, never production defaults.
 | Dark desktop | [Screenshots](smooth-pr6/evidence/review-dark-desktop.png) |
 | Light phone | [Screenshots](smooth-pr6/evidence/review-light-phone.png) |
 | Dark phone | [Screenshots](smooth-pr6/evidence/review-dark-phone.png) |
+
+| Captain live feedback: before installed `fbdf3ae0` and after | Home, board, collapsed/expanded project details |
+| --- | --- |
+| Light desktop | [Screenshots](smooth-pr6/evidence/live-light-desktop.png) |
+| Dark desktop | [Screenshots](smooth-pr6/evidence/live-dark-desktop.png) |
+| Light phone | [Screenshots](smooth-pr6/evidence/live-light-phone.png) |
+| Dark phone | [Screenshots](smooth-pr6/evidence/live-dark-phone.png) |
 
 Copy follows the report: available projects are setup opportunities rather than
 decisions; ordinary labels use Ready to review, Already set up, Saved setup and

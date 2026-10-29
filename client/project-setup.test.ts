@@ -28,8 +28,8 @@ async function settle() {
   }, { timeout: 1000, interval: 1 });
   await act(async () => { await new Promise(done => setTimeout(done, 0)); });
 }
-async function mount() {
-  await act(async () => { renderer = create(createElement(QueryClientProvider, { client: cache }, createElement(ProjectSetup, { theme, compact: false, home, hostId: "local", open: true, onClose: closed }))); }); await settle();
+async function mount(initialProjectName?: string) {
+  await act(async () => { renderer = create(createElement(QueryClientProvider, { client: cache }, createElement(ProjectSetup, { theme, compact: false, home, hostId: "local", open: true, onClose: closed, ...(initialProjectName ? { initialProjectName } : {}) }))); }); await settle();
 }
 beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true; renderer = null; calls.clear(); closed = vi.fn();
@@ -107,4 +107,9 @@ it("missing retained folder shows the exact restoration path and offers no rebin
   await mount(); expect(text()).toContain("C:/original/alpha"); expect(text()).toContain("saved identity cannot be moved");
   expect(button("Choose a replacement folder for alpha")).toBeUndefined(); expect(button("Review alpha")).toBeUndefined();
   expect(rpc("folder")).not.toHaveBeenCalled();
+});
+it("an explicit named entry opens that project's profile review without authorizing any setup effect", async () => {
+  await mount("alpha"); expect(button("Review alpha setup")).toBeDefined();
+  expect(rpc("preview")).not.toHaveBeenCalled(); expect(rpc("commit")).not.toHaveBeenCalled(); expect(rpc("resume")).not.toHaveBeenCalled();
+  await press("Review alpha setup"); expect(rpc("preview")).toHaveBeenCalledExactlyOnceWith(review.choices);
 });

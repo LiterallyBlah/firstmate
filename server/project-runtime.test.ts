@@ -135,6 +135,16 @@ it("production RPCs are registered; off and enabled reads create nothing, accoun
   await expect(service.provision({ homeId: read.homeId, requestId: randomUUID(), projectId: randomUUID(), projectVersion: 1 }, api)).rejects.toMatchObject({ code: "UNSUPPORTED" });
   await expect(stat(join(data, "supervision"))).rejects.toMatchObject({ code: "ENOENT" }); expect(receiver.calls).toEqual([]);
 });
+it("read-only presentation metadata identifies legacy membership warnings without removing guard problems", async () => {
+  const definition = workflowFixture();
+  for (const node of definition.nodes) if (node.kind === "run") node.launch.project = "older-unlinked-project";
+  await workflowStore(home).execute({ op: "draft", definition }, randomUUID(), "general");
+  const read = await service.read();
+  expect(read.associationWarnings).toEqual(["Plan scheduler has unresolved project or host membership; no ownership was guessed."]);
+  expect(read.problems).toEqual(expect.arrayContaining(read.associationWarnings!));
+  expect(read.projects.find(p => p.name === "remote")).toMatchObject({ registryLocation: "https://example.invalid/repo", state: "held", directory: null });
+  expect(receiver.calls).toEqual([]); expect((await runtime.read(home)).sequence).toBe(0);
+});
 it("review F1: General chat and another admitted project finish while a project's native workspace call waits", async () => {
   await admit(); const read = await admit("beta"), a = read.projects.find(p => p.name === "scheduler")!, b = read.projects.find(p => p.name === "beta")!;
   let release!: () => void, entered!: () => void, generalRead = false;
