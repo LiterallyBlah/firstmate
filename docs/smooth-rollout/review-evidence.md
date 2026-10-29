@@ -3,7 +3,7 @@
 The two P2 findings were reproduced with failing browser assertions before the
 fixes. The same production-component runner now passes all four theme/width
 variants (52 records, 36 captures). Before is reviewed head `b2fad4e`; after is
-the follow-up on main including slice 3 (`cb464d1`). Host responses are synthetic;
+the follow-up on main including slices 2/3 (`ef92ef5`, `cb464d1`). Host responses are synthetic;
 no live home, agent, message or execution setting was changed.
 
 | Acceptance | Evidence |
@@ -24,6 +24,8 @@ fleet success at 31 seconds; drawer opened late; original-message recovery.
 
 Inspected both themes and widths against the copy contract: existing neutral delay
 copy and 44px recovery actions are reused, pending never creates an error or zero,
-and an uncertain send is never retried. Existing administration/discussion jargon
-belongs to later slices. These browser checks do not establish physical-device
+and an uncertain send is never retried. Slice 2's Work details layout, neutral
+headings and Refresh/Details copy are retained. Its new empty-inbox reassurance
+also requires the shared complete/fresh read state (regression-tested while
+fetching or readiness is loading/partial). These browser checks do not establish physical-device
 keyboard or spoken screen-reader behavior.

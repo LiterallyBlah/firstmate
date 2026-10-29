@@ -662,6 +662,11 @@ it.each(["List", "Board", "Drawer"])("keeps %s pending neutral, partial counts h
   const partial = { ...attentionSnapshot([]), scopedComplete: false, scopedProblems: ["Some work could not be checked"] };
   await act(async () => renderer.update(render(partial, { readiness: "partial" })));
   expect(words()).not.toContain("Nothing needs"); expect(words()).not.toContain("Needs you · 0");
+  for (const read of [{ fetching: true }, { readiness: "loading" }, { readiness: "partial" }] satisfies DecisionReadState[]) {
+    await act(async () => renderer.update(render(attentionSnapshot([]), read)));
+    expect(words()).not.toContain("No decisions right now");
+    expect(words()).not.toContain("Nothing needs");
+  }
   const old = attentionSnapshot(); old.freshness.status = "stale";
   await act(async () => renderer.update(render(old, { error: true })));
   expect(words()).toContain(view === "Drawer" ? "Showing the list from" : "as of");

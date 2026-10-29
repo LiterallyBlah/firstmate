@@ -2,7 +2,7 @@
 
 Actual components with synthetic host/RPC data only. Before: d74a30c. Desktop: 1440 x 1000; phone: 390 x 844. Feature flags are on, except UI-only which keeps discussion execution off. No installed home was changed.
 
-Each comparison sheet shows Home, pending startup, an explicitly opened discussion, and fresh setup. Empty administration and setup vocabulary belong to slice 2 and remain visible here.
+Each comparison sheet shows Home, pending startup, an explicitly opened discussion, and fresh setup. After captures include main's merged slice 2 layout and copy; this PR retains its Work details disclosure. The [independent-review matrix](review-evidence.md) compares the two reported regressions directly with reviewed head b2fad4e.
 
 ## Light desktop
 

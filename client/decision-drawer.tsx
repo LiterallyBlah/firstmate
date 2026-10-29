@@ -562,7 +562,7 @@ export function DecisionDrawer({
           style={{ flex: 1 }}
         >
           {failure ? chrome : null}
-          {sameHome && completeEmptyInbox(sourceSnapshot, offline, loading) ? <View style={{ gap: 12 }}>
+          {sameHome && presentation.fresh && completeEmptyInbox(sourceSnapshot, offline, loading) ? <View style={{ gap: 12 }}>
             <Text style={{ color: colors.foreground }}>No decisions right now</Text>
             <DecisionButton theme={theme} compact label={onBackToFirstMate ? "Back to FirstMate" : `Back to ${returnLabel}`} onPress={onBackToFirstMate ?? onClose} />
           </View> : null}
