@@ -25,8 +25,8 @@ await new Promise(done => server.listen(0, "127.0.0.1", done));
 const browser = await chromium.launch({ ...(process.platform === "win32" ? { channel: "msedge" } : {}), headless: true, args: ["--disable-gpu"], timeout: 20000 });
 const origin = `http://127.0.0.1:${server.address().port}`, results = [];
 async function choose(page, label) {
-  await page.getByRole("button", { name: /^Discussion scope:/ }).click();
-  await page.getByRole("dialog", { name: "Choose a discussion" }).getByRole("button", { name: new RegExp(`^${label},`) }).click();
+  await page.getByRole("button", { name: /^To:/ }).click();
+  await page.getByRole("dialog", { name: "Choose a recipient" }).getByRole("button", { name: new RegExp(`^${label},`) }).click();
 }
 // R05 reproductions use the real components; remove query state, not durable draft/selection state.
 async function restoredScope(page, theme, device) {
@@ -42,7 +42,7 @@ async function restoredScope(page, theme, device) {
   await page.evaluate(() => { window.failScopeRead = false; });
   await page.getByRole("button", { name: "Refresh conversation", exact: true }).click();
   await composer.waitFor(); assert.equal(await composer.inputValue(), "@reader-pass Please explain this plan");
-  await page.getByText("To Reader pass", { exact: true }).waitFor();
+  await page.getByRole("button", { name: "To: Reader pass. Change", exact: true }).waitFor();
   await page.getByRole("button", { name: "Send", exact: true }).click();
   await page.waitForFunction(() => window.scopeActions.some(a => a.name === "firstmate.scope.discuss"));
   const sent = await page.evaluate(() => window.scopeActions.find(a => a.name === "firstmate.scope.discuss").input);
@@ -57,11 +57,11 @@ async function rejectedAnswer(page, theme, device) {
   const notes = page.getByRole("textbox", { name: "Answer notes: Choose the follow-up" });
   await notes.fill("Retain these answer notes");
   await page.evaluate(() => { window.refuseAnswer = true; });
-  await page.getByRole("button", { name: "Submit scoped answer", exact: true }).click();
+  await page.getByRole("button", { name: "Send answer", exact: true }).click();
   await page.getByText("STALE: Policy vector changed; reread the scoped rules.", { exact: true }).waitFor();
   await page.evaluate(() => { window.refuseAnswer = false; window.scopeNeeds.scopedSequence++; window.scopeNeeds.scopedDecisions[0].answerContext.policyVector = [{ kind: "policy-rule", id: "00000000-0000-4000-8000-000000000501", version: 2 }]; });
-  await page.getByRole("button", { name: "Refresh scoped decisions", exact: true }).click();
-  assert.equal(await page.getByRole("button", { name: "Submit scoped answer", exact: true }).isEnabled(), true);
+  await page.getByRole("button", { name: "Refresh decisions", exact: true }).click();
+  assert.equal(await page.getByRole("button", { name: "Send answer", exact: true }).isEnabled(), true);
   assert.equal(await notes.inputValue(), "Retain these answer notes");
   assert.equal(await page.getByRole("button", { name: "Selected: Both layouts", exact: true }).isEnabled(), true);
   assert.equal(await page.evaluate(() => window.scopeActions.filter(a => a.name === "firstmate.scope.answer").length), 1);
@@ -69,8 +69,8 @@ async function rejectedAnswer(page, theme, device) {
   await page.evaluate(() => window.remountScope());
   await page.getByRole("button", { name: /^Answer: Choose the follow-up/ }).last().click();
   assert.equal(await notes.inputValue(), "Retain these answer notes");
-  await page.getByRole("button", { name: "Submit scoped answer", exact: true }).click();
-  await page.getByRole("button", { name: "Answer committed", exact: true }).waitFor();
+  await page.getByRole("button", { name: "Send answer", exact: true }).click();
+  await page.getByRole("button", { name: "Answer saved", exact: true }).waitFor();
   const attempts = await page.evaluate(() => window.scopeActions.filter(a => a.name === "firstmate.scope.answer").map(a => a.input));
   assert.equal(attempts.length, 2); assert.notEqual(attempts[0].submissionId, attempts[1].submissionId);
   assert.deepEqual(attempts[1].policyVector, [{ kind: "policy-rule", id: "00000000-0000-4000-8000-000000000501", version: 2 }]);
@@ -83,12 +83,12 @@ async function uncertainAnswer(page, theme) {
   await page.getByRole("button", { name: "Both layouts", exact: true }).click();
   await page.getByRole("textbox", { name: "Answer notes: Choose the follow-up" }).fill("Keep this uncertain submission");
   await page.evaluate(() => { window.loseAnswerReply = true; });
-  await page.getByRole("button", { name: "Submit scoped answer", exact: true }).click();
+  await page.getByRole("button", { name: "Send answer", exact: true }).click();
   await page.getByText("Answer response unavailable (recovery fixture)", { exact: true }).waitFor();
-  await page.getByRole("button", { name: "Refresh scoped decisions", exact: true }).click();
+  await page.getByRole("button", { name: "Refresh decisions", exact: true }).click();
   await page.evaluate(() => window.remountScope());
   await page.getByRole("button", { name: /^Answer: Choose the follow-up/ }).last().click();
-  assert.equal(await page.getByRole("button", { name: "Answer unconfirmed · original submission retained", exact: true }).isDisabled(), true);
+  assert.equal(await page.getByRole("button", { name: "Answer not confirmed", exact: true }).isDisabled(), true);
   assert.equal(await page.getByRole("textbox", { name: "Answer notes: Choose the follow-up" }).inputValue(), "Keep this uncertain submission");
   const attempts = await page.evaluate(() => window.scopeActions.filter(a => a.name === "firstmate.scope.answer"));
   assert.equal(attempts.length, 1);
@@ -97,14 +97,14 @@ async function uncertainAnswer(page, theme) {
 async function maintenanceAnswer(page, theme, device) {
   await page.goto(`${origin}/?decisions&maintenance&theme=${theme}`); await page.getByTestId("scope-inbox-filters").waitFor();
   const chooseFilter = async label => {
-    await page.getByRole("button", { name: /^Inbox scope:/ }).click();
+    await page.getByRole("button", { name: /^Show:/ }).click();
     await page.getByRole("dialog", { name: "Filter Needs you" }).getByRole("button", { name: new RegExp(`^${label}(,|$)`) }).click();
   };
-  for (const label of ["General", "Project", "Plan", "Maintenance", "All scopes"]) {
-    await chooseFilter(label); await page.getByText("Global Needs you: 1.", { exact: false }).waitFor();
-    assert.equal(await page.getByTestId("scoped-needs").count(), ["Maintenance", "All scopes"].includes(label) ? 1 : 0);
+  for (const label of ["FirstMate", "Projects", "Plans", "Routine checks", "All projects"]) {
+    await chooseFilter(label); await page.getByText("1 across all projects.", { exact: false }).waitFor();
+    assert.equal(await page.getByTestId("scoped-needs").count(), ["Routine checks", "All projects"].includes(label) ? 1 : 0);
   }
-  await chooseFilter("Maintenance");
+  await chooseFilter("Routine checks");
   assert.equal(await page.evaluate(() => window.scopeActions.filter(a => /answer|discuss|activate/.test(a.name)).length), 0);
   await page.getByRole("button", { name: /^Answer: Storage authority/ }).last().click();
   await page.getByRole("button", { name: "Keep held", exact: true }).click();
@@ -112,16 +112,16 @@ async function maintenanceAnswer(page, theme, device) {
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   await page.screenshot({ path: resolve(out, `${theme}-${device}-maintenance-choice.png`) });
   await page.evaluate(() => { window.holdRead = true; });
-  await page.getByRole("button", { name: "Submit scoped answer", exact: true }).click();
+  await page.getByRole("button", { name: "Send answer", exact: true }).click();
   await page.getByText("Combined decision read unavailable", { exact: true }).waitFor();
-  assert.equal(await page.getByRole("button", { name: "Answer unconfirmed · original submission retained", exact: true }).isDisabled(), true);
+  assert.equal(await page.getByRole("button", { name: "Answer not confirmed", exact: true }).isDisabled(), true);
   await page.evaluate(() => window.remountScope()); await page.getByRole("button", { name: /^Answer: Storage authority/ }).last().click();
   assert.equal(await notes.inputValue(), "Retain the hold; no work authority.");
-  assert.equal(await page.getByRole("button", { name: "Answer unconfirmed · original submission retained", exact: true }).isDisabled(), true);
-  await page.evaluate(() => { window.holdRead = false; }); await page.getByRole("button", { name: "Refresh scoped decisions", exact: true }).click();
-  await page.getByRole("button", { name: "Answer committed", exact: true }).waitFor();
-  for (const label of ["General", "Project", "Plan", "Maintenance", "All scopes"]) {
-    await chooseFilter(label); await page.getByText("Global Needs you: 0.", { exact: false }).waitFor();
+  assert.equal(await page.getByRole("button", { name: "Answer not confirmed", exact: true }).isDisabled(), true);
+  await page.evaluate(() => { window.holdRead = false; }); await page.getByRole("button", { name: "Refresh decisions", exact: true }).click();
+  await page.getByRole("button", { name: "Answer saved", exact: true }).waitFor();
+  for (const label of ["FirstMate", "Projects", "Plans", "Routine checks", "All projects"]) {
+    await chooseFilter(label); await page.getByText("0 across all projects.", { exact: false }).waitFor();
     await page.getByText("Global pending answers: 1", { exact: true }).waitFor();
   }
   const calls = await page.evaluate(() => window.scopeActions.filter(a => /answer|discuss|activate/.test(a.name)));
@@ -144,11 +144,11 @@ try {
     await page.goto(`${origin}/?theme=${theme}`); await page.getByTestId("scope-discussion").waitFor();
     const composer = page.getByRole("textbox", { name: "Message recipient" });
     await composer.fill("#reader Explain the next step");
-    await page.getByText("To FirstMate · project context: reader", { exact: true }).waitFor();
+    await page.getByText("To: FirstMate · context: reader", { exact: true }).waitFor();
     assert.equal(await page.evaluate(() => window.scopeActions.filter(a => /discuss|answer|activate|navigation/.test(a.name)).length), 0);
     await page.screenshot({ path: resolve(out, `${theme}-${device}-shared.png`) });
     await composer.fill("x".repeat(16001)); await page.getByRole("button", { name: "Send", exact: true }).click();
-    await page.getByText("The message or its address is outside the supported limits. Shorten it or refresh its scope.", { exact: true }).waitFor();
+    await page.getByText("The message or its address is outside the supported limits. Shorten it or refresh before sending.", { exact: true }).waitFor();
     assert.equal((await composer.inputValue()).length, 16001);
     assert.equal(await page.evaluate(() => window.scopeActions.filter(a => a.name === "firstmate.scope.discuss").length), 0);
     await composer.fill("@unknown Explain"); await page.getByText(/Unknown recipient @unknown/).waitFor();
@@ -158,7 +158,7 @@ try {
     await page.evaluate(() => window.remountScope()); await composer.waitFor(); assert.equal(await composer.inputValue(), "Plan draft");
     await choose(page, "Reader project"); assert.equal(await composer.inputValue(), "Project draft");
     await page.evaluate(() => { window.holdSend = true; }); await page.getByRole("button", { name: "Send", exact: true }).click();
-    await page.getByRole("button", { name: "Activating or sending…", exact: true }).waitFor();
+    await page.getByRole("button", { name: "Sending…", exact: true }).waitFor();
     await choose(page, "Reader pass"); assert.equal(await composer.inputValue(), "Plan draft");
     await page.getByText("Sending to Reader project: Project draft", { exact: true }).waitFor();
     await page.evaluate(() => { window.releaseSend(); window.holdSend = false; });
@@ -175,9 +175,13 @@ try {
     await page.getByText("The captured binding changed. Preserve this draft and refresh.", { exact: true }).waitFor();
     assert.equal(await composer.inputValue(), "Plan draft");
     await choose(page, "New trial"); await composer.fill("Discuss the trial");
-    await page.getByText("First Send creates a persistent discussion session. Reading does not.", { exact: true }).waitFor();
+    await page.getByText("Ready for a new conversation", { exact: true }).waitFor();
+    await page.getByRole("button", { name: "Review first message", exact: true }).click();
+    assert.equal(await page.evaluate(() => window.scopeActions.filter(a => a.name === "firstmate.scope.discuss").length), 2);
+    await page.getByRole("button", { name: "Start conversation and send", exact: true }).waitFor();
     await page.screenshot({ path: resolve(out, `${theme}-${device}-activation.png`) });
     await page.goto(`${origin}/?absent&theme=${theme}`); await page.getByTestId("scope-discussion").waitFor();
+    await choose(page, "Reader project");
     await page.getByRole("button", { name: "Details", exact: true }).click();
     await page.getByText(/Reader project · dormant/).waitFor();
     assert.equal(await page.evaluate(() => window.scopeActions.filter(a => /discuss|answer|activate|navigation/.test(a.name)).length), 0);
@@ -188,12 +192,12 @@ try {
     await page.getByRole("textbox", { name: "Answer notes: Choose the follow-up" }).fill("Cover both within the current grant.");
     await page.screenshot({ path: resolve(out, `${theme}-${device}-decision.png`) });
     await page.evaluate(() => { window.holdRead = true; });
-    await page.getByRole("button", { name: "Submit scoped answer", exact: true }).click();
+    await page.getByRole("button", { name: "Send answer", exact: true }).click();
     await page.getByText("Combined decision read unavailable", { exact: true }).waitFor();
-    assert.equal(await page.getByRole("button", { name: "Answer unconfirmed · original submission retained", exact: true }).isDisabled(), true);
+    assert.equal(await page.getByRole("button", { name: "Answer not confirmed", exact: true }).isDisabled(), true);
     assert.equal(await page.evaluate(() => window.scopeActions.filter(a => a.name === "firstmate.scope.answer").length), 1);
-    await page.evaluate(() => { window.holdRead = false; }); await page.getByRole("button", { name: "Refresh scoped decisions", exact: true }).click();
-    await page.getByRole("button", { name: "Answer committed", exact: true }).waitFor();
+    await page.evaluate(() => { window.holdRead = false; }); await page.getByRole("button", { name: "Refresh decisions", exact: true }).click();
+    await page.getByRole("button", { name: "Answer saved", exact: true }).waitFor();
     const restoration = await restoredScope(page, theme, device), refusal = await rejectedAnswer(page, theme, device), uncertainty = await uncertainAnswer(page, theme), maintenance = await maintenanceAnswer(page, theme, device);
     assert.deepEqual(errors, []); results.push({ theme, device, width, height, capturedScope: delivered.route.target.scopeId, resourceCallsOnRead: 0, scopedAnswers: 1, restoration, refusal, uncertainty, maintenance, errors }); await page.close();
   }

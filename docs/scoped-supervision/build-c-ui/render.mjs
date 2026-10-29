@@ -28,17 +28,18 @@ try {
     const page = await browser.newPage({ viewport: { width, height } }), errors = [];
     page.on("pageerror", error => errors.push(error.message)); page.setDefaultTimeout(10000);
     await page.goto(`${origin}/?theme=${theme}`); await page.getByTestId("scope-inbox-filters").waitFor();
-    await page.getByText("Global Needs you: 2.", { exact: false }).waitFor();
+    await page.getByText("2 across all projects.", { exact: false }).waitFor();
+    await page.getByRole("button", { name: "Warning details", exact: true }).click();
     const choose = async label => {
-      await page.getByRole("button", { name: /^Inbox scope:/ }).click();
+      await page.getByRole("button", { name: /^Show:/ }).click();
       await page.getByRole("dialog", { name: "Filter Needs you" }).getByRole("button", { name: new RegExp(`^${label}(,|$)`) }).click();
     };
-    for (const label of ["General", "Project", "Plan", "Maintenance", "Project: Reader project", "All scopes"]) {
+    for (const label of ["FirstMate", "Projects", "Plans", "Routine checks", "Reader project", "All projects"]) {
       await choose(label);
-      assert.equal(await page.getByText("Global Needs you: 2.", { exact: false }).count(), 1);
+      assert.equal(await page.getByText("2 across all projects.", { exact: false }).count(), 1);
       await page.getByText("Unidentified task scope requires reconciliation.", { exact: true }).waitFor();
       const visible = await page.getByTestId("scoped-needs").count();
-      assert.equal(visible, ["General", "Maintenance"].includes(label) ? 0 : 1);
+      assert.equal(visible, ["FirstMate", "Routine checks"].includes(label) ? 0 : 1);
       assert.equal(await page.evaluate(() => window.scopeActions.filter(a => /discuss|answer|activate/.test(a.name)).length), 0);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
       await page.screenshot({ path: resolve(out, `${theme}-${device}-${label.replace(/[^a-z]+/gi, "-")}.png`) });

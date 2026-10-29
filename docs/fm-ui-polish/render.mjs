@@ -168,6 +168,8 @@ try {
     await popover.getByRole("button", { name: "Open Needs you: 1 more item", exact: true }).click();
     const drawer = page.getByLabel("FirstMate decisions", { exact: true });
     await drawer.getByRole("heading", { name: "All", exact: true }).waitFor();
+    await drawer.getByText("Some work couldn't be checked. Review details before continuing.", { exact: true }).waitFor();
+    await drawer.getByRole("button", { name: "Warning details", exact: true }).click();
     await drawer.getByText("Couldn't read this task: damaged-task. Check the Board and data/backlog.md, line 5.", { exact: true }).waitFor();
     await drawer.getByRole("button", { name: "Ask the first mate to fix it", exact: true }).waitFor();
     assert.equal(await drawer.getByRole("button", { name: "Send answer", exact: true }).count(), 0);
