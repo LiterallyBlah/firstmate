@@ -65,11 +65,11 @@ it.each(["registry", "folder", "source", "model", "mode", "general"])("changed %
   await expect(service.commit(input, api)).rejects.toMatchObject({ code: "STALE" }); expect(receiver.calls).toEqual([]);
 });
 it.each([
-  ["missing", "- alpha - C:/definitely-missing-firstmate-project-folder\n", /unavailable/i],
+  ["missing", "missing", /unavailable/i],
   ["remote", "- alpha - ssh://other/project\n", /local.*mapping/i],
   ["duplicate", null, /ambiguous/i],
 ] as const)("%s identities have a precise blocker and no native effects", async (_kind, line, message) => {
-  await writeFile(join(home, "data/projects.md"), line ?? `- alpha - ${join(home, "alpha")}\n- alias - ${join(home, "alpha")}\n`);
+  await writeFile(join(home, "data/projects.md"), line === "missing" ? `- alpha - ${join(home, "missing-project-folder")}\n` : line ?? `- alpha - ${join(home, "alpha")}\n- alias - ${join(home, "alpha")}\n`);
   expect((await service.preview(await choices(), api)).reasons.join(" ")).toMatch(message); expect(receiver.calls).toEqual([]);
 });
 it("missing/placeholder source authority and invalid allocations never become a grant", async () => {
