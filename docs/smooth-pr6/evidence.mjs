@@ -16,6 +16,13 @@ try {
       html += `<figure><figcaption>${title}</figcaption><img src="data:image/png;base64,${png.toString('base64')}"></figure>`;
     }
     await page.setContent(html + '</main>'); await page.screenshot({ path: resolve(out, `${theme}-${device}.png`), fullPage: true }); await page.close();
+    const reviewPage = await browser.newPage({ viewport: { width: width * 2 + 36, height: 1 } });
+    let reviewHtml = html.slice(0, html.indexOf('<main>') + 6);
+    for (const [setup, title] of [['lost-create', 'Lost creation reply'], ['missing-folder', 'Missing unadmitted folder'], ['retained-folder', 'Retained folder identity']]) for (const [stage, label] of [['review-before', 'Before review fixes'], ['after', 'After review fixes']]) {
+      const png = await readFile(resolve(root, '.local/smooth-pr6/ui/screenshots', `${theme}-${device}-${setup}-${stage}.png`));
+      reviewHtml += `<figure><figcaption>${label} · ${title}</figcaption><img src="data:image/png;base64,${png.toString('base64')}"></figure>`;
+    }
+    await reviewPage.setContent(reviewHtml + '</main>'); await reviewPage.screenshot({ path: resolve(out, `review-${theme}-${device}.png`), fullPage: true }); await reviewPage.close();
   }
   const results = JSON.parse(await readFile(resolve(root, '.local/smooth-pr6/ui/results.json'), 'utf8'));
   await writeFile(resolve(out, 'verification.json'), JSON.stringify({ passed: results.passed, baseline: results.baseline, captures: results.captures, cases: results.results.map(r => r.key) }, null, 2) + '\n');

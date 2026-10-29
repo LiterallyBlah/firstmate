@@ -43,7 +43,7 @@ const recordedProvision = (status: SupervisionStatus, projectId: string) => stat
   return input && input.homeId === status.homeId && input.projectId === projectId && c.id === stableId("project-provision-input", input.requestId) &&
     c.inputHash === digest(input) && digest(c.actor) === digest(UI) ? [input] : [];
 })[0] ?? null;
-type RegistryEntry = { name: string; directory: string | null; projectId: string | null; scopeId: string | null; reason: string | null };
+type RegistryEntry = { name: string; location: string | null; directory: string | null; projectId: string | null; scopeId: string | null; reason: string | null };
 async function registry(home: string) {
   const file = await readTextFile(home, "data/projects.md");
   if (file.content === null || file.size > 256 * 1024) refuse("HELD", "Project registry is unreadable or exceeds 256 KiB.");
@@ -58,14 +58,14 @@ async function registry(home: string) {
       else directory = normalPath(path);
     } catch { reason = "Project directory is unavailable; identity was not guessed."; }
     const projectId = directory ? projectRowId("registry", workflowHomeIdentity(home), "local", directory) : null;
-    rows.push({ name: project.name, directory, projectId, scopeId: projectId ? projectRowId("project-scope", projectId) : null, reason });
+    rows.push({ name: project.name, location: project.location, directory, projectId, scopeId: projectId ? projectRowId("project-scope", projectId) : null, reason });
   }
   for (const row of rows) if (rows.filter(r => normalizedName(r.name) === normalizedName(row.name)).length > 1 || row.directory && rows.filter(r => r.directory === row.directory).length > 1)
     row.reason = "Registry name or canonical directory is ambiguous; admission is held.";
   // A malformed non-comment list entry must be accounted for, never disappear through the lenient delivery parser.
   const lines = uncommented.split(/\r?\n/);
   for (const line of lines.filter(l => /^\s*[-*]\s/.test(l))) if (parseProjects(line).length !== 1)
-    rows.push({ name: line.trim().slice(0, 200), directory: null, projectId: null, scopeId: null, reason: "Registry row is malformed; explicit correction is required." });
+    rows.push({ name: line.trim().slice(0, 200), location: null, directory: null, projectId: null, scopeId: null, reason: "Registry row is malformed; explicit correction is required." });
   return { digest: digest(file.content), rows };
 }
 function planAssociations(status: SupervisionStatus, legacy: readonly WorkflowPlan[], rows: RegistryEntry[]) {
@@ -94,6 +94,8 @@ export class ProjectRuntime {
   capacity(home: string) { return this.runtime.features?.capacity(home) ?? Promise.resolve({ slots: this.slots, generalHeadroom: this.headroom }); }
   setupReceiver(paseo: PaseoApi) { return this.options.receiver?.(paseo) ?? new SupervisionUiReceiver(paseo, this.runtime.root, { projectMates: true }); }
   get setupEnabled() { return !!this.options.enabled; }
+  /** Folder corrections and reviewed admissions share this boundary; picking a folder acquires no writer. */
+  withRegistry<T>(homeId: string, run: () => Promise<T>) { return serialized(`project-registry:${homeId}`, run); }
   private config() { return (this.options.config ?? readFirstmateConfig)(); }
   private async checkedConfig(homeId: string, generalId?: string, settlement = false) {
     if (!this.options.enabled && !this.runtime.features) refuse("UNSUPPORTED", "Project mates are disabled; no store or session was created.");
@@ -153,7 +155,7 @@ export class ProjectRuntime {
     const associations = planAssociations(status, legacy, catalog.rows);
     for (const plan of associations.filter(p => !p.projectIds.length)) problems.push(`Plan ${plan.id} has unresolved project or host membership; no ownership was guessed.`);
     const rows = [...catalog.rows];
-    for (const p of status.projects?.projects ?? []) if (!rows.some(r => r.projectId === p.id)) rows.push({ name: p.name, directory: p.owner?.directory ?? null,
+    for (const p of status.projects?.projects ?? []) if (!rows.some(r => r.projectId === p.id)) rows.push({ name: p.name, location: p.owner?.directory ?? null, directory: p.owner?.directory ?? null,
       projectId: p.id, scopeId: p.scopeId, reason: "Admitted project is absent from the current registry; retained for reconciliation." });
     return ProjectRuntimeSnapshotSchema.parse({ enabled: policy?.effective.projectMates ?? !!this.options.enabled, homeId: status.homeId, registryDigest: catalog.digest,
       pause: policy ? featurePause(status, policy.effective, "project") : null,
@@ -172,7 +174,7 @@ export class ProjectRuntime {
         const reason = row.reason ?? (!aliasKnown ? "Registry name changed; record a reviewed alias before provisioning." : !project ? "Awaiting reviewed admission and allocation." : !project.owner ? "Durable profile and caps are missing." :
           stopped ? "Provisioning stopped; identity and spend retained. Inspect any uncertain operation." :
           !binding ? provisionInput ? "Provisioning incomplete; inspect and resume the recorded request." : null : binding.state !== "active" || effects?.send?.state !== "succeeded" ? "Provisioning incomplete; inspect and resume the recorded request." : null);
-        return { ...row, hostId: project?.owner?.hostId ?? (row.directory ? "local" : null), projectId: row.projectId, scopeId: project?.scopeId ?? row.scopeId,
+        return { name: row.name, directory: row.directory, hostId: project?.owner?.hostId ?? (row.directory ? "local" : null), projectId: row.projectId, scopeId: project?.scopeId ?? row.scopeId,
           reason, state: row.reason ? "held" : project?.state ?? "unadmitted", version: project?.version ?? 0, aliases: project?.aliases ?? [],
           agentId: binding?.agentId ?? null, workspaceId: binding?.workspaceId ?? null, provisionRequestId: effects?.create?.requestId ?? provisionInput?.requestId ?? null, provisionInput,
           ...spend, profile: project?.owner?.profile ?? null, limits: project?.owner?.limits ?? null,
@@ -233,7 +235,7 @@ export class ProjectRuntime {
     const settlement = command.op === "release-sponsor" || command.op === "project" && command.state === "stopped";
     const observedConfig = await this.config();
     if (!observedConfig.mateAgentId || observedConfig.mateAgentId !== input.actorId) refuse("UNKNOWN_OWNER", "Current first-mate role required for recorded project administration.");
-    await this.mutate(input.homeId, async (home, store, config) => {
+    const update = () => this.mutate(input.homeId, async (home, store, config) => {
       // Same behavioral role check as workflow transport. The request is not authenticated filesystem/native IPC.
       if (!config.mateAgentId || input.actorId !== config.mateAgentId) refuse("UNKNOWN_OWNER", "Current first-mate role required for recorded project administration.");
       const actor: SupervisionActor = { kind: "mate-chat", id: input.actorId, source: "project administration (same-user role convention, unverified)" };
@@ -275,6 +277,7 @@ export class ProjectRuntime {
         case "memory-decide": await memory.decide(input.requestId, actor, data as Parameters<typeof memory.decide>[2]); break;
       }
     }, false, settlement, true);
+    await (command.op === "admit" || command.op === "project" ? this.withRegistry(input.homeId, update) : update());
     return this.read();
   }
   private async admit(home: string, store: SupervisionStore, requestId: string, actor: SupervisionActor, input: Extract<ProjectAdmin, { op: "admit" }>, generalId: string, app = false) {
@@ -309,7 +312,7 @@ export class ProjectRuntime {
   }
   /** The app review is durable before admission. It never impersonates General or captain-ui. */
   async admitSetup(input: z.infer<typeof ProjectSetupInputSchema>, actor: SupervisionActor, validate: (status?: SupervisionStatus) => Promise<void>) {
-    await this.mutate(input.homeId, async (home, store, config) => {
+    await this.withRegistry(input.homeId, () => this.mutate(input.homeId, async (home, store, config) => {
       await validate(await store.read());
       await store.transactCommand(stableId("project-setup-input", input.requestId), digest(input), actor,
         async status => { await validate(status); return { mutations: [], expectedVersions: [], result: { ...result, projectSetup: input } }; });
@@ -318,7 +321,7 @@ export class ProjectRuntime {
         op: "admit", registryDigest: input.review.registryDigest, name: input.review.name, aliases: input.review.aliases,
         source: input.review.source, profile: input.review.profile, budget: input.review.budget, limits: input.review.limits,
       }, config.mateAgentId, true);
-    }, true, false, true);
+    }, true, false, true));
   }
   async memory(input: { homeId: string; projectId: string }) {
     const config = await this.config(), home = resolveHome(config);

@@ -7,9 +7,14 @@ const models = [{ provider: profile.provider, label: 'Available project model', 
 const sources = [{ path: 'data/project-orders.md', text: 'Keep track of Starpath and answer my project questions. Use only the reviewed permissions and limits. Do not create workers, execute plans or invoke Attach.', problem: null }];
 const scenario = params.get('setup') || 'normal';
 const rows = projects.projects;
+let folderIssues = [];
 rows.forEach((p, i) => Object.assign(p, { directory: i === 4 ? null : `C:/Projects/${p.name}`, hostId: i === 4 ? null : 'local', state: 'unadmitted',
   reason: i === 4 ? 'The project folder is unavailable. Choose its folder again before setup.' : 'Awaiting reviewed admission and allocation.', version: 0 }));
 if (rows[2]) Object.assign(rows[2], { state: 'admitted', reason: null, version: 2, agentId: 'existing-mate', workspaceId: 'existing-workspace', sessions: 1, turns: 2, profile, limits });
+if (scenario === 'missing-folder' || scenario === 'retained-folder') {
+  Object.assign(rows[0], { directory: null, hostId: null, state: 'held', projectId: null, reason: 'Project directory is unavailable; identity was not guessed.' });
+  folderIssues = [{ name: rows[0].name, location: `C:/Projects/${rows[0].name}`, rowDigest: 'b'.repeat(64), canReplace: scenario === 'missing-folder' }];
+}
 function snapshot() { return clone(projects); }
 function review(choices) {
   const row = rows.find(p => p.name === choices.name);
@@ -32,17 +37,26 @@ function finish(input) {
   if (scenario === 'lost-reply' && !window.review.lost) { window.review.lost = true; throw Error('Connection lost after saving setup.'); }
   return snapshot();
 }
+if (scenario === 'lost-create') {
+  const choices = { homeId, name: rows[0].name, profile, budget, limits, sourcePath: sources[0].path }, reviewed = review(choices);
+  requests.push({ homeId, requestId: uuid(601), review: reviewed.review, reviewDigest: reviewed.reviewDigest });
+  Object.assign(rows[0], { state: 'admitted', version: 2, agentId: 'reserved-project-mate', workspaceId: 'reserved-workspace', profile, limits, sessions: 1, turns: 1, uncertain: 1,
+    reason: 'Provisioning incomplete; inspect and resume the recorded request.' });
+}
 export function useRpc(contract) {
   if (!contract.name.startsWith('firstmate.projects.setup.')) return original(contract);
   if (!methods.has(contract.name)) methods.set(contract.name, async input => {
     window.review.calls.push({ name: contract.name, input: clone(input) });
-    if (contract.name.endsWith('.read')) return { snapshot: snapshot(), models, sources, problems: [], reviewed: [] };
+    if (contract.name.endsWith('.read')) return { snapshot: snapshot(), models, sources, problems: [], reviewed: [], folderIssues: clone(folderIssues) };
     if (contract.name.endsWith('.preview')) return review(input);
-    if (contract.name.endsWith('.status')) return { snapshot: snapshot(), requests: clone(requests) };
+    if (contract.name.endsWith('.status')) return { snapshot: snapshot(), requests: clone(requests), recoverableCreates: scenario === 'lost-create' && rows[0].uncertain ? [uuid(601)] : [] };
     if (contract.name.endsWith('.commit')) return finish(input);
     if (contract.name.endsWith('.resume')) return finish(requests.find(r => r.requestId === input.requestId));
     if (contract.name.endsWith('.instructions')) { const path = `data/project-setup-${input.requestId}.md`; if (!sources.some(s => s.path === path)) sources.push({ path, text: input.text, problem: null }); return { path }; }
-    if (contract.name.endsWith('.folder')) return snapshot();
+    if (contract.name.endsWith('.folder')) {
+      if (input.replace) { Object.assign(rows[0], { projectId: uuid(602), directory: 'C:/Projects/Starpath-restored', hostId: 'local', state: 'unadmitted', reason: 'Awaiting reviewed admission and allocation.' }); folderIssues = []; }
+      return snapshot();
+    }
     throw Error('Unexpected fixture RPC: ' + contract.name);
   });
   return methods.get(contract.name);

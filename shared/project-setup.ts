@@ -22,6 +22,7 @@ export const ProjectSetupCatalogSchema = z.object({
   sources: z.array(z.object({ path: z.string(), text: z.string(), problem: z.string().nullable() }).strict()),
   problems: z.array(z.string()),
   reviewed: z.array(ProjectSetupChoicesSchema),
+  folderIssues: z.array(z.object({ name: z.string(), location: z.string(), rowDigest: SupervisionHash, canReplace: z.boolean() }).strict()).default([]),
 }).strict();
 export type ProjectSetupCatalog = z.infer<typeof ProjectSetupCatalogSchema>;
 export const ProjectSetupPreviewSchema = z.object({
@@ -32,11 +33,13 @@ export type ProjectSetupPreview = z.infer<typeof ProjectSetupPreviewSchema>;
 export const readProjectSetup = defineRpc({ name: "firstmate.projects.setup.read", input: z.object({ homeId: z.string() }).strict(), output: ProjectSetupCatalogSchema });
 export const previewProjectSetup = defineRpc({ name: "firstmate.projects.setup.preview", input: ProjectSetupChoicesSchema, output: ProjectSetupPreviewSchema });
 export const commitProjectSetup = defineRpc({ name: "firstmate.projects.setup.commit", input: ProjectSetupInputSchema, output: ProjectRuntimeSnapshotSchema });
-export const ProjectSetupStatusSchema = z.object({ snapshot: ProjectRuntimeSnapshotSchema, requests: z.array(ProjectSetupInputSchema) }).strict();
+export const ProjectSetupStatusSchema = z.object({ snapshot: ProjectRuntimeSnapshotSchema, requests: z.array(ProjectSetupInputSchema),
+  recoverableCreates: z.array(SupervisionUuid).default([]) }).strict();
 export const readSavedProjectSetup = defineRpc({ name: "firstmate.projects.setup.status", input: z.object({ homeId: z.string() }).strict(), output: ProjectSetupStatusSchema });
 export const resumeProjectSetup = defineRpc({ name: "firstmate.projects.setup.resume", input: z.object({ homeId: z.string(), requestId: SupervisionUuid }).strict(), output: ProjectRuntimeSnapshotSchema });
 export const ProjectSetupFolderSchema = z.object({ homeId: z.string(), registryDigest: SupervisionHash,
-  name: z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,99}$/) }).strict();
+  name: z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,99}$/),
+  replace: z.object({ location: z.string().min(1), rowDigest: SupervisionHash }).strict().optional() }).strict();
 export const addProjectSetupFolder = defineRpc({ name: "firstmate.projects.setup.folder", input: ProjectSetupFolderSchema, output: ProjectRuntimeSnapshotSchema });
 export const ProjectSetupInstructionsSchema = z.object({ homeId: z.string(), requestId: SupervisionUuid,
   registryDigest: SupervisionHash, name: z.string().min(1).max(200), text: z.string().trim().min(1).max(32000) }).strict();

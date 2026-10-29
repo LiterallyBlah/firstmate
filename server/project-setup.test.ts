@@ -93,12 +93,53 @@ it("reload after admission preserves the original request before creating any se
 it.each(["createAgent", "send"] as const)("lost %s reply retains identity/spend, status is read-only and resume never repeats an uncertain effect", async op => {
   const input = await review(); receiver.faults[op] = ["lose"];
   await service.commit(input, api); const first = await service.status(input.homeId), calls = receiver.calls.length;
+  expect(first.recoverableCreates).toEqual(op === "createAgent" ? [input.requestId] : []);
   await service.status(input.homeId); expect(receiver.calls).toHaveLength(calls);
   await runtime.stop(); runtime = projectRuntimeFixture(data); make();
   const next = await service.resume(input.homeId, input.requestId, api);
   expect(next.projects[0]?.agentId).toBe(first.snapshot.projects[0]?.agentId); expect(next.projects[0]?.sessions).toBe(1); expect(next.projects[0]?.turns).toBe(1);
   expect(receiver.calls.filter(c => c.op === op)).toHaveLength(1); expect(receiver.agents.size).toBe(1); expect(receiver.sends).toHaveLength(1);
   if (op === "send") expect(next.projects[0]?.uncertain).toBeGreaterThan(0);
+});
+it("corrects the reviewed missing unadmitted row without creating work, then requires a fresh preview", async () => {
+  const missing = join(home, "missing");
+  await writeFile(join(home, "data/projects.md"), `# Projects\n- alpha [worktree +yolo] - ${missing} - Keep this description\n`);
+  const catalog = await service.read((await choices()).homeId, api), issue = catalog.folderIssues[0]!;
+  expect(issue).toMatchObject({ name: "alpha", location: missing, canReplace: true });
+  const fixed = await service.folder({ homeId: catalog.snapshot.homeId, registryDigest: catalog.snapshot.registryDigest!, name: "alpha", replace: { location: issue.location, rowDigest: issue.rowDigest } });
+  expect(fixed.projects).toHaveLength(1); expect(fixed.projects[0]?.directory).toBeTruthy();
+  expect(await readFile(join(home, "data/projects.md"), "utf8")).toBe(`# Projects\n- alpha [worktree +yolo] - ${join(home, "extra")} - Keep this description\n`);
+  expect(receiver.calls).toEqual([]); expect((await runtime.read(home)).freshness).toBe("uninitialized");
+  expect((await service.preview(await choices(), api)).reasons).toEqual([]);
+});
+it.each(["fingerprint", "registry", "duplicate", "restored"] as const)("missing folder correction refuses %s changes without writing the registry or creating work", async kind => {
+  const missing = join(home, "missing");
+  await writeFile(join(home, "data/projects.md"), `- alpha - ${missing}\n${kind === "duplicate" ? `- other - ${join(home, "extra")}\n` : ""}`);
+  const catalog = await service.read((await choices()).homeId, api), issue = catalog.folderIssues[0]!;
+  const input = { homeId: catalog.snapshot.homeId, registryDigest: catalog.snapshot.registryDigest!, name: "alpha", replace: { location: issue.location, rowDigest: kind === "fingerprint" ? "f".repeat(64) : issue.rowDigest } };
+  service = new ProjectSetupService(projects, { folder: async () => {
+    if (kind === "registry") await writeFile(join(home, "data/projects.md"), `- renamed - ${missing}\n`);
+    if (kind === "restored") await mkdir(missing);
+    return join(home, "extra");
+  } });
+  await expect(service.folder(input)).rejects.toMatchObject({ code: kind === "registry" ? "STALE" : kind === "duplicate" ? "CONFLICT" : "HELD" });
+  expect(await readFile(join(home, "data/projects.md"), "utf8")).not.toContain(`- alpha - ${join(home, "extra")}`);
+  expect(receiver.calls).toEqual([]); expect((await runtime.read(home)).freshness).toBe("uninitialized");
+});
+it.each(["name", "alias"] as const)("missing admitted folder retains its identity and refuses replacement by %s", async kind => {
+  const input = await review(); await service.commit(input, api);
+  if (kind === "alias") {
+    const p = (await runtime.read(home)).projects!.projects[0]!;
+    await projects.admin({ homeId: input.homeId, requestId: randomUUID(), actorId: "general", command: { op: "project", projectId: p.id, expectedVersion: p.version,
+      state: "admitted", aliases: ["old-alpha"], budget: p.budget, sourceVector: p.sourceVector } });
+  }
+  await rename(join(home, "alpha"), join(home, "moved"));
+  const name = kind === "alias" ? "old-alpha" : "alpha";
+  await writeFile(join(home, "data/projects.md"), `- ${name} - ${join(home, "alpha")}\n`);
+  const catalog = await service.read(input.homeId, api), issue = catalog.folderIssues[0]!, before = receiver.calls.length;
+  expect(issue).toMatchObject({ location: join(home, "alpha"), canReplace: false });
+  await expect(service.folder({ homeId: input.homeId, registryDigest: catalog.snapshot.registryDigest!, name, replace: { location: issue.location, rowDigest: issue.rowDigest } })).rejects.toMatchObject({ code: "HELD" });
+  expect(receiver.calls).toHaveLength(before); expect(catalog.snapshot.projects.some(p => p.projectId === input.review.projectId && p.agentId)).toBe(true);
 });
 it("duplicate/two-client confirms and request/body mismatch never allocate a second identity", async () => {
   const input = await review();

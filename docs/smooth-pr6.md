@@ -55,6 +55,12 @@ provisioning receipts remain separate. Unknown operations retain their identity
 and spend; Check saved setup is read-only. Explicit continuation uses the saved
 request and cannot replay an uncertain opening.
 
+Lost creation replies now have a separate read-only recovery classification: the
+same recorded request may reconcile its create only while its opening is still
+reserved (never armed). The saved-setup button remains available for this case.
+An uncertain opening remains held; status and Check saved setup perform no
+reconciliation or send.
+
 The app review and older Advanced creation path also compare request ownership
 under the same journal append boundary. A concurrently accepted older request
 cannot be adopted as the new review's child. The loser retains the original
@@ -64,6 +70,15 @@ Adding a folder invokes a native folder picker on the host (Windows/macOS/Linux
 with Zenity), validates its canonical local identity and updates the registry
 through its existing content-CAS writer. Canceling changes nothing. There is no
 helper/CLI transport for the new setup actions, and no new Attach path.
+
+An unavailable unadmitted local folder shows its original path and an explicit
+replacement action. The action checks the reviewed registry digest, original
+row/name/path, current ownership and canonical duplicates before changing only
+that row's location. It preserves flags, descriptions and comments. Folder
+correction and admission share one registry boundary, outside the native picker;
+correction acquires no journal writer. Setup then requires a fresh preview and
+confirmation. Admitted projects, retained aliases and saved setup identities
+cannot be rebound: the app shows the original path and restoration instructions.
 
 ## Shared destination for slice 10
 
@@ -83,19 +98,34 @@ receives a named Help-settings step; enablement is never inferred from opening i
 | Unadmitted local project, app-only admission and one persistent mate | Production chooser → supported profile/limits → actual recorded or app-authored instructions → read-only preview → explicit Create → result. `server/project-setup.test.ts` verifies one workspace/session/opening, exact opening bytes, durable unverified app audit and no Attach. `client/project-setup.test.ts` proves preview/cancel create nothing. The browser harness walks the actual Settings and setup components. |
 | Precise identity/source/profile/capacity holds before effects | Server tests cover missing folders, duplicate canonical paths, renamed registry, remote URLs, source changes, unavailable models/modes, changed General/home, insufficient headroom and invalid allocations. The final dispatch test changes source after workspace creation and proves no agent or opening follows; reserved spend stays. The ordinary UI names the next step and keeps diagnostics secondary. |
 | Reload after admission, lost create/opening reply, original request | Tests restart the actual owned runtime after admission and after lost native replies. Saved review/profile/source vector and deterministic provision request survive; create/opening call counts remain one. Status has no native calls. Duplicate/two-client confirmation and changed-body/request reuse cannot allocate a second identity. The browser and component tests check read-only recovery and exact-request continuation. |
-| Existing/stopped/uncertain owners and no silent fallback | Existing conversations open explicitly. Stopped/older setups link to retained Advanced work details; uncertain new setups keep their exact saved request and hold continuation. Tests verify valid reviewed profiles are reused exactly, unsupported models/modes refuse, and the old helper/policy-import role guards still refuse the new app provenance without the dedicated seam. |
+| Existing/stopped/uncertain owners and no silent fallback | Existing conversations open explicitly. Stopped/older setups link to retained Advanced work details. Lost creates offer exact-request reconciliation while uncertain openings hold continuation. Tests verify valid reviewed profiles are reused exactly, unsupported models/modes refuse, and the old helper/policy-import role guards still refuse the new app provenance without the dedicated seam. |
+
+## Independent review fixes
+
+Both P2 reproductions at `8f05e974` are regression tests now. The exported
+`ProjectSetup` component and all its props remain unchanged for slice 10.
+
+| Review finding | Acceptance and regression evidence |
+| --- | --- |
+| Lost-create recovery disabled | `server/project-setup.test.ts` loses a real synthetic create reply, verifies read-only status advertises only the exact recoverable request, restarts the owned runtime, reconciles the same agent and proves one create/one opening with retained spend. The lost-send variant advertises no recovery and sends once. `client/project-setup.test.ts` presses the enabled saved continuation with the original request; Check stays read-only and the existing uncertain-opening assertion stays disabled. |
+| Missing-folder repair blocked | Server regression corrects the original missing alpha row, retains its flags/description, creates no journal or native work, then obtains a fresh preview. Changed registry/row fingerprint, duplicate canonical folder, a folder restored during the picker, admitted name and retained alias all refuse correction. Component regression checks the original path, exact correction token and fresh review; retained identities show restoration requirements without a replacement button. |
+
+The browser compares the actual component at `8f05e974` with the corrected
+component for both reproductions and retained-folder protection in both themes
+and widths. The injected picker and synthetic host create no real project work.
 
 ## Validation
 
 - Typecheck and `git diff --check` pass.
-- Focused project setup/runtime checks: **67 passed**, including a regression that
+- Focused project setup/runtime/component checks: **81 passed**, including a regression that
   first reproduced the concurrent older-request adoption and passes with the
   atomic guard. Component recovery, settings and template checks also pass.
 - The existing slice 5 Settings harness passes all 72 captures/assertion cases,
   retaining its persistence assertions after returning from the new chooser.
-- `node docs/smooth-pr6/render.mjs`: 44 captures/assertion cases across light/dark,
+- `node docs/smooth-pr6/render.mjs`: 68 captures/assertion cases across light/dark,
   1440×1000 and 390×844. Includes actual chooser/profile/review/result, capacity,
-  instruction save, lost reply, uncertain opening and 200% text. No page exceptions
+  instruction save, lost reply, uncertain opening, lost-create recovery,
+  missing-folder correction, retained-folder restoration and 200% text. No page exceptions
   or document overflow; controls meet 44×44 and keyboard focus returns.
 - The Impeccable mechanical scan reported no findings in the changed UI targets.
 - Full local suites use CI's two-worker/20s Windows settings. The missing-folder
@@ -121,6 +151,13 @@ are illustrative, never production defaults.
 | Dark desktop | [Screenshots](smooth-pr6/evidence/dark-desktop.png) |
 | Light phone | [Screenshots](smooth-pr6/evidence/light-phone.png) |
 | Dark phone | [Screenshots](smooth-pr6/evidence/dark-phone.png) |
+
+| Review fixes: before `8f05e974` and after | Lost create, missing folder and retained identity |
+| --- | --- |
+| Light desktop | [Screenshots](smooth-pr6/evidence/review-light-desktop.png) |
+| Dark desktop | [Screenshots](smooth-pr6/evidence/review-dark-desktop.png) |
+| Light phone | [Screenshots](smooth-pr6/evidence/review-light-phone.png) |
+| Dark phone | [Screenshots](smooth-pr6/evidence/review-dark-phone.png) |
 
 Copy follows the report: available projects are setup opportunities rather than
 decisions; ordinary labels use Ready to review, Already set up, Saved setup and

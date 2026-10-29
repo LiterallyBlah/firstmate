@@ -40,7 +40,7 @@ beforeEach(() => {
     projects: [{ name: "alpha", projectId: id, scopeId: id, directory: "C:/alpha", hostId: "local", state: "admitted", version: 2, aliases: [], agentId: null, workspaceId: null, provisionRequestId: null,
       profile, limits, sessions: 0, turns: 0, uncertain: 0, memoryPending: 0, plans: [], reason: null }] },
     models: [{ provider: profile.provider, label: "Fixture model", modes: [{ id: "full-access", label: "Full access" }], thinking: [] }],
-    sources: [{ path: "data/orders.md", text: "The captain permits one project mate for alpha.", problem: null }], reviewed: [choices], problems: [] };
+    sources: [{ path: "data/orders.md", text: "The captain permits one project mate for alpha.", problem: null }], reviewed: [choices], problems: [], folderIssues: [] };
   review = { choices, reasons: [], reviewDigest: hash, review: { homeId: home, registryDigest: hash, generalAgentId: "general", projectId: id, name: "alpha", projectVersion: 2, aliases: [],
     source: { id, version: 1, path: "data/orders.md", lineStart: 1, lineEnd: 1, fileHash: hash, excerptHash: hash, supersedes: [], provenance: { kind: "plugin-ui-unverified", id: "unauthenticated-plugin-call", source: "project setup review (unverified)" } },
     profile, limits, budget, policyHash: hash, sourceVector: [{ kind: "policy-source", id, version: 1, digest: hash }], opening: "Keep track of alpha; do not create workers or invoke Attach.", capacity: { slots: 4, generalHeadroom: 1 }, spent: { sessions: 0, turns: 0 } } };
@@ -73,4 +73,38 @@ it("an incomplete saved-status response holds setup without blanking the parent 
   rpc("status").mockResolvedValue({}); await mount();
   expect(text()).toContain("Saved setup couldn't be checked"); expect(button("Review alpha").props.disabled).toBe(true);
   expect(rpc("commit")).not.toHaveBeenCalled(); expect(rpc("resume")).not.toHaveBeenCalled();
+});
+it("lost create recovery stays available for the exact saved request while uncertain openings stay held", async () => {
+  saved = [{ homeId: home, requestId: id, reviewDigest: hash, review: review.review! }];
+  Object.assign(data.snapshot.projects[0]!, { agentId: "reserved-agent", uncertain: 1, reason: "Provisioning incomplete; inspect and resume the recorded request." });
+  rpc("status").mockImplementation(async () => ({ snapshot: structuredClone(data.snapshot), requests: saved, recoverableCreates: [id] }));
+  rpc("resume").mockResolvedValue(data.snapshot);
+  await mount(); await press("Check saved setup");
+  expect(rpc("resume")).not.toHaveBeenCalled();
+  await press("Continue alpha saved setup");
+  expect(rpc("resume")).toHaveBeenCalledExactlyOnceWith({ homeId: home, requestId: id });
+  expect(rpc("commit")).not.toHaveBeenCalled();
+});
+it("missing unadmitted folder offers checked correction and requires a fresh setup review", async () => {
+  Object.assign(data.snapshot.projects[0]!, { projectId: null, directory: null, hostId: null, state: "held", version: 0, reason: "Project directory is unavailable; identity was not guessed." });
+  const issue = { name: "alpha", location: "C:/missing/alpha", rowDigest: hash, canReplace: true };
+  Object.assign(data, { folderIssues: [issue] });
+  rpc("folder").mockImplementation(async () => {
+    Object.assign(data.snapshot.projects[0]!, { projectId: id, directory: "C:/replacement/alpha", hostId: "local", state: "unadmitted", reason: "Awaiting reviewed admission and allocation." });
+    Object.assign(data, { folderIssues: [] }); return data.snapshot;
+  });
+  await mount(); expect(text()).toContain(issue.location);
+  expect(button("Review alpha")).toBeUndefined();
+  await press("Choose a replacement folder for alpha");
+  expect(rpc("folder")).toHaveBeenCalledExactlyOnceWith({ homeId: home, registryDigest: hash, name: "alpha", replace: { location: issue.location, rowDigest: hash } });
+  expect(button("Review alpha")).toBeDefined();
+  expect(rpc("preview")).not.toHaveBeenCalled(); expect(rpc("commit")).not.toHaveBeenCalled();
+  await press("Review alpha"); await press("Review alpha setup"); expect(rpc("preview")).toHaveBeenCalledOnce();
+});
+it("missing retained folder shows the exact restoration path and offers no rebinding", async () => {
+  Object.assign(data.snapshot.projects[0]!, { directory: null, state: "held" });
+  data.folderIssues = [{ name: "alpha", location: "C:/original/alpha", rowDigest: hash, canReplace: false }];
+  await mount(); expect(text()).toContain("C:/original/alpha"); expect(text()).toContain("saved identity cannot be moved");
+  expect(button("Choose a replacement folder for alpha")).toBeUndefined(); expect(button("Review alpha")).toBeUndefined();
+  expect(rpc("folder")).not.toHaveBeenCalled();
 });

@@ -58,8 +58,8 @@ function ProjectSetupSession({ theme, compact, home, hostId, onClose, navigation
   }
   function outcome(snapshot: Awaited<ReturnType<typeof commit>>, name: string) {
     const p = snapshot.projects.find(p => p.name === name);
-    return p?.agentId && !p.reason ? `${name} is ready. Open its conversation when you want to talk.` :
-      p?.uncertain ? "Checking whether setup finished. Keep the saved request; an uncertain opening will not be sent again." :
+    return p?.agentId && !p.reason && p.state !== "stopped" ? `${name} is ready. Open its conversation when you want to talk.` :
+      p?.uncertain ? "Setup needs checking. Use saved setup below to see whether its original operation can continue." :
       p?.provisionInput ? "Setup is saved. Check its result before continuing the recorded operation." : "Your review is saved. Admission can be continued with its original choices.";
   }
   async function confirm() {
@@ -100,17 +100,22 @@ function ProjectSetupSession({ theme, compact, home, hostId, onClose, navigation
       </> : data && !result ? <>
         {!choices ? <Text style={text}>Choose a project to give it a separate mate. Review its instructions, permissions and spending limits before anything starts.</Text> : null}
         {!choices ? data.snapshot.projects.map((project, i) => {
-          const savedRequest = saved.data?.requests.find(r => r.review.projectId === project.projectId), ready = !!project.agentId && !project.reason;
+          const savedRequest = saved.data?.requests.find(r => r.review.projectId === project.projectId), ready = !!project.agentId && !project.reason && project.state !== "stopped";
+          const issue = data.folderIssues.find(r => r.name === project.name);
           return <View key={`${project.name}:${i}`} style={{ gap: 8, paddingBottom: 14, borderBottomWidth: 1, borderColor: theme.colors.border }}>
             <Text style={{ ...text, fontSize: 16, fontWeight: "600" }}>{project.name}</Text>
-            <Text selectable style={note}>{project.directory ?? "Folder unavailable"} · {project.hostId ?? "Host not mapped"}</Text>
+            <Text selectable style={note}>{project.directory ?? issue?.location ?? "Folder unavailable"} · {project.hostId ?? "Original computer"}</Text>
             <Text style={text}>{ready ? "Already set up" : project.uncertain ? "Checking whether setup finished" :
               project.state === "stopped" || project.reason?.startsWith("Provisioning stopped") ? "Setup was stopped. Review the saved operation before continuing." :
-              savedRequest || project.provisionInput ? "Waiting to finish saved setup" : !project.directory ? "Folder unavailable. Restore its connection or choose the correct local project." :
+              savedRequest || project.provisionInput ? "Waiting to finish saved setup" : !project.directory ? issue?.canReplace ? "This folder is unavailable. Choose its replacement, then review setup again." : issue ? "Restore this project's original folder at the path above on its original computer, then check saved setup. Its saved identity cannot be moved to another folder here." : "This project needs a checked local folder on its original computer. Review its setup for the required mapping." :
               project.state === "held" ? "This project's identity needs a change. Review its setup to see the next step." : "Ready to review"}</Text>
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
               {project.agentId && navigation ? <SetupAction theme={theme} label={`Open ${project.name} conversation`} onPress={() => { navigation.openAgent({ agentId: project.agentId!, ...(hostId === "local" ? {} : { serverId: hostId }) }); onClose(); }} /> : null}
-              {!ready && !savedRequest && !project.provisionInput ? <SetupAction theme={theme} label={`Review ${project.name}`} disabled={disabled} onPress={() => select(project.name)} /> : null}
+              {!ready && !savedRequest && !project.provisionInput && (project.directory || !issue) ? <SetupAction theme={theme} label={`Review ${project.name}`} disabled={disabled} onPress={() => select(project.name)} /> : null}
+              {issue?.canReplace && hostId === "local" ? <SetupAction theme={theme} label={`Choose a replacement folder for ${project.name}`} disabled={disabled || !data.snapshot.registryDigest} onPress={() => { void act(async () => {
+                await folder({ homeId: home, registryDigest: data.snapshot.registryDigest!, name: project.name, replace: { location: issue.location, rowDigest: issue.rowDigest } });
+                await refresh(); choose(null); setReview(null); setRequest(null);
+              }); }} /> : null}
               {project.provisionInput && !savedRequest ? <Text style={note}>Continue this project's original setup in Advanced work details. Its identity and spending are kept.</Text> : null}
               {project.state === "stopped" || project.reason?.startsWith("Provisioning stopped") ? <Text style={text}>Setup was stopped. Review the retained operation in Advanced work details; no replacement mate is created.</Text> : null}
             </View>
@@ -166,14 +171,15 @@ function ProjectSetupSession({ theme, compact, home, hostId, onClose, navigation
         </View> : !choices ? <Text style={text}>To add a folder, open setup on this project's original computer. Remote folder identities cannot be guessed.</Text> : null}
       </> : null}
       {saved.data?.requests.map(input => {
-        const project = saved.data.snapshot.projects.find(p => p.projectId === input.review.projectId), ready = !!project?.agentId && !project.reason;
+        const project = saved.data.snapshot.projects.find(p => p.projectId === input.review.projectId), ready = !!project?.agentId && !project.reason && project.state !== "stopped";
+        const recoverableCreate = saved.data.recoverableCreates.includes(input.requestId);
         return <View key={input.requestId} style={{ gap: 8 }}>
           <Text style={{ ...text, fontWeight: "600" }}>{input.review.name} · {ready ? "Ready" : project?.uncertain ? "Checking whether setup finished" : "Saved setup"}</Text>
           <Text style={note}>{input.review.profile.provider} · {input.review.profile.modeId} · {input.review.limits.supervisorTurns} total turns. Spent: {project?.sessions ?? 0} sessions, {project?.turns ?? 0} turns.</Text>
           {ready && project?.agentId && navigation ? <SetupAction theme={theme} label={`Open ${input.review.name} conversation`} onPress={() => { navigation.openAgent({ agentId: project.agentId!, ...(hostId === "local" ? {} : { serverId: hostId }) }); onClose(); }} /> : null}
-          {!ready ? <SetupAction theme={theme} label={`Continue ${input.review.name} saved setup`} disabled={disabled || !data?.snapshot.enabled || !!project?.uncertain || project?.state === "stopped" || !!project?.reason?.startsWith("Provisioning stopped")}
+          {!ready ? <SetupAction theme={theme} label={`Continue ${input.review.name} saved setup`} disabled={disabled || !data?.snapshot.enabled || !!project?.uncertain && !recoverableCreate || project?.state === "stopped" || !!project?.reason?.startsWith("Provisioning stopped")}
             onPress={() => { void act(async () => { const next = await resume({ homeId: home, requestId: input.requestId }); if (mounted.current) setResult(outcome(next, input.review.name)); await refresh(); }); }} /> : null}
-          {project?.uncertain ? <Text style={text}>Keep this identity and spent budget. Check saved setup to inspect the result; an uncertain opening stays held.</Text> : null}
+          {project?.uncertain ? <Text style={text}>{recoverableCreate ? "The setup reply was lost. Continue saved setup to find the same mate and send its first message once creation is confirmed. Its model, permissions and spending limits are kept." : "Keep this identity and spent budget. Check saved setup to inspect the result; an uncertain opening stays held."}</Text> : null}
         </View>;
       })}
       {saved.isError ? <Text accessibilityRole="alert" style={text}>Saved setup couldn't be checked. Refresh before creating or continuing a mate.</Text> : null}
