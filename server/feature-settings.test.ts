@@ -54,7 +54,8 @@ it("round-trips every env-only partial combination without broadening and persis
     await restarted.set(request(home, 1));
     expect(await restarted.read()).toMatchObject({ revision: 2, source: "saved", requested: FEATURES_OFF, effective: FEATURES_OFF });
   }
-}, 30000);
+  // Windows CI: median 3.9 s, passes up to 22.1 s and two timeouts at 30 s; hosted Windows runner slowdowns add up to ~46 s (61 runs, 2026-10-28/29), so the budget is its Windows median + ~50 s.
+}, 60_000);
 
 it("captures only exact legacy opt-ins and holds invalid capacity without a default reset", async () => {
   const data = root(), home = join(data, "home");

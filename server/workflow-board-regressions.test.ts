@@ -195,4 +195,5 @@ it("bounds Bearings and the agenda after many completed plans, retaining verifia
   expect((await workflowStore(home).agenda()).filter(i => i.plan.startsWith("finished-")).every(i => i.kind === "tell")).toBe(true);
   expect(await withWorkflowCards([], home)).toHaveLength(2);
   expect(await workflowStore(home).list()).toHaveLength(31);
-}, 30000);
+  // Windows CI: median 6 s, passes up to 26.3 s and two timeouts at 30 s; hosted Windows runner slowdowns add up to ~46 s (61 runs, 2026-10-28/29), so the budget is its Windows median + ~50 s.
+}, 60_000);
