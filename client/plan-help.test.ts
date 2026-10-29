@@ -47,6 +47,23 @@ it("R4: ordinary evidence review selects actual files and checked sources withou
   mocks.migrate.mockRejectedValue(new Error("test stops before mutation")); await press("Confirm this handover step");
   expect(mocks.migrate.mock.calls[0]![0].evidence.rollback).toEqual({ path: "data/rollback.md", hash: "e".repeat(64) });
 });
+it("N1: raw delivery diagnostics are collapsed; disclosing them never clears a hold or writes", async () => {
+  const diagnostics = `worker-callback: Legacy attempt ${uuid(17)}; scoped owner; quiescent`;
+  mocks.evidence.mockResolvedValue({ homeId: "home", plan: "reader", reviewHash: review().reviewHash, folder: "data", entries: [], problems: [],
+    inventory: { hash: "c".repeat(64), summary: ["Wait for FirstMate to confirm that “Reader trial” has finished before completing handover."], problems: [diagnostics], details: [diagnostics] },
+    policy: { hash: "d".repeat(64), sources: [] }, rollback: null });
+  await render(); await press("Check handover evidence"); await act(async () => { await new Promise(done => setTimeout(done, 20)); });
+  expect(visibleText(renderer!.toJSON())).toContain("Reader trial");
+  expect(visibleText(renderer!.toJSON())).not.toMatch(/worker-callback|scoped owner|quiescent|00000000-/);
+  expect(button("I reviewed pending deliveries").props.disabled).toBe(true);
+  await press("Technical details");
+  expect(visibleText(renderer!.toJSON())).toContain(diagnostics);
+  expect(button("I reviewed pending deliveries").props.disabled).toBe(true);
+  await press("Hide technical details");
+  expect(visibleText(renderer!.toJSON())).not.toContain(diagnostics);
+  expect(button("Use reviewed evidence").props.disabled).toBe(true);
+  expect(mocks.migrate).not.toHaveBeenCalled(); expect(mocks.save).not.toHaveBeenCalled();
+});
 it("view, evidence disclosure and cancel cause no mutation or Attach; review explains retained owner/spend", async () => {
   await render(); await fill(); await press("Review handover"); await press("Keep current owner");
   expect(mocks.migrate).not.toHaveBeenCalled(); expect(mocks.save).not.toHaveBeenCalled();

@@ -16,7 +16,7 @@ export const readPlanHelp = defineRpc({ name: "firstmate.supervision.plan-help.r
 export const HandoverEvidenceInputSchema = PlanHelpReviewInputSchema.extend({ folder: z.string().max(1024).default("data"), rollbackPath: z.string().min(1).max(900).optional() }).strict();
 export const HandoverEvidenceReviewSchema = z.object({ homeId: z.string(), plan: PlanId, reviewHash: z.string(), folder: z.string(),
   entries: z.array(z.object({ name: z.string(), path: z.string(), kind: z.enum(["dir", "file"]) }).strict()).max(200),
-  inventory: z.object({ hash: z.string(), summary: z.array(z.string()), problems: z.array(z.string()) }).strict().nullable(),
+  inventory: z.object({ hash: z.string(), summary: z.array(z.string()), problems: z.array(z.string()), details: z.array(z.string()).optional() }).strict().nullable(),
   policy: z.object({ hash: z.string(), sources: z.array(z.object({ path: z.string(), lines: z.string(), content: z.string() }).strict()) }).strict().nullable(),
   rollback: z.object({ path: z.string(), hash: z.string(), content: z.string() }).strict().nullable(), problems: z.array(z.string()),
 }).strict();

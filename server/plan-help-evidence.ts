@@ -2,12 +2,36 @@
 import { createHash } from "node:crypto";
 import type { HandoverEvidenceReview, PlanHelpReview } from "../shared/plan-help";
 import type { SupervisionStatus } from "../shared/supervision";
+import type { LegacyDeliveryDisposition } from "../shared/supervision-migration";
 import { listDirectory, readTextFile } from "./files";
 import { digest } from "./submissions";
 import { checkPolicySource, policyRef, sameVector } from "./supervision-policy";
 import { SupervisionMigrator, type LegacyDeliveryAdapters } from "./supervision-migrate";
 import { SupervisionStore } from "./supervision-store";
 import { workflowStore } from "./workflow-service";
+/** Presentation only: never infer handling from a send receipt or change a disposition. */
+function deliveryExplanation(d: LegacyDeliveryDisposition, plan: string, work?: string): string {
+  const subject = `“${work ?? plan}”`;
+  const labels: Record<LegacyDeliveryDisposition["source"], string> = {
+    "plan-action": `Your saved plan choice for ${subject}`,
+    "config.mateNotes": `A saved message about ${subject}`,
+    burst: `A saved conversation update about ${subject}`,
+    "decision-submission": `Your saved answer about ${subject}`,
+    "watch-queue": `A check report mentioning ${subject}`,
+    "send-claim": `A message about ${subject}`,
+    "worker-callback": `The result of work on ${subject}`,
+  };
+  switch (d.route) {
+    case "already-handled": return `${labels[d.source]} has already been handled by FirstMate. No action is needed.`;
+    case "transfer-fact": return `${labels[d.source]} will be kept with the plan if you complete handover. No reply is needed here.`;
+    case "drain-legacy": return `${labels[d.source]} stays with the current owner. Let FirstMate finish checking it, then refresh this review.`;
+    case "hold":
+      if (d.source === "worker-callback") return `Work on ${subject} still needs a confirmed result. Wait for FirstMate to confirm that ${subject} has finished before completing handover.`;
+      if (d.source === "decision-submission") return `${labels[d.source]} may already have been received. Keep the current owner and review this answer with FirstMate before continuing. It will not be sent again.`;
+      if (d.source === "send-claim") return `${labels[d.source]} may already have arrived. Keep the current owner and ask FirstMate to check the result before continuing. It will not be sent again.`;
+      return `${labels[d.source]} needs review. Keep the current owner and ask FirstMate to check it before continuing.`;
+  }
+}
 export async function handoverEvidence(root: string, home: string, review: PlanHelpReview, status: SupervisionStatus,
   adapters: LegacyDeliveryAdapters, folder: string, rollbackPath?: string): Promise<HandoverEvidenceReview> {
   const result: HandoverEvidenceReview = { homeId: review.homeId, plan: review.plan, reviewHash: review.reviewHash,
@@ -42,9 +66,17 @@ export async function handoverEvidence(root: string, home: string, review: PlanH
     const dry = await new SupervisionMigrator({ home, store: new SupervisionStore(root, home), legacy: workflowStore(home), adapters, enabled: true }).dryRun({
       plan: review.plan, scopeId: review.scopeId, projectId: review.projectId, migrationId: review.migrationId,
       prerequisites: { inventory: "Read-only preview; not accepted", policy: "Read-only preview; not accepted", rollbackBuild: "Read-only preview; not accepted" } });
+    const plan = await workflowStore(home).get(review.plan);
+    // A name must come from the same plan history as the inspected inventory.
+    if (!plan || plan.hash !== dry.receipt.source.tip.hash) throw new Error("Plan changed during inventory read");
     result.inventory = { hash: digest({ source: dry.sourceHash, dispositions: dry.dispositions, launches: dry.receipt.launches, dependents: dry.receipt.dependents, capacity: dry.capacity }),
-      summary: [`${dry.dispositions.length} pending or recorded deliveries checked.`, ...dry.dispositions.map(d => `${d.source}: ${d.reason}`),
-        `${dry.receipt.launches.length} launch records and ${dry.receipt.dependents.length} dependent steps checked.`, "Uncertain deliveries remain held; no message will be resent."], problems: dry.problems };
+      summary: [`${dry.dispositions.length} saved item${dry.dispositions.length === 1 ? "" : "s"} checked before handover.`, ...dry.dispositions.map(d => {
+        const node = dry.receipt.imported.attempts.find(a => a.attempt === d.original.attemptId)?.node;
+        return deliveryExplanation(d, plan.definition.title, plan.definition.nodes.find(n => n.id === node)?.title);
+      }), `${dry.receipt.launches.length} work starts and ${dry.receipt.dependents.length} steps that depend on this plan checked.`,
+      "Messages whose result is unknown stay paused for review. Nothing will be sent again."],
+      // Retain exact diagnostic data and guard inputs; only the client disclosure renders them.
+      details: dry.dispositions.map(d => `${d.source} · ${d.id}\n${JSON.stringify(d.original)}\n${d.reason}`), problems: dry.problems };
   } catch { result.problems.push("Pending deliveries couldn't all be checked. Refresh Needs you, then check this evidence again before handover."); }
   return result;
 }

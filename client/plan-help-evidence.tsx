@@ -14,6 +14,7 @@ export function PlanHelpEvidence({ theme, homeId, plan, reviewHash, disabled, on
 }) {
   const read = useRpc(readHandoverEvidence), [open, setOpen] = useState(false), [folder, setFolder] = useState("data"), [path, setPath] = useState<string>();
   const [inventory, setInventory] = useState<string>(), [policy, setPolicy] = useState<string>(), [rollback, setRollback] = useState<string>();
+  const [technical, setTechnical] = useState(false);
   const query = useQuery({ queryKey: ["firstmate", "handover-evidence", homeId, plan, reviewHash, folder, path],
     queryFn: () => read({ homeId, plan, folder, ...(path ? { rollbackPath: path } : {}) }), enabled: open, retry: false });
   const data = query.data, foreground = { color: theme.colors.foreground }, muted = { color: theme.colors.foregroundMuted };
@@ -28,8 +29,14 @@ export function PlanHelpEvidence({ theme, homeId, plan, reviewHash, disabled, on
       {data ? <>
         {data.problems.map(p => <Text key={p} style={foreground}>{p}</Text>)}
         <Text accessibilityRole="header" style={foreground}>Pending deliveries</Text>
-        {data.inventory?.summary.map(s => <Text key={s} style={muted}>{s}</Text>)}
-        {data.inventory?.problems.map(p => <Text key={p} style={foreground}>{p}</Text>)}
+        {data.inventory?.summary.map((s, i) => <Text key={i} style={muted}>{s}</Text>)}
+        {data.inventory?.problems.length ? <Text style={foreground}>Some pending work couldn't be checked. Keep the current owner, ask FirstMate to review it, then refresh this evidence.</Text> : null}
+        {data.inventory && ((data.inventory.details?.length ?? 0) > 0 || data.inventory.problems.length > 0) ? <>
+          <HelpButton theme={theme} label={technical ? "Hide technical details" : "Technical details"} expanded={technical} onPress={() => setTechnical(value => !value)} />
+          {technical ? <View style={{ gap: 8 }}>
+            {[...(data.inventory.details ?? []), ...data.inventory.problems].map((detail, i) => <Text key={i} selectable style={muted}>{detail}</Text>)}
+          </View> : null}
+        </> : null}
         <HelpButton theme={theme} label="I reviewed pending deliveries" disabled={held} onPress={() => setInventory(data.inventory?.hash)} />
         <Text accessibilityRole="header" style={foreground}>Accepted project permissions</Text>
         <Text style={muted}>These sources were accepted in project setup. This review adds no permission.</Text>

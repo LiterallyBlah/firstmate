@@ -40,8 +40,8 @@ export function PlanHelpAction({ theme, plan }: { theme: PluginTheme; plan: Work
     <HelpButton theme={theme} label="Review plan help" onPress={() => open(plan.definition.id, plan.definition.title)} />
   </View>;
 }
-export function HelpButton({ theme, label, onPress, disabled = false }: { theme: PluginTheme; label: string; onPress(): void; disabled?: boolean }) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress}
+export function HelpButton({ theme, label, onPress, disabled = false, expanded }: { theme: PluginTheme; label: string; onPress(): void; disabled?: boolean; expanded?: boolean }) {
+  return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled, ...(expanded === undefined ? {} : { expanded }) }} disabled={disabled} onPress={onPress}
     style={{ minHeight: 44, minWidth: 44, maxWidth: "100%", paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 7, justifyContent: "center", opacity: disabled ? 0.5 : 1 }}>
     <Text style={{ color: theme.colors.foreground, flexShrink: 1 }}>{label}</Text>
   </Pressable>;

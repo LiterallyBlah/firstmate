@@ -9,6 +9,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import contribute from "../index.server";
 import { workflowFixture } from "../test/workflow-fixture";
 import { workflowStore } from "./workflow-service";
+import { planSubjectHash } from "./workflow-plans";
 import { updateFirstmateConfig } from "./config";
 import { workflowHomeIdentity } from "./workflow-ownership";
 import { pluginDir } from "./data-dir";
@@ -94,6 +95,13 @@ it.runIf(process.env.PR175_CAPTURE === "1")("real registered RPC before/after ev
   await writeFile(join(home, "data/rollback.md"), "Isolated capture fixture: retained FirstMate build 0.4.0 at the reviewed test archive.\nS07 compatibility 1; exact history replay and external-effect reconciliation tested in this disposable fixture.\nThis fixture report is not production qualification.\n");
   await updateFirstmateConfig({ home, mateAgentId: "" }); await updateFirstmateConfig({ mateAgentId: "general" });
   await workflowStore(home).execute({ op: "draft", definition: workflowFixture() }, randomUUID(), "general");
+  // Nonempty production inventory: a genuine captain action and durable start intent,
+  // without launching any native worker. An empty inventory missed the wording defect.
+  const legacy = workflowStore(home), plan = (await legacy.get("scheduler"))!;
+  await legacy.execute({ op: "captain", plan: "scheduler", revision: plan.revision, subjectHash: planSubjectHash(plan), action: "approve", text: "" }, randomUUID(), "board:captain");
+  await mkdir(join(home, "data/trial"), { recursive: true });
+  await writeFile(join(home, "data/trial/brief.md"), "Isolated browser fixture; do not launch a native worker.");
+  await legacy.execute({ op: "start", plan: "scheduler", node: "trial" }, randomUUID(), "general");
   const runtime = new SupervisionRuntime(pluginDir()), actor = { kind: "captain-ui", id: "capture-fixture", source: "isolated-test" } as const;
   const orders = "Previously accepted project permissions. No new permission is granted by handover.\n", sha = (s: string) => createHash("sha256").update(s).digest("hex");
   await writeFile(join(home, "data/orders.md"), orders);

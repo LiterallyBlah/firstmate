@@ -36,6 +36,24 @@ export async function capturePlanHelp(call: (name: string, input?: any) => Promi
       if (stage === "before") { await page.getByRole("button", { name: "Handover evidence", exact: true }).click(); await page.getByLabel("Compatible rollback build", { exact: true }).scrollIntoViewIfNeeded(); }
       else {
         await page.getByRole("button", { name: "Check handover evidence", exact: true }).click();
+        await page.getByText("2 saved items checked before handover.", { exact: true }).waitFor();
+        const ordinary = await page.locator("body").innerText();
+        assert.match(ordinary, /Wait for FirstMate to confirm that “Database trial” has finished/);
+        assert.match(ordinary, /Your saved plan choice for “Scheduler”/);
+        assert.doesNotMatch(ordinary, /plan-action|worker-callback|scoped owner|quiescent|native callback|[0-9a-f]{8}-[0-9a-f]{4}-/i);
+        await page.getByText("Pending deliveries", { exact: true }).evaluate((el: any) => el.scrollIntoView({ block: "start" }));
+        await page.screenshot({ path: join(out, `${theme}-${device}-ordinary-after.png`) });
+        const beforeDisclosure = await page.evaluate(() => (globalThis as any).review.calls.length);
+        await page.getByRole("button", { name: "Technical details", exact: true }).click();
+        const technical = await page.locator("body").innerText();
+        assert.match(technical, /plan-action/); assert.match(technical, /worker-callback/);
+        assert.match(technical, /scoped owner/); assert.match(technical, /quiescent/);
+        assert.match(technical, /[0-9a-f]{8}-[0-9a-f]{4}-/i);
+        await page.getByRole("button", { name: "Hide technical details", exact: true }).evaluate((el: any) => el.scrollIntoView({ block: "start" }));
+        await page.screenshot({ path: join(out, `${theme}-${device}-technical-after.png`) });
+        await page.getByRole("button", { name: "Hide technical details", exact: true }).click();
+        assert.equal(await page.evaluate(() => (globalThis as any).review.calls.length), beforeDisclosure);
+        assert.doesNotMatch(await page.locator("body").innerText(), /worker-callback|scoped owner|quiescent|[0-9a-f]{8}-[0-9a-f]{4}-/i);
         await page.getByRole("button", { name: "I reviewed pending deliveries", exact: true }).click();
         await page.getByRole("button", { name: "I reviewed accepted permissions", exact: true }).click();
         await page.getByRole("button", { name: "Read rollback.md", exact: true }).click();

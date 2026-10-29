@@ -22,6 +22,8 @@ import { workflowHomeIdentity } from "./workflow-ownership";
 import type { PaseoApi } from "./host-types";
 import { askMate } from "./mate";
 import { evidenceReferences } from "../shared/plan-help";
+import { planSubjectHash } from "./workflow-plans";
+import { digest } from "./submissions";
 vi.setConfig({ testTimeout: 30000 });
 const root = process.env.PASEO_HOME!;
 let home: string, activation: SupervisionActivation, receiver: SyntheticReceiver, ledger: NeedsYouService, clock: number;
@@ -154,6 +156,36 @@ it("R3: an explicit corrected review after preflight refuses retains old evidenc
     expect(receiver.calls).toEqual([]);
     // Once frozen/accepted, a newly reviewed body cannot replace the saved preparation.
     await expect(activation.migrate({ ...corrected, prerequisites: { ...corrected.prerequisites, inventory: "different" }, replacesReview: fresh.reviewHash })).rejects.toMatchObject({ code: "CONFLICT" });
+  } finally { await activation.stop(); await runtime.stop(); }
+});
+it("N1: real approved work has plain next steps, exact hidden diagnostics and unchanged inventory holds", async () => {
+  const { runtime } = await guided();
+  try {
+    const legacy = workflowStore(home), plan = (await legacy.get("scheduler"))!;
+    await legacy.execute({ op: "captain", plan: "scheduler", revision: plan.revision, subjectHash: planSubjectHash(plan), action: "approve", text: "" }, randomUUID(), "board:captain");
+    await mkdir(join(home, "data/trial"), { recursive: true });
+    await writeFile(join(home, "data/trial/brief.md"), "Isolated trial; do not create a live worker.");
+    await legacy.execute({ op: "start", plan: "scheduler", node: "trial" }, randomUUID(), "general");
+    const handlers = new Map<string, (input: any) => Promise<any>>();
+    registerSupervisionActivation({ handle: (rpc: any, fn: any) => handlers.set(rpc.name, fn) } as any, activation);
+    const before = await runtime.read(home), review = await activation.planHelp(prepare.homeId, "scheduler");
+    const dry = await new SupervisionMigrator({ home, store: new SupervisionStore(pluginDir(), home), legacy, adapters: legacyAdapters(null, () => ledger.read()), enabled: true }).dryRun({
+      plan: "scheduler", scopeId: review.scopeId, projectId: review.projectId!, migrationId: review.migrationId, prerequisites: prepare.prerequisites });
+    const evidence = await handlers.get("firstmate.supervision.plan-help.evidence")!({ homeId: prepare.homeId, plan: "scheduler", folder: "data" });
+    expect(evidence.problems).toEqual([]); expect(evidence.inventory.problems).toEqual(dry.problems);
+    expect(evidence.inventory.hash).toBe(digest({ source: dry.sourceHash, dispositions: dry.dispositions, launches: dry.receipt.launches, dependents: dry.receipt.dependents, capacity: dry.capacity }));
+    const ordinary = evidence.inventory.summary.join("\n");
+    expect(ordinary).toContain("2 saved items checked"); expect(ordinary).toContain("Scheduler");
+    expect(ordinary).toContain("Wait for FirstMate to confirm that “Database trial” has finished");
+    expect(ordinary).not.toMatch(/plan-action|worker-callback|scoped owner|quiescent|native callback|[0-9a-f]{8}-[0-9a-f]{4}-/i);
+    for (const d of dry.dispositions) {
+      expect(evidence.inventory.details.join("\n")).toContain(d.source);
+      expect(evidence.inventory.details.join("\n")).toContain(d.id);
+      expect(evidence.inventory.details.join("\n")).toContain(d.reason);
+    }
+    expect(dry.dispositions.find(d => d.source === "worker-callback")?.route).toBe("hold");
+    expect((await runtime.read(home)).sequence).toBe(before.sequence);
+    expect(await legacy.cutover("scheduler")).toBe(null); expect(receiver.calls).toEqual([]);
   } finally { await activation.stop(); await runtime.stop(); }
 });
 it("R4: selected real rollback report, current inventory and accepted sources are read-only and rechecked before freeze", async () => {
