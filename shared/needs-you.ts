@@ -5,6 +5,7 @@ import { ScopedCaptainDecisionSchema } from "./scoped-captain-decision";
 import { PlanNeedSchema } from "./workflow-rpc";
 import { OperationHoldSchema, ScopedDecisionSchema } from "./supervision-policy";
 import { ScopedAnswerContextSchema } from "./scoped-commands";
+import { MaintenanceAnswerContextSchema } from "./maintenance-answer";
 
 const instant = z.number().int().nonnegative();
 const revision = z.number().int().positive();
@@ -112,8 +113,10 @@ export const NeedsYouSnapshotSchema = z.object({
     projectIds: z.array(z.string()), projectNames: z.array(z.string()), hostId: z.string().nullable().optional(), planId: z.string().nullable() }).strict()).optional(),
   /** Separate scoped backend. These rows never enter the legacy answer/send ledger. */
   scopedDecisions: z.array(z.object({ decision: ScopedDecisionSchema, ready: z.boolean(), waitingFor: z.string().nullable(),
-    ownerEpoch: z.number().int().positive().nullable(), answerContext: ScopedAnswerContextSchema.optional(), captain: ScopedCaptainDecisionSchema.optional() }).strict()).optional(),
+    ownerEpoch: z.number().int().positive().nullable(), answerContext: ScopedAnswerContextSchema.optional(),
+    maintenanceAnswerContext: MaintenanceAnswerContextSchema.optional(), captain: ScopedCaptainDecisionSchema.optional() }).strict()).optional(),
   scopedAnswersEnabled: z.boolean().optional(),
+  maintenanceAnswersEnabled: z.boolean().optional(),
   scopedSequence: z.number().int().nonnegative().optional(),
   scopedHolds: z.array(OperationHoldSchema).optional(),
   scopedComplete: z.boolean().optional(),

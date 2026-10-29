@@ -1,11 +1,11 @@
 import { useRpc as baseRpc } from "../../board-list/stubs";
-import { snapshot, threads, needs } from "./fixtures";
+import { snapshot, threads, needs, maintenanceNeeds } from "./fixtures";
 export * from "../../board-list/stubs";
 const clone = value => JSON.parse(JSON.stringify(value));
-window.scopeActions = []; window.scopeSnapshot = clone(snapshot); window.scopeNeeds = clone(needs); window.holdSend = false; window.holdRead = false;
+window.scopeActions = []; window.scopeSnapshot = clone(snapshot); window.scopeNeeds = clone(location.search.includes("maintenance") ? maintenanceNeeds : needs); window.holdSend = false; window.holdRead = false;
 const methods = new Map();
 export function useRpc(contract) {
-  if (!contract.name.startsWith("firstmate.scope.")) return baseRpc(contract);
+  if (!contract.name.startsWith("firstmate.scope.") && contract.name !== "firstmate.maintenance.answer-ui") return baseRpc(contract);
   if (!methods.has(contract.name)) methods.set(contract.name, async input => {
     window.scopeActions.push({ name: contract.name, input: clone(input) });
     switch (contract.name) {
@@ -25,13 +25,15 @@ export function useRpc(contract) {
       case "firstmate.scope.needs":
         if (window.holdRead) throw new Error("Combined decision read unavailable");
         return clone(window.scopeNeeds);
-      case "firstmate.scope.answer": {
+      case "firstmate.scope.answer":
+      case "firstmate.maintenance.answer-ui": {
         if (window.refuseAnswer) return { outcome: "refused", code: "STALE", message: "Policy vector changed; reread the scoped rules." };
         if (window.loseAnswerReply) throw new Error("Answer response unavailable (recovery fixture)");
         const row = window.scopeNeeds.scopedDecisions[0];
         row.ready = false; row.decision.state = "answered"; row.decision.answer = { submissionId: input.submissionId, option: input.option, text: input.text,
           at: new Date().toISOString(), provenance: { kind: "captain-ui", id: "fixture", source: "fixture" }, outboxId: "00000000-0000-4000-8000-000000000401" };
         window.scopeNeeds.actionCount = 0; window.scopeNeeds.scopedPendingAnswerCount = 1; window.scopeNeeds.pendingAnswerCount = 1; window.scopeNeeds.scopedSequence++;
+        if (contract.name === "firstmate.maintenance.answer-ui") return { decisions: [clone(row.decision)] };
         return clone(window.scopeNeeds);
       }
       default: throw new Error(`Unexpected scope method ${contract.name}`);

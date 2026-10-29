@@ -552,6 +552,11 @@ export class SupervisionStore {
         if (mutation.kind === "decision" && old) {
           if (["ownerScopeId", "planId", "nodeId"].some(p => old[p] !== mutation.value[p as keyof typeof mutation.value]) ||
             (old.answer && digest(old) !== digest({ ...mutation.value, version: old.version }))) fail("HELD", "Decision identity and accepted answers cannot be rewritten.");
+          if (old.maintenance) {
+            const { version: _v, state: _s, answer: _a, ...identity } = mutation.value;
+            const { version: _ov, state: _os, answer: _oa, ...oldIdentity } = old;
+            if (digest(identity) !== digest(oldIdentity)) fail("HELD", "Maintenance decision context and displayed evidence are immutable.");
+          }
         }
         if (mutation.kind === "outbox" && old) {
           const { version: _v, state: _s, handledEpoch: _e, resultRef: _r, ...identity } = mutation.value;
@@ -727,7 +732,13 @@ export class SupervisionStore {
       }
       if (frame.kind === "decision") {
         const row = ScopedDecisionSchema.parse(value), backend = get("backend", row.planId) as z.infer<typeof SupervisionBackendSchema> | undefined;
-        if (!backend || backend.ownerScopeId !== row.ownerScopeId) fail("UNKNOWN_OWNER", "Decision and plan owner must agree.");
+        if (row.maintenance) {
+          const job = get("maintenance-job", row.maintenance.jobId) as z.infer<typeof MaintenanceJobSchema> | undefined;
+          const incident = get("maintenance-incident", row.maintenance.incidentId) as z.infer<typeof MaintenanceIncidentSchema> | undefined;
+          const scope = get("scope", row.ownerScopeId) as z.infer<typeof SupervisionScopeSchema> | undefined;
+          if (scope?.kind !== "maintenance" || job?.scopeId !== row.ownerScopeId || incident?.jobId !== job.id || row.planId !== job.id || row.nodeId !== incident.id)
+            fail("UNKNOWN_OWNER", "Maintenance decision must retain its exact logical job, incident and maintenance owner.");
+        } else if (!backend || backend.ownerScopeId !== row.ownerScopeId) fail("UNKNOWN_OWNER", "Decision and plan owner must agree.");
         if ((row.state === "answered") !== !!row.answer) fail("CONFLICT", "Decision answer and state must agree.");
         if (row.answer) {
           const outbox = get("outbox", row.answer.outboxId) as z.infer<typeof ScopedOutboxSchema> | undefined;
@@ -737,7 +748,9 @@ export class SupervisionStore {
       }
       if (frame.kind === "outbox") {
         const row = ScopedOutboxSchema.parse(value), backend = get("backend", row.planId) as z.infer<typeof SupervisionBackendSchema> | undefined;
-        if (!backend || backend.ownerScopeId !== row.ownerScopeId || (row.state === "handled") !== !!(row.handledEpoch && row.resultRef))
+        const maintenanceDecision = row.decisionId ? get("decision", row.decisionId) as z.infer<typeof ScopedDecisionSchema> | undefined : undefined;
+        if ((row.maintenance ? !maintenanceDecision || !maintenanceDecision.maintenance || maintenanceDecision.ownerScopeId !== row.ownerScopeId || maintenanceDecision.planId !== row.planId || row.kind !== "decision.answer"
+          : !backend || backend.ownerScopeId !== row.ownerScopeId) || (row.state === "handled") !== !!(row.handledEpoch && row.resultRef))
           fail("CONFLICT", "Outbox ownership or handled receipt is inconsistent.");
         if (row.decisionId) {
           const decision = get("decision", row.decisionId) as z.infer<typeof ScopedDecisionSchema> | undefined;

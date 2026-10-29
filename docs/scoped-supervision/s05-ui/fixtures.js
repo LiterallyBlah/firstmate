@@ -1,5 +1,6 @@
 import { ScopeSnapshotSchema } from "../../../shared/supervision-rpc";
 import { scopeConversationKey } from "../../../shared/scope-discussion";
+import { NeedsYouSnapshotSchema } from "../../../shared/needs-you";
 export const homeId = "C:/fixture/FirstMate", projectId = "00000000-0000-4000-8000-000000000201", planId = "00000000-0000-4000-8000-000000000101";
 const at = "2026-10-26T12:00:00.000Z", hash = "a".repeat(64);
 const target = (scopeId, agentId, epoch = 1) => ({ homeId, scopeId, agentId, epoch, scopeVersion: scopeId === "general" ? 0 : 1 });
@@ -27,3 +28,18 @@ export const needs = { homeId, version: 1, actionCount: 1, newCount: 0, pendingA
       sourceVector: [{ kind: "workflow", id: "reader-pass", version: 1, digest: hash }], answer: null },
     answerContext: { homeId, scopeId: planId, epoch: 1, scopeVersion: 1, expectedPlanHash: hash, revision: 1, subjectHash: hash,
       decisionId: "00000000-0000-4000-8000-000000000301", dependencyBindings: [], policyVector: [], modelPolicyVector: [], evidenceVector: [], approvalId: null, head: null, artifactHash: null, briefHash: null } }] };
+
+// Presentation fixture complements the production-origin admission/escalation/outbox regression.
+const ownerId = "00000000-0000-4000-8000-000000000501", jobId = "00000000-0000-4000-8000-000000000502", incidentId = "00000000-0000-4000-8000-000000000503";
+const evidence = [{ ref: "verified/storage-authority-report", digest: hash }], decision = { ...needs.scopedDecisions[0].decision,
+  ownerScopeId: ownerId, planId: jobId, nodeId: incidentId, title: "Storage authority", question: "Keep maintenance held pending a separately reviewed plan?",
+  options: [{ id: "hold", label: "Keep held" }, { id: "plan", label: "Request a reviewed plan" }], sourceVector: [{ kind: "maintenance-job", id: jobId, version: 1, digest: hash }],
+  maintenance: { kind: "authority", jobId, jobVersion: 1, incidentId, generation: 1, ownerEpoch: 1, ownerAgentId: "storage-owner", recommendation: "hold", evidence } };
+export const maintenanceNeeds = NeedsYouSnapshotSchema.parse({ ...needs, scopedAnswersEnabled: false, maintenanceAnswersEnabled: true, scopeFiltersEnabled: true,
+  scopeDirectory: [{ id: "general", kind: "general", title: "FirstMate", projectIds: [], projectNames: [], hostId: "local", planId: null },
+    { id: ownerId, kind: "maintenance", title: "Storage maintenance", projectIds: [], projectNames: [], hostId: "local", planId: null }],
+  scopedDecisions: [{ decision, ready: true, waitingFor: null, ownerEpoch: 1,
+    maintenanceAnswerContext: { homeId, decisionId: decision.id, revision: decision.revision, subjectHash: hash, evidence },
+    captain: { format: "firstmate.scoped-captain-decision/1", homeId, scope: { kind: "maintenance", id: ownerId }, decisionId: decision.id,
+      revision: decision.revision, subjectHash: hash, origin: { kind: "maintenance", id: incidentId }, title: decision.title, question: decision.question,
+      options: decision.options.map((o, i) => ({ ...o, number: i + 1 })), recommendation: "hold", evidence, projectIds: [], permittedActions: ["answer"] } }] });

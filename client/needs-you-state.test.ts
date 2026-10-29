@@ -215,13 +215,15 @@ it("merges independent scoped and backlog versions without resurrecting an answe
   const decision = { id: "d", version: 1, ownerScopeId: "scope", planId: "plan", nodeId: "choose", revision: 1, subjectHash: "a".repeat(64),
     state: "pending" as const, title: "Choose", question: "Which?", options: [{ id: "yes", label: "Yes" }, { id: "no", label: "No" }], sourceVector: [], answer: null };
   const old: NeedsYouSnapshot = { ...snapshot(), version: 8, scopedSequence: 9, scopedComplete: true, scopedDecisions: [{ decision, ready: true, waitingFor: null, ownerEpoch: 1 }],
-    actionCount: 2, pendingAnswerCount: 0, scopedPendingAnswerCount: 0 };
+    actionCount: 2, pendingAnswerCount: 0, scopedPendingAnswerCount: 0, maintenanceAnswersEnabled: true };
   const current: NeedsYouSnapshot = { ...old, scopedSequence: 10, scopedDecisions: [{ ...old.scopedDecisions![0]!, decision: { ...decision, state: "answered" }, ready: false }],
     actionCount: 1, pendingAnswerCount: 1, scopedPendingAnswerCount: 1 };
   const merged = mergeDecisionSnapshot(current, { ...old, freshness: { ...old.freshness, checkedAt: 6000 } });
   expect(merged.scopedSequence).toBe(10); expect(merged.scopedDecisions?.[0]?.decision.state).toBe("answered");
   expect(merged.actionCount).toBe(1); expect(merged.pendingAnswerCount).toBe(1);
   expect(mergeDecisionSnapshot(merged, { ...current, version: 7 }).version).toBe(8);
+  expect(merged.maintenanceAnswersEnabled).toBe(true);
+  expect(mergeDecisionSnapshot(merged, { ...old, maintenanceAnswersEnabled: false }).maintenanceAnswersEnabled).toBe(false);
 });
 it("labels a failed scoped inventory and a disabled backlog count as incomplete while retaining known scoped actions", () => {
   const data = snapshot(), scoped = { ...data, scopedSequence: 2, scopedComplete: false, scopedProblems: ["Scope journal held"], actionCount: 0 };

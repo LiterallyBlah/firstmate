@@ -36,6 +36,24 @@ The single drawer filters its shared snapshot by scope/ancestry, keeps global to
 quarantines visible, and uses the checked logical-owner answer outbox with unverified app provenance.
 Projects/Plans/Needs-you reuse scope chat and native links; compact Bearings reads storage only.
 See `docs/scoped-supervision/build-c.md` and the both-theme/width harness under `build-c-ui/`.
+Build D adds `server/maintenance-runtime.ts` behind `FIRSTMATE_MAINTENANCE=1`, sharing that
+runtime and the existing workflow clock. Its strict RPC/helper transport records S10 observe jobs,
+verified host results, evidence-bound timer retirement, resources and exact-owner incident acknowledgements.
+Maintenance sessions use the existing reserved/verified lifecycle and a separately enabled receiver role.
+`server/maintenance-admission.ts` admits/creates an owner only through explicit captain app controls,
+retaining profile/caps and exact resume input; no helper/CLI Attach or background provisioning.
+`server/maintenance-decisions.ts` retains genuine authority/budget choices, checked answers and logical-owner
+outboxes. Routine incidents create no captain count. D uses C's real presentation contract at
+`shared/scoped-captain-decision.ts`. Genuine maintenance choices and pending answers enter the shared
+Needs-you snapshot, global totals and Maintenance filter, retaining D's separate checked context and
+app transport. Filtering never changes global totals; the owner board has no duplicate decision count.
+Plan/backlog answer transports refuse these origins. App provenance stays unverified.
+Healthy and unchanged incidents wake nobody, changed
+incidents reserve one bounded owner turn, and uncertain sends never retry or refund spend. General reads
+the pure summary directly. The fresh timer census retains disabled watches and all approved host coverage,
+reconciles managed Take-the-Initiative, and records retirement only for an exact known-owner timer freshly
+observed disabled with evidence. It changes no timer itself. Automatic cleanup stays visibly held by G8;
+no executor or corrective-plan dispatch ships here. See `docs/scoped-supervision/build-d.md`.
 
 Plans (workflows slice 1) are additive. `shared/workflow-plans.ts` owns strict one-step `task@1` and
 `scout@1` contracts, dependency reasons, bounds and posture. `server/workflow-plans.ts` owns the

@@ -95,6 +95,43 @@ async function uncertainAnswer(page, theme) {
   assert.equal(attempts.length, 1);
   return { originalSubmissionRetained: true, pendingReadDoesNotProveRefusal: true, noRetry: true };
 }
+async function maintenanceAnswer(page, theme, device) {
+  await page.goto(`${origin}/?decisions&maintenance&theme=${theme}`); await page.getByTestId("scope-inbox-filters").waitFor();
+  const chooseFilter = async label => {
+    await page.getByRole("button", { name: /^Inbox scope:/ }).click();
+    await page.getByRole("dialog", { name: "Filter Needs you" }).getByRole("button", { name: new RegExp(`^${label}(,|$)`) }).click();
+  };
+  for (const label of ["General", "Project", "Plan", "Maintenance", "All scopes"]) {
+    await chooseFilter(label); await page.getByText("Global Needs you: 1.", { exact: false }).waitFor();
+    assert.equal(await page.getByTestId("scoped-needs").count(), ["Maintenance", "All scopes"].includes(label) ? 1 : 0);
+  }
+  await chooseFilter("Maintenance");
+  assert.equal(await page.evaluate(() => window.scopeActions.filter(a => /answer|discuss|activate/.test(a.name)).length), 0);
+  await page.getByRole("button", { name: /^Answer: Storage authority/ }).last().click();
+  await page.getByRole("button", { name: "Keep held", exact: true }).click();
+  const notes = page.getByRole("textbox", { name: "Answer notes: Storage authority" }); await notes.fill("Retain the hold; no work authority.");
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  await page.screenshot({ path: resolve(out, `${theme}-${device}-maintenance-choice.png`) });
+  await page.evaluate(() => { window.holdRead = true; });
+  await page.getByRole("button", { name: "Submit scoped answer", exact: true }).click();
+  await page.getByText("Combined decision read unavailable", { exact: true }).waitFor();
+  assert.equal(await page.getByRole("button", { name: "Answer unconfirmed · original submission retained", exact: true }).isDisabled(), true);
+  await page.evaluate(() => window.remountScope()); await page.getByRole("button", { name: /^Answer: Storage authority/ }).last().click();
+  assert.equal(await notes.inputValue(), "Retain the hold; no work authority.");
+  assert.equal(await page.getByRole("button", { name: "Answer unconfirmed · original submission retained", exact: true }).isDisabled(), true);
+  await page.evaluate(() => { window.holdRead = false; }); await page.getByRole("button", { name: "Refresh scoped decisions", exact: true }).click();
+  await page.getByRole("button", { name: "Answer committed", exact: true }).waitFor();
+  for (const label of ["General", "Project", "Plan", "Maintenance", "All scopes"]) {
+    await chooseFilter(label); await page.getByText("Global Needs you: 0.", { exact: false }).waitFor();
+    await page.getByText("Global pending answers: 1", { exact: true }).waitFor();
+  }
+  const calls = await page.evaluate(() => window.scopeActions.filter(a => /answer|discuss|activate/.test(a.name)));
+  assert.equal(calls.length, 1); assert.equal(calls[0].name, "firstmate.maintenance.answer-ui");
+  assert.deepEqual(calls[0].input.evidence, [{ ref: "verified/storage-authority-report", digest: "a".repeat(64) }]);
+  assert.equal(await page.evaluate(() => window.fixtureCalls.filter(c => /mate.ask|needs-you.answer|workflow.act/.test(c.name)).length), 0);
+  await page.screenshot({ path: resolve(out, `${theme}-${device}-maintenance-pending.png`) });
+  return { checkedMaintenanceAnswer: true, sharedFilters: 5, pendingAnswerRetained: true, noFallback: true };
+}
 try {
   for (const theme of ["light", "dark"]) for (const [device, width, height] of [["wide", 1440, 1000], ["phone", 390, 844]]) {
     const page = await browser.newPage({ viewport: { width, height } }), errors = [];
@@ -158,8 +195,8 @@ try {
     assert.equal(await page.evaluate(() => window.scopeActions.filter(a => a.name === "firstmate.scope.answer").length), 1);
     await page.evaluate(() => { window.holdRead = false; }); await page.getByRole("button", { name: "Refresh scoped decisions", exact: true }).click();
     await page.getByRole("button", { name: "Answer committed", exact: true }).waitFor();
-    const restoration = await restoredScope(page, theme, device), refusal = await rejectedAnswer(page, theme, device), uncertainty = await uncertainAnswer(page, theme);
-    assert.deepEqual(errors, []); results.push({ theme, device, width, height, capturedScope: delivered.route.target.scopeId, resourceCallsOnRead: 0, scopedAnswers: 1, restoration, refusal, uncertainty, errors }); await page.close();
+    const restoration = await restoredScope(page, theme, device), refusal = await rejectedAnswer(page, theme, device), uncertainty = await uncertainAnswer(page, theme), maintenance = await maintenanceAnswer(page, theme, device);
+    assert.deepEqual(errors, []); results.push({ theme, device, width, height, capturedScope: delivered.route.target.scopeId, resourceCallsOnRead: 0, scopedAnswers: 1, restoration, refusal, uncertainty, maintenance, errors }); await page.close();
   }
   await writeFile(resolve(out, "results.json"), JSON.stringify({ passed: true, results }, null, 2));
   console.log(JSON.stringify({ passed: true, cases: results.length, output: out }));

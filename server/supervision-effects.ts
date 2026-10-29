@@ -567,10 +567,10 @@ function workerCreate(status: SupervisionStatus, effect: SupervisionEffect, work
 }
 function supervisorCreate(effect: SupervisionEffect, workspace: WorkspaceReceipt, profile: AgentProfile, kind: string) {
   return { agentId: effect.receiverKey!, workspaceId: workspace.workspaceId, cwd: workspace.directory, profile,
-    title: `${kind === "project" ? "Project mate" : "Plan supervisor"} ${effect.scopeId.slice(0, 8)}`, labels: supervisorLabels(effect.scopeId, effect.epoch, kind) };
+    title: `${kind === "project" ? "Project mate" : kind === "maintenance" ? "Maintenance mate" : "Plan supervisor"} ${effect.scopeId.slice(0, 8)}`, labels: supervisorLabels(effect.scopeId, effect.epoch, kind) };
 }
 export function supervisorLabels(scopeId: string, epoch: number, kind?: string): Record<string, string> {
-  return { [CREW_LABELS.role]: kind === "project" ? "project-mate" : SUPERVISOR_ROLE, [SCOPE_LABELS.scope]: scopeId, [SCOPE_LABELS.epoch]: String(epoch) };
+  return { [CREW_LABELS.role]: kind === "project" ? "project-mate" : kind === "maintenance" ? "maintenance-mate" : SUPERVISOR_ROLE, [SCOPE_LABELS.scope]: scopeId, [SCOPE_LABELS.epoch]: String(epoch) };
 }
 function promoteAttempt(status: SupervisionStatus, attemptId: string, state: string): SupervisionMutation[] {
   const attempt = status.attempts.find(a => a.id === attemptId)!;

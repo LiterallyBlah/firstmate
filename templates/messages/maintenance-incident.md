@@ -6,6 +6,8 @@ evidence settles them; never reapply one. Reservations are advisory and stay hel
 Cleanup never reaches past the job's selectors or into retained worktrees and volumes, and this note grants no
 deletion, deploy or routing authority. Acknowledge this generation when you have read it. Routine facts update
 shared state directly; do not forward a summary through project or General conversations.
+Use tools/maintenance.mjs read, then submit ack with this incidentId/generation and your exact binding epoch.
+Any corrective plan uses the checked plan runtime and its applicable rules; this notification cannot dispatch it.
 
 ```json
 {{contextJson}}

@@ -30,6 +30,10 @@ import { ReportCache, loadFleet, readAgentTools } from "./server/fleet";
 import { SupervisionActivation, registerSupervisionActivation } from "./server/supervision-activation";
 import { SupervisionRuntime } from "./server/supervision-runtime";
 import { ProjectRuntime, registerProjectRuntime } from "./server/project-runtime";
+import { MaintenanceRuntime, registerMaintenanceRuntime } from "./server/maintenance-runtime";
+import { nativeSchedules } from "./server/archive-inventory";
+import { readTimerInventory } from "./server/watch-service";
+import { WatchConfigStore } from "./server/watch-config";
 import { legacyAdapters } from "./server/supervision-migrate";
 import { supervisionInboxStatus, hasScopedWorker } from "./server/supervision-status";
 import { isScopedSourceWorker, refuseScopedRemoteMutation } from "./server/supervision-sources";
@@ -156,7 +160,15 @@ export default function contribute(server: PluginServerContext) {
     ...(process.env.FIRSTMATE_PROJECT_MATES === "1" ? { slots: Number(process.env.FIRSTMATE_PROJECT_SLOTS ?? 4), generalHeadroom: Number(process.env.FIRSTMATE_GENERAL_HEADROOM ?? 1) } : {}) });
   registerProjectRuntime(server, projects);
   const scopeUiEnabled = process.env.FIRSTMATE_SCOPE_UI === "1", scopeExecutionEnabled = process.env.FIRSTMATE_SCOPE_EXECUTION === "1";
-  const stopWorkflows = startWorkflowService(() => projects.processRequests());
+  const maintenanceEnabled = process.env.FIRSTMATE_MAINTENANCE === "1";
+  const maintenance = new MaintenanceRuntime(supervisionRuntime, { enabled: maintenanceEnabled,
+    headroom: { slots: projects.slots, reserved: projects.headroom },
+    inventory: async (home, config, jobs) => readTimerInventory(home, config, new WatchConfigStore(join(pluginDir(), "watch-config.json")), await nativeSchedules(), jobs) });
+  const unregisterMaintenance = registerMaintenanceRuntime(server, maintenance);
+  const stopWorkflows = startWorkflowService(async () => {
+    const results = await Promise.allSettled([projects.processRequests(), maintenance.tick()]);
+    for (const result of results) if (result.status === "rejected") console.error("[firstmate] scoped queue:", result.reason);
+  });
   const readCombinedNeeds = async (given?: Awaited<ReturnType<typeof decisions.read>>) => {
     const snapshot = given ?? await decisions.read();
     const config = await readFirstmateConfig(), home = resolveHome(config);
@@ -164,7 +176,8 @@ export default function contribute(server: PluginServerContext) {
     try {
       const status = await readSupervision(home);
       const combined = status.scopes.length || status.problems.length ? withScopedNeedsYou(base, status) : base;
-      return { ...(scopeUiEnabled ? withScopeInboxContext(combined, status, workflow.plans, (await remotes.read()).localServerId ?? "local") : combined), scopedAnswersEnabled: scopeExecutionEnabled };
+      return { ...(scopeUiEnabled ? withScopeInboxContext(combined, status, workflow.plans, (await remotes.read()).localServerId ?? "local") : combined),
+        scopedAnswersEnabled: scopeExecutionEnabled, maintenanceAnswersEnabled: maintenanceEnabled };
     } catch {
       return { ...base, scopedComplete: false, scopedProblems: ["Scoped decisions unavailable. Existing decisions remain available; the total is incomplete."] };
     }
@@ -420,6 +433,7 @@ export default function contribute(server: PluginServerContext) {
   });
 
   return async () => {
+    unregisterMaintenance();
     await stopWorkflows();
     unregisterRelay();
     unregisterCrewSeen();

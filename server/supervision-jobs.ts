@@ -289,7 +289,8 @@ export type TickResult = { jobId: string; plan: TickPlan["kind"] | "refused"; oc
 
 export class SupervisionJobs {
   private readonly active = new Set<string>();
-  constructor(readonly store: SupervisionStore, private readonly options: { enabled?: boolean; now?: () => string; executor?: MaintenanceExecutor; leaseMs?: number } = {}) {}
+  constructor(readonly store: SupervisionStore, private readonly options: { enabled?: boolean; now?: () => string; executor?: MaintenanceExecutor; leaseMs?: number;
+    requestHash?: string; commandCheck?: (status: SupervisionStatus) => Promise<void>; observeOnly?: boolean } = {}) {}
   private now() { return this.options.now?.() ?? utc(Date.now()); }
   private enabled() { if (!this.options.enabled) refuse("UNSUPPORTED", "S10 maintenance jobs are disabled."); }
   private async command(requestId: string, input: unknown, actorInput: SupervisionActor, step: Step, prepare: (draft: Draft, actor: SupervisionActor) => void | Promise<void>) {
@@ -298,12 +299,14 @@ export class SupervisionJobs {
     let wrote = false;
     try {
       await this.store.transactCommand(requestId, digest(input), actor, async status => {
+        await this.options.commandCheck?.(status);
         const draft = new Draft(status);
         wrote = true;
         if (stepRoom(status, step) === "skip") { wrote = false; throw new Unchanged(); }
         await prepare(draft, actor);
         if (!draft.size) { wrote = false; throw new Unchanged(); }
-        return { expectedVersions: draft.expected(), mutations: draft.mutations(), result: emptyResult() };
+        return { expectedVersions: draft.expected(), mutations: draft.mutations(), result: { ...emptyResult(),
+          ...(this.options.requestHash ? { maintenanceRequest: { inputHash: this.options.requestHash } } : {}) } };
       });
     } catch (error) { if (!(error instanceof Unchanged)) throw error; }
     return wrote;
@@ -364,6 +367,7 @@ export class SupervisionJobs {
     this.enabled(); SupervisionUtc.parse(now);
     const status = await this.store.read(), out: TickResult[] = [];
     for (const job of maintenanceRows(status).jobs) {
+      if (this.options.observeOnly && job.mode !== "observe") continue;
       const plan = planTick(job, maintenanceRows(status).occurrences, Date.parse(now));
       if (plan.kind !== "open") { out.push({ jobId: job.id, plan: plan.kind, occurrenceId: plan.kind === "duplicate" ? plan.occurrenceId : null, wrote: false }); continue; }
       // The command ID is the occurrence identity: a duplicate or concurrent tick replays it, never a second open.
@@ -602,7 +606,7 @@ export async function maintenanceIncidentNote(job: MaintenanceJob, incident: Mai
 // Timer disposition inventory. Pure and read-only: it creates, pauses, enables or replaces nothing.
 
 export interface TimerInventoryInput {
-  scripts: readonly { name: string; scheduleText: string | null; invalid: string | null }[];
+  scripts: readonly { name: string; scheduleText: string | null; invalid: string | null; fingerprint?: string }[];
   disabledWatches: readonly string[];
   managed: readonly { name: string; schedule: string; enabled: boolean }[];
   native: NativeTimerInventory;
@@ -645,7 +649,7 @@ export function timerInventory(input: TimerInventoryInput): TimerInventory {
   for (const w of input.managed) rows.push(linked({ id: `managed:${w.name}`, kind: "managed-watch", name: w.name, schedule: w.schedule, zone: "daemon-local",
     enabled: w.enabled, owner: "plugin" }, "managed-watch", w.name, w.enabled ? "legacy-retained" : "disabled-retained"));
   if (input.native.complete) for (const n of input.native.schedules) {
-    const heartbeat = n.cadence.type === "every" && n.target.type === "agent";
+    const heartbeat = n.target.type === "agent"; // Paseo heartbeats may use cron as well as every-N cadence.
     const owner = n.target.type === "agent" && n.target.agentId === input.mateAgentId && input.mateAgentId !== "" ? "first-mate" as const : "unknown" as const;
     const enabled = n.status === "active";
     rows.push(linked({ id: `native:${n.id}`, kind: heartbeat ? "native-heartbeat" : "native-schedule", name: n.name ?? n.id,
@@ -659,6 +663,7 @@ export function timerInventory(input: TimerInventoryInput): TimerInventory {
   rows.sort((a, b) => a.id.localeCompare(b.id));
   return { format: "firstmate.timer-inventory/1", complete: input.native.complete, rows, problems,
     hashes: { config: digest([[...input.disabledWatches].sort(), input.managed, input.configFingerprint]),
-      timers: digest(rows.map(r => [r.id, r.schedule, r.zone, r.enabled, r.owner])),
+      timers: digest([rows.map(r => [r.id, r.schedule, r.zone, r.enabled, r.owner]), input.native,
+        input.scripts.map(s => [s.name, s.fingerprint ?? null])]),
       coverage: digest([rows.map(r => [r.id, r.enabled]), [...input.jobs].sort((a, b) => a.id.localeCompare(b.id)).map(j => [j.id, j.hosts, j.state])]) } };
 }

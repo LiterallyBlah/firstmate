@@ -124,6 +124,10 @@ export async function prepareHome(home: string, config: FirstmateConfig, origin:
     await homeWrite(home, TEMPLATES.projectHelper, origin, await readTemplate(TEMPLATES.projectHelper));
     await homeWrite(home, TEMPLATES.projectGuide, origin, await readTemplate(TEMPLATES.projectGuide));
   }
+  if (process.env.FIRSTMATE_MAINTENANCE === "1") {
+    await homeWrite(home, TEMPLATES.maintenanceHelper, origin, await readTemplate(TEMPLATES.maintenanceHelper));
+    await homeWrite(home, TEMPLATES.maintenanceGuide, origin, await readTemplate(TEMPLATES.maintenanceGuide));
+  }
   await homeWrite(home, TEMPLATES.backlogLint, origin, await readTemplate(TEMPLATES.backlogLint));
   await homeWrite(home, TEMPLATES.workflowGuide, origin, await readTemplate(TEMPLATES.workflowGuide));
   await homeWrite(home, TEMPLATES.recallHelper, origin, await readTemplate(TEMPLATES.recallHelper));

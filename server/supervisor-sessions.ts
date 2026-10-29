@@ -111,7 +111,7 @@ export class SupervisorSessions {
     return this.store.transactCommand(input.requestId, inputHash, actor, async status => {
       await this.options.reserveCheck?.(status);
       const scope = status.scopes.find(s => s.id === input.scopeId), old = status.bindings.find(b => b.scopeId === input.scopeId);
-      if (!scope || !["plan", "project"].includes(scope.kind) || scope.mode !== "scoped") refuse("UNKNOWN_OWNER", "Exact scoped plan or project discussion owner required.");
+      if (!scope || !["plan", "project", "maintenance"].includes(scope.kind) || scope.mode !== "scoped") refuse("UNKNOWN_OWNER", "Exact scoped plan, project or maintenance owner required.");
       if (scope.version !== input.scopeVersion) refuse("STALE", "Scope version changed.");
       if (mode === "activate" ? scope.state !== "dormant" || old : mode === "attach" || mode === "attach-ui-unverified" ? scope.state !== "active" || old || !cutOver(status, scope.id)
         : scope.state !== "transferring" || !old || old.epoch !== input.expectedEpoch || !["suspect", "retired"].includes(old.state))
@@ -200,7 +200,8 @@ export class SupervisorSessions {
   }
   /** S02 composition: offer claim and counted turn reservation publish together. The callback runs
    * only on a new accepted command, under the same writer boundary, never on request replay. */
-  async reserveTurnWith(input: { requestId: string; scopeId: string; epoch: number; causation: string; text: string }, actor: SupervisionActor,
+  async reserveTurnWith(input: { requestId: string; scopeId: string; epoch: number; causation: string; text: string;
+    maintenanceIncident?: SupervisionEffect["maintenanceIncident"] }, actor: SupervisionActor,
     extend?: (status: SupervisionStatus) => SupervisionMutation[]): Promise<string> {
     this.enabled();
     const inputHash = digest({ turn: input });
@@ -221,7 +222,7 @@ export class SupervisorSessions {
         const effect: SupervisionEffect = { id, logicalKey: key, requestId: input.requestId, requestHash: digest(input), scopeId: scope.id, epoch: binding.epoch,
           attemptId: null, operation: "agent.send", planRevision: null, subjectHash: digest({ turn: input.causation }), policyVector: [],
           evidenceVector: [], approvalId: null, resourceIds: [`turn:${binding.agentId}`], state: "reserved", receiverKey: sendMessageId(id), receiptRef: null, version: 1,
-          payloadDigest: blob.id };
+          payloadDigest: blob.id, ...(input.maintenanceIncident ? { maintenanceIncident: input.maintenanceIncident } : {}) };
         const mutations: SupervisionMutation[] = [...(extend?.(status) ?? []),
           { kind: "binding", value: { ...binding, observation: { state: "unknown", at: new Date().toISOString() } } }, { kind: "effect", value: effect },
           ...(status.versions.some(v => v.kind === "blob" && v.id === blob.id) ? [] : [{ kind: "blob" as const, value: blob }])];

@@ -103,6 +103,7 @@ export class SupervisionCommands {
     return this.store.transactCommand(answer.submissionId, digest(answer), actor, async status => {
       await this.options.answerAdmission?.(status);
       const decision = status.decisions.find(d => d.id === answer.decisionId);
+      if (decision?.maintenance) fail("UNSUPPORTED", "Maintenance answers use their checked maintenance app transport, never a plan command.");
       if (!decision || decision.ownerScopeId !== answer.scopeId) fail("UNKNOWN_OWNER", "Decision does not belong to this logical scope.");
       if (decision.state !== "pending" || decision.answer || decision.revision !== answer.revision || decision.subjectHash !== answer.subjectHash)
         fail("STALE", "This decision was answered or its subject changed. Preserve the draft and reread.");

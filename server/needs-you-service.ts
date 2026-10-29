@@ -27,12 +27,20 @@ import { decisionOwner } from "../shared/workflow-plans";
 import { planDecisionReady } from "../shared/plan-readiness";
 import { scopeAnswerContext } from "./scope-answer-context";
 import { ScopedCaptainDecisionSchema } from "../shared/scoped-captain-decision";
+import { maintenanceAnswerContext, maintenanceCaptainDecision } from "./maintenance-decisions";
 
 /** Read-only opt-in composition seam for S05/S06. No polling/wake/send or legacy mutation. */
 export function withScopedNeedsYou(snapshot: NeedsYouSnapshot, status: SupervisionStatus): NeedsYouSnapshot {
   if (snapshot.homeId !== null && snapshot.homeId !== status.homeId) throw new Error("Scoped and legacy decision homes differ.");
   const plans = status.plans.map(p => p.plan), problems = [...status.problems];
-  const rows = status.decisions.filter(d => d.state !== "superseded").flatMap(decision => {
+  // One inbox; each origin retains its checked transport and logical-owner outbox.
+  const rows = status.decisions.filter(d => d.state !== "superseded").flatMap<NonNullable<NeedsYouSnapshot["scopedDecisions"]>[number]>(decision => {
+    if (decision.maintenance) {
+      const context = maintenanceAnswerContext(status, decision), binding = status.bindings.find(b => b.scopeId === decision.ownerScopeId);
+      return [{ decision, ready: !!context, waitingFor: decision.state === "answered" || context ? null : "Waiting for current maintenance evidence or ownership reconciliation.",
+        ownerEpoch: binding?.state === "active" ? binding.epoch : null, captain: maintenanceCaptainDecision(status, decision),
+        ...(context ? { maintenanceAnswerContext: context } : {}) }];
+    }
     const plan = status.plans.find(p => p.scopeId === decision.ownerScopeId && p.plan.definition.id === decision.planId)?.plan;
     const node = plan?.definition.nodes.find(n => n.id === decision.nodeId);
     if (plan && node && decisionOwner(plan, node) === "firstmate") return [];
