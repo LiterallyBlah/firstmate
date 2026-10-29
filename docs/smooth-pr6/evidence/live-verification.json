@@ -1,7 +1,7 @@
 {
   "passed": true,
   "baseline": "fbdf3ae0",
-  "captures": 44,
+  "captures": 52,
   "cases": [
     "light-desktop-geometry-before",
     "light-desktop-home-before",
@@ -54,7 +54,15 @@
     "dark-phone-projects-after",
     "dark-phone-project-details-after",
     "dark-phone-plans-after",
-    "dark-phone-setup-after"
+    "dark-phone-setup-after",
+    "light-narrow-638-before",
+    "light-narrow-900-before",
+    "dark-narrow-638-before",
+    "dark-narrow-900-before",
+    "light-narrow-638-after",
+    "light-narrow-900-after",
+    "dark-narrow-638-after",
+    "dark-narrow-900-after"
   ],
   "geometry": [
     {

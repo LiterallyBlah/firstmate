@@ -165,9 +165,12 @@ over the report's suggested Updating label.
   missing-folder correction, retained-folder restoration and 200% text. No page exceptions
   or document overflow; controls meet 44×44 and keyboard focus returns.
 - The Impeccable mechanical scan reported no findings in the changed UI targets.
-- `node docs/smooth-pr6/live-render.mjs`: 44 actual Home/board/details/setup
+- `node docs/smooth-pr6/live-render.mjs`: 52 actual Home/board/details/setup
   captures with before/after geometry assertions, light/dark, 1440×1000 and
-  390×844. `live-evidence.mjs` produces the committed comparison sheets.
+  390×844, plus 638px/900px headers with a nonempty Needs-you indicator. These
+  assert a single row and no overlapping controls. The hosted Needs-you polish
+  check first caught the narrow desktop regression and passes with the compact
+  Details label. `live-evidence.mjs` produces the committed comparison sheets.
 - Existing Home harness: 146 capture/assertion cases; review regressions: 32 cases.
 - Full local suites use CI's two-worker/60s Windows settings. The missing-folder
   fixture uses an absolute path under its temporary home on both Windows and
@@ -206,6 +209,9 @@ are illustrative, never production defaults.
 | Dark desktop | [Screenshots](smooth-pr6/evidence/live-dark-desktop.png) |
 | Light phone | [Screenshots](smooth-pr6/evidence/live-light-phone.png) |
 | Dark phone | [Screenshots](smooth-pr6/evidence/live-dark-phone.png) |
+
+Narrow desktop before/after: [light](smooth-pr6/evidence/live-narrow-light.png),
+[dark](smooth-pr6/evidence/live-narrow-dark.png).
 
 Copy follows the report: available projects are setup opportunities rather than
 decisions; ordinary labels use Ready to review, Already set up, Saved setup and

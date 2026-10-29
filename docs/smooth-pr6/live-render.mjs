@@ -90,6 +90,17 @@ try {
     assert.ok(after.chat.height > before.chat.height, 'chat gains the removed strip height');
     assert.ok(after.board.height > before.board.height, 'board gains the removed strip height');
   }
+  for (const stage of ['before', 'after']) for (const theme of ['light', 'dark']) for (const width of [638, 900]) {
+    const page = await browser.newPage({ viewport: { width, height: 1000 } });
+    await page.goto(`${origin}/?stage=${stage}&theme=${theme}&home=upgraded&features=on&narrow`, { waitUntil: 'networkidle' });
+    const header = page.locator('#firstmate-home-header');
+    assert.ok((await header.boundingBox()).height < 65, 'narrow header retains its single row');
+    const controls = await header.getByRole('button').all(); let right = 0;
+    for (const control of controls) { const box = await control.boundingBox(); assert.ok(box.x >= right && box.x + box.width <= width, `header controls fit at ${width}: ${JSON.stringify(box)}`); right = box.x + box.width; }
+    const key = `${theme}-narrow-${width}-${stage}`;
+    await page.screenshot({ path: resolve(out, 'screenshots', key + '.png') });
+    results.push({ key, text: await page.locator('body').innerText() }); await page.close();
+  }
   await writeFile(resolve(out, 'results.json'), JSON.stringify({ passed: true, baseline, captures: results.filter(r => r.text).length, results }, null, 2));
   console.log(JSON.stringify({ passed: true, captures: results.filter(r => r.text).length, out }));
 } finally { await browser.close(); await new Promise(done => server.close(done)); }

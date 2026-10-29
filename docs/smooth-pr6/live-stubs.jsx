@@ -1,6 +1,6 @@
 /** Sanitized shape of the captain's read-only 2026-10-29 registry/RPC census. */
 import { useRpc as original } from '../smooth-pr2/stubs';
-import { projects, homeId, uuid, clone } from '../smooth-pr2/data';
+import { projects, decisions, params, homeId, uuid, clone } from '../smooth-pr2/data';
 export * from '../smooth-pr2/stubs';
 const profile = { provider: 'fixture/model', modeId: 'full-access' }, limits = { supervisorSessions: 1, supervisorTurns: 8 };
 const template = projects.projects[0];
@@ -10,6 +10,7 @@ projects.associationWarnings = Array.from({ length: 60 }, (_, i) => `Plan older-
 projects.problems = [...projects.associationWarnings];
 for (const p of projects.projects) for (const plan of p.plans) plan.backend = 'legacy';
 window.review.projects = projects;
+if (params.has('narrow')) { decisions.actionCount = 3; decisions.newCount = 2; }
 const methods = new Map();
 export function useRpc(contract) {
   if (!contract.name.startsWith('firstmate.projects.setup.')) return original(contract);
