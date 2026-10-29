@@ -17,7 +17,12 @@ const Manifest = z.object({ format: z.literal("firstmate.migration-snapshot/1"),
 const sha = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
 const contains = (root: string, path: string) => { const rel = relative(root, path); return !rel || !rel.startsWith("..") && !isAbsolute(rel); };
 export class MigrationSnapshots {
-  constructor(private readonly approvedRoot: string, private readonly retention: string) {}
+  constructor(private readonly approvedRoot: string, private readonly retention: string, private readonly expectedRoot?: string) {}
+  private async approved() {
+    const root = await realpath(this.approvedRoot);
+    if (this.expectedRoot !== undefined && root !== this.expectedRoot) refuse("HELD", "The backup folder now points somewhere else. Review and save its location again before continuing.");
+    return root;
+  }
   static async validateDestination(destination: string, sources: string[]) {
     const root = await realpath(destination);
     for (const source of sources) {
@@ -30,7 +35,7 @@ export class MigrationSnapshots {
   async capture(store: SupervisionStore, legacyRoot: string, home: string, migrationId: string, planId: string): Promise<Reference> {
     z.uuid().parse(migrationId);
     if (!isAbsolute(this.approvedRoot) || !this.retention.trim()) refuse("HELD", "Configure an approved independent snapshot destination and retention before migration.");
-    const root = await realpath(this.approvedRoot), destination = join(root, migrationId);
+    const root = await this.approved(), destination = join(root, migrationId);
     const sources = [await realpath(store.root), await realpath(legacyRoot), await realpath(home)];
     if (sources.some(source => contains(source, destination) || contains(destination, source))) refuse("HELD", "Migration snapshot must be independent of the journal, legacy plans and home.");
     return store.exportSnapshot(async status => {
@@ -82,11 +87,11 @@ export class MigrationSnapshots {
   }
   async find(expected: { homeId: string; migrationId: string; planId: string }) {
     z.uuid().parse(expected.migrationId);
-    const reference = await this.reference(join(await realpath(this.approvedRoot), expected.migrationId));
+    const reference = await this.reference(join(await this.approved(), expected.migrationId));
     await this.verify(reference, expected); return reference;
   }
   async verify(reference: Reference, expected: { homeId: string; migrationId: string; planId: string }) {
-    const root = await realpath(this.approvedRoot), path = await realpath(reference.path);
+    const root = await this.approved(), path = await realpath(reference.path);
     if (path !== join(root, expected.migrationId) || await realpath(dirname(path)) !== root) refuse("HELD", "Snapshot is outside the approved independent destination.");
     const original = await this.reference(path);
     if (digest(original) !== digest(reference) || original.retention !== this.retention) refuse("HELD", "Snapshot identity or approved retention changed.");

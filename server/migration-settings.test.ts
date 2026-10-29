@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, readdir, symlink, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, symlink, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { expect, it } from "vitest";
 import { MigrationSettings } from "./migration-settings";
@@ -46,4 +46,14 @@ it("invalid and aliased home locations/retention are held before save; damaged r
   await writeFile(file, JSON.stringify(row));
   await expect(f.store.read(f.home)).rejects.toMatchObject({ code: "HELD" });
   await expect(f.store.set(f.home, { ...f.input, requestId: randomUUID(), expectedRevision: 1 })).rejects.toMatchObject({ code: "HELD" });
+});
+it("a reviewed backup alias cannot silently move to another independent location, even after the service is read", async () => {
+  const f = await fixture(), alias = join(f.root, "backup-alias"), other = join(f.root, "other-backups"); await mkdir(other);
+  await symlink(f.destination, alias, process.platform === "win32" ? "junction" : "dir");
+  await f.store.set(f.home, { ...f.input, backup: { ...f.input.backup, destination: alias } });
+  const service = await f.store.service(f.home);
+  await unlink(alias); await symlink(other, alias, process.platform === "win32" ? "junction" : "dir");
+  expect((await f.store.read(f.home)).problems.join(" ")).toContain("points somewhere else");
+  await expect(f.store.service(f.home)).rejects.toMatchObject({ code: "HELD" });
+  await expect(service.find({ homeId: f.input.homeId, migrationId: randomUUID(), planId: "test" })).rejects.toMatchObject({ code: "HELD" });
 });

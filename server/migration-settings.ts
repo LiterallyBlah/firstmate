@@ -12,7 +12,7 @@ import { SupervisionStore } from "./supervision-store";
 import { refuse } from "./supervision-effects";
 const RecordSchema = z.object({ format: z.literal("firstmate.migration-settings/1"), homeId: z.string(), revision: z.number().int().positive(),
   previous: z.string().nullable(), request: MigrationSettingsInputSchema, at: z.iso.datetime(),
-  provenance: z.literal("client UI (unverified)"), hash: z.string() }).strict();
+  canonicalDestination: z.string(), provenance: z.literal("client UI (unverified)"), hash: z.string() }).strict();
 type Record = z.infer<typeof RecordSchema>;
 const name = (revision: number) => `${String(revision).padStart(12, "0")}.json`;
 export class MigrationSettings {
@@ -52,12 +52,17 @@ export class MigrationSettings {
       backup: last?.request.backup ?? (legacy && (legacy.destination || legacy.retention) ? { destination: legacy.destination, retention: legacy.retention } : null),
       source: last ? "saved" : legacy && (legacy.destination || legacy.retention) ? "legacy-environment" : "default", problems: [] };
   }
-  async read(home: string): Promise<MigrationSettingsSnapshot> {
-    const snapshot = await this.snapshot(home, await this.records(home));
-    try { if (snapshot.backup) await this.validate(home, snapshot.backup); }
+  private async checked(home: string) {
+    const records = await this.records(home), snapshot = await this.snapshot(home, records);
+    try { if (snapshot.backup) {
+      const checked = await this.validate(home, snapshot.backup);
+      if (records.at(-1) && checked.destination !== records.at(-1)!.canonicalDestination)
+        refuse("HELD", "The backup folder now points somewhere else. Review and save its location again before continuing.");
+    } }
     catch (e) { snapshot.problems.push(e instanceof Error ? e.message : String(e)); }
-    return snapshot;
+    return { snapshot, canonicalDestination: records.at(-1)?.canonicalDestination };
   }
+  async read(home: string): Promise<MigrationSettingsSnapshot> { return (await this.checked(home)).snapshot; }
   async set(home: string, raw: MigrationSettingsInput) {
     const input = MigrationSettingsInputSchema.parse(raw);
     if (input.homeId !== workflowHomeIdentity(home)) refuse("STALE", "FirstMate's home changed. Reopen this review before saving.");
@@ -69,9 +74,9 @@ export class MigrationSettings {
       }
       if ((records.at(-1)?.revision ?? 0) !== input.expectedRevision) refuse("STALE", "Backup settings changed in another window. Refresh and review before saving.");
       // Preserve the exact reviewed path in the receipt; re-resolve at every capture/verification.
-      await this.validate(home, input.backup);
+      const checked = await this.validate(home, input.backup);
       const body = { format: "firstmate.migration-settings/1" as const, homeId: input.homeId, revision: records.length + 1,
-        previous: records.at(-1)?.hash ?? null, request: input, at: new Date().toISOString(), provenance: "client UI (unverified)" as const };
+        previous: records.at(-1)?.hash ?? null, request: input, canonicalDestination: checked.destination, at: new Date().toISOString(), provenance: "client UI (unverified)" as const };
       await mkdir(this.directory(home), { recursive: true });
       try { await publish(join(this.directory(home), name(body.revision)), { ...body, hash: digest(body) }); }
       catch (e) {
@@ -84,8 +89,8 @@ export class MigrationSettings {
     });
   }
   async service(home: string) {
-    const state = await this.read(home);
+    const { snapshot: state, canonicalDestination } = await this.checked(home);
     if (!state.backup || state.problems.length) refuse("HELD", state.problems.join(" ") || "Choose a backup folder and retention in this plan's help review before handing it over.");
-    return new MigrationSnapshots(state.backup.destination, state.backup.retention);
+    return new MigrationSnapshots(state.backup.destination, state.backup.retention, canonicalDestination);
   }
 }
