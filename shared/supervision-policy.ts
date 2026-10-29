@@ -1,6 +1,7 @@
 /** S03's closed pilot vocabulary. No release operations or transport authority. */
 import { z } from "zod";
 import { PlanId } from "./workflow-plans";
+import { AgentProfileSchema, GatewayLimitsSchema } from "./supervision-effects";
 import { SupervisionActorSchema, SupervisionHash, SupervisionUtc, SupervisionUuid, SupervisionVersionRefSchema } from "./supervision";
 
 const version = z.number().int().positive();
@@ -51,12 +52,17 @@ export const ScopedDecisionSchema = z.object({
   sourceVector: z.array(SupervisionVersionRefSchema).min(1).max(256),
   answer: z.object({ submissionId: SupervisionUuid, option: PlanId, text: z.string().max(10000), at: SupervisionUtc,
     provenance: SupervisionActorSchema, outboxId: SupervisionUuid }).strict().nullable(),
+  /** Build D checked origin. planId/nodeId retain job/incident IDs, never a workflow or backend grant. */
+  maintenance: z.object({ kind: z.enum(["budget", "authority"]), jobId: SupervisionUuid, jobVersion: version,
+    incidentId: SupervisionUuid, generation: version, ownerEpoch: version, ownerAgentId: label,
+    recommendation: PlanId.nullable(), evidence: z.array(z.object({ ref: label, digest: SupervisionHash }).strict()).min(1).max(32) }).strict().optional(),
 }).strict();
 export const ScopedOutboxSchema = z.object({
   id: SupervisionUuid, version, ownerScopeId: SupervisionUuid, planId: PlanId,
   kind: z.enum(["plan.command", "decision.answer", "policy.hold", "legacy.fact"]), causationId: SupervisionUuid,
   subjectHash: SupervisionHash, decisionId: SupervisionUuid.nullable(), at: SupervisionUtc,
   state: z.enum(["pending", "handled"]), handledEpoch: version.nullable(), resultRef: label.nullable(),
+  maintenance: z.literal(true).optional(),
 }).strict();
 export const OperationHoldSchema = z.object({
   id: SupervisionUuid, version, scopeId: SupervisionUuid, planId: PlanId,
@@ -66,9 +72,14 @@ export const OperationHoldSchema = z.object({
 /** Durable app request, retained before any provisioning effects are reserved. Context, never a grant. */
 export const ProjectProvisionInputSchema = z.object({ homeId: z.string(), requestId: SupervisionUuid,
   projectId: SupervisionUuid, projectVersion: version }).strict();
+/** Exact captain-app maintenance admission, retained for fresh-client resume. Never a helper command. */
+export const MaintenanceAdmissionInputSchema = z.object({ homeId: z.string(), requestId: SupervisionUuid, scopeId: SupervisionUuid,
+  name: z.string().min(1).max(120), profile: AgentProfileSchema,
+  limits: GatewayLimitsSchema.extend({ supervisorSessions: z.literal(1), supervisorTurns: z.number().int().min(1).max(100000) }) }).strict();
 export const ScopedCommandResultSchema = z.object({
   planId: PlanId.nullable(), planHash: SupervisionHash.nullable(), decisionId: SupervisionUuid.nullable(), outboxId: SupervisionUuid.nullable(),
   projectProvision: ProjectProvisionInputSchema.optional(),
+  maintenanceAdmission: MaintenanceAdmissionInputSchema.optional(),
   /** Build D transport identity only; preserves exact accepted replay before mutable timer/owner checks. */
   maintenanceRequest: z.object({ inputHash: SupervisionHash }).strict().optional(),
   /** UI convention only. Kept in the immutable accepted command, never authentication evidence. */

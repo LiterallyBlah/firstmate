@@ -15,8 +15,8 @@ async function inside(path) {
 }
 export async function submit(command, id = randomUUID()) {
   if (!/^[0-9a-f-]{36}$/.test(id)) throw new Error("Use a UUID request id.");
-  if (["attach", "provision", "provision-ui"].includes(command.op)) throw new Error("No maintenance provisioning or Attach transport is available here.");
-  if (!["read", "summary", "timers", "observe", "ack"].includes(command.op)) {
+  if (["attach", "provision", "provision-ui", "admit-ui", "answer-ui", "answer"].includes(command.op)) throw new Error("Maintenance admission and captain answers use explicit app buttons only; no Attach transport.");
+  if (!["read", "summary", "timers", "observe", "ack", "escalate", "answer-handled"].includes(command.op)) {
     const role = await execute(process.execPath, [join(home, "tools/role.mjs")], { cwd: home, env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" }, windowsHide: true, timeout: 30000 });
     if (role.stdout.trim() !== "first-mate" || !process.env.PASEO_AGENT_ID) throw new Error("Only the current first mate records maintenance administration.");
   }

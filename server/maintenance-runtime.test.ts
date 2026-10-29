@@ -48,18 +48,15 @@ afterEach(async () => { service.stop(); await runtime.stop(); vi.restoreAllMocks
 const admin = async (command: MaintenanceCommand, requestId = randomUUID(), actorId = "general") =>
   service.admin({ homeId: (await service.read()).homeId, requestId, actorId, command });
 async function scope(bound = true, scopeId = SCOPE) {
+  if (bound) {
+    await service.admit({ homeId: (await service.read()).homeId, requestId: randomUUID(), scopeId, name: "Storage maintenance", profile,
+      limits: { supervisorSessions: 1, supervisorTurns: 20 } }, api);
+    receiver.finish((await service.read()).owners.find(o => o.scopeId === scopeId)!.agentId!); return;
+  }
   await runtime.mutate(home, async store => {
     const mutation = { kind: "scope" as const, value: { id: scopeId, homeId: store.homeId, kind: "maintenance" as const, mode: "scoped" as const,
       state: "dormant" as const, version: 1, projectIds: [], sponsorId: null } };
     await store.transact(expected([mutation]), randomUUID(), [mutation]);
-    if (!bound) return;
-    const gateway = new SupervisionGateway(store, new SupervisionCommands(store, home, { enabled: true }), home, receiver, { enabled: true });
-    const sessions = new SupervisorSessions(store, gateway, receiver, { enabled: true, globalMateId: async () => "general", limits: { supervisorSessions: 1, supervisorTurns: 20 } });
-    await sessions.prepare({ requestId: randomUUID(), scopeId, scopeVersion: 1, profile, opening: "Observe maintenance only." }, captain);
-    const effects = activationEffects(await store.read(), scopeId, 1);
-    await gateway.dispatch(effects.workspace!.id); await gateway.dispatch(effects.create!.id);
-    await sessions.verify(scopeId, 1); await gateway.dispatch(effects.send!.id);
-    receiver.finish((await store.read()).bindings.find(b => b.scopeId === scopeId)!.agentId);
   });
 }
 const definition = (): Extract<MaintenanceCommand, { op: "job" }> => ({ op: "job", input: { jobId: JOB, expectedVersion: 0, scopeId: SCOPE,
@@ -77,11 +74,154 @@ async function observe(outcome: "completed" | "offline" | "failed", hostId = "li
 }
 function nextMinute() { clock = new Date(Date.parse(clock) + 60000).toISOString().replace(/\.\d{3}Z$/, "Z"); }
 
+it("F1/A04 fresh-home registered app admission creates the first verified owner and admits its first job", async () => {
+  const handlers = new Map<string, (input: unknown, context: { paseo: PaseoApi }) => Promise<unknown>>();
+  registerMaintenanceRuntime({ handle: (rpc: { name: string }, handler: (input: unknown, context: { paseo: PaseoApi }) => Promise<unknown>) => handlers.set(rpc.name, handler),
+    on: () => () => {} } as unknown as PluginServerContext, service);
+  const read = await service.read(), input = { homeId: read.homeId, requestId: randomUUID(), scopeId: SCOPE, name: "Storage maintenance", profile,
+    limits: { supervisorSessions: 1, supervisorTurns: 20 } };
+  expect(handlers.has("firstmate.maintenance.admit-ui")).toBe(true);
+  await handlers.get("firstmate.maintenance.admit-ui")!(input, { paseo: api });
+  const owner = (await service.read()).owners[0]!;
+  expect(owner).toMatchObject({ scopeId: SCOPE, state: "active", sessions: 1, turns: 1 });
+  expect(owner.agentId).not.toBe("general"); expect(receiver.sends).toHaveLength(1);
+  await handlers.get("firstmate.maintenance.admin")!({ homeId: read.homeId, requestId: randomUUID(), actorId: "general", command: definition() }, { paseo: api });
+  expect((await service.read()).jobs).toHaveLength(1);
+  const before = (await service.read()).sequence;
+  await handlers.get("firstmate.maintenance.admit-ui")!(input, { paseo: api });
+  expect((await service.read()).sequence).toBe(before); expect(receiver.sends).toHaveLength(1);
+});
+
+it.each(["createAgent", "send"] as const)("F1/A10 fresh-client resume retains the original owner/spend after lost %s reply", async operation => {
+  receiver.faults[operation] = ["lose"];
+  const input = { homeId: (await service.read()).homeId, requestId: randomUUID(), scopeId: SCOPE, name: "Storage maintenance", profile,
+    limits: { supervisorSessions: 1 as const, supervisorTurns: 20 } };
+  await service.admit(input, api);
+  const first = (await service.read()).owners[0]!, calls = receiver.calls.filter(c => c.op === operation).length;
+  expect(first).toMatchObject({ sessions: 1, turns: 1, uncertain: 1, admission: input });
+  service.stop(); await runtime.stop(); runtime = new SupervisionRuntime(root, (data, home) => new SupervisionStore(data, home, { writable: true,
+    processIdentity: async () => ({ state: "alive", start: "fixture" }) })); service = make();
+  await service.admit({ homeId: input.homeId, requestId: input.requestId, resume: true }, api);
+  const resumed = (await service.read()).owners[0]!;
+  expect(resumed.agentId).toBe(first.agentId); expect(resumed).toMatchObject({ sessions: 1, turns: 1 });
+  expect(receiver.calls.filter(c => c.op === operation)).toHaveLength(calls);
+  expect(resumed.opening).toBe(operation === "send" ? "uncertain" : "succeeded");
+  await expect(service.admit({ ...input, name: "Changed input" }, api)).rejects.toMatchObject({ code: "CONFLICT" });
+  await expect(service.admit({ ...input, requestId: randomUUID() }, api)).rejects.toMatchObject({ code: "CONFLICT" });
+});
+
+it("F1/A21 app admission is default-off, rejects changed homes and refuses an unverified receiver profile before opening", async () => {
+  const off = make(false), input = { homeId: (await service.read()).homeId, requestId: randomUUID(), scopeId: SCOPE, name: "Storage maintenance", profile,
+    limits: { supervisorSessions: 1 as const, supervisorTurns: 20 } }, files = await readdir(root);
+  await expect(off.admit(input, api)).rejects.toMatchObject({ code: "UNSUPPORTED" });
+  await expect(service.admit({ ...input, homeId: "changed" }, api)).rejects.toMatchObject({ code: "STALE" });
+  expect(await readdir(root)).toEqual(files); expect(receiver.calls).toEqual([]);
+  receiver.tamper = agent => { agent.provider = "different/model"; };
+  await expect(service.admit(input, api)).rejects.toMatchObject({ code: "HELD" });
+  expect(receiver.sends).toEqual([]); expect((await service.read()).owners[0]).toMatchObject({ sessions: 1, turns: 1, state: "transferring" });
+});
+
+it("F2/A20 a real zero-budget incident creates one scoped captain decision without waking General or the owner", async () => {
+  await scope(); const input = definition(); input.input.budget = { turns: 0 }; await admin(input);
+  await admin({ op: "state", jobId: JOB, expectedVersion: 1, state: "active" });
+  service.remember(api); clock = "2026-10-27T03:15:00Z"; await service.tick(); await observe("failed"); nextMinute(); await service.tick();
+  const state = await runtime.read(home);
+  expect(state.decisions.filter(d => d.state === "pending")).toHaveLength(1);
+  expect(state.outbox).toEqual([]); expect(receiver.sends).toHaveLength(1);
+  nextMinute(); await service.tick(); expect((await runtime.read(home)).decisions).toEqual(state.decisions);
+});
+
+it.each([false, true])("F2/A10/A20 checked app answers retain context/outbox across restart and uncertain delivery=%s", async lost => {
+  await scope(); const input = definition(); input.input.budget = { turns: 0 }; await admin(input);
+  await admin({ op: "state", jobId: JOB, expectedVersion: 1, state: "active" });
+  service.remember(api); clock = "2026-10-27T03:15:00Z"; await service.tick(); await observe("failed"); nextMinute(); await service.tick();
+  const snapshot = await service.read(), choice = snapshot.captainDecisions[0]!, owner = snapshot.owners[0]!;
+  expect(choice).toMatchObject({ format: "firstmate.scoped-captain-decision/1", scope: { kind: "maintenance", id: SCOPE }, origin: { kind: "maintenance" }, permittedActions: ["answer"], recommendation: "keep-held" });
+  expect(choice.options.map(o => o.number)).toEqual([1, 2]);
+  const answer = { homeId: snapshot.homeId, submissionId: randomUUID(), decisionId: choice.decisionId, revision: choice.revision,
+    subjectHash: choice.subjectHash, evidence: snapshot.decisions[0]!.maintenance!.evidence, option: "review-budget", text: "Review the allocation before any new work." };
+  await expect(service.answer({ ...answer, revision: choice.revision + 1 }, api)).rejects.toMatchObject({ code: "STALE" });
+  await expect(service.answer({ ...answer, evidence: [{ ref: "changed", digest: hash }] }, api)).rejects.toMatchObject({ code: "STALE" });
+  await expect(service.answer({ ...answer, option: "invented" }, api)).rejects.toMatchObject({ code: "STALE" });
+  await service.answer(answer, api); const accepted = await service.read();
+  expect(accepted.captainDecisions).toEqual([]); expect(accepted.outbox).toMatchObject([{ id: answer.submissionId, ownerScopeId: SCOPE, state: "pending", maintenance: true }]);
+  expect(accepted.decisions[0]!.answer).toMatchObject({ provenance: { kind: "plugin-ui-unverified" }, outboxId: answer.submissionId });
+  expect((await job()).budget).toEqual({ turns: 0 }); expect(receiver.sends).toHaveLength(1);
+  await service.answer(answer, api); expect((await service.read()).sequence).toBe(accepted.sequence);
+  await expect(service.answer({ ...answer, text: "Different answer" }, api)).rejects.toMatchObject({ code: "CONFLICT" });
+  if (lost) receiver.faults.send = ["lose"];
+  nextMinute(); await service.tick();
+  expect(receiver.sends).toHaveLength(2); expect(receiver.sends.at(-1)!.agentId).toBe(owner.agentId); expect(receiver.sends.at(-1)!.text).toContain(answer.submissionId);
+  service.stop(); service = make(); service.remember(api); nextMinute(); await service.tick(); expect(receiver.sends).toHaveLength(2);
+  const handling = { op: "answer-handled" as const, outboxId: answer.submissionId, epoch: owner.epoch, evidence: [{ ref: "checked/owner-result", digest: hash }] };
+  await expect(admin(handling, randomUUID(), "general")).rejects.toMatchObject({ code: "HELD" });
+  if (lost) {
+    await expect(admin(handling, randomUUID(), owner.agentId!)).rejects.toMatchObject({ code: "HELD" });
+    expect((await service.read()).outbox[0]!.state).toBe("pending"); expect((await service.read()).owners[0]).toMatchObject({ turns: 2, uncertain: 1 });
+  } else {
+    const id = randomUUID(); await admin(handling, id, owner.agentId!); const handled = await admin(handling, id, owner.agentId!);
+    expect(handled.outbox[0]).toMatchObject({ state: "handled", handledEpoch: owner.epoch });
+  }
+});
+
+it("F2/A20 only the exact maintenance owner escalates genuine authority choices; routine incidents stay out of captain counts", async () => {
+  await activate(); await observe("failed"); nextMinute(); await service.tick();
+  const snapshot = await service.read(), incident = snapshot.incidents.find(i => i.kind === "failure")!, owner = snapshot.owners[0]!;
+  expect(snapshot.captainDecisions).toEqual([]);
+  const escalation: MaintenanceCommand = { op: "escalate", input: { incidentId: incident.id, generation: incident.generation, epoch: owner.epoch, kind: "authority",
+    question: "The existing probe needs an authority decision. Keep the hold or request a separately reviewed corrective plan?", options: [{ id: "hold", label: "Keep held" }, { id: "plan", label: "Request a reviewed plan" }],
+    recommendation: "hold", evidence: [{ ref: "verified/probe-report", digest: hash }] } };
+  await expect(admin(escalation, randomUUID(), "general")).rejects.toMatchObject({ code: "UNKNOWN_OWNER" });
+  await expect(admin(escalation, randomUUID(), "other-owner")).rejects.toMatchObject({ code: "UNKNOWN_OWNER" });
+  const id = randomUUID(); await admin(escalation, id, owner.agentId!); const accepted = await admin(escalation, id, owner.agentId!);
+  expect(accepted.captainDecisions).toHaveLength(1); expect(accepted.outbox).toEqual([]);
+  const choice = accepted.captainDecisions[0]!; const edit = definition(); edit.input.expectedVersion = (await job()).version; edit.input.budget = { turns: 5 }; await admin(edit);
+  await expect(service.answer({ homeId: accepted.homeId, submissionId: randomUUID(), decisionId: choice.decisionId, revision: choice.revision, subjectHash: choice.subjectHash,
+    evidence: accepted.decisions[0]!.maintenance!.evidence, option: "hold", text: "" }, api)).rejects.toMatchObject({ code: "STALE" });
+  expect((await service.read()).captainDecisions[0]!.permittedActions).toEqual([]);
+});
+
+it("F2/A20 exhausted captain-approved owner caps emit one budget choice and never borrow a turn for its answer", async () => {
+  await service.admit({ homeId: (await service.read()).homeId, requestId: randomUUID(), scopeId: SCOPE, name: "Storage", profile,
+    limits: { supervisorSessions: 1, supervisorTurns: 1 } }, api);
+  receiver.finish((await service.read()).owners[0]!.agentId!); await admin(definition());
+  await admin({ op: "state", jobId: JOB, expectedVersion: 1, state: "active" }); clock = "2026-10-27T03:15:00Z"; await service.tick();
+  await observe("failed"); nextMinute(); await service.tick();
+  const snapshot = await service.read(), choice = snapshot.captainDecisions[0]!;
+  expect(snapshot.captainDecisions).toHaveLength(1); expect(choice.question).toContain("owner turn limit is spent");
+  const answer = { homeId: snapshot.homeId, submissionId: randomUUID(), decisionId: choice.decisionId, revision: choice.revision, subjectHash: choice.subjectHash,
+    evidence: snapshot.decisions[0]!.maintenance!.evidence, option: "keep-held", text: "No additional turns authorized." };
+  await service.answer(answer, api); nextMinute(); await service.tick(); nextMinute(); await service.tick();
+  expect(receiver.sends).toHaveLength(1); expect((await service.read()).owners[0]!.turns).toBe(1);
+  expect((await service.read()).outbox[0]!.state).toBe("pending"); expect((await service.read()).decisions).toHaveLength(1);
+});
+
+it("F2/A20 checked answer outboxes remain deliverable to the logical owner after the last job stops", async () => {
+  await activate(); await observe("failed"); nextMinute(); await service.tick();
+  const initial = await service.read(), incident = initial.incidents.find(i => i.kind === "failure")!, owner = initial.owners[0]!;
+  await admin({ op: "escalate", input: { incidentId: incident.id, generation: incident.generation, epoch: owner.epoch, kind: "authority", question: "Keep the job stopped pending a reviewed plan?",
+    options: [{ id: "stop", label: "Keep stopped" }, { id: "plan", label: "Request a plan" }], recommendation: "stop", evidence: [{ ref: "report", digest: hash }] } }, randomUUID(), owner.agentId!);
+  const snapshot = await service.read(), choice = snapshot.captainDecisions[0]!;
+  await service.answer({ homeId: snapshot.homeId, submissionId: randomUUID(), decisionId: choice.decisionId, revision: choice.revision, subjectHash: choice.subjectHash,
+    evidence: snapshot.decisions[0]!.maintenance!.evidence, option: "stop", text: "Stop pending review." }, api);
+  await admin({ op: "state", jobId: JOB, expectedVersion: (await job()).version, state: "stopped" }); receiver.finish(owner.agentId!);
+  const baseline = receiver.sends.length; nextMinute(); await service.tick();
+  expect(receiver.sends).toHaveLength(baseline + 1); expect((await service.read()).outbox[0]!.state).toBe("pending");
+});
+
+it("P3/A06 a successfully delivered unacknowledged incident does not starve another host, but uncertainty still holds", async () => {
+  await activate(); await observe("offline", "light", "Light outage"); nextMinute(); await service.tick();
+  receiver.finish((await service.read()).owners[0]!.agentId!);
+  await observe("failed", "dgx", "Separate DGX failure"); nextMinute(); await service.tick();
+  expect(receiver.sends).toHaveLength(3);
+  expect((await service.read()).deliveries.filter(d => d.state === "succeeded")).toHaveLength(2);
+});
+
 it("A13/A21 production registration, reads and default-off clock create no store, session, timer or approval", async () => {
   const handlers = new Map<string, (...args: never[]) => unknown>(), off = make(false);
   const dispose = registerMaintenanceRuntime({ handle: (rpc: { name: string }, handler: (...args: never[]) => unknown) => handlers.set(rpc.name, handler),
     on: () => () => {} } as unknown as PluginServerContext, off);
-  expect([...handlers.keys()]).toEqual(["firstmate.maintenance.read", "firstmate.maintenance.timers", "firstmate.maintenance.summary", "firstmate.maintenance.admin"]);
+  expect([...handlers.keys()]).toEqual(["firstmate.maintenance.read", "firstmate.maintenance.timers", "firstmate.maintenance.summary", "firstmate.maintenance.admin", "firstmate.maintenance.admit-ui", "firstmate.maintenance.answer-ui"]);
   const files = await readdir(root), fingerprint = await watchConfig.fingerprint();
   expect(await off.read()).toMatchObject({ enabled: false, cleanup: { state: "held" }, jobs: [], owners: [] });
   expect(await off.census()).toMatchObject({ initiative: { managed: ["managed:Take-the-Initiative"], disposition: "managed-owner-retained" } });

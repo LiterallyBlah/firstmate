@@ -36,8 +36,8 @@ disposition and advisory receiver acknowledgements all exist.
 ## Delivered integration
 
 `server/maintenance-runtime.ts` shares Build A's `SupervisionRuntime` and coordinator.
-`index.server.ts` registers `firstmate.maintenance.read`, `.summary`, `.timers` and
-`.admin`. `FIRSTMATE_MAINTENANCE=1`, sampled at startup, enables administration,
+`index.server.ts` registers `firstmate.maintenance.read`, `.summary`, `.timers`,
+`.admin`, `.admit-ui` and `.answer-ui`. `FIRSTMATE_MAINTENANCE=1`, sampled at startup, enables administration,
 request processing and the observe driver on `startWorkflowService`'s existing clock.
 It adds no interval. Reads acquire no coordinator and create no session/approval.
 The opt-in helper is `tools/maintenance.mjs`; its guide is `data/maintenance.md`.
@@ -53,8 +53,20 @@ upgrade; it does not falsely report the old sequence-160 pilot ceiling as exhaus
 
 Maintenance owner support extends the existing `SupervisorSessions` and cooperative
 SDK receiver, with `maintenance-mate` labels and independent workspace verification.
-The service only sends to an already admitted owner whose exact opening succeeded;
-it exposes no provisioning/Attach/worker path. Each changed pending incident generation
+Home/Plans has an explicit Create maintenance owner confirmation naming the owner,
+model, permission mode and total turn cap (opening, incidents and answer notifications).
+The app admits the scope and retains the exact input in an immutable command before
+reserving its workspace, parentless unprompted session and opening. Shared General
+headroom admission precedes reservation. Native effects use the existing gateway;
+exact workspace/profile/label verification precedes the opening. An interrupted app
+can resume the saved request after reload. Uncertain creation is reconciled only by
+the reserved identity; uncertain workspace/opening sends stay held. Neither failure
+nor retry changes identity, resets spend or creates a replacement. App provenance is
+`plugin-ui-unverified`: captain-only by convention, never authenticated identity.
+There is no Attach caller, helper/CLI admission, background provisioning or worker path.
+
+Incident delivery requires the admitted owner's exact opening to have succeeded.
+Each changed pending incident generation
 gets one deterministic reserved send, a bounded template and cumulative session/turn
 accounting. The final gateway claim rechecks job, incident, budget, scope, owner and
 stop state. A failed/uncertain send retains its original identity and spend. Repeated
@@ -63,7 +75,9 @@ an obsolete generation's still-reserved, never-claimed notification can be withd
 under the same publication boundary, retaining its full counted spend. Claimed or
 uncertain notifications can never use that path. This prevents a busy owner from
 being permanently blocked behind an obsolete unsent generation.
-only the exact delivered owner/epoch can acknowledge a confirmed send. Owner queues
+Only the exact delivered owner/epoch can acknowledge a confirmed send. A confirmed
+but unacknowledged delivery no longer starves later host incidents; every unknown or
+unfinished native send still blocks new turns through S04. Owner queues
 and bounded native waits isolate a stalled owner from independent maintenance scopes.
 General reads `.summary` directly; no routine summary cascade or captain count is added.
 
@@ -83,10 +97,43 @@ cannot occur through this integration. Any corrective plan must use Build B's ch
 plan runtime and applicable seven-rule gates; incident delivery has no dispatch shortcut.
 U1–U3 strong claims stay unsupported.
 
-Build C reconciliation: observe incidents are maintenance-owner notifications, not
-captain decisions. D emits no `firstmate.scoped-captain-decision/1` rows or captain
-counts. A future genuine escalation must use C's presentation contract while retaining
-its exact checked answer context and existing outbox separately.
+## Genuine captain choices and checked answers (review F2)
+
+Routine observe incidents remain maintenance-owner notifications and create no captain
+count. The exact verified owner may explicitly `escalate` an open incident for a genuine
+authority/budget choice with question, numbered options, recommendation and evidence.
+Real S10 budget holds, or a spent captain-approved owner turn cap with a waiting incident,
+introduce one durable budget choice without waking General or spending a model turn.
+The maintenance board shows those choices and their checked evidence. Job/incident
+version changes disable an old subject; routine summaries are never decisions.
+
+The app answer binds the displayed home, decision, revision, subject, option and exact
+evidence. It commits the immutable answer and a logical-owner outbox together in the
+shared journal. Duplicate submission bytes replay; changed bytes conflict. The answer
+changes no job/cap/authority. A counted notification uses the original captain-approved
+owner limits, current verified owner and existing claim-before-send gateway, with no
+General/backlog fallback. The outbox survives job stop, session reload and uncertainty.
+Unknown delivery never resends or refunds; successful delivery alone never marks it
+handled. Only the exact successfully notified owner/epoch can record `answer-handled`
+with checked result evidence. Exhausted owner caps keep the answer pending; no turn is
+borrowed to deliver it. Answers and handling use unverified same-user/app conventions,
+not authenticated IPC. Plan commands explicitly refuse maintenance decisions.
+
+Build C reconciliation: `shared/maintenance-captain-decision.ts` is a structurally
+identical local copy of PR 165's `shared/scoped-captain-decision.ts`, format
+`firstmate.scoped-captain-decision/1`. Replace the import when C lands. The read RPC
+emits `captainDecisions` for C presentation, alongside D's separate durable `decisions`
+(checked maintenance origin) and `outbox`; presentation never authorizes a legacy send.
+Maintenance contexts use job/incident IDs in retained decision identity fields, not a
+workflow/backend grant. Other plan decisions/outboxes retain their original validation.
+
+Review F1/F2 checks were recorded in the PR before follow-up implementation. Production
+entry tests now construct the owner through the registered app RPC from a fresh home;
+the ordinary integration fixture also uses this path. Tests cover lost create/opening
+replies and fresh-runtime resume, receiver mismatch, default-off, duplicate/conflicting
+submissions, stale evidence/options/job versions, authority origin checks, one automatic
+budget choice, original-cap exhaustion, checked outbox handling and uncertain restart.
+App tests cover explicit confirmation, exact retry/resume and failed-refresh holds.
 
 ## Read-only timer re-inventory, 29 October 2026
 
@@ -115,6 +162,6 @@ in this census changed a timer, scope, host, permission, installation or live se
 | A10, A20 | Lost send/restart retains original identity, spend and uncertainty with no resend/false ack; unknown budget holds notifications; a stalled owner does not block another owner. |
 | A13 | Production registration/default-off reads create no writer/timer/session; request queue records actual host results. Upgraded storage fixture crosses 256 without resetting sequence/spend or falsely exhausting summaries. Existing publication recovery and interrupted-item suites remain required. |
 | A17, A21 | Fresh disabled known-owner retirement only; stale fingerprints and changed replay bytes refuse. Same-schedule script bytes/native targets affect the census. Offline hosts cannot disappear from coverage. |
-| A20, A21 | A stop committed during a paused native lookup refuses the late send while retaining its counted turn. Exact successful-delivery owner/epoch is required for ack; cleanup/provision/Attach/worker commands are absent. |
+| A20, A21 | A stop committed during a paused native lookup refuses the late send while retaining its counted turn. Exact successful-delivery owner/epoch is required for ack. Admission and captain answers have app-only RPCs; helper cleanup/provision/Attach/worker commands are absent. Genuine choices retain checked answers and logical-owner outbox; original caps and uncertain holds remain enforced. |
 
 Validation results are recorded in the PR after the full suite, typecheck and self-review.

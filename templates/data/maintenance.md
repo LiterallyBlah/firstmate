@@ -14,7 +14,10 @@ An empty native schedule list is not proof of complete heartbeat/remote ownershi
 `node tools/maintenance.mjs command --file data/<request>.json --request-id <uuid>`
 submits one strict command. Retain the request id after a timeout; replaying the same
 accepted request never repeats its mutation. The current first mate records job
-administration. A registered maintenance work owner may submit `observe` and `ack`.
+administration. A registered maintenance work owner may submit `observe`, `ack`,
+`escalate` and `answer-handled`. Captain-app admission first creates the maintenance
+scope and owner from Home/Plans, with an explicit profile and cumulative turn cap.
+Fresh clients resume its saved request. No helper or CLI exposes admission or Attach.
 
 Commands use the `firstmate.maintenance.admin` contract:
 
@@ -28,6 +31,16 @@ Commands use the `firstmate.maintenance.admin` contract:
   a due date, idle agent or reachable host alone never proves successful cleanup.
 - `ack`: incidentId, generation and the exact delivered epoch. Only the bound owner
   can acknowledge a succeeded notification. Delivery alone is not acknowledgement.
+- `escalate`: input has incidentId, generation, epoch, kind (`authority` or `budget`),
+  question, two to twelve unique options (`id`, `label`), recommendation (option id
+  or null), and evidence (`ref`, `digest`). Only the exact verified owner may raise
+  a genuine choice on its open incident. Routine failures/offline observations are
+  not captain choices. Real budget exhaustion also creates one choice without a wake.
+- `answer-handled`: outboxId, epoch and nonempty result evidence. The captain answers
+  only in the app, binding the displayed subject/revision/evidence. Its checked outbox
+  remains pending until the exact successfully notified owner records handling.
+  Unknown sends stay held; successful delivery is not semantic handling. Answers
+  change no budget and grant no cleanup, dispatch or other work authority.
 - `retired`: jobId, expectedVersion, timerId, inventoryHash and nonempty evidence.
   First use the timer's actual known owner to disable it under existing authority,
   then reread `timers`. This records evidence only when that exact linked timer is
@@ -44,6 +57,7 @@ Commands use the `firstmate.maintenance.admin` contract:
 A changed incident gets one bounded notification to its admitted maintenance owner.
 Unknown send outcomes retain their identity, spend and hold, with no automatic retry.
 There is no General fallback. A corrective plan must use the checked plan runtime
-and its applicable rule/evidence gates. These owner incidents do not create captain
-decisions; a true escalation uses the shared scoped-captain-decision presentation
-contract with the separate checked answer context/outbox, never a notification count.
+and its applicable rule/evidence gates. Routine owner incidents create no captain
+decisions. Genuine escalations emit the shared scoped-captain-decision presentation
+contract alongside their retained checked answer context/outbox, never a notification
+count. Owner turns retain the captain-approved cumulative cap.

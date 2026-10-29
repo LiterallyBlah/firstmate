@@ -39,8 +39,13 @@ See `docs/scoped-supervision/build-c.md` and the both-theme/width harness under 
 Build D adds `server/maintenance-runtime.ts` behind `FIRSTMATE_MAINTENANCE=1`, sharing that
 runtime and the existing workflow clock. Its strict RPC/helper transport records S10 observe jobs,
 verified host results, evidence-bound timer retirement, resources and exact-owner incident acknowledgements.
-Maintenance sessions use the existing reserved/verified lifecycle and a separately enabled receiver role;
-this service exposes no provisioning or Attach. Healthy and unchanged incidents wake nobody, changed
+Maintenance sessions use the existing reserved/verified lifecycle and a separately enabled receiver role.
+`server/maintenance-admission.ts` admits/creates an owner only through explicit captain app controls,
+retaining profile/caps and exact resume input; no helper/CLI Attach or background provisioning.
+`server/maintenance-decisions.ts` retains genuine authority/budget choices, checked answers and logical-owner
+outboxes. Routine incidents create no captain count. The local C-compatible presentation schema is
+`shared/maintenance-captain-decision.ts`; reconcile its import when C lands. App provenance stays unverified.
+Healthy and unchanged incidents wake nobody, changed
 incidents reserve one bounded owner turn, and uncertain sends never retry or refund spend. General reads
 the pure summary directly. The fresh timer census retains disabled watches and all approved host coverage,
 reconciles managed Take-the-Initiative, and records retirement only for an exact known-owner timer freshly

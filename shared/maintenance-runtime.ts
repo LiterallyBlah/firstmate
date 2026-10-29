@@ -1,7 +1,10 @@
-/** Build D cooperative transport. No provisioning, Attach, timer creation or cleanup command. */
+/** Build D cooperative transport. App-only owner admission; no Attach, timer creation or cleanup. */
 import { defineRpc } from "@getpaseo/plugin";
 import { z } from "zod";
 import { SupervisionHash, SupervisionUuid } from "./supervision";
+import { MaintenanceAdmissionInputSchema, ScopedDecisionSchema, ScopedOutboxSchema } from "./supervision-policy";
+import { MaintenanceCaptainDecisionSchema } from "./maintenance-captain-decision";
+import { PlanId } from "./workflow-plans";
 import { MaintenanceJobSchema, MaintenanceIncidentSchema, OccurrenceSchema, OccurrenceHostSchema, ResourceReservationSchema, ResourceClass, ResourceKey, HostId } from "./supervision-maintenance";
 
 const count = z.number().int().min(0).max(1_000_000);
@@ -15,11 +18,17 @@ export const MaintenanceJobInputSchema = z.object({ jobId: SupervisionUuid, expe
   budget: fields.budget, maxPasses: fields.maxPasses }).strict();
 export const MaintenanceObservationSchema = z.object({ occurrenceId: SupervisionUuid, hostId: HostId,
   outcome: z.enum(["completed", "failed", "offline"]), detail: z.string().min(1).max(500).refine(s => !/[\x00-\x1f\x7f]/.test(s)), resultDigest: SupervisionHash }).strict();
+export const MaintenanceEscalationSchema = z.object({ incidentId: SupervisionUuid, generation: count.min(1), epoch: count.min(1), kind: z.enum(["budget", "authority"]),
+  question: z.string().min(1).max(5000), options: z.array(z.object({ id: PlanId, label: z.string().min(1).max(1000) }).strict()).min(2).max(12),
+  recommendation: PlanId.nullable(), evidence: Evidence }).strict().refine(v => new Set(v.options.map(o => o.id)).size === v.options.length &&
+    (v.recommendation === null || v.options.some(o => o.id === v.recommendation)), "Unique options and a displayed recommendation are required");
 export const MaintenanceCommandSchema = z.discriminatedUnion("op", [
   z.object({ op: z.literal("job"), input: MaintenanceJobInputSchema }).strict(),
   z.object({ op: z.literal("state"), jobId: SupervisionUuid, expectedVersion: count.min(1), state: z.enum(["active", "stopped"]) }).strict(),
   z.object({ op: z.literal("observe"), input: MaintenanceObservationSchema }).strict(),
   z.object({ op: z.literal("ack"), incidentId: SupervisionUuid, generation: count.min(1), epoch: count.min(1) }).strict(),
+  z.object({ op: z.literal("escalate"), input: MaintenanceEscalationSchema }).strict(),
+  z.object({ op: z.literal("answer-handled"), outboxId: SupervisionUuid, epoch: count.min(1), evidence: Evidence }).strict(),
   // The existing owner retires a timer. This command records only a fresh disabled census plus evidence.
   z.object({ op: z.literal("retired"), jobId: SupervisionUuid, expectedVersion: count.min(1), inventoryHash: SupervisionHash,
     timerId: z.string().min(1).max(320), evidence: Evidence }).strict(),
@@ -58,8 +67,9 @@ export const MaintenanceRuntimeSnapshotSchema = z.object({ enabled: z.boolean(),
   jobs: z.array(MaintenanceJobSchema), occurrences: z.array(OccurrenceSchema), hosts: z.array(OccurrenceHostSchema),
   incidents: z.array(MaintenanceIncidentSchema), reservations: z.array(ResourceReservationSchema),
   owners: z.array(z.object({ scopeId: SupervisionUuid, state: z.string(), agentId: z.string().nullable(), epoch: count,
-    sessions: count, turns: count, uncertain: count }).strict()),
+    sessions: count, turns: count, uncertain: count, admission: MaintenanceAdmissionInputSchema.nullable(), opening: z.string().nullable() }).strict()),
   deliveries: z.array(z.object({ incidentId: SupervisionUuid, generation: count.min(1), effectId: SupervisionUuid.nullable(), state: z.string() }).strict()),
+  captainDecisions: z.array(MaintenanceCaptainDecisionSchema), decisions: z.array(ScopedDecisionSchema), outbox: z.array(ScopedOutboxSchema),
 }).strict();
 export type MaintenanceRuntimeSnapshot = z.infer<typeof MaintenanceRuntimeSnapshotSchema>;
 export const readMaintenance = defineRpc({ name: "firstmate.maintenance.read", input: z.object({}).strict(), output: MaintenanceRuntimeSnapshotSchema });
@@ -68,3 +78,13 @@ export const readMaintenanceSummary = defineRpc({ name: "firstmate.maintenance.s
 /** Same-user recorded role convention, not authenticated RPC identity. */
 export const administerMaintenance = defineRpc({ name: "firstmate.maintenance.admin", input: z.object({ homeId: z.string(), requestId: SupervisionUuid,
   actorId: z.string().min(1).max(256), command: MaintenanceCommandSchema }).strict(), output: MaintenanceRuntimeSnapshotSchema });
+/** Captain-app convention only; Paseo RPC has no authenticated caller. No actor input or helper/CLI adapter. */
+export const AdmitMaintenanceSchema = z.union([MaintenanceAdmissionInputSchema,
+  z.object({ homeId: z.string(), requestId: SupervisionUuid, resume: z.literal(true) }).strict()]);
+export type AdmitMaintenance = z.infer<typeof AdmitMaintenanceSchema>;
+export const admitMaintenanceFromUi = defineRpc({ name: "firstmate.maintenance.admit-ui", input: AdmitMaintenanceSchema, output: MaintenanceRuntimeSnapshotSchema });
+export const MaintenanceAnswerSchema = z.object({ homeId: z.string(), submissionId: SupervisionUuid, decisionId: SupervisionUuid,
+  revision: count.min(1), subjectHash: SupervisionHash, evidence: Evidence, option: PlanId, text: z.string().max(10000) }).strict();
+export type MaintenanceAnswer = z.infer<typeof MaintenanceAnswerSchema>;
+/** Dedicated captain-app convention; no helper/CLI answer, no actor input and no legacy fallback. */
+export const answerMaintenanceFromUi = defineRpc({ name: "firstmate.maintenance.answer-ui", input: MaintenanceAnswerSchema, output: MaintenanceRuntimeSnapshotSchema });

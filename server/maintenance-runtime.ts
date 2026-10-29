@@ -1,5 +1,5 @@
 /** Default-off Build D. One owned workflow clock, S10 observe records and exception-only owner turns.
- * No session provisioning, Attach, timer mutation, worker dispatch or deletion executor is exposed.
+ * Only the captain-app admission creates an owner. No Attach, timer mutation, worker dispatch or deletion executor.
  */
 import { readdir, readFile, stat } from "node:fs/promises";
 import { z } from "zod";
@@ -9,7 +9,7 @@ import type { SupervisionActor, SupervisionStatus } from "../shared/supervision"
 import type { MaintenanceIncident, MaintenanceJob } from "../shared/supervision-maintenance";
 import { maintenanceSummary } from "../shared/supervision-maintenance";
 import { MaintenanceCommandSchema, MaintenanceCensusSchema, MaintenanceRuntimeSnapshotSchema, readMaintenance, readMaintenanceTimers, readMaintenanceSummary,
-  administerMaintenance, type MaintenanceCensus, type MaintenanceCommand } from "../shared/maintenance-runtime";
+  administerMaintenance, admitMaintenanceFromUi, answerMaintenanceFromUi, type MaintenanceAnswer, type AdmitMaintenance, type MaintenanceCensus, type MaintenanceCommand } from "../shared/maintenance-runtime";
 import { readFirstmateConfig, resolveHome } from "./config";
 import { requireNoMigration } from "./mate";
 import { workflowHomeIdentity } from "./workflow-ownership";
@@ -27,6 +27,8 @@ import { resolveInHome } from "./files";
 import { observeWithin } from "./supervision-observation";
 import type { SupervisionStore } from "./supervision-store";
 import type { PaseoApi } from "./host-types";
+import { admitMaintenanceOwner, maintenanceAdmission } from "./maintenance-admission";
+import { MaintenanceDecisions, maintenanceCaptainDecisions, maintenanceAnswerDelivery, maintenanceAnswerRequest, maintenanceAnswerOwner } from "./maintenance-decisions";
 
 const SYSTEM: SupervisionActor = { kind: "system", id: "maintenance-runtime", source: "plugin/maintenance-incident" };
 const requestFor = (incident: MaintenanceIncident) => stableId("maintenance-incident-turn", incident.id, String(incident.generation));
@@ -71,13 +73,25 @@ export class MaintenanceRuntime {
         conditions: approval.conditions.map(c => ({ id: c.id, satisfied: c.satisfied, reasons: c.reasons })) }, ...rows,
       owners: s.scopes.filter(scope => scope.kind === "maintenance").map(scope => {
         const b = s.bindings.find(b => b.scopeId === scope.id);
-        return { scopeId: scope.id, state: scope.state, agentId: b?.agentId ?? null, epoch: b?.epoch ?? 0, ...supervisorSpend(s, scope.id) };
+        return { scopeId: scope.id, state: scope.state, agentId: b?.agentId ?? null, epoch: b?.epoch ?? 0, ...supervisorSpend(s, scope.id),
+          admission: maintenanceAdmission(s, scope.id), opening: b ? activationEffects(s, scope.id, b.epoch).send?.state ?? null : null };
       }),
       deliveries: rows.incidents.map(i => { const e = delivery(s, i); return { incidentId: i.id, generation: i.generation, effectId: e?.id ?? null,
         state: i.notify.state === "handled" ? "handled" : e?.state ?? (i.notify.state === "held-budget" || i.kind === "budget" ? "held-budget" : "awaiting-owner") }; }),
+      captainDecisions: maintenanceCaptainDecisions(s), decisions: s.decisions.filter(d => d.maintenance), outbox: s.outbox.filter(o => o.maintenance),
     });
   }
   async summary() { return maintenanceSummary(await this.runtime.read(resolveHome(await this.config()))); }
+  async admit(input: AdmitMaintenance, paseo: PaseoApi) {
+    await this.checked(input.homeId); this.remember(paseo);
+    await admitMaintenanceOwner(this.runtime, input, this.receiver(paseo), id => this.checked(id));
+    return this.read();
+  }
+  async answer(input: MaintenanceAnswer, paseo: PaseoApi) {
+    const { home } = await this.checked(input.homeId); this.remember(paseo);
+    await this.runtime.mutate(home, store => new MaintenanceDecisions(store, id => this.checked(id), () => this.now()).answer(input));
+    return this.read();
+  }
   /** Fresh actual script/managed/native census, with no store acquisition, timer write or model wake. */
   async census(): Promise<MaintenanceCensus> {
     const config = await this.config(), home = resolveHome(config), status = await this.runtime.read(home);
@@ -106,7 +120,7 @@ export class MaintenanceRuntime {
         // Same-user role convention only. General records administration; actual bound owners may observe/ack.
         const general = raw.actorId === config.mateAgentId && !!config.mateAgentId;
         const actor: SupervisionActor = { kind: general ? "mate-chat" : "agent", id: raw.actorId, source: "maintenance request (unverified same-user role)" };
-        if (!["observe", "ack"].includes(command.op) && !general) refuse("UNKNOWN_OWNER", "Only the current first mate records maintenance administration.");
+        if (!["observe", "ack", "escalate", "answer-handled"].includes(command.op) && !general) refuse("UNKNOWN_OWNER", "Only the current first mate records maintenance administration.");
         const commandCheck = async (current: SupervisionStatus) => {
           const fresh = await this.checked(raw.homeId);
           if (general && fresh.config.mateAgentId !== raw.actorId) refuse("STALE", "General changed before maintenance commit.");
@@ -136,6 +150,8 @@ export class MaintenanceRuntime {
         } else if (command.op === "state") {
           await jobs.setState(raw.requestId, actor, command);
         } else if (command.op === "observe") await jobs.observe(raw.requestId, actor, command.input);
+        else if (command.op === "escalate") await new MaintenanceDecisions(store, id => this.checked(id), () => this.now()).escalate(raw.requestId, actor, command.input, requestHash);
+        else if (command.op === "answer-handled") await new MaintenanceDecisions(store, id => this.checked(id), () => this.now()).handled(raw.requestId, actor, command, requestHash, config.mateAgentId);
         else if (command.op === "ack") {
           await jobs.acknowledge(raw.requestId, { kind: "agent", id: raw.actorId, source: actor.source }, command);
         } else if (command.op === "retired") {
@@ -180,11 +196,12 @@ export class MaintenanceRuntime {
     if (this.minute === minute) return;
     this.minute = minute;
     const before = await this.runtime.read(home);
-    if (before.freshness !== "current" || !maintenanceRows(before).jobs.some(j => j.state === "active" && j.mode === "observe")) return;
+    if (before.freshness !== "current" || !maintenanceRows(before).jobs.some(j => j.state === "active" && j.mode === "observe") && !before.outbox.some(o => o.maintenance && o.state === "pending")) return;
     await this.runtime.mutate(home, async store => {
       await this.checked(before.homeId);
       const jobs = new SupervisionJobs(store, { enabled: true, now: () => this.now(), observeOnly: true });
       await jobs.tick();
+      await new MaintenanceDecisions(store, id => this.checked(id), () => this.now()).budgets();
       if (this.paseo) await this.deliver(store, home, this.paseo);
     });
   }
@@ -200,15 +217,20 @@ export class MaintenanceRuntime {
   }
   private async deliver(store: SupervisionStore, home: string, paseo: PaseoApi) {
     const initial = await store.read();
-    const scopes = [...new Set(maintenanceRows(initial).jobs.filter(j => j.state === "active" && j.mode === "observe").map(j => j.scopeId))];
+    const scopes = [...new Set([...maintenanceRows(initial).jobs.filter(j => j.state === "active" && j.mode === "observe").map(j => j.scopeId),
+      ...initial.outbox.filter(o => o.maintenance && o.state === "pending").map(o => o.ownerScopeId)])];
     // Per-scope queues/timeout: a stuck native lookup cannot serialize unrelated maintenance owners.
     await Promise.allSettled(scopes.map(scopeId => serialized(`${store.root}:maintenance-owner:${scopeId}`, async () => {
       await this.withdrawObsoleteUnsent(store, scopeId);
       const receiver = this.receiver(paseo);
-      const incidents = maintenanceRows(await store.read()).incidents.filter(i => i.state === "open" && i.notify.state === "pending" && i.kind !== "budget" &&
+      await this.deliverAnswer(store, home, receiver, scopeId);
+      const current = await store.read();
+      const incidents = maintenanceRows(current).incidents.filter(i => i.state === "open" && i.notify.state === "pending" && i.kind !== "budget" && delivery(current, i)?.state !== "succeeded" &&
         maintenanceRows(initial).jobs.some(j => j.id === i.jobId && j.scopeId === scopeId)).slice(0, 1);
       for (const incident of incidents) {
         const s = await store.read(), { config } = await this.checked(s.homeId), { job, binding } = this.incidentGuard(s, incident, config.mateAgentId);
+        const admission = maintenanceAdmission(s, scopeId);
+        if (!admission) refuse("HELD", "Maintenance owner limits are unknown; record explicit app admission rather than infer a turn cap.");
         let effect = delivery(s, incident);
         if (effect && (effect.epoch !== binding.epoch || effect.state !== "reserved")) return;
         const commands = new SupervisionCommands(store, home, { enabled: true });
@@ -219,7 +241,8 @@ export class MaintenanceRuntime {
             refuse("HELD", "Maintenance only admits its reserved incident notification; corrective plans use the checked plan runtime/rules.");
         } });
         const sessions = new SupervisorSessions(store, gateway, receiver, { enabled: true, globalMateId: async () => (await this.config()).mateAgentId || null,
-          limits: { supervisorSessions: 1, supervisorTurns: Math.min(100000, 1 + maintenanceRows(s).jobs.filter(j => j.scopeId === scopeId).reduce((sum, j) => sum + (j.budget?.turns ?? 0), 0)) } });
+          limits: { supervisorSessions: 1, supervisorTurns: Math.min(admission.limits.supervisorTurns,
+            1 + maintenanceRows(s).jobs.filter(j => j.scopeId === scopeId).reduce((sum, j) => sum + (j.budget?.turns ?? 0), 0)) } });
         if (!effect) {
           const note = await maintenanceIncidentNote(job, incident);
           if (!note || Buffer.byteLength(note) > 16 * 1024) refuse("HELD", "Incident context exceeds its bounded page.");
@@ -233,6 +256,37 @@ export class MaintenanceRuntime {
         await observeWithin(receiver, `maintenance-send:${effect.id}`, () => gateway.dispatch(effect!.id), this.options.observationTimeoutMs);
       }
     })));
+  }
+  private async deliverAnswer(store: SupervisionStore, home: string, receiver: GatewayReceiver, scopeId: string) {
+    const s = await store.read(), outbox = s.outbox.find(o => o.maintenance && o.state === "pending" && o.ownerScopeId === scopeId && maintenanceAnswerDelivery(s, o)?.state !== "succeeded");
+    if (!outbox) return;
+    const { config } = await this.checked(s.homeId), { decision, binding } = maintenanceAnswerOwner(s, outbox, config.mateAgentId);
+    const admission = maintenanceAdmission(s, scopeId);
+    if (!admission) refuse("HELD", "Maintenance answer delivery requires the original captain-app session/turn limits.");
+    let effect = maintenanceAnswerDelivery(s, outbox);
+    if (effect && (effect.epoch !== binding.epoch || effect.state !== "reserved")) return;
+    const gateway = new SupervisionGateway(store, new SupervisionCommands(store, home, { enabled: true }), home, receiver, { enabled: true,
+      admissionCheck: async (current, candidate) => {
+        const { config } = await this.checked(current.homeId), actual = current.outbox.find(o => o.id === outbox.id);
+        if (!actual || digest(actual) !== digest(outbox)) refuse("STALE", "Maintenance answer outbox changed before its send.");
+        maintenanceAnswerOwner(current, actual, config.mateAgentId);
+        if (candidate.requestId !== maintenanceAnswerRequest(actual) || candidate.scopeId !== scopeId || candidate.attemptId !== null || candidate.operation !== "agent.send")
+          refuse("HELD", "Only the exact checked maintenance answer notification is admitted.");
+      } });
+    const sessions = new SupervisorSessions(store, gateway, receiver, { enabled: true, limits: admission.limits,
+      globalMateId: async () => (await this.config()).mateAgentId || null });
+    if (!effect) {
+      const text = `Captain maintenance choice (client UI, unverified): ${JSON.stringify({ decision, outbox })}\nThis answer is an instruction to the logical maintenance owner, never a budget grant or work authority. Record handling with maintenance answer-handled, outboxId ${outbox.id}, epoch ${binding.epoch}, and checked result evidence. Budget edits and corrective work retain their existing reviewed guards.`;
+      if (Buffer.byteLength(text) > 32 * 1024) refuse("HELD", "Maintenance answer exceeds its bounded context page.");
+      const effectId = await sessions.reserveTurnWith({ requestId: maintenanceAnswerRequest(outbox), scopeId, epoch: binding.epoch,
+        causation: `maintenance-answer:${outbox.id}`, text }, SYSTEM, current => {
+        const actual = current.outbox.find(o => o.id === outbox.id);
+        if (!actual || digest(actual) !== digest(outbox)) refuse("STALE", "Maintenance answer changed before reservation.");
+        maintenanceAnswerOwner(current, actual, config.mateAgentId); return [];
+      });
+      effect = (await store.read()).effects.find(e => e.id === effectId)!;
+    }
+    await observeWithin(receiver, `maintenance-answer-send:${effect.id}`, () => gateway.dispatch(effect!.id), this.options.observationTimeoutMs);
   }
   /** A new generation can supersede only its never-claimed notification. No inferred native absence or refund. */
   private async withdrawObsoleteUnsent(store: SupervisionStore, scopeId: string) {
@@ -288,6 +342,8 @@ export function registerMaintenanceRuntime(server: PluginServerContext, maintena
   server.handle(readMaintenanceTimers, () => maintenance.census());
   server.handle(readMaintenanceSummary, () => maintenance.summary());
   server.handle(administerMaintenance, (input, context) => { maintenance.remember(context.paseo); return maintenance.admin(input); });
+  server.handle(admitMaintenanceFromUi, (input, context) => maintenance.admit(input, context.paseo));
+  server.handle(answerMaintenanceFromUi, (input, context) => maintenance.answer(input, context.paseo));
   const started = server.on("agent.turn_started", (_event, context) => maintenance.remember(context.paseo));
   const ended = server.on("agent.turn_ended", (_event, context) => maintenance.remember(context.paseo));
   return () => { started(); ended(); maintenance.stop(); };
