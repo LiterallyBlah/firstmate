@@ -6,9 +6,10 @@ import type { PluginTheme } from "@getpaseo/plugin";
 import { FEATURES_OFF, type FeatureReadResult, type FeatureSetInput } from "../shared/feature-settings";
 import { HELP, helpSelection } from "./feature-settings-model";
 
-const state = vi.hoisted(() => ({ read: vi.fn(), set: vi.fn(), id: vi.fn() }));
+const state = vi.hoisted(() => ({ read: vi.fn(), set: vi.fn(), id: vi.fn(), maintenance: vi.fn() }));
 vi.mock("react-native", () => ({ View: "View", Text: "Text", Pressable: "Pressable" }));
-vi.mock("@getpaseo/plugin/client", () => ({ useRpc: (c: { name: string }) => c.name.endsWith(".read") ? state.read : state.set }));
+vi.mock("@getpaseo/plugin/client", () => ({ useRpc: (c: { name: string }) => c.name === "firstmate.maintenance.read" ? state.maintenance : c.name.endsWith(".read") ? state.read : state.set }));
+vi.mock("./option-picker", () => ({ OptionPicker: "OptionPicker" }));
 vi.mock("@getpaseo/plugin/client/react-native", () => ({ TextInput: "TextInput",
   Modal: Object.assign(({ open, children }: { open: boolean; children: unknown }) => open ? children : null, { Content: ({ children }: { children: unknown }) => children }) }));
 vi.mock("./workflow-plans", () => ({ workflowRequestId: () => state.id() }));
@@ -33,6 +34,8 @@ beforeEach(() => {
     capacity: { slots: 4, generalHeadroom: 1 }, policy: null, problems: [], dependencyRefusals: [], runtimeEnforced: true, writesAvailable: true,
     inventory: { complete: false, coverage: [], sequence: 0, active: 0, pending: 0, uncertain: 0, problems: ["Other delivery sources have not been checked."] }, pause: null };
   state.read.mockReset().mockImplementation(async () => copy(snapshot));
+  state.maintenance.mockReset().mockImplementation(async () => ({ enabled: snapshot.effective.maintenance, homeId: home, sequence: 0, freshness: "uninitialized", lowerBound: true,
+    problems: [], cleanup: { state: "held", reason: "G8", conditions: [] }, jobs: [], occurrences: [], hosts: [], incidents: [], reservations: [], owners: [], deliveries: [], captainDecisions: [], decisions: [], outbox: [] }));
   state.id.mockReset().mockReturnValue(id);
   state.set.mockReset().mockImplementation(async (input: FeatureSetInput) => {
     const policy = { format: "firstmate.feature-policy/1" as const, homeId: input.home, revision: input.expectedRevision + 1, ...input.change,
@@ -46,7 +49,8 @@ afterEach(() => { act(() => renderer?.unmount()); cache.clear(); });
 
 it("keeps first-update help off; opening, canceling and details only read", async () => {
   await mount();
-  for (const { action } of Object.values(HELP)) { await press(action); expect(text()).toContain("This save creates no session"); await press("Cancel"); }
+  for (const kind of ["projects", "plans"] as const) { await press(HELP[kind].action); expect(text()).toContain("This save creates no session"); await press("Cancel"); }
+  await press(HELP.checks.action); await press("Back to settings");
   await press("Help details"); await press("Review capacity"); await press("Cancel");
   expect(state.set).not.toHaveBeenCalled(); expect(state.id).not.toHaveBeenCalled(); expect(snapshot.effective).toEqual(FEATURES_OFF);
 });
@@ -59,7 +63,9 @@ it("applies only the reviewed project dependencies, immediately, without a sessi
 });
 
 it.each(["plans", "checks"] as const)("enables only %s and its reviewed dependencies", async kind => {
-  await mount(); await press(HELP[kind].action); await press("Save help settings");
+  await mount(); await press(HELP[kind].action);
+  if (kind === "checks") { await vi.waitFor(async () => { await act(async () => { await new Promise(done => setTimeout(done, 0)); }); expect(button("Review routine-check opt-in")).toBeDefined(); }); await press("Review routine-check opt-in"); }
+  await press("Save help settings");
   expect(state.set.mock.calls[0]![0].change.requested).toEqual(kind === "plans" ? {
     ...FEATURES_OFF, planSupervisors: true, scopedActivation: true, scopeUi: true, scopeExecution: true,
   } : { ...FEATURES_OFF, maintenance: true });
@@ -117,7 +123,9 @@ it("holds duplicate confirm while a save is in flight", async () => {
 it("checks a lost reply through a read without issuing another save", async () => {
   const save = state.set.getMockImplementation()!;
   state.set.mockImplementationOnce(async input => { await save(input); throw new Error("lost reply"); });
-  await mount(); await press("Review routine checks"); await press("Save help settings");
+  await mount(); await press("Review routine checks");
+  await vi.waitFor(async () => { await act(async () => { await new Promise(done => setTimeout(done, 0)); }); expect(button("Review routine-check opt-in")).toBeDefined(); });
+  await press("Review routine-check opt-in"); await press("Save help settings");
   await press("Check saved settings"); expect(state.set).toHaveBeenCalledTimes(1); expect(text()).toContain("Your settings are saved and applied here.");
 });
 

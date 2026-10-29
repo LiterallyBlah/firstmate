@@ -11,6 +11,7 @@ vi.mock("@getpaseo/plugin/client/react-native", () => ({ TextInput: "TextInput",
 vi.mock("./option-picker", () => ({ OptionPicker: "OptionPicker" }));
 vi.mock("./workflow-plans", () => ({ workflowRequestId: () => "00000000-0000-4000-8000-000000000003" }));
 import { MaintenanceOwnershipBoard } from "./maintenance-ownership";
+import { RoutineCheckSetup } from "./routine-check-setup";
 const id = "00000000-0000-4000-8000-000000000001", hash = "a".repeat(64);
 let renderer: ReactTestRenderer | undefined, cache: QueryClient, data: MaintenanceRuntimeSnapshot;
 beforeEach(() => {
@@ -25,32 +26,54 @@ afterEach(async () => { await act(async () => renderer?.unmount()); renderer = u
 const button = (label: string) => renderer!.root.find(n => n.type === "Pressable" as never && n.props.accessibilityLabel === label);
 async function mount(extra: Partial<Parameters<typeof MaintenanceOwnershipBoard>[0]> = {}) {
   await act(async () => { renderer = create(createElement(QueryClientProvider, { client: cache }, createElement(MaintenanceOwnershipBoard, { theme, compact: true, advanced: true, ...extra }))); });
-  await vi.waitFor(async () => { await act(async () => { await new Promise(done => setTimeout(done, 0)); }); expect(button("Create maintenance owner")).toBeDefined(); });
+  await vi.waitFor(async () => { await act(async () => { await new Promise(done => setTimeout(done, 0)); }); expect(button("Refresh maintenance")).toBeDefined(); });
+}
+async function setup(extra: Partial<Parameters<typeof RoutineCheckSetup>[0]> = {}) {
+  await act(async () => { renderer = create(createElement(QueryClientProvider, { client: cache }, createElement(RoutineCheckSetup,
+    { theme, compact: true, homeId: data.homeId, hostId: "local", online: true, canEnable: true, onEnable: vi.fn(), onClose: vi.fn(), ...extra }))); });
+  await vi.waitFor(async () => { await act(async () => { await new Promise(done => setTimeout(done, 0)); }); expect(button(data.enabled ? "Review checks profile" : "Review routine-check opt-in")).toBeDefined(); });
 }
 it("fresh-home app reads/opening create nothing; explicit confirmation retains exact admission after a lost reply", async () => {
-  mocks.admit.mockRejectedValue(new Error("reply lost")); await mount();
-  expect(mocks.admit).not.toHaveBeenCalled(); await act(async () => button("Create maintenance owner").props.onPress());
-  expect(mocks.admit).not.toHaveBeenCalled(); expect(button("Confirm maintenance owner").props.disabled).toBe(true);
+  mocks.admit.mockRejectedValue(new Error("reply lost")); await setup();
+  expect(mocks.admit).not.toHaveBeenCalled(); await act(async () => button("Review checks profile").props.onPress());
+  expect(mocks.admit).not.toHaveBeenCalled(); expect(button("Create checks conversation").props.disabled).toBe(true);
   await vi.waitFor(() => expect(mocks.models).toHaveBeenCalled());
   await act(async () => {
-    renderer!.root.find(n => n.type === "TextInput" as never && n.props.accessibilityLabel === "Maintenance owner name").props.onChangeText("Storage");
-    renderer!.root.find(n => n.type === "OptionPicker" as never && n.props.label === "Maintenance model").props.onSelect("codex/test");
+    renderer!.root.find(n => n.type === "TextInput" as never && n.props.accessibilityLabel === "Checks conversation name").props.onChangeText("Storage");
+    renderer!.root.find(n => n.type === "OptionPicker" as never && n.props.label === "Checks model").props.onSelect("codex/test");
   });
-  await act(async () => renderer!.root.find(n => n.type === "OptionPicker" as never && n.props.label === "Maintenance permission mode").props.onSelect("full-access"));
-  await act(async () => { const press = button("Confirm maintenance owner").props.onPress; press(); press(); });
+  await act(async () => renderer!.root.find(n => n.type === "OptionPicker" as never && n.props.label === "Checks permission mode").props.onSelect("full-access"));
+  await act(async () => { const press = button("Create checks conversation").props.onPress; press(); press(); });
   expect(mocks.admit).toHaveBeenCalledTimes(1);
   expect(mocks.admit.mock.calls[0]![0]).toMatchObject({ homeId: "fixture-home", name: "Storage", limits: { supervisorSessions: 1, supervisorTurns: 20 } });
-  await act(async () => button("Retry recorded maintenance admission").props.onPress());
+  await act(async () => button("Retry exact checks setup").props.onPress());
   expect(mocks.admit.mock.calls[1]![0]).toEqual(mocks.admit.mock.calls[0]![0]);
 });
 it("a fresh client resumes the recorded maintenance request and a failed refresh disables confirmation", async () => {
   const admission = { homeId: data.homeId, requestId: id, scopeId: id, name: "Storage", profile: { provider: "codex/test", modeId: "full-access" }, limits: { supervisorSessions: 1 as const, supervisorTurns: 20 } };
   data.owners = [{ scopeId: id, state: "transferring", agentId: "reserved-owner", epoch: 1, sessions: 1, turns: 1, uncertain: 1, opening: "reserved", admission }];
   mocks.admit.mockRejectedValue(new Error("held")); await mount(); await act(async () => button("Resume Storage").props.onPress());
-  expect(mocks.models).not.toHaveBeenCalled(); await act(async () => button("Resume maintenance admission").props.onPress());
+  expect(mocks.models).not.toHaveBeenCalled(); await act(async () => button("Check saved checks setup").props.onPress());
   expect(mocks.admit.mock.calls[0]![0]).toEqual({ homeId: data.homeId, requestId: id, resume: true });
   mocks.read.mockRejectedValue(new Error("offline")); await act(async () => { await cache.refetchQueries(); await new Promise(done => setTimeout(done, 20)); });
-  expect(button("Retry recorded maintenance admission").props.disabled).toBe(true);
+  expect(button("Retry exact checks setup").props.disabled).toBe(true);
+});
+it("off preview and cancellation create nothing; opt-in is a separate settings review", async () => {
+  data.enabled = false; const enable = vi.fn(), close = vi.fn(); await setup({ onEnable: enable, onClose: close });
+  expect(renderer!.root.findAll(n => n.type === "Pressable" as never && n.props.accessibilityLabel === "Review checks profile")).toHaveLength(0);
+  await act(async () => button("Back to settings").props.onPress()); expect(close).toHaveBeenCalledOnce();
+  await act(async () => button("Review routine-check opt-in").props.onPress()); expect(enable).toHaveBeenCalledOnce();
+  expect(mocks.admit).not.toHaveBeenCalled(); expect(mocks.answer).not.toHaveBeenCalled(); expect(mocks.models).not.toHaveBeenCalled();
+});
+it.each(["held", "offline", "wrong-home"])("%s reads cannot authorize checks creation", async reason => {
+  if (reason === "held") { data.freshness = "held"; data.problems = ["Damaged source"]; }
+  if (reason === "wrong-home") { mocks.read.mockResolvedValue({ ...data, homeId: "another-home" }); }
+  if (reason === "wrong-home") {
+    await act(async () => { renderer = create(createElement(QueryClientProvider, { client: cache }, createElement(RoutineCheckSetup,
+      { theme, compact: true, homeId: data.homeId, hostId: "local", online: true, canEnable: true, onEnable: vi.fn(), onClose: vi.fn() }))); });
+    await vi.waitFor(async () => { await act(async () => { await new Promise(done => setTimeout(done, 0)); }); expect(JSON.stringify(renderer!.toJSON())).toContain("Can't check routine checks"); });
+  } else { await setup({ online: reason !== "offline" }); expect(button("Review checks profile").props.disabled).toBe(true); }
+  expect(mocks.admit).not.toHaveBeenCalled();
 });
 it("F1: inspecting a retained checks conversation dismisses details without starting any work", async () => {
   data.enabled = false;

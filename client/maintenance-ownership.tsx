@@ -13,6 +13,7 @@ import { OptionPicker } from "./option-picker";
 import { workflowRequestId } from "./workflow-plans";
 import { errorText } from "./format";
 import { maintenanceHasHistory } from "./ownership-state";
+import { SetupButton } from "./setup-button";
 
 type Owner = MaintenanceRuntimeSnapshot["owners"][number];
 function Action({ theme, label, disabled = false, onPress }: { theme: PluginTheme; label: string; disabled?: boolean; onPress(): void }) {
@@ -24,7 +25,7 @@ function Action({ theme, label, disabled = false, onPress }: { theme: PluginThem
 export function MaintenanceOwnershipBoard({ theme, compact, hostId = "local", navigation, advanced = false, onNavigate }: { theme: PluginTheme; compact: boolean; hostId?: string; navigation?: PluginScreenProps["navigation"]; advanced?: boolean; onNavigate?(): void }) {
   const read = useRpc(readMaintenance);
   const query = useQuery({ queryKey: ["firstmate", "maintenance-ownership", hostId], queryFn: async () => MaintenanceRuntimeSnapshotSchema.parse(await read({})), refetchInterval: 5000 });
-  const [admission, selectAdmission] = useState<Owner | "new" | null>(null);
+  const [admission, selectAdmission] = useState<Owner | null>(null);
   const data = query.data;
   useEffect(() => { selectAdmission(null); }, [hostId, data?.homeId]);
   if (!data) return query.isError ? <Text accessibilityRole="alert" style={{ color: theme.colors.statusWarning }}>Routine checks could not be read. Close and reopen details to check again.</Text> : null;
@@ -47,12 +48,12 @@ export function MaintenanceOwnershipBoard({ theme, compact, hostId = "local", na
     </View>
     {data.incidents.map(incident => <Text key={incident.id} accessibilityRole="alert" style={{ color: colors.statusWarning }}>{incident.detail}</Text>)}
     <Text selectable style={{ color: colors.foregroundMuted, fontSize: 12 }}>Cleanup: {data.cleanup.state} · {data.cleanup.reason}{data.cleanup.conditions.map(c => ` · ${c.id}: ${c.satisfied ? "met" : c.reasons.join("; ")}`).join("")}</Text>
+    <Text style={{ color: colors.foregroundMuted }}>To create a checks conversation, open Routine checks in FirstMate settings.</Text>
     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-      <Action theme={theme} label="Create maintenance owner" disabled={stale || data.freshness === "held"} onPress={() => selectAdmission("new")} />
       <Action theme={theme} label="Refresh maintenance" onPress={() => { void query.refetch(); }} />
     </View>
-    {admission ? <MaintenanceAdmissionConfirmation key={`${data.homeId}:${admission === "new" ? "new" : admission.scopeId}`} theme={theme} compact={compact} homeId={data.homeId}
-      owner={admission === "new" ? null : admission} stale={stale} onClose={() => selectAdmission(null)} onRead={() => { void query.refetch(); }} /> : null}
+    {admission ? <MaintenanceAdmissionConfirmation key={`${data.homeId}:${admission.scopeId}`} theme={theme} compact={compact} homeId={data.homeId}
+      owner={admission} stale={stale || data.freshness === "held" || !!data.problems.length} onClose={() => selectAdmission(null)} onRead={() => { void query.refetch(); }} /> : null}
   </View>;
 }
 export function MaintenanceAdmissionConfirmation({ theme, compact, homeId, owner, stale, onClose, onRead }: {
@@ -62,6 +63,7 @@ export function MaintenanceAdmissionConfirmation({ theme, compact, homeId, owner
   const models = useQuery({ queryKey: ["firstmate", "maintenance-models", homeId], queryFn: () => catalog({}), enabled: !resume });
   const [name, setName] = useState(""), [provider, setProvider] = useState(""), [mode, setMode] = useState(""), [turns, setTurns] = useState("20");
   const [busy, setBusy] = useState(false), [error, setError] = useState<string | null>(null);
+  const [details, setDetails] = useState(false);
   const pending = useRef<AdmitMaintenance | null>(null), gate = useRef(false), locked = busy || !!pending.current;
   const target = models.data?.targets.find(t => t.provider === provider);
   const valid = !!resume || !!name.trim() && !!target?.modes.some(m => m.id === mode) && /^\d+$/.test(turns) && Number(turns) >= 1 && Number(turns) <= 100000;
@@ -74,30 +76,33 @@ export function MaintenanceAdmissionConfirmation({ theme, compact, homeId, owner
       const next = MaintenanceRuntimeSnapshotSchema.parse(await admit(pending.current)); onRead();
       const current = next.owners.find(o => o.admission?.requestId === pending.current!.requestId);
       if (current?.state === "active" && current.opening === "succeeded") onClose();
-      else setError("Admission is recorded. Inspect the reserved owner, then resume this request. Uncertain opening sends stay held.");
-    } catch (e) { setError(`${errorText(e)} The request may be recorded. Retry preserves its exact identity and spend.`); }
+      else setError("Your setup is saved, but the conversation isn't ready. Check this saved setup before continuing. A message with an unknown result won't be sent again.");
+    } catch (e) { setError(`Couldn't confirm this checks setup. It may already be saved. Check the saved setup before trying this exact request again. ${errorText(e)}`); }
     finally { gate.current = false; setBusy(false); }
   }
   const field = { color: theme.colors.foreground, backgroundColor: theme.colors.surface1, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 7, padding: 12, fontSize: 16 };
-  return <Modal title={resume ? `Resume ${resume.name}?` : "Create maintenance owner?"} open onOpenChange={open => { if (!open && !busy) onClose(); }}><Modal.Content>
+  return <Modal title={resume ? `Check saved setup for ${resume.name}` : "Review checks profile"} open onOpenChange={open => { if (!open && !busy) onClose(); }}><Modal.Content>
     <View style={{ gap: 16 }}>
-      <Text style={{ color: theme.colors.foreground }}>Create one persistent maintenance conversation in its own workspace. The opening limits it to observation and checked decisions. No cleanup or corrective work is authorized.</Text>
-      <Text style={{ color: theme.colors.foregroundMuted }}>Captain app action by convention, not verified. Paseo supplies no caller identity. Session and turn reservations are never refunded after failure or uncertainty.</Text>
+      <Text style={{ color: theme.colors.foreground }}>Create one persistent checks conversation in its own workspace. Checks report problems for review. Automatic cleanup is unavailable. This creates no jobs and changes no timers.</Text>
+      <Text style={{ color: theme.colors.foregroundMuted }}>Review the model, permissions and total limit before creating it. Session and turn spending is kept after failure or an unknown result.</Text>
       {resume ? <Text selectable style={{ color: theme.colors.foreground }}>{resume.profile.provider} · {resume.profile.modeId} · one session · {resume.limits.supervisorTurns} total turns. Resume uses the saved profile and request.</Text> : <>
-        <Text style={{ color: theme.colors.foreground }}>Owner name</Text>
-        <TextInput accessibilityLabel="Maintenance owner name" value={name} onChangeText={setName} maxLength={120} editable={!locked} style={field} />
-        <OptionPicker theme={theme} compact={compact} label="Maintenance model" title="Maintenance model" value={provider} options={models.data?.targets.map(t => ({ value: t.provider, label: t.label })) ?? []}
+        <Text style={{ color: theme.colors.foreground }}>Conversation name</Text>
+        <TextInput accessibilityLabel="Checks conversation name" value={name} onChangeText={setName} maxLength={120} editable={!locked} style={field} />
+        <OptionPicker theme={theme} compact={compact} roomy label="Checks model" title="Checks model" value={provider} options={models.data?.targets.map(t => ({ value: t.provider, label: t.label })) ?? []}
           disabled={locked} onSelect={v => { setProvider(v); setMode(""); }} />
-        <OptionPicker theme={theme} compact={compact} label="Maintenance permission mode" title="Maintenance permission mode" value={mode} options={target?.modes.map(m => ({ value: m.id, label: m.label })) ?? []}
+        <OptionPicker theme={theme} compact={compact} roomy label="Checks permission mode" title="Checks permission mode" value={mode} options={target?.modes.map(m => ({ value: m.id, label: m.label })) ?? []}
           disabled={locked || !target} onSelect={setMode} />
-        <Text style={{ color: theme.colors.foreground }}>Total owner turns, including the opening, incidents and captain answer notifications (1–100,000)</Text>
-        <TextInput accessibilityLabel="Maintenance owner turn limit" value={turns} onChangeText={setTurns} maxLength={6} editable={!locked} keyboardType="number-pad" style={field} />
+        <Text style={{ color: theme.colors.foreground }}>Total conversation turns, including the opening, incidents and answer notifications (1–100,000). One session; no automatic limit increase.</Text>
+        <TextInput accessibilityLabel="Checks conversation turn limit" value={turns} onChangeText={setTurns} maxLength={6} editable={!locked} keyboardType="number-pad" style={field} />
+        {provider && mode ? <Text selectable style={{ color: theme.colors.foreground }}>Selected: {target?.label ?? provider} · {target?.modes.find(m => m.id === mode)?.label ?? mode} ({mode}). These permissions determine which tools this conversation can use. Instructions to report problems do not reduce those permissions.</Text> : null}
       </>}
       {models.isError ? <Text accessibilityRole="alert" style={{ color: theme.colors.statusWarning }}>Models could not be loaded. Close and reopen to retry.</Text> : null}
       {error ? <Text accessibilityRole="alert" style={{ color: theme.colors.statusWarning }}>{error}</Text> : null}
-      <Action theme={theme} label={busy ? "Recording admission…" : pending.current ? "Retry recorded maintenance admission" : resume ? "Resume maintenance admission" : "Confirm maintenance owner"}
+      <SetupButton theme={theme} label="Setup details" onPress={() => setDetails(!details)} />
+      {details ? <Text selectable style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>This app action is recorded as unverified: Paseo supplies no caller identity. No cleanup or corrective work is authorized.{resume ? ` Saved request ${resume.requestId} · scope ${resume.scopeId}.` : ""}</Text> : null}
+      <SetupButton theme={theme} label={busy ? "Saving checks setup…" : pending.current ? "Retry exact checks setup" : resume ? "Check saved checks setup" : "Create checks conversation"}
         disabled={busy || stale || !valid && !pending.current} onPress={() => { void confirm(); }} />
-      <Action theme={theme} label="Cancel" disabled={busy} onPress={onClose} />
+      <SetupButton theme={theme} label={pending.current ? "Close review" : "Cancel"} disabled={busy} onPress={onClose} />
     </View>
   </Modal.Content></Modal>;
 }
