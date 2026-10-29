@@ -31,7 +31,7 @@ function decisionDueAt(plan: WorkflowPlan, node: WorkflowPlan["definition"]["nod
 }
 
 export const workflowHomeId = (home: string) => digest(process.platform === "win32" ? resolve(home).toLowerCase() : resolve(home));
-export async function workflowSnapshot(home: string): Promise<WorkflowSnapshot> {
+export async function workflowSnapshot(home: string, scoped?: import("../shared/supervision").SupervisionStatus): Promise<WorkflowSnapshot> {
   let read: { plans: WorkflowPlan[]; problems: string[]; warnings?: string[]; quarantined?: QuarantinedWorkflow[] };
   const store = workflowStore(home);
   try { read = await store.read(); } catch (e) { read = { plans: [], problems: [`Plans unavailable: ${String(e)}`] }; }
@@ -40,15 +40,27 @@ export async function workflowSnapshot(home: string): Promise<WorkflowSnapshot> 
   read = { ...read, problems: [...read.problems, ...cutover.problems], warnings: [...(read.warnings ?? []), ...cutover.warnings] };
   // The browser retains all history; due actions below still exclude finished plans. A plan in an S07
   // cutover is no longer the legacy mate's: its retained history still resolves dependencies only.
-  const allPlans = read.plans, held = new Set<string>(), folders = await store.cutoverFolders();
-  for (const plan of allPlans) if (await store.cutover(plan.definition.id, folders).catch(() => "damaged")) held.add(plan.definition.id);
+  if (!scoped && process.env.FIRSTMATE_PLAN_SUPERVISORS === "1") {
+    const { SupervisionStatusReader } = await import("./supervision-status-reader");
+    const { pluginDir } = await import("./data-dir");
+    scoped = await new SupervisionStatusReader(pluginDir()).read(home);
+  }
+  const scopedPlans = scoped?.freshness === "current" ? scoped.plans.filter(p => scoped!.backends.some(b => b.planId === p.plan.definition.id && b.ownerScopeId === p.scopeId && b.backend === "scoped")) : [];
+  const currentScoped = new Set(scopedPlans.map(p => p.plan.definition.id));
+  if (scoped?.freshness === "held") read.problems.push("Scoped plans are held; their retained legacy copies remain historical.");
+  for (const violation of (scoped?.ruleViolations ?? []).slice(-32))
+    read.warnings = [...(read.warnings ?? []), `Retained rule refusal ${violation.planId}/${violation.nodeId}: ${violation.conditions.join("; ")}`];
+  const allPlans = [...read.plans.filter(p => !currentScoped.has(p.definition.id)), ...scopedPlans.map(p => scoped!.backends.some(b => b.planId === p.plan.definition.id && b.state === "retired") ? { ...p.plan, status: "abandoned" as const } : p.plan)], held = new Set<string>(), folders = await store.cutoverFolders();
+  for (const plan of allPlans) if (!currentScoped.has(plan.definition.id) && await store.cutover(plan.definition.id, folders).catch(() => "damaged")) held.add(plan.definition.id);
   const plans = allPlans.filter(p => !held.has(p.definition.id)), now: PlanNeed[] = [], comingUp: PlanNeed[] = [];
   const unavailableDependencies = quarantinedDependencyIds(read.quarantined ?? []);
   for (const plan of plans) {
+    if (currentScoped.has(plan.definition.id) && !scoped?.backends.some(b => b.planId === plan.definition.id && b.state === "active")) continue;
     if (plan.status === "abandoned" || planFinished(plan)) continue;
     if (plan.status === "review" && (planOwner(plan) === "captain" || captainReviewRequired(plan))) now.push({ plan: plan.definition.id, title: plan.definition.title, question: "Review the plan", waits: [], neededBy: [], recommendation: "Review the runs, dependencies and budget.", review: { revision: plan.revision, at: plan.history.at(-1)?.at ?? plan.definition.request.at } });
     for (const node of plan.definition.nodes) {
       if (node.kind !== "decision" || plan.nodes[node.id]?.answer) continue;
+      if (currentScoped.has(plan.definition.id)) continue; // Scoped decisions already enter the one shared inbox.
       const need = { plan: plan.definition.id, node: node.id, title: plan.definition.title, question: node.title,
         waits: node.after.map(d => unavailableDependencies.has(d.node) ? `${d.node} (evidence unavailable)` : allPlans.flatMap(p => p.definition.nodes).find(n => n.id === d.node)?.title ?? d.node),
         neededBy: plan.definition.nodes.filter(n => n.after.some(d => d.node === node.id)).map(n => n.title),

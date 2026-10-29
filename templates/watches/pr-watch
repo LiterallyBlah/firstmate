@@ -30,7 +30,9 @@
 // With $FIRSTMATE_PR_OBSERVATIONS=1 (off by default) it also asks for each pull request's head commit
 // and writes one typed observation per pull request it read into $FIRSTMATE_WATCH_STATE/pr-observations/,
 // flushed to disk BEFORE prs.json moves on, for FirstMate's scoped supervision to ingest. What it prints
-// does not change. Without the switch it asks gh for exactly what it always has.
+// does not change unless the separately enabled operating supervisor runtime supplies checked
+// scoped routes: those PRs are actionable only through their durable scoped observations.
+// Without the switches it asks gh for exactly what it always has.
 //
 // Edit it freely: once you have, the plugin keeps your copy (see README.md).
 
@@ -53,14 +55,25 @@ const PR_URL = /https:\/\/github\.com\/([\w.-]+)\/([\w.-]+)\/pull\/(\d+)/g;
 
 async function main() {
   const started = Date.now();
-  const { readFile, writeFile, rename, mkdir, open, readdir } = await import("node:fs/promises");
-  const { join } = await import("node:path");
+  const { readFile, writeFile, rename, mkdir, open, readdir, stat } = await import("node:fs/promises");
+  const { join, resolve } = await import("node:path");
   const { execFile } = await import("node:child_process");
 
   const backlogPath = process.env.FIRSTMATE_BACKLOG;
   const stateDir = process.env.FIRSTMATE_WATCH_STATE;
   if (!backlogPath || !stateDir) throw new Error("run me from FirstMate: FIRSTMATE_BACKLOG and FIRSTMATE_WATCH_STATE are not set");
   const statePath = join(stateDir, "prs.json");
+  const scoped = new Set();
+  if (OBSERVE && process.env.FIRSTMATE_PLAN_SUPERVISORS === "1") {
+    const path = join(stateDir, "scoped-routes.json");
+    if ((await stat(path)).size > 512 * 1024) throw new Error("Scoped PR routes exceed their bounded snapshot; the baseline did not move.");
+    const routes = JSON.parse(await readFile(path, "utf8"));
+    const home = resolve(process.env.FIRSTMATE_HOME || "");
+    if (routes.format !== "firstmate.scoped-pr-routes/1" || routes.homeId !== (process.platform === "win32" ? home.toLowerCase() : home) ||
+      !Array.isArray(routes.bindings) || routes.bindings.length > 10000 || routes.bindings.some(b => !b || !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(b.repository) || !Number.isSafeInteger(b.pr) || b.pr <= 0))
+      throw new Error("Scoped PR routes are unavailable or name another home; the baseline did not move.");
+    for (const b of routes.bindings) scoped.add(`https://github.com/${b.repository.toLowerCase()}/pull/${b.pr}`);
+  }
 
   function gh(args) {
     return new Promise((resolve, reject) => {
@@ -173,9 +186,11 @@ async function main() {
   const observations = [];
   const errors = [];
   let checked = 0;
+  let legacyChecked = 0;
 
   // One pull request: what is saved for it next, and what to say about it, if anything.
   async function check(url) {
+    const scopedOnly = scoped.has(url.toLowerCase()); if (!scopedOnly) legacyChecked++;
     const before = previous[url];
     const checkedAt = Date.now();
     let pull;
@@ -183,7 +198,7 @@ async function main() {
       pull = JSON.parse(await gh(["pr", "view", url, "--json", FIELDS]));
     } catch (error) {
       if (error.code === "ENOENT") throw new Error("gh is not installed, or not on the PATH Paseo runs with");
-      errors.push(`${url}: ${error.message}`);
+      if (!scopedOnly) errors.push(`${url}: ${error.message}`);
       const failures = (before?.failures || 0) + 1;
       const tell = failures >= FAILURES_BEFORE_REPORT && !before?.failureReported;
       if (tell) reports.set(url, [`gh cannot read it (${quote(error.message)}); nothing more about it until it can`]);
@@ -299,7 +314,7 @@ async function main() {
 
   // owner/repo#n, the way GitHub writes a reference.
   const ref = (url) => url.replace(/^https:\/\/github\.com\//, "").replace(/\/pull\//, "#");
-  const mentioned = urls.filter((url) => reports.has(url));
+  const mentioned = urls.filter((url) => reports.has(url) && !scoped.has(url.toLowerCase()));
   const changes = mentioned.flatMap((url) => reports.get(url).map((line) => `- ${ref(url)} ${line}`));
   const links = mentioned.map((url) => {
     const title = next[url]?.title;
@@ -314,7 +329,7 @@ async function main() {
   if (changes.length > 0) {
     process.stdout.write(`${header}\n${changes.join("\n")}\n\n${links.join("\n")}\n\n${GUIDANCE}\n`);
   }
-  if (checked > 0 && errors.length === checked) {
+  if (legacyChecked > 0 && errors.length === legacyChecked) {
     process.stderr.write(`gh could not read any of the backlog's pull requests:\n${errors.join("\n")}\n`);
     process.exitCode = 1;
   }

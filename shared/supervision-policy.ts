@@ -3,6 +3,9 @@ import { z } from "zod";
 import { PlanId } from "./workflow-plans";
 import { AgentProfileSchema, GatewayLimitsSchema } from "./supervision-effects";
 import { SupervisionActorSchema, SupervisionHash, SupervisionUtc, SupervisionUuid, SupervisionVersionRefSchema } from "./supervision";
+import { ScopedPlanCommandSchema } from "./scoped-commands";
+import { ScopedCaptainDecisionSchema } from "./scoped-captain-decision";
+import { PlanRuleRefSchema } from "./plan-rules";
 
 const version = z.number().int().positive();
 const label = z.string().min(1).max(1024);
@@ -82,6 +85,21 @@ export const ScopedCommandResultSchema = z.object({
   maintenanceAdmission: MaintenanceAdmissionInputSchema.optional(),
   /** Build D transport identity only; preserves exact accepted replay before mutable timer/owner checks. */
   maintenanceRequest: z.object({ inputHash: SupervisionHash }).strict().optional(),
+  uiPlanIntent: ScopedPlanCommandSchema.optional(),
+  captainDecisions: z.array(ScopedCaptainDecisionSchema).max(100).optional(),
+  budgetException: z.object({ scopeId: SupervisionUuid, planId: PlanId, decisionId: SupervisionUuid, subjectHash: SupervisionHash,
+    planHash: SupervisionHash, revision: version, rules: PlanRuleRefSchema,
+    limits: z.object({ sessions: version, turns: version }).strict(), spent: z.object({ sessions: z.number().int().nonnegative(), turns: z.number().int().nonnegative() }).strict() }).strict().optional(),
+  ruleStopRequest: z.object({ scopeId: SupervisionUuid, attemptId: SupervisionUuid, ruleId: SupervisionUuid,
+    ruleVersion: version, reason: label }).strict().optional(),
+  evidenceArtifact: z.object({ digest: SupervisionHash, bytes: z.number().int().positive().max(512 * 1024) }).strict().optional(),
+  projectInput: z.object({ scopeId: SupervisionUuid, projectId: SupervisionUuid, kind: z.enum(["conflict", "memory-proposal", "memory"]), recordId: SupervisionUuid,
+    recordVersion: z.number().int().positive(), subjectHash: SupervisionHash }).strict().optional(),
+  projectException: z.object({ scopeId: SupervisionUuid, projectId: SupervisionUuid, decisionId: SupervisionUuid,
+    sourceCommandId: SupervisionUuid, inputOutboxId: SupervisionUuid, projectVersion: version, subjectHash: SupervisionHash,
+    evidenceDigest: SupervisionHash, reason: z.string().min(1).max(2000) }).strict().optional(),
+  projectJudgment: z.object({ scopeId: SupervisionUuid, epoch: z.number().int().positive(), outboxId: SupervisionUuid,
+    subjectHash: SupervisionHash, evidenceDigest: SupervisionHash, summary: z.string().min(1).max(2000), disposition: z.enum(["judged", "source-changed"]).optional() }).strict().optional(),
   /** UI convention only. Kept in the immutable accepted command, never authentication evidence. */
   attachmentAudit: z.object({ at: SupervisionUtc, plan: PlanId, supervisor: SupervisionUuid,
     source: z.literal("client UI (unverified)"), authorization: z.literal("by convention, not verified"),

@@ -42,6 +42,7 @@ import { digest } from "./submissions";
 import { timerInventory, type TimerInventory } from "./supervision-jobs";
 import type { MaintenanceJob } from "../shared/supervision-maintenance";
 import type { NativeTimerInventory } from "./archive-inventory";
+import { SupervisionStatusReader } from "./supervision-status-reader";
 
 /**
  * S10 timer disposition inventory: the home's script watches, managed watches, the config's off switches, native
@@ -79,6 +80,15 @@ export async function deliverToMate(
   return oneAtATime(async () => {
     // Re-read after taking the lifecycle gate: a handover may have changed the mate while we waited.
     const latest = await readConfig();
+    if (process.env.FIRSTMATE_PLAN_SUPERVISORS === "1") {
+      const pulls = [...text.matchAll(/https:\/\/github\.com\/([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)\/pull\/(\d+)/gi)];
+      if (pulls.length) {
+        const scoped = await new SupervisionStatusReader(pluginDir()).read(resolveHome(latest));
+        // Final legacy-delivery recheck closes the routing-projection race. Retain the opaque
+        // original note; typed observations/direct reads serve its exact scoped owner.
+        if (scoped.freshness === "held" || pulls.some(p => scoped.sources.bindings.some(b => b.state === "active" && b.repository.toLowerCase() === p[1]!.toLowerCase() && b.pr === Number(p[2])))) return "wait";
+      }
+    }
     if (expected && (watchOwner(cutoverGate(resolveHome(latest))) !== expected.owner || latest.mateAgentId.trim() !== expected.recipient)) return "wait";
     if (latest.migration !== null || latest.mateLaunch !== null || paseo === null) return "wait";
     const { agent } = await resolveMate(paseo, latest);

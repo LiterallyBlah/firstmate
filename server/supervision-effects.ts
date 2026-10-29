@@ -25,6 +25,8 @@ import { digest } from "./submissions";
 import { SupervisionError, type SupervisionMutation, type SupervisionStore } from "./supervision-store";
 import { checkDependencyRoute, type ScopedPlanCommand, type SupervisionCommands } from "./supervision-commands";
 import { applicableRules, checkPolicySource, currentPolicyVector, policyRef, sameVector, type PolicyTarget } from "./supervision-policy";
+import { ruleSubjectHash, type PlanRules } from "./plan-rules";
+import { replaySupervisionWorkflow } from "./supervision-workflows";
 
 /** Thrown by a receiver only when it definitely refused before admitting the request (server-only: no class in shared code). */
 export class ReceiverRejected extends Error {
@@ -93,15 +95,23 @@ function exactTarget(observed: AgentObservation | null, agentId: string): AgentO
 }
 
 export interface GatewayOptions {
-  /** Defaults off. Fixture-only enablement; no env flag, RPC or runtime wiring exists. */
+  /** Defaults off. Build B composes the guarded cooperative runtime. */
   enabled?: boolean;
   now?: () => number;
   /** Additional owning-service preconditions, rechecked inside the final claim transaction. */
   admissionCheck?: (status: SupervisionStatus, effect: SupervisionEffect) => Promise<void>;
+  rules?: PlanRules;
+  /** External observations happen before the publication lock; returned validation runs in the claim. */
+  prepareAdmission?: (effect: SupervisionEffect) => Promise<(status: SupervisionStatus) => void>;
+  reserveStart?: <T>(run: () => Promise<T>) => Promise<T>;
+  beforeStart?: (status: SupervisionStatus, input: ScopedPlanCommand) => Promise<void>;
+  startCheck?: (status: SupervisionStatus, input: ScopedPlanCommand) => void;
+  recovery?: boolean;
 }
 export interface StartedAttempt { attemptId: string | null; effects: { workspace: string; create: string; send: string } | null }
 type Call = { run: () => Promise<string>; after?: (status: SupervisionStatus) => SupervisionMutation[] };
-interface Preflight { capabilities: ReceiverCapabilities; observed: AgentObservation | null; text: string | null; inventoryKey: string | null }
+interface Preflight { capabilities: ReceiverCapabilities; observed: AgentObservation | null; text: string | null; inventoryKey: string | null; validate?: ((status: SupervisionStatus) => void) | undefined;
+  reusedObserved?: AgentObservation | null | undefined }
 
 export class SupervisionGateway {
   constructor(readonly store: SupervisionStore, readonly commands: SupervisionCommands, readonly home: string,
@@ -119,22 +129,46 @@ export class SupervisionGateway {
    * An accepted request replays from its immutable receipt before any mutable preflight (brief, capability).
    */
   async startWorker(input: ScopedPlanCommand, actor: SupervisionActor) {
+    return this.options.reserveStart ? this.options.reserveStart(() => this.startWorkerOnce(input, actor)) : this.startWorkerOnce(input, actor);
+  }
+  private async startWorkerOnce(input: ScopedPlanCommand, actor: SupervisionActor) {
     this.enabled();
     const command = input.command;
     if (!["start", "implicit", "claim"].includes(command.op)) refuse("UNSUPPORTED", "Only a checked start reserves a worker attempt.");
     if (await this.accepted(input.requestId)) return this.replayStart(input, actor);
-    let blob: { id: string; bytes: number } | null, capabilities: ReceiverCapabilities;
+    await this.options.beforeStart?.(await this.store.read(), input);
+    const before = await this.store.read(), previousPlan = before.plans.find(p => "plan" in command && p.plan.definition.id === command.plan)?.plan;
+    const previousNode = "node" in command ? previousPlan?.nodes[command.node!]?.priorAttempts?.at(-1) : undefined;
+    let reusedWorkspace: SupervisionEffect["reusedWorkspace"];
+    if (previousNode?.workspaceId && previousNode.attempt && previousNode.agentId) {
+      if (!this.options.recovery) refuse("UNSUPPORTED", "Workspace-preserving manual recovery is disabled.");
+      const retained = before.attempts.find(a => a.id === previousNode.attempt);
+      const observed = await this.receiver.findAgent(previousNode.agentId);
+      if (!retained?.worker || !observed || observed.id !== retained.worker.agentId || observed.workspaceId !== previousNode.workspaceId ||
+        !["idle", "closed"].includes(observed.status) || observed.pendingPermissions || observed.labels["paseo.parent-agent-id"])
+        refuse("HELD", "Replacement retains the exact workspace and needs its old worker observed stopped.");
+      reusedWorkspace = { workspaceId: previousNode.workspaceId, directory: observed.cwd, priorAttemptId: retained.id };
+    }
+    let blob: { id: string; bytes: number } | null, briefBlob: { id: string; bytes: number } | null, capabilities: ReceiverCapabilities;
     try {
       capabilities = await this.capabilities();
       if (!capabilities.selectedAgentIds) refuse("UNSUPPORTED", "Receiver lacks caller-selected agent IDs; no legacy or fresh-ID fallback.");
       const brief = await this.pinnedBrief(input);
-      blob = brief ? await this.store.putBlob(brief) : null;
+      briefBlob = brief ? await this.store.putBlob(brief) : null;
+      blob = briefBlob;
+      if (brief && input.planRules && this.options.rules) {
+        const record = (await this.store.read()).planRules?.find(r => r.id === input.planRules!.id);
+        if (!record || digest(record) !== input.planRules.digest) refuse("STALE", "Worker brief rules changed before pinning.");
+        const text = `${Buffer.from(brief).toString("utf8")}\n\nPlan rules (cooperative, mandatory gates):\n${JSON.stringify(record)}\nEvery report records one biggest blocker or explicit none. Retain actual check/capture artifacts, exact build/head and independent verifier provenance. Heavy suites restore an isolated clean verified matching baseline and execute a fresh result for this attempt. Never claim success from an old attempt. The plan supervisor records verification through tools/scope.mjs.\n`;
+        blob = await this.store.putBlob(Buffer.from(text, "utf8"));
+      }
     } catch (error) {
       if (await this.accepted(input.requestId)) return this.replayStart(input, actor); // Accepted concurrently.
       throw error;
     }
     let started: StartedAttempt = { attemptId: null, effects: null };
     const committed = await this.commands.planCommandWith(input, actor, "s04.start-worker/1", async (status, prepared) => {
+      this.options.startCheck?.(status, input);
       const workflow = prepared.mutations.find(m => m.kind === "workflow");
       if (workflow?.kind !== "workflow") refuse("CONFLICT", "A start needs its workflow event.");
       const event = workflow.event;
@@ -142,7 +176,7 @@ export class SupervisionGateway {
       const briefHash = event.briefHash ?? (command.op === "claim" ? command.briefHash : null);
       if (!attemptId || !briefHash) return { expectedVersions: [], mutations: [] }; // Review posture: no attempt yet.
       if (!capabilities.selectedAgentIds) refuse("UNSUPPORTED", "Receiver lacks caller-selected agent IDs; no legacy or fresh-ID fallback.");
-      if (!blob || blob.id !== briefHash) refuse("STALE", "Brief changed between pinning and reservation.");
+      if (!blob || !briefBlob || briefBlob.id !== briefHash) refuse("STALE", "Brief changed between pinning and reservation.");
       const nodeId = command.op === "implicit" ? command.launch.id : (command as { node: string }).node;
       const scopeId = input.scopeId, planId = event.plan;
       const task = status.tasks.find(t => t.ownerScopeId === scopeId && t.planId === planId && t.nodeId === nodeId);
@@ -166,6 +200,10 @@ export class SupervisionGateway {
       const base = { requestId: input.requestId, requestHash: digest(input), scopeId, epoch: binding.epoch, attemptId,
         planRevision: input.revision || null, subjectHash: input.subjectHash ?? digest(command), policyVector: unionVectors(input.policyVector, input.modelPolicyVector),
         evidenceVector: input.evidenceVector, approvalId: input.approvalId, state: "reserved" as const, receiptRef: null, version: 1,
+        ...(input.planRules ? { planRules: input.planRules } : {}),
+        ...(input.planRules ? { ruleSubjectHash: ruleSubjectHash(replaySupervisionWorkflow(status.plans.find(p => p.plan.definition.id === planId)?.plan ?? null, event, status.homeId), nodeId) } : {}),
+        ...(input.head ? { admissionHead: input.head } : {}),
+        ...(reusedWorkspace ? { reusedWorkspace } : {}),
         dependencyBindings: input.dependencyBindings.map(d => ({ planId: d.planId, nodeId: d.nodeId, outcome: d.outcome, attemptId: d.attemptId })) };
       const intent = workerWorkspaceIntent(task, ordinal, launch, ids.workspace);
       const effects: SupervisionEffect[] = [
@@ -175,11 +213,12 @@ export class SupervisionGateway {
       ];
       // Worst-case spend is reserved now and never refunded by a later failure or uncertainty.
       const attempt: SupervisionAttempt = { id: attemptId, taskId: task.id, ordinal, briefHash, launchEffectId: ids.create, worker: null,
-        originalNotificationOwner: null, notificationStatus: "known", spentAgents: 1, spentTurns: 1, state: "reserved", evidenceIds: [], version: 1 };
+        originalNotificationOwner: null, notificationStatus: "known", spentAgents: 1, spentTurns: 1, state: "reserved", evidenceIds: [], version: 1, reservedAt: new Date().toISOString() };
       const mutations: SupervisionMutation[] = [
         { kind: "task", value: { ...task, version: task.version + 1, currentAttempt: attemptId } },
         { kind: "attempt", value: attempt }, ...effects.map(value => ({ kind: "effect" as const, value })),
         ...(status.versions.some(v => v.kind === "blob" && v.id === blob.id) ? [] : [{ kind: "blob" as const, value: blob }]),
+        ...(briefBlob.id !== blob.id && !status.versions.some(v => v.kind === "blob" && v.id === briefBlob.id) ? [{ kind: "blob" as const, value: briefBlob }] : []),
       ];
       started = { attemptId, effects: ids };
       return { expectedVersions: expectedFor(status, mutations), mutations };
@@ -209,6 +248,10 @@ export class SupervisionGateway {
 
   /** One external boundary per call. The claim's checked transaction is the final admission. */
   async dispatch(effectId: string): Promise<SupervisionEffect> {
+    try { return await this.dispatchOnce(effectId); }
+    catch (error) { return this.options.rules ? this.options.rules.refused(error) : Promise.reject(error); }
+  }
+  private async dispatchOnce(effectId: string): Promise<SupervisionEffect> {
     this.enabled();
     const pre = await this.store.read(), effect = pre.effects.find(e => e.id === effectId);
     if (!effect) refuse("UNKNOWN_OWNER", "Unknown effect.");
@@ -219,13 +262,16 @@ export class SupervisionGateway {
     // Receiver and file reads happen before the writer lock; the claim then rechecks against them.
     const capabilities = await this.capabilities(), target = targetOf(pre, effect, operation);
     const observed = target ? await this.receiver.findAgent(target) : null;
+    const reusedAttempt = effect.reusedWorkspace ? pre.attempts.find(a => a.id === effect.reusedWorkspace!.priorAttemptId) : null;
+    const reusedObserved = reusedAttempt?.worker ? await this.receiver.findAgent(reusedAttempt.worker.agentId) : null;
     const text = operation === "agent.send" ? await this.payload(effect) : null;
     const inventoryKey = operation === "agent.archive" && target ? await this.checkInventory(capabilities, target, effect.receiverKey) : null;
+    const validate = operation === "agent.interrupt" || operation === "agent.archive" ? undefined : await this.options.prepareAdmission?.(effect);
     let claimed: SupervisionEffect | null = null, call: Call | null = null;
     await this.store.transactCommand(stableId("dispatch-claim", effect.id), digest({ claim: effect.id, version: effect.version }), GATEWAY, async status => {
       const current = status.effects.find(e => e.id === effect.id);
       if (!current || current.version !== effect.version || current.state !== "reserved") refuse("STALE", "The effect changed before its claim; reread.");
-      call = await this.admit(status, current, operation, { capabilities, observed, text, inventoryKey });
+      call = await this.admit(status, current, operation, { capabilities, observed, text, inventoryKey, validate, reusedObserved });
       claimed = { ...current, state: "dispatching", version: current.version + 1 };
       const mutations: SupervisionMutation[] = [{ kind: "effect", value: claimed }];
       const plan = planOf(status, current);
@@ -250,6 +296,14 @@ export class SupervisionGateway {
     if (binding.hostId.trim().toLowerCase() !== "local") refuse("UNSUPPORTED", "S04 has no remote receiver adapter.");
     const supervisor = effect.attemptId === null, stopping = operation === "agent.interrupt" || operation === "agent.archive";
     if (!stopping) await this.options.admissionCheck?.(status, effect);
+    if (!stopping) await this.options.rules?.effect(status, effect);
+    if (!stopping) fresh.validate?.(status);
+    if (!stopping && effect.reusedWorkspace) {
+      const prior = status.attempts.find(a => a.id === effect.reusedWorkspace!.priorAttemptId), observed = fresh.reusedObserved;
+      if (!prior?.worker || !observed || observed.id !== prior.worker.agentId || observed.workspaceId !== effect.reusedWorkspace.workspaceId ||
+        !sameDirectory(observed.cwd, effect.reusedWorkspace.directory) || !["idle", "closed"].includes(observed.status) || observed.pendingPermissions)
+        refuse("HELD", "The retained workspace's original worker is no longer observed quiescent.");
+    }
     if (!supervisor && binding.purpose === "discussion") refuse("HELD", "Discussion-only sessions cannot dispatch worker effects.");
     const activation = supervisor && (operation === "workspace.open" || operation === "agent.create");
     if (activation ? scope.state !== "transferring" || binding.state !== "prepared" : scope.state !== "active" || binding.state !== "active")
@@ -284,6 +338,7 @@ export class SupervisionGateway {
       (supervisor ? e.attemptId === null && e.epoch === effect.epoch && e.requestId === effect.requestId : e.attemptId === effect.attemptId));
     switch (operation) {
       case "workspace.open": {
+        if (effect.reusedWorkspace) return { run: async () => JSON.stringify({ workspaceId: effect.reusedWorkspace!.workspaceId, directory: effect.reusedWorkspace!.directory }) };
         const intent = supervisor ? supervisorWorkspaceIntent(scope.id, effect.epoch, effect.id) : workerIntentFor(status, effect);
         return { run: async () => JSON.stringify(WorkspaceReceiptSchema.parse(await this.receiver.openWorkspace(intent))) };
       }
@@ -461,6 +516,36 @@ export class SupervisionGateway {
     const mutations: SupervisionMutation[] = [{ kind: "attempt", value: next }];
     await this.store.transact([...expectedFor(status, mutations), { kind: "task", id: task.id, version: task.version }], randomUUID(), mutations);
     return next;
+  }
+  /** Explicit, source/policy checked recovery. Native absence never proves a lost launch absent. */
+  async recoverPlan(input: ScopedPlanCommand, actor: SupervisionActor) {
+    this.enabled();
+    if (!this.options.recovery) refuse("UNSUPPORTED", "Checked scoped recovery is disabled.");
+    if (!["replace", "retire"].includes(input.command.op)) refuse("UNSUPPORTED", "Only explicit replacement/retirement use this recovery adapter.");
+    if (await this.accepted(input.requestId)) return this.commands.planCommandWith(input, actor, "s04.checked-recovery/1", async () => refuse("CONFLICT", "Expected accepted recovery replay."));
+    const s = await this.store.read(), c = input.command, planId = "plan" in c ? c.plan : "";
+    const selected = s.attempts.filter(a => s.tasks.some(t => t.id === a.taskId && t.ownerScopeId === input.scopeId && t.planId === planId) && (c.op !== "replace" || a.id === c.attempt));
+    for (const a of selected) {
+      if (s.effects.some(e => e.attemptId === a.id && ["reserved", "dispatching", "uncertain", "accepted"].includes(e.state))) refuse("UNCERTAIN", "Reconcile this attempt's admitted effects before recovery.");
+      if (a.importedFrom && !(s.dispositions ?? []).some(d => d.source === "worker-callback" && d.original.agentId === a.worker?.agentId && d.resolvedBy && d.route !== "hold"))
+        refuse("HELD", "Original imported callback owner needs explicit drain evidence; attachment does not transfer it.");
+      if (!a.worker) {
+        if (c.op === "replace") refuse("HELD", "A manual replacement requires an accounted worker and workspace.");
+        const create = s.effects.find(e => e.id === a.launchEffectId);
+        if (create?.state === "succeeded") {
+          const reserved = create.receiverKey ? await this.receiver.findAgent(create.receiverKey) : null;
+          if (!reserved || reserved.id !== create.receiverKey || !["idle", "closed"].includes(reserved.status) || reserved.pendingPermissions) refuse("HELD", "Retain the unverified created identity until exact stop evidence is observed.");
+        }
+        continue;
+      }
+      const observed = await this.receiver.findAgent(a.worker.agentId);
+      if (!observed || observed.id !== a.worker.agentId || observed.workspaceId !== a.worker.workspaceId || !["idle", "closed"].includes(observed.status) || observed.pendingPermissions)
+        refuse("HELD", "Observe the exact original worker stopped; missing or uncertain is held.");
+    }
+    return this.commands.planCommandWith(input, actor, "s04.checked-recovery/1", async current => {
+      for (const a of selected) if (current.attempts.find(n => n.id === a.id)?.version !== a.version) refuse("STALE", "Attempt changed during recovery observation.");
+      return { expectedVersions: [], mutations: [] };
+    });
   }
 
   /** Guarded proposals: only the current bound owner, for its current verified worker, under one logical cause. */

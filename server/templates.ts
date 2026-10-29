@@ -80,8 +80,9 @@ export const TEMPLATES = {
   maintenanceHelper: "tools/maintenance.mjs",
   maintenanceGuide: "data/maintenance.md",
   projectGuide: "data/project-mates.md",
-  /** S04 scope helper: registered, deliberately not seeded into homes until activation. */
+  /** Build B: both remain unseeded unless plan supervision is explicitly enabled. */
   scopeHelper: "tools/scope.mjs",
+  scopeGuide: "data/plan-supervisors.md",
   backlogLint: "data/backlog-lint.js",
   workflowGuide: "data/workflows.md",
   workflowPlan: "parts/workflow-plan.md",

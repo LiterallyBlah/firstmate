@@ -2,6 +2,7 @@
 import { z } from "zod";
 import { SupervisionHash, SupervisionUuid, SupervisionVersionRefSchema } from "./supervision";
 import { PlanId, WorkflowCommandSchema } from "./workflow-plans";
+import { PlanRuleRefSchema } from "./plan-rules";
 const count = z.number().int().nonnegative();
 export const ScopedDependencySchema = z.object({ homeId: z.string().min(1), planId: PlanId, nodeId: PlanId,
   outcome: z.enum(["done", "landed", "answered"]), planHash: SupervisionHash, revision: count.min(1), attemptId: z.string().uuid().nullable() }).strict();
@@ -12,6 +13,7 @@ export const ScopedPlanCommandSchema = z.object({
   policyVector: z.array(SupervisionVersionRefSchema).max(256), modelPolicyVector: z.array(SupervisionVersionRefSchema).max(256),
   evidenceVector: z.array(SupervisionVersionRefSchema).max(256), approvalId: SupervisionUuid.nullable(),
   head: z.string().regex(/^[0-9a-f]{40,64}$/).nullable(), artifactHash: SupervisionHash.nullable(), briefHash: SupervisionHash.nullable(),
+  planRules: PlanRuleRefSchema.optional(),
 }).strict();
 export type ScopedPlanCommand = z.infer<typeof ScopedPlanCommandSchema>;
 export const ScopedAnswerContextSchema = ScopedPlanCommandSchema.omit({ command: true, requestId: true }).extend({ decisionId: SupervisionUuid }).strict();

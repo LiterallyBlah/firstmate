@@ -1,10 +1,11 @@
+import { prepareProjectAnswer } from "./project-captain";
 /** Disabled cooperative pilot command seam. No RPC registration, executor or external effects. */
 import { createHash, randomUUID } from "node:crypto";
 import { readFile, stat } from "node:fs/promises";
 import { z } from "zod";
 import { SupervisionActorSchema, SupervisionHash, SupervisionUuid, SupervisionVersionRefSchema, type SupervisionActor, type SupervisionExpected, type SupervisionStatus } from "../shared/supervision";
 import { PolicyApprovalSchema, ScopedDecisionSchema, type ScopedCommandResult, type PilotOperation, type PolicyOperationTarget } from "../shared/supervision-policy";
-import { PlanDefinitionSchema, PlanId, WorkflowCommandSchema, planProblems, type WorkflowCommand, type WorkflowPlan, type PlanLaunch } from "../shared/workflow-plans";
+import { PlanDefinitionSchema, PlanId, WorkflowCommandSchema, planProblems, decisionOwner, type WorkflowCommand, type WorkflowPlan, type PlanLaunch } from "../shared/workflow-plans";
 import { checkNewWorkflowAction, dependenciesMet, planSubjectHash, WorkflowEventSchema, type WorkflowEvent } from "./workflow-plans";
 import { SupervisionError, type SupervisionMutation, type SupervisionStore } from "./supervision-store";
 import { applicableRules, checkPolicy } from "./supervision-policy";
@@ -12,13 +13,15 @@ import { digest } from "./submissions";
 import { resolveInHome } from "./files";
 import { readPlanPosture } from "./workflow-posture";
 import { replaySupervisionWorkflow } from "./supervision-workflows";
-import { workflowHomeIdentity } from "./workflow-ownership";
+import { workflowHomeIdentity, mergeOwnership, planOwnership } from "./workflow-ownership";
+import type { PlanRules } from "./plan-rules";
+import { planBudgetException } from "../shared/plan-supervisor-limits";
 
 export { ScopedDependencySchema, ScopedPlanCommandSchema, ScopedAnswerSchema } from "../shared/scoped-commands";
 export type { ScopedPlanCommand, ScopedAnswer } from "../shared/scoped-commands";
 import { ScopedPlanCommandSchema, ScopedAnswerSchema, type ScopedPlanCommand, type ScopedAnswer } from "../shared/scoped-commands";
 const emptyResult = (): ScopedCommandResult => ({ planId: null, planHash: null, decisionId: null, outboxId: null });
-function fail(code: "STALE" | "HELD" | "UNKNOWN_OWNER" | "UNSUPPORTED" | "CONFLICT", message: string): never { throw new SupervisionError(code, message); }
+function fail(code: "STALE" | "HELD" | "UNKNOWN_OWNER" | "UNSUPPORTED" | "CONFLICT" | "UNCERTAIN", message: string): never { throw new SupervisionError(code, message); }
 export function scopedDecisionId(scope: string, plan: string, node: string): string {
   const h = digest([scope, plan, node]); return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-8${h.slice(17, 20)}-${h.slice(20, 32)}`;
 }
@@ -56,7 +59,7 @@ export function checkDependencyRoute(status: SupervisionStatus, planId: string, 
     (["held", "transferring"].includes(owner.state) && !(op === "decision.answer" && owner.id === scopeId))) fail("HELD", "Dependency backend or scope is unavailable; cross-backend mutation is unsupported.");
 }
 export class SupervisionCommands {
-  constructor(readonly store: SupervisionStore, readonly home: string, private readonly options: { enabled?: boolean; now?: () => string; unverifiedUiAnswers?: boolean;
+  constructor(readonly store: SupervisionStore, readonly home: string, private readonly options: { enabled?: boolean; now?: () => string; rules?: PlanRules; recovery?: boolean; registerTasks?: boolean; unverifiedUiAnswers?: boolean;
     answerAdmission?: (status: SupervisionStatus) => Promise<void> } = {}) {}
   private checkOwner(status: SupervisionStatus, input: Pick<ScopedPlanCommand, "homeId" | "scopeId" | "epoch" | "scopeVersion">, actor: SupervisionActor, op: PilotOperation, uiAnswer = false) {
     if (!this.options.enabled) fail("UNSUPPORTED", "Pilot scoped commands are disabled.");
@@ -76,7 +79,9 @@ export class SupervisionCommands {
   }
   async planCommand(raw: ScopedPlanCommand, actorInput: SupervisionActor) {
     const input = structuredClone(ScopedPlanCommandSchema.parse(raw)), actor = structuredClone(SupervisionActorSchema.parse(actorInput));
-    return this.store.transactCommand(input.requestId, digest(input), actor, status => this.prepare(status, input, actor));
+    const factual = await this.options.rules?.prepareFactual(input);
+    return this.store.transactCommand(input.requestId, digest(input), actor, status => this.prepare(status, input, actor, false, factual))
+      .catch(error => this.options.rules ? this.options.rules.refused(error) : Promise.reject(error));
   }
   /** S04 composition seam: the same checked preparation, extended inside the same transaction.
    * The distinct input hash keeps a plain command and a gateway command from sharing a request ID.
@@ -84,10 +89,11 @@ export class SupervisionCommands {
   async planCommandWith(raw: ScopedPlanCommand, actorInput: SupervisionActor, kind: string,
     extend: (status: SupervisionStatus, prepared: { mutations: SupervisionMutation[]; result: ScopedCommandResult }) => Promise<{ expectedVersions: SupervisionExpected[]; mutations: SupervisionMutation[] }>) {
     const input = structuredClone(ScopedPlanCommandSchema.parse(raw)), actor = structuredClone(SupervisionActorSchema.parse(actorInput));
+    const factual = await this.options.rules?.prepareFactual(input);
     return this.store.transactCommand(input.requestId, digest({ composed: kind, input }), actor, async status => {
-      const prepared = await this.prepare(status, input, actor), extra = await extend(status, prepared);
+      const prepared = await this.prepare(status, input, actor, kind === "s04.checked-recovery/1", factual), extra = await extend(status, prepared);
       return { expectedVersions: [...prepared.expectedVersions, ...extra.expectedVersions], mutations: [...prepared.mutations, ...extra.mutations], result: prepared.result };
-    });
+    }).catch(error => this.options.rules ? this.options.rules.refused(error) : Promise.reject(error));
   }
   async answer(raw: ScopedAnswer, actorInput: SupervisionActor) {
     return this.answerWith(raw, actorInput, false);
@@ -107,14 +113,39 @@ export class SupervisionCommands {
       if (!decision || decision.ownerScopeId !== answer.scopeId) fail("UNKNOWN_OWNER", "Decision does not belong to this logical scope.");
       if (decision.state !== "pending" || decision.answer || decision.revision !== answer.revision || decision.subjectHash !== answer.subjectHash)
         fail("STALE", "This decision was answered or its subject changed. Preserve the draft and reread.");
+      if (status.commands.some(c => c.result.projectException?.decisionId === decision.id))
+        return prepareProjectAnswer(this.home, status, decision, answer, actor, uiAnswer, this.options.now?.() ?? new Date().toISOString());
+      const knownBudget = status.commands.some(c => c.result.budgetException?.decisionId === decision.id);
+      if (knownBudget) {
+        const exception = planBudgetException(status, decision), scope = this.checkOwner(status, answer, actor, "decision.answer", uiAnswer), binding = status.bindings.find(b => b.scopeId === scope.id);
+        if (!exception || exception.planHash !== answer.expectedPlanHash || !binding || answer.dependencyBindings.length || !decision.options.some(o => o.id === answer.option))
+          fail("STALE", "Budget question facts changed; preserve the answer and reread.");
+        if (actor.kind !== "captain-ui" && !(uiAnswer && actor.kind === "plugin-ui-unverified") && !(actor.kind === "mate-chat" && answer.text.trim())) fail("UNSUPPORTED", "A budget exception requires explicit captain action; owner work cannot mint it.");
+        await checkPolicy(this.home, status, { scopeId: scope.id, planId: decision.planId, projectIds: scope.projectIds, hostId: binding.hostId, operation: "decision.answer",
+          policyVector: answer.policyVector, evidenceVector: answer.evidenceVector, subjectHash: answer.subjectHash!, revision: answer.revision,
+          approvalId: answer.approvalId, model: null, head: answer.head, artifactHash: answer.artifactHash,
+          operationTarget: { nodeId: decision.nodeId, commandHash: digest({ budgetAnswer: answer }), briefHash: null, dependencyHash: digest([]) } }, this.options.now?.() ?? new Date().toISOString());
+        const at = this.options.now?.() ?? new Date().toISOString(), outboxId = answer.submissionId;
+        const mutations: SupervisionMutation[] = [{ kind: "decision", value: { ...decision, version: decision.version + 1, state: "answered", answer: {
+          submissionId: answer.submissionId, option: answer.option, text: answer.text, at, provenance: actor, outboxId } } },
+          { kind: "outbox", value: { id: outboxId, version: 1, ownerScopeId: scope.id, planId: decision.planId, kind: "decision.answer", causationId: answer.submissionId,
+            subjectHash: decision.subjectHash, decisionId: decision.id, at, state: "pending", handledEpoch: null, resultRef: null } }];
+        if (answer.option === "keep-held") {
+          const id = scopedDecisionId(scope.id, decision.planId, "budget-admission-stop"), old = status.operationHolds.find(h => h.id === id);
+          mutations.push({ kind: "operation-hold", value: { id, version: (old?.version ?? 0) + 1, scopeId: scope.id, planId: decision.planId,
+            operations: ["plan.start", "model.use"], reason: "Captain kept this scope held after its counted budget exception.", sourceVector: answer.policyVector, state: "held" } });
+          for (const e of status.effects.filter(e => e.scopeId === scope.id && e.state === "reserved")) mutations.push({ kind: "effect", value: { ...e, state: "cancelled", version: e.version + 1 } });
+        }
+        return { expectedVersions: refs(status, mutations), mutations, result: { planId: decision.planId, planHash: exception.planHash, decisionId: decision.id, outboxId } };
+      }
       return this.prepare(status, { ...answer, requestId: answer.submissionId,
         command: { op: "captain", plan: decision.planId, action: "answer", revision: answer.revision, subjectHash: decision.subjectHash,
-          node: decision.nodeId, option: answer.option, text: answer.text } }, actor, uiAnswer);
+          node: decision.nodeId, option: answer.option, text: answer.text } }, actor, false, undefined, uiAnswer);
     });
   }
-  private async prepare(status: SupervisionStatus, input: ScopedPlanCommand, actor: SupervisionActor, uiAnswer = false) {
+  private async prepare(status: SupervisionStatus, input: ScopedPlanCommand, actor: SupervisionActor, checkedRecovery = false, factual?: { id: string; bytes: number }, uiAnswer = false) {
     const c = input.command, op = operation(c), scope = this.checkOwner(status, input, actor, op, uiAnswer);
-    if (["plans", "show", "agenda", "lint", "retire", "notified", "release", "replace"].includes(c.op)) fail("UNSUPPORTED", "This command needs its existing reader or a later checked lifecycle/migration adapter.");
+    if (["plans", "show", "agenda", "lint", "notified"].includes(c.op) || (["retire", "replace", "release"].includes(c.op) && !this.options.recovery) || (["retire", "replace"].includes(c.op) && !checkedRecovery)) fail("UNSUPPORTED", "This command needs its existing reader or checked lifecycle/recovery adapter.");
     const planId = c.op === "draft" || c.op === "revise" ? c.definition.id : c.op === "implicit" ? c.launch.id : "plan" in c ? c.plan : fail("UNSUPPORTED", "No plan target.");
     const backend = status.backends.find(b => b.planId === planId);
     if (status.backends.filter(b => b.ownerScopeId === scope.id).length !== 1) fail("CONFLICT", "A pilot plan scope must own exactly one plan.");
@@ -128,6 +159,7 @@ export class SupervisionCommands {
       if (actor.kind === "mate-chat" && !(c.op === "approve" ? c.quote : c.text).trim()) fail("HELD", "Chat-recorded authority needs the captain's source words.");
     } else if (actor.kind === "captain-ui") fail("UNSUPPORTED", "Captain UI uses the distinct captain command class.");
     const at = this.options.now?.() ?? new Date().toISOString();
+    await this.options.rules?.command(status, input);
     const tasks = status.tasks.filter(t => t.ownerScopeId === scope.id && t.planId === planId);
     const selectedNode = "node" in c ? c.node : c.op === "implicit" ? c.launch.id : undefined;
     const selectedTask = selectedNode ? tasks.find(t => t.nodeId === selectedNode) : undefined;
@@ -137,6 +169,25 @@ export class SupervisionCommands {
       subjectHash: input.subjectHash ?? digest(c), revision: input.revision || 1, approvalId: input.approvalId,
       model: null, head: input.head, artifactHash: input.artifactHash, operationTarget: operationTarget(input) };
     await checkPolicy(this.home, status, admission, at);
+    if (c.op === "release") {
+      const attempt = status.attempts.find(a => a.id === c.attempt && a.taskId === selectedTask?.id), create = status.effects.find(e => e.id === attempt?.launchEffectId);
+      if (!attempt || attempt.worker || !create || !(["reserved", "cancelled"].includes(create.state) || create.state === "failed" && create.receiptRef?.startsWith("rejected:")) ||
+        status.effects.some(e => e.attemptId === attempt.id && ["dispatching", "uncertain", "accepted"].includes(e.state))) fail("UNCERTAIN", "Release requires definite non-admission of this exact uncreated attempt; retain uncertainty and spend.");
+    }
+    if (c.op === "replace" && previous && (c.budget.agents > previous.definition.budget.agents || c.budget.turns > previous.definition.budget.turns))
+      fail("HELD", "Replacement cannot raise current budget authority; record a checked budget revision first.");
+    if (c.op === "retire") {
+      if (!previous || c.expected !== previous.hash) fail("STALE", "Retirement requires the exact inspected scoped plan hash.");
+      const ids = new Set(previous.definition.nodes.map(n => n.id));
+      if (status.plans.some(p => p.scopeId !== scope.id && p.plan.definition.nodes.some(n => n.after.some(e => ids.has(e.node))))) fail("HELD", "Replan retained dependencies before retiring this scope.");
+      if (status.effects.some(e => e.scopeId === scope.id && ["reserved", "dispatching", "uncertain", "accepted"].includes(e.state))) fail("HELD", "Settle or explicitly cancel known reservations before retirement.");
+      const inventory = mergeOwnership([...status.retainedOwnership.flatMap(o => o.workflows.filter(w => w.plan === planId).map(w => w.inventory)), planOwnership(previous)]);
+      const body = { version: 1 as const, home: this.home, plan: planId, requestId: input.requestId, requestHash: digest(c), at,
+        by: `${actor.kind}:${actor.id}:${actor.source}`, expected: c.expected, evidence: c.evidence, inventory };
+      const mutations: SupervisionMutation[] = [{ kind: "retirement", scopeId: scope.id, receipt: { ...body, hash: digest(body) } },
+        { kind: "backend", value: { ...backend, state: "retired", version: backend.version + 1 } }, { kind: "scope", value: { ...scope, state: "retired", version: scope.version + 1 } }];
+      return { expectedVersions: refs(status, mutations), mutations, result: { ...emptyResult(), planId, planHash: previous.hash } };
+    }
     const dependencies: WorkflowPlan[] = [];
     for (const d of input.dependencyBindings) {
       const p = status.plans.find(p => p.plan.definition.id === d.planId)?.plan;
@@ -154,6 +205,14 @@ export class SupervisionCommands {
     if (["start", "claim"].includes(c.op) || ((c.op === "captain" || c.op === "progress") && c.action === "answer")) checkDependencies(node?.after ?? []);
     checkNewWorkflowAction(c, previous, c.op === "revise" ? status.plans.map(p => p.plan) : plans);
     if ((c.op === "start" || c.op === "claim") && (!node || !dependenciesMet(node, plans))) fail("HELD", "Run dependencies are not satisfied.");
+    if (this.options.rules && c.op === "record") {
+      const attempt = status.attempts.find(a => a.id === c.attempt && a.taskId === selectedTask?.id), worker = attempt?.worker;
+      if (!attempt || selectedTask?.currentAttempt !== attempt.id) fail("UNKNOWN_OWNER", "Record the exact current retained attempt.");
+      if (worker) {
+        if (c.agentId && c.agentId !== worker.agentId || c.workspaceId && c.workspaceId !== worker.workspaceId) fail("UNKNOWN_OWNER", "Reported worker/workspace differs from the verified attempt.");
+        c.agentId = worker.agentId; c.workspaceId = worker.workspaceId;
+      }
+    }
     if (c.op === "close" && status.plans.some(p => p.plan.definition.nodes.some(n => !["done", "landed", "failed", "cancelled"].includes(p.plan.nodes[n.id]?.state ?? "planned") && n.after.some(e => e.node === c.node && e.on === "landed")))) fail("HELD", "A retained plan still needs this run to land.");
     const definition = c.op === "draft" || c.op === "revise" ? c.definition : c.op === "implicit" ? PlanDefinitionSchema.parse({
       format: "firstmate.plan/1", id: planId, title: c.launch.title, request: { text: c.launch.title, at }, implicit: true,
@@ -163,6 +222,16 @@ export class SupervisionCommands {
     if (definition && previous) {
       const removed = previous.definition.nodes.filter(n => !definition.nodes.some(next => next.id === n.id));
       if (status.plans.some(p => p.plan.definition.id !== planId && p.plan.definition.nodes.some(n => n.after.some(e => removed.some(r => r.id === e.node))))) fail("HELD", "A retained plan needs a removed prerequisite.");
+    }
+    const taskMutations: SupervisionMutation[] = [];
+    if (this.options.registerTasks && (c.op === "draft" || c.op === "revise")) for (const run of definition?.nodes ?? []) {
+      if (run.kind !== "run" || tasks.some(t => t.nodeId === run.id)) continue;
+      const projects = [...new Set(applicableRules(status, { ...target, hostId: run.launch.host }).filter(r => r.effect === "allow").flatMap(r =>
+        scope.projectIds.filter(id => r.selector.projectNames[id] === run.launch.project)))];
+      if (projects.length !== 1 || run.launch.host.trim().toLowerCase() !== "local") fail("UNKNOWN_OWNER", "A new corrective run requires one already authorized local scope project.");
+      const task = { id: scopedDecisionId(scope.id, planId, `task-${run.id}`), version: 1, ownerScopeId: scope.id, planId, nodeId: run.id, projectId: projects[0]!, hostId: "local", currentAttempt: null };
+      if (status.tasks.some(t => t.id === task.id || t.nodeId === task.nodeId && t.hostId === task.hostId)) fail("CONFLICT", "Corrective task identity is already retained; never borrow or rename it.");
+      tasks.push(task); taskMutations.push({ kind: "task", value: task });
     }
     for (const run of (definition?.nodes ?? (node ? [node] : [])).filter(n => n.kind === "run")) {
       if (run.kind !== "run") continue;
@@ -199,7 +268,13 @@ export class SupervisionCommands {
     // used by other steps. This does not widen the exact per-node readiness bindings above.
     const problems = planProblems(next.definition, status.plans.map(p => p.plan), new Set(next.removed?.map(r => r.node.id)));
     if (problems.length) fail("HELD", problems.join("\n"));
-    const mutations: SupervisionMutation[] = [{ kind: "workflow", scopeId: scope.id, event }];
+    const mutations: SupervisionMutation[] = [{ kind: "workflow", scopeId: scope.id, event }, ...this.options.rules?.factual(status, input, factual) ?? []];
+    mutations.push(...taskMutations);
+    if (c.op === "release") {
+      const attempt = status.attempts.find(a => a.id === c.attempt)!;
+      mutations.push({ kind: "attempt", value: { ...attempt, state: "released-uncreated", version: attempt.version + 1 } });
+      for (const effect of status.effects.filter(e => e.attemptId === attempt.id && e.state === "reserved")) mutations.push({ kind: "effect", value: { ...effect, state: "cancelled", version: effect.version + 1 } });
+    }
     // Bookkeeping acknowledgements never generate another notification to acknowledge.
     const outboxId = c.op === "ack" ? null : input.requestId;
     const answerNode = (c.op === "captain" || c.op === "progress") && c.action === "answer" ? c.node : null;
@@ -216,7 +291,7 @@ export class SupervisionCommands {
         answer: n.id === answerNode && (c.op === "captain" || c.op === "progress") ? { submissionId: input.requestId, option: c.option, text: c.op === "captain" ? c.text : c.evidence, at, provenance: actor, outboxId } : null });
       mutations.push({ kind: "decision", value });
     }
-    for (const old of status.decisions.filter(d => d.planId === planId && d.ownerScopeId === scope.id && d.state === "pending" && !next.definition.nodes.some(n => n.id === d.nodeId)))
+    for (const old of status.decisions.filter(d => d.planId === planId && d.ownerScopeId === scope.id && d.state === "pending" && !next.definition.nodes.some(n => n.id === d.nodeId) && !status.commands.some(c => c.result.budgetException?.decisionId === d.id)))
       mutations.push({ kind: "decision", value: { ...old, version: old.version + 1, state: "superseded" } });
     if (outboxId) mutations.push({ kind: "outbox", value: { id: outboxId, version: 1, ownerScopeId: scope.id, planId, kind: decisionId ? "decision.answer" : "plan.command",
       causationId: input.requestId, subjectHash: next.hash, decisionId, at, state: "pending", handledEpoch: null, resultRef: null } });
@@ -228,7 +303,11 @@ export class SupervisionCommands {
     }
     const handled = c.op === "ack" && c.kind === "handled" ? status.outbox.filter(o => o.ownerScopeId === scope.id && o.planId === planId && o.state === "pending" && c.ids.includes(o.id)) : [];
     return { expectedVersions: refs(status, mutations), mutations,
-      result: { planId, planHash: next.hash, decisionId, outboxId, ...(handled.length ? { handling: { scopeId: scope.id, epoch: input.epoch,
+      result: { planId, planHash: next.hash, decisionId, outboxId, ...(this.options.rules ? { captainDecisions: next.definition.nodes.flatMap(n => n.kind === "decision" && !next.nodes[n.id]?.answer && decisionOwner(next, n) === "captain" ? [{
+        format: "firstmate.scoped-captain-decision/1" as const, homeId: status.homeId, scope: { kind: "plan" as const, id: scope.id },
+        decisionId: scopedDecisionId(scope.id, planId, n.id), revision: next.revision, subjectHash: planSubjectHash(next), origin: { kind: "plan" as const, id: planId },
+        title: n.title, question: n.summary, options: n.options.map((o, i) => ({ number: i + 1, id: o.id, label: o.label })), recommendation: n.recommendation,
+        evidence: [{ ref: `workflow:${planId}`, digest: next.hash }], projectIds: scope.projectIds, permittedActions: ["answer" as const] }] : []) } : {}), ...(handled.length ? { handling: { scopeId: scope.id, epoch: input.epoch,
         outboxes: handled.map(o => ({ outboxId: o.id, decisionId: o.decisionId, causationId: o.causationId })) } } : {}) } };
   }
   /** Read-only routing: logical identity survives transfer. S02/S06 own offers; no send occurs here. */

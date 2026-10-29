@@ -15,6 +15,9 @@ process.env.FIRSTMATE_PROJECT_MATES = "0";
 process.env.FIRSTMATE_SCOPE_UI = "0";
 process.env.FIRSTMATE_SCOPE_EXECUTION = "0";
 process.env.FIRSTMATE_MAINTENANCE = "0";
+process.env.FIRSTMATE_PLAN_SUPERVISORS = "0";
+delete process.env.FIRSTMATE_PLAN_BOOTSTRAP_URL;
+delete process.env.FIRSTMATE_PLAN_BOOTSTRAP_PASSWORD;
 process.env.PASEO_HOME = home;
 
 // Receipt-specific tests may opt in and use their own temporary homes. Everyone

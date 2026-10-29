@@ -94,16 +94,17 @@ export async function processWorkflowRequests(home: string, store: WorkflowPlanS
   });
 }
 export function startWorkflowService(afterTick?: () => Promise<void>) {
-  let pending: Promise<void> | undefined;
+  let pending: Promise<void> | undefined, scoped: Promise<void> | undefined;
   const timer = setInterval(() => {
+    // Scoped work has its own queue and must not wait for General's role/conversation lock.
+    if (!scoped && afterTick) scoped = Promise.resolve().then(afterTick).catch(e => console.error("[firstmate] scoped queue:", e)).finally(() => { scoped = undefined; });
     if (pending) return;
     pending = oneAtATime(async () => {
       const config = await readFirstmateConfig(), home = resolveHome(config);
       if (config.migration || config.mateLaunch || !(await isHomeReady(home))) return;
       await processWorkflowRequests(home, workflowStore(home), actor => authorizeWorkflowActor(home, actor));
       await queuePlanNotes(home);
-    }).catch(e => console.error("[firstmate] workflow queue:", e))
-      .then(() => afterTick?.()).catch(e => console.error("[firstmate] project queue:", e)).finally(() => { pending = undefined; });
+    }).catch(e => console.error("[firstmate] workflow queue:", e)).finally(() => { pending = undefined; });
   }, 1000);
-  return async () => { clearInterval(timer); await pending; };
+  return async () => { clearInterval(timer); await Promise.all([pending, scoped]); };
 }

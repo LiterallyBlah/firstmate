@@ -57,7 +57,9 @@ export const MigrationReceiptSchema = z.object({
   planId: PlanId, scopeId: SupervisionUuid, state: z.enum(["prepared", "barrier", "committed", "aborted"]),
   frozenAt: SupervisionUtc,
   /** The slice's separate gates, named by the evidence the operator supplied; none is checked here. */
-  prerequisites: z.object({ inventory: text(), rollbackBuild: text(), policy: text() }).strict(),
+  prerequisites: z.object({ inventory: text(), rollbackBuild: text(), policy: text(),
+    snapshot: z.object({ path: text(2048), manifestDigest: SupervisionHash, sequence: count, hash: SupervisionHash.nullable(), retention: text(2048) }).strict().optional(),
+  }).strict(),
   /** Exact legacy bytes: every event, tip and publication file of the plan, by name and SHA-256. */
   source: z.object({ tip: z.object({ sequence: count, hash: SupervisionHash }).strict(), sourceHash: SupervisionHash,
     files: z.array(z.object({ name: text(64), sha256: SupervisionHash }).strict()).max(3 * 100000) }).strict(),

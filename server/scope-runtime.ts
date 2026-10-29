@@ -1,3 +1,4 @@
+import { checkPlanSupervisorAuthority, planSupervisorAuthority } from "./plan-supervisor-authority";
 /** Build C composition only: no timer, worker executor, provisioning or Attach entry point. */
 import type { PaseoApi } from "./host-types";
 import type { SupervisionStatus } from "../shared/supervision";
@@ -23,6 +24,7 @@ export interface ScopeRuntimeOptions {
   config?: typeof readFirstmateConfig; receiver?: (paseo: PaseoApi) => GatewayReceiver;
   /** Build B may supply its stored, revision-checked cap here. Never composer input. */
   planLimits?: (status: SupervisionStatus, scopeId: string) => GatewayLimits;
+  planBudgetRefused?: (store: SupervisionStore, home: string, scopeId: string) => Promise<void>;
 }
 export class ScopeRuntime {
   constructor(readonly runtime: SupervisionRuntime, private readonly options: ScopeRuntimeOptions = {}) {}
@@ -44,6 +46,10 @@ export class ScopeRuntime {
         if (!scope || scope.kind === "maintenance") refuse("UNSUPPORTED", "This scope has no qualified discussion adapter.");
         if (scope.projectIds.some(id => status.projects?.projects.find(p => p.id === id)?.state !== "admitted"))
           refuse("HELD", "Every associated project must remain admitted before sending.");
+        if (scope.kind === "plan" && this.options.planLimits) {
+          const current = await checkPlanSupervisorAuthority(home, status, scopeId);
+          if (digest(current) !== digest(capturedRuleAuthority)) refuse("STALE", "Supervisor rule authority changed before admission.");
+        }
         for (const project of status.projects?.projects.filter(p => scope.projectIds.includes(p.id)) ?? []) for (const ref of project.sourceVector) {
           const source = status.policySources.find(s => s.id === ref.id);
           if (!source || !sameVector([ref], [policyRef("policy-source", source)]) || status.policySources.some(s => s.supersedes.includes(ref.id)))
@@ -58,6 +64,8 @@ export class ScopeRuntime {
           // This service can only dispatch its own conversation effects. Worker effects belong to Build B.
           if (effect.attemptId !== null) refuse("UNSUPPORTED", "Discussion cannot dispatch worker effects.");
           await check(status, effect.scopeId);
+          if (capturedRuleAuthority && digest(effect.planRules ?? null) !== digest(capturedRuleAuthority))
+            refuse("STALE", "This supervisor effect did not reserve the current rule authority.");
           if (profileAuthority(status) !== capturedProfileAuthority || digest(readLimits(status)) !== digest(limits))
             refuse("STALE", "Discussion profile, plan or budget changed before dispatch.");
         } });
@@ -65,23 +73,26 @@ export class ScopeRuntime {
         const binding = status.bindings.find(b => b.scopeId === scopeId);
         const project = status.projects?.projects.find(p => p.scopeId === scopeId);
         if (project?.owner) return { profile: project.owner.profile, limits: project.owner.limits };
-        // Existing plan bindings keep the original conservative attachment cap. Build B owns
-        // durable continuing-turn budgets; C never silently raises or resets them.
-        if (binding) return { profile: await gateway.profile(binding.profileDigest), limits: { supervisorSessions: 1, supervisorTurns: 1 } };
+        // The continuing-turn cap comes only from the stored Build B seam. This profile
+        // lookup never raises or resets the cumulative reservation budget.
+        if (binding) return { profile: await gateway.profile(binding.profileDigest), limits: readLimits(status) };
         const plan = status.plans.find(p => p.scopeId === scopeId)?.plan;
         const runNode = plan?.definition.nodes.find(n => n.kind === "run");
         if (!runNode || runNode.kind !== "run") refuse("HELD", "No stored discussion profile is available.");
-        return { profile: runNode.launch.agent, limits: { supervisorSessions: 1, supervisorTurns: 1 } };
+        return { profile: runNode.launch.agent, limits: readLimits(status) };
       };
       const initial = await store.read();
+      const capturedRuleAuthority = this.options.planLimits && initial.scopes.some(s => s.id === scopeId && s.kind === "plan")
+        ? planSupervisorAuthority(initial, scopeId) : null;
       const profileAuthority = (status: SupervisionStatus) => digest(status.projects?.projects.find(p => p.scopeId === scopeId)?.owner ??
         status.plans.find(p => p.scopeId === scopeId)?.plan.definition ?? null);
       const capturedProfileAuthority = profileAuthority(initial);
       const readLimits = (status: SupervisionStatus) => GatewayLimitsSchema.parse(status.projects?.projects.find(p => p.scopeId === scopeId)?.owner?.limits ??
-        this.options.planLimits?.(status, scopeId) ?? { supervisorSessions: 1, supervisorTurns: 1 });
+        (status.scopes.find(s => s.id === scopeId)?.kind === "plan" ? this.options.planLimits?.(status, scopeId) : undefined) ?? { supervisorSessions: 1, supervisorTurns: 1 });
       const limits = readLimits(initial);
       const sessions = new SupervisorSessions(store, gateway, receiver, { enabled: true,
-        limits,
+        limits, ...(capturedRuleAuthority ? { ruleRef: (current: SupervisionStatus, id: string) => planSupervisorAuthority(current, id) } : {}),
+        budgetRefused: scope => this.options.planBudgetRefused?.(store, home, scope) ?? Promise.resolve(),
         globalMateId: async () => (await this.checked(homeId)).config.mateAgentId || null,
         reserveCheck: async current => {
           await check(current, scopeId);

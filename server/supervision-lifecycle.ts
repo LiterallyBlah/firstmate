@@ -1,5 +1,5 @@
-/** S04 composition of the existing S02 mailbox and S03/S04 gateway. Explicit attachment only:
- * no entry point imports this module, no timer or provider is created, and enablement is fixture-only.
+/** S04 composition of the existing S02 mailbox and S03/S04 gateway. Explicit attachment only;
+ * Build B registers this once over the owned runtime using the existing workflow clock.
  * General and project conversations are never consulted or sent a routine result.
  */
 import type { PluginLifecycleRegistration } from "@getpaseo/plugin/server";
@@ -30,7 +30,8 @@ export interface ScopeWake {
 }
 export class SupervisionLifecycle {
   constructor(readonly store: SupervisionStore, readonly ingress: SupervisionEvents, readonly inbox: SupervisionInbox,
-    readonly sessions: SupervisorSessions, readonly gateway: SupervisionGateway, private readonly options: { enabled?: boolean; observationTimeoutMs?: number } = {}) {
+    readonly sessions: SupervisorSessions, readonly gateway: SupervisionGateway, private readonly options: { enabled?: boolean; observationTimeoutMs?: number;
+      context?: (status: SupervisionStatus, scopeId: string) => unknown } = {}) {
     if ([ingress.store, inbox.store, sessions.store, gateway.store].some(s => s !== store))
       refuse("CONFLICT", "Lifecycle components must share one authority store.");
   }
@@ -58,7 +59,8 @@ export class SupervisionLifecycle {
         s.commands.some(c => c.id === o.causationId && c.actor.kind !== "agent"));
       // Wakes carry bounded identity hints. All pending outboxes remain pageable through scope read;
       // a truncated prompt is never a disposition or an implicit acknowledgement.
-      const outboxContext = { outboxIds: outboxes.slice(0, 4).map(o => o.id), pendingOutboxes: outboxes.length };
+      const outboxContext = { outboxIds: outboxes.slice(0, 4).map(o => o.id), pendingOutboxes: outboxes.length,
+        ...(this.options.context ? { ownerContext: this.options.context(s, scopeId) } : {}) };
       if (goal.disposition === "paused" || s.operationHolds.some(h => h.scopeId === scopeId && h.state === "held" && h.operations.some(o => o === "model.use" || o === "plan.start")))
         return result("held", "Admissions are paused or held; no owner turn is started.");
       const sends = s.effects.filter(e => e.scopeId === scopeId && e.attemptId === null && e.operation === "agent.send");
@@ -126,14 +128,16 @@ export class SupervisionLifecycle {
         return this.deliver(effectId, page.id);
       }
       if (!goal.due && !outboxes.length) return result("idle", goal.reason);
-      if (!planGoal) return result("held", "Project plan-command outboxes have no qualified handler yet; retain the input without a model summary or General fallback.");
-      const cause = `continuation:${goal.wakeKey}`, prior = sends.find(e => e.logicalKey === turnKey(scopeId, binding.epoch, cause));
+      if (!planGoal && !this.options.context) return result("held", "Project plan-command outboxes have no qualified handler yet; retain the input without a model summary or General fallback.");
+      const cause = planGoal ? `continuation:${goal.wakeKey}` : `project-judgment:${digest(outboxes.map(o => [o.id, o.subjectHash]))}`,
+        prior = sends.find(e => e.logicalKey === turnKey(scopeId, binding.epoch, cause));
       if (prior) return result("awaiting-owner", "This semantic generation was already offered; an unchanged retry is not progress. The unfinished obligation remains due.", prior.id);
       const text = await message(binding.purpose === "discussion" ? TEMPLATES.scopeFacts : TEMPLATES.scopeContinuation, { contextJson: JSON.stringify({ kind: binding.purpose === "discussion" ? "discussion-outbox" : "unfinished-goal", scopeId, epoch: binding.epoch,
         planId: goal.planId, inputVersion: goal.inputVersion, nextNodes: goal.nextNodes, disposition: goal.disposition, reason: goal.reason, ...outboxContext }).replace(/</g, "\\u003c") });
       if (Buffer.byteLength(text) > INBOX_LIMITS.pageBytes) refuse("HELD", "Owner context exceeds its bounded page; the obligation remains due.");
       const effectId = await this.sessions.reserveTurnWith({ requestId: stableId("continuation-turn", cause), scopeId, epoch: binding.epoch, causation: cause, text }, ACTOR, current => {
-        if (continuationInputVersion(current, scopeId, goal.planId) !== goal.inputVersion) refuse("STALE", "Relevant facts changed before this owner pass was reserved.");
+        if (planGoal ? continuationInputVersion(current, scopeId, goal.planId) !== goal.inputVersion : digest(current.outbox.filter(o => o.ownerScopeId === scopeId && o.state === "pending" &&
+          current.commands.some(c => c.id === o.causationId && c.actor.kind !== "agent")).map(o => [o.id, o.subjectHash])) !== digest(outboxes.map(o => [o.id, o.subjectHash]))) refuse("STALE", "Relevant facts changed before this owner pass was reserved.");
         return [];
       });
       return this.deliver(effectId, null);
@@ -218,7 +222,7 @@ function offerForEffect(s: SupervisionStatus, e: SupervisionEffect) {
     turnKey(e.scopeId, e.epoch, `mailbox:${o.id}:${o.sends - 1}`) === e.logicalKey);
 }
 
-/** Concrete hook attachment for a separately qualified activation; intentionally never registered.
+/** Concrete hook attachment for a separately qualified, default-off operating runtime.
  * Supervisor turn ends assess the same durable generation. Worker hooks persist facts before wake. */
 export function registerSupervisionLifecycle(server: PluginLifecycleRegistration, lifecycle: SupervisionLifecycle) {
   lifecycle.assertAttachmentEnabled();

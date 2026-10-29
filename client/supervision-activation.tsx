@@ -11,6 +11,7 @@ import { migrationTargets } from "../shared/fleet";
 import { OptionPicker } from "./option-picker";
 import { workflowRequestId, useWorkflowPlans } from "./workflow-plans";
 import { errorText } from "./format";
+import { MigrationOperations } from "./migration-operations";
 type Plan = ActivationSnapshot["plans"][number];
 function Action({ theme, label, onPress, disabled = false }: { theme: PluginTheme; label: string; onPress(): void; disabled?: boolean }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress}
@@ -38,6 +39,7 @@ export function SupervisionActivationBoard({ theme, compact }: { theme: PluginTh
     {data.audits.map(a => <Text selectable key={`${a.at}:${a.supervisor}`} style={{ color: theme.colors.foregroundMuted }}>
       {a.at} · {a.plan} · supervisor {a.supervisor} · {a.source}
     </Text>)}
+    {data.operatorEnabled ? <MigrationOperations theme={theme} data={data} unavailable={!!readError || !data.enabled} onRead={next => updateActivation?.(next)} /> : null}
     </ScrollView>
     {selected ? <AttachConfirmation key={`${data.homeId}:${selected.scopeId}`} theme={theme} compact={compact} homeId={data.homeId} plan={selected}
       stale={!!readError || !data.enabled || !data.plans.some(p => p.scopeId === selected.scopeId && p.supervisorId === selected.supervisorId &&
