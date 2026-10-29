@@ -9,8 +9,10 @@ export function filterScopeInbox(snapshot: NeedsYouSnapshot, filter: ScopeInboxF
   const scopes = directory.filter(s => filter.kind === "project" ? filter.id ? s.id === filter.id || s.projectIds.some(p => projectIds.includes(p)) : s.kind === "project" || s.projectIds.length > 0 :
     s.kind === filter.kind && (!filter.id || s.id === filter.id));
   const scopeIds = new Set(scopes.map(s => s.id)), planIds = new Set(scopes.flatMap(s => s.planId ? [s.planId] : []));
+  // Descendant plans may span other projects; they cannot lend those projects' legacy identities.
+  const legacyProjects = directory.filter(s => s.kind === "project" && s.id === filter.id);
   const includeLegacy = (source: { project: string | null; hostId: string }) => filter.kind === "general" ? true : filter.kind === "project" &&
-    (!filter.id ? !!source.project : !!source.project && scopes.some(s => s.hostId !== null && (s.hostId ?? "local").trim().toLowerCase() === source.hostId.trim().toLowerCase() &&
+    (!filter.id ? !!source.project : !!source.project && legacyProjects.some(s => s.hostId !== null && (s.hostId ?? "local").trim().toLowerCase() === source.hostId.trim().toLowerCase() &&
       s.projectNames.some(n => n.trim().toLowerCase() === source.project!.trim().toLowerCase())));
   return { ...snapshot, requests: snapshot.requests.filter(r => includeLegacy(r.source)), parked: snapshot.parked.filter(includeLegacy),
     // Quarantined rows may have no trustworthy scope. Keep every such warning visible.

@@ -62,8 +62,10 @@ retain the original native request flow. Failed combined rereads keep confirmed 
 
 All filters operate on the existing combined Needs-you snapshot. General includes legacy work
 it owns; Project includes its scoped descendants and exact local host/name aliases; Plan and
-Maintenance select their recorded scopes. Specific project filters never join a remote task by
-name alone. Global totals stay unchanged; Coming up contributes no count. Unknown quarantines
+Maintenance select their recorded scopes. Specific project filters match legacy requests and parked
+rows only against the selected project's own names/aliases and host; a shared descendant plan
+does not contribute other projects' legacy identities. They never join a remote task by name alone.
+Global totals stay unchanged; Coming up contributes no count. Unknown quarantines
 remain visible in every filter and every counted scoped hold retains its scope.
 
 `shared/scoped-captain-decision.ts` exports `ScopedCaptainDecisionSchema` and its type for B/D.
@@ -94,10 +96,17 @@ zero mutation calls, origin fixtures and horizontal containment. Existing S05 ch
 captured pending send, native link, remount/offline drafts, refusal and answer uncertainty cases.
 The Build C harness is also part of both CI check jobs, with screenshots uploaded as artifacts.
 
-Current verification is recorded in [build-c-verification.json](build-c-verification.json).
+Original implementation verification is recorded in [build-c-verification.json](build-c-verification.json).
 Typecheck, focused checks, both browser harnesses and installed compiler/Hermes passed.
-The final local full suite has a **known pre-existing Windows flake**: 3,192 passed, one failed, three skipped. Two CI-shaped
+That implementation's final local full suite had a **known pre-existing Windows flake**: 3,192 passed, one failed, three skipped. Two CI-shaped
 full runs each failed one assertion in the unchanged launch-helper suite; its isolated control
 passed all 90 tests. The first mate confirmed Build A's reviewer encountered the same flake
 and designated hosted checks as the completion gate. No unrelated fixture, assertion or timeout
 was changed, and the failed local result is retained rather than relabeled green.
+
+Review correction F1 (A09) adds the persisted Alpha/Beta reproduction in
+`server/scope-inbox.test.ts` and a shared identity/alias/host regression in
+`shared/scope-inbox.test.ts`. Both new cases failed before the filter correction and passed
+afterward. Fresh correction verification: full local suite **3,195 passed, three skipped,
+zero failures**; typecheck, all four Build C render cases, and installed compiler/Hermes passed.
+The PR records fresh exact-head hosted results after push.
