@@ -43,6 +43,16 @@ it("an enabled empty board consumes no primary space", async () => {
   await render(createElement(SupervisionActivationBoard, { theme, compact: false }));
   expect(renderer!.toJSON()).toBe(null); expect(mocks.attach).not.toHaveBeenCalled();
 });
+it("captain feedback: enabled empty Plan help has no bare heading inside Work details", async () => {
+  mocks.snapshot = { ...snapshot(), plans: [] };
+  await render(createElement(SupervisionActivationBoard, { theme, compact: false, advanced: true }));
+  expect(renderer!.toJSON()).toBe(null); expect(mocks.attach).not.toHaveBeenCalled();
+});
+it("Work details retains available specialist controls even without recorded plans", async () => {
+  mocks.snapshot = { ...snapshot(), plans: [], operatorEnabled: true };
+  await render(createElement(SupervisionActivationBoard, { theme, compact: true, advanced: true }));
+  expect(visibleText(renderer!.toJSON())).toContain("Migration controls"); expect(mocks.attach).not.toHaveBeenCalled();
+});
 it("disabled controls retain corrupt status and failed owners even without an audit", async () => {
   mocks.snapshot = { ...snapshot(), enabled: false, problems: ["Journal hash mismatch"],
     plans: [{ ...plan, canAttach: false, binding: "retired", opening: "failed" }] };

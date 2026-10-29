@@ -22,6 +22,7 @@ jobs:
       - run: node docs/smooth-pr2/contact-sheets.mjs
       - run: node docs/smooth-pr5/render.mjs
       - run: node docs/smooth-pr9/render.mjs
+      - run: node docs/smooth-pr9/work-details-render.mjs
       - run: node docs/smooth-pr9/production-render.mjs
       - run: node node_modules/vitest/vitest.mjs run server/plan-help-wiring.test.ts --maxWorkers=1
         env:
@@ -55,6 +56,8 @@ jobs:
             .local/smooth-pr9/ui/screenshots/*.png
             .local/smooth-pr9/production/*.png
             .local/smooth-pr9/production/results.json
+            .local/smooth-pr9/work-details/*.png
+            .local/smooth-pr9/work-details/results.json
             .local/smooth-pr10/ui/results.json
             .local/smooth-pr10/ui/screenshots/*.png
             .local/smooth-pr10/delayed/*.png

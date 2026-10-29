@@ -41,6 +41,8 @@ Focused typecheck, regression, browser and full-suite results are recorded in th
 
 The original review reproductions were made failing regression tests before their fixes. Acceptance was recorded in PR 175 before implementation and the correction checks were added before these edits.
 
+Captain feedback on installed main `fbdf3ae0` adds one small visibility correction: Work details hides Plan help when enabled activation has no plans, history, problem, pause or available specialist control. Available migration controls and retained work/problems still render. The unit regression and `node docs/smooth-pr9/work-details-render.mjs` reproduce the exact bare heading, then check its absence and retained problems through the registered Home/drawer in both themes and widths. Sixteen screenshot cases make no mutation or model call; committed before/after sheets are named `*-work-details-comparison.png`.
+
 ## Visual evidence and copy
 
 | Theme / width | Before → after | Review, blocked setup, handover, Attach and 200% text |
