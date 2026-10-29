@@ -153,6 +153,13 @@ over the report's suggested Updating label.
 
 ## Validation
 
+The rebase onto `3b1c1967` keeps both Settings setup destinations and combines
+PR 176's silent refreshes and plain routine checks with the compact project-mates
+drawer. The routine-check and decision-refresh implementations are unchanged
+from main. Affected tests: 232 passed; combined browser checks: Settings 72,
+project drawer 52, routine-check drawer 28, quiet refresh 24, and navigation/layout
+regressions 32. The live comparison sheets show the combined drawer.
+
 - Typecheck and `git diff --check` pass.
 - Focused project setup/runtime/component checks: **81 passed**, including a regression that
   first reproduced the concurrent older-request adoption and passes with the
