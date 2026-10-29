@@ -6,6 +6,8 @@ import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode, type
 import { Pressable, ScrollView, Text, View, type TextInput } from "react-native";
 import { readScopeConversation, discussScope, type ScopeSnapshot, type ScopeSummary } from "../shared/supervision-rpc";
 import { resolveDiscussion, scopeDraftKey } from "../shared/scope-discussion";
+import type { DiscussionTarget } from "../shared/scope-discussion";
+import { sameConversationTarget } from "./conversation-list";
 import type { ItemThread } from "../shared/item-threads";
 import { drafts } from "./draft";
 import { discussionSender, discussionSendKey, discussionSendRegistry } from "./scope-send";
@@ -21,7 +23,7 @@ function Button({ label, onPress, disabled = false, theme, selected = false, exp
     style={{ minHeight: 44, padding: 10, justifyContent: "center", borderWidth: 1, borderColor: selected ? theme.colors.accent : theme.colors.border,
       borderRadius: 7, backgroundColor: theme.colors.surface1, opacity: disabled ? 0.5 : 1 }}><Text style={{ color: theme.colors.foreground, fontSize: 13 }}>{label}</Text></Pressable>;
 }
-export function ScopeDiscussion({ snapshot, offline = false, hostId, theme, compact, navigation, refresh, initialScope, onSelectScope, generalControls, onBackToFirstMate, generalMate }: {
+export function ScopeDiscussion({ snapshot, offline = false, hostId, theme, compact, navigation, refresh, initialScope, onSelectScope, generalControls, onBackToFirstMate, generalMate, capturedTarget }: {
   snapshot: ScopeSnapshot; offline?: boolean; hostId: string; theme: PluginTheme; compact: boolean;
   navigation?: PluginScreenProps["navigation"]; refresh(): void;
   initialScope?: string | undefined;
@@ -29,6 +31,7 @@ export function ScopeDiscussion({ snapshot, offline = false, hostId, theme, comp
   generalControls?: ReactNode;
   onBackToFirstMate?: (() => void) | undefined;
   generalMate?: AgentSummary | undefined;
+  capturedTarget?: DiscussionTarget | undefined;
 }) {
   const read = useRpc(readScopeConversation), send = useRpc(discussScope), cache = useQueryClient();
   const selectionKey = JSON.stringify(["firstmate.scope-selection/1", hostId, snapshot.homeId]);
@@ -53,12 +56,14 @@ export function ScopeDiscussion({ snapshot, offline = false, hostId, theme, comp
   const replyTo = useSyncExternalStore(drafts.subscribe, () => drafts.get(replyKey) || null);
   const setReplyTo = (id: string | null) => drafts.set(replyKey, id ?? "");
   const draft = useSyncExternalStore(drafts.subscribe, () => drafts.get(draftKey));
+  useEffect(() => { composer.current?.focus(); }, [draftKey]);
   useEffect(() => { setValidationError(null); }, [draftKey, draft]);
   const refusedDraft = useSyncExternalStore(drafts.subscribe, () => drafts.get(`${draftKey}:refused`));
   let resolved: ReturnType<typeof resolveDiscussion<ScopeSummary>> | null = null, routeError: string | null = null;
   try { resolved = resolveDiscussion(draft, snapshot.scopes, snapshot.projects, defaultScope, true); } catch (e) { routeError = errorText(e); }
   if (replyTo && resolved && resolved.scope.id !== selected) routeError = "This reply belongs to another recipient. Cancel the reply or use its original recipient.";
   const recipient = resolved?.scope;
+  if (capturedTarget && recipient && !sameConversationTarget(capturedTarget, recipient.target)) routeError = "This message belongs to the selected mate. Open that conversation again before sending. Your draft is kept.";
   const gate = discussionSender(globalThis, discussionSendKey(hostId, snapshot.homeId, recipient?.id ?? defaultScope));
   const sending = useSyncExternalStore(gate.subscribe, gate.snapshot);
   const sendRegistry = discussionSendRegistry(globalThis);
@@ -114,10 +119,10 @@ export function ScopeDiscussion({ snapshot, offline = false, hostId, theme, comp
       </View>
       <Text accessibilityRole="header" style={{ color: colors.foreground, fontSize: 17, fontWeight: "600" }}>{snapshot.scopes.find(s => s.id === defaultScope)?.title ?? "Selected conversation"}</Text>
       <Text style={{ color: colors.foregroundMuted, fontSize: 13 }}>Separate from your FirstMate chat. Discussing work does not approve it.</Text>
-      {offline ? <Text style={{ color: colors.statusWarning, fontSize: 12 }}>Offline · last updated {snapshot.asOf}. Refresh to check again.</Text> : snapshot.freshness !== "current" && snapshot.freshness !== "uninitialized" ?
+      {offline ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>Last updated {snapshot.asOf}. Refresh to check this conversation again.</Text> : snapshot.freshness !== "current" && snapshot.freshness !== "uninitialized" ?
         <Text accessibilityRole="alert" style={{ color: colors.statusWarning, fontSize: 12 }}>Some work couldn't be checked. Review Details before continuing.</Text> : null}
       {showStatus ? <Text selectable style={{ color: colors.foregroundMuted, fontSize: 12 }}>
-        {offline ? "Offline · retained status" : `${snapshot.freshness} · sequence ${snapshot.sequence}`} · as of {snapshot.asOf} · Reading starts no model turn
+        {offline ? "Offline · retained status" : `${snapshot.freshness} · sequence ${snapshot.sequence}`} · Reading starts no model turn
       </Text> : null}
       {showStatus ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>Optional shortcuts: start with @recipient to address one person, or #project to add context. To shows the resolved recipient; messages are never broadcast.</Text> : null}
       {snapshot.problems.length ? <Text accessibilityRole="alert" style={{ color: colors.statusDanger }}>Some work couldn't be checked. Review Details before continuing.</Text> : null}

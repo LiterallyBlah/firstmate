@@ -19,6 +19,8 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "reac
 import { Image, Platform, Pressable, SafeAreaView, ScrollView, Text, View, type TextInput } from "react-native";
 
 import { GrowingChatInput } from "./growing-chat-input";
+import { useMateMentions } from "./mate-mentions";
+import { useConversations } from "./conversation-context";
 
 import type { ImagePart } from "../shared/attachments";
 import { MAX_FILE_CANDIDATES, findHomeFiles } from "../shared/files";
@@ -187,6 +189,10 @@ function GeneralMateChat({
   const [draft, setDraftState] = useState(() => drafts.get(mate.id));
   /** What is attached to the draft, kept beside it for the same reasons — see `./attachments`. */
   const [attachments, setAttachmentsState] = useState(() => pendingAttachments.get(mate.id));
+  const mentions = useMateMentions({ draft, attached: attachments.length > 0, composer, theme, active });
+  const conversations = useConversations();
+  const replyIds = rows.filter(row => row.kind === "mate").map(row => row.key);
+  useEffect(() => { conversations?.generalRead(replyIds, active, !timeline.loading && !timeline.error); }, [conversations?.generalRead, JSON.stringify(replyIds), active, timeline.loading, timeline.error]);
   /**
    * The stores are the truth and this chat follows them, so a send that fails
    * after the chat that made it was unmounted — a tab switch mid-send on a
@@ -230,6 +236,7 @@ function GeneralMateChat({
   const usage = timeline.agent?.lastUsage;
 
   function setDraft(text: string): void {
+    mentions.resetCaret();
     drafts.set(mate.id, text);
     setDraftState(text);
   }
@@ -352,7 +359,7 @@ function GeneralMateChat({
     // Another open chat can clear or edit the stores before this render catches up.
     const text = drafts.get(mate.id);
     const attached = pendingAttachments.get(mate.id);
-    if (!hasContent(text, attached) || sending) return;
+    if (!hasContent(text, attached) || sending || /^\s*@\S*/.test(text)) return;
     // Through the stores only: this chat may be gone by the time the send fails, and the one on screen follows them.
     const sent = send(captainMessage(text, attached), () => {
       if (drafts.get(mate.id).trim() === "") drafts.set(mate.id, text);
@@ -610,6 +617,8 @@ function GeneralMateChat({
               ))}
             </View>
           )}
+          {mentions.panel}
+          {mentions.addressed ? <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>Choose a mate above, or remove @ to message FirstMate.</Text> : null}
           <View style={styles.inputRow}>
             <GrowingChatInput
               ref={composer}
@@ -618,15 +627,17 @@ function GeneralMateChat({
               accessibilityLabel="Message the first mate"
               value={draft}
               onChangeText={setDraft}
+              onSelectionChange={mentions.onSelectionChange}
               placeholder={placeholder}
               placeholderTextColor={theme.colors.foregroundMuted}
               multiline
               numberOfLines={1}
               onKeyPress={
-                submitOnEnter
+                submitOnEnter || mentions.panel
                   ? (event: WebKeyPressEvent) => {
+                      if (mentions.keyPress(event)) return;
                       // Nothing to send, or a send in flight: Enter is left alone, as Paseo leaves it.
-                      if (!isSendKey(event.nativeEvent) || sending || !hasContent(draft, attachments)) return;
+                      if (!submitOnEnter || !isSendKey(event.nativeEvent) || sending || !hasContent(draft, attachments)) return;
                       event.preventDefault();
                       sendDraft();
                     }
@@ -643,7 +654,7 @@ function GeneralMateChat({
                 compact={compact}
                 tone="accent"
                 theme={theme}
-                disabled={sending || !hasContent(draft, attachments)}
+                disabled={sending || mentions.addressed || !hasContent(draft, attachments)}
                 onPress={sendDraft}
               />
             </View>

@@ -39,4 +39,29 @@ report has no numbered slice 11.
 
 ## Validation and evidence
 
-Implementation and verification are pending.
+| Check | Evidence |
+| --- | --- |
+| 1: real project mates and plan helpers, short searchable mention list | `conversation-list.test.ts` checks filtering and names; real Home browser captures show both existing owners and omit uncreated New trial. Caret mentions exclude emails and code. |
+| 2: Message/Open choice, named send, FirstMate continuity | Message carries the words to the named composer for its existing Send/review; Open leaves that draft alone. Browser interactions send through `firstmate.scope.discuss` to the selected project agent, then restore General's words, attachments, earlier pages, reading offset and composer focus. Component coverage retains the existing transcript across enablement and failed/cross-home targets. |
+| 3: switcher and unread | Browser checks one actual plan reply becoming read only after visiting its conversation. The local read store survives plugin reevaluation and isolates host/home/owner. Failed unread reads show unavailable, never zero. The existing To control and switcher share selection. |
+| 4: empty versus pending/failure and shared setup | Component tests distinguish pending/failed/complete-empty reads; the exact plain empty action opens the exported slice 6 ProjectSetup. Browser captures retain a real read failure without claiming there are no mates. |
+| 5–6: checked routing and opt-in safety | General still uses `useMateSender`; leading unresolved addresses are held. Scoped sends retain `discussionSender` and its exact outbox. Navigation pins home/scope/agent/epoch, while each send captures the fresh scope version. Changed owners refuse with retained drafts. The existing server services, Attach, flags, source/profile/capacity checks and first-send review are unchanged. |
+| 7: copy, themes, widths and input | 64 captures compare actual Home at `0e720c2` with this branch; two browser interaction flows cover wide/phone input. All new mention controls meet 44px; no page exceptions or document-width overflow. Manual both-theme inspection corrected dark action contrast; the mechanical design scan has no findings. Refresh stays silent; retained age is muted and appears only after a failed read. |
+
+Unread tracks replies visible through the existing scoped-conversation reader and
+FirstMate's native transcript. It is local to this app session, like the existing
+drafts; it does not claim a device-shared read receipt or include unseen native-only
+messages outside that reader. Navigation and discovery create no model turn.
+
+Run `node docs/smooth-pr11/render.mjs` after installing `docs/board-list` dependencies.
+It writes captures, comparison sheets and JSON only to `.local/smooth-pr11/ui/`.
+`--interactions-only` verifies routing/return behavior without recapturing the visual
+matrix. CI runs the complete harness and retains the raw captures as artifacts.
+The checked-in comparison sheets are the small review set linked in the PR, following
+the preceding smooth-update slices. The fixture has synthetic host data and sends;
+it does not create live owners, sessions or projects. Physical phone keyboard and
+native screen-reader behavior have not been independently verified in this worktree.
+
+Validation: typecheck; 38 focused tests; 64 browser captures and two input/route
+flows; `git diff --check`; mechanical design scan (no findings). Full-suite and
+hosted results are recorded in the PR after completion.
