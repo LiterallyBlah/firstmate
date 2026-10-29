@@ -96,7 +96,8 @@ The Build C harness is also part of both CI check jobs, with screenshots uploade
 
 Current verification is recorded in [build-c-verification.json](build-c-verification.json).
 Typecheck, focused checks, both browser harnesses and installed compiler/Hermes passed.
-The final full suite is **blocked**: 3,192 passed, one failed, three skipped. Two CI-shaped
+The final local full suite has a **known pre-existing Windows flake**: 3,192 passed, one failed, three skipped. Two CI-shaped
 full runs each failed one assertion in the unchanged launch-helper suite; its isolated control
-passed all 90 tests. Per the worker brief's two-obstacle rule, no further retries or unrelated
-fixture changes were made. This is not a completion or green-check claim.
+passed all 90 tests. The first mate confirmed Build A's reviewer encountered the same flake
+and designated hosted checks as the completion gate. No unrelated fixture, assertion or timeout
+was changed, and the failed local result is retained rather than relabeled green.

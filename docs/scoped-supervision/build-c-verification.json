@@ -43,7 +43,7 @@
     "failure": "server/launch-tool.test.ts: emits exact local MCP arguments with baseBranch and never creates locally; result.ok was false",
     "previousBoundedRun": "3191 passed / 1 failed / 3 skipped: same unchanged launch-helper file, BOM recovery-line case",
     "isolatedControl": "all 90 launch-helper tests passed",
-    "disposition": "blocked after second full-run occurrence, per worker brief; no fixture, assertion or timeout was weakened"
+    "disposition": "First mate confirmed this known pre-existing Windows flake also occurred in Build A review; hosted checks are the completion gate. No fixture, assertion or timeout was weakened."
   },
   "integrationLimits": [
     "Plan supervisor caps remain 1 session / 1 opening turn until B supplies the stored planLimits seam.",
