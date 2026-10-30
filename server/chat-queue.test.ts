@@ -111,3 +111,14 @@ it("queue previews omit attachment bytes while Edit restores them", async () => 
   expect(JSON.stringify(preview)).not.toContain("aGVsbG8=");
   expect((await f.queue.change(f.target, row.id, "edit")).payload).toEqual(withImage);
 });
+it("a full waiting queue still permits Send now and turning queueing off", async () => {
+  const f = await fixture(); await f.add("waiting");
+  const stored = JSON.parse(await readFile(f.path, "utf8"));
+  stored.items = Array.from({ length: 100 }, () => ({ ...stored.items[0], id: randomUUID() }));
+  await writeFile(f.path, JSON.stringify(stored));
+  await expect(f.add("overflow")).rejects.toThrow("queue is full");
+  expect((await f.queue.submit(randomUUID(), payload("urgent"), true)).state).toBe("sent");
+  f.options.enabled.mockResolvedValue(false);
+  expect((await f.add("immediate")).state).toBe("sent");
+  expect(f.options.deliver).toHaveBeenCalledTimes(2);
+});

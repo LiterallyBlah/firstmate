@@ -68,7 +68,6 @@ export class ChatQueue {
       const previous = state.items.find(i => i.id === id);
       if (previous) { if (previous.hash !== hash(payload)) throw new Error("This message ID already belongs to another message."); return { item: structuredClone(previous), dispatch: false, allowBusy: false }; }
       const enabled = await this.options.enabled(), activity = await this.options.activity(target);
-      if (state.items.filter(i => i.state === "queued").length >= 100) throw new Error("The queue is full. Remove a message before adding another.");
       if (replaces) {
         const editing = state.items.find(i => i.id === replaces && conversation(i.target, target));
         if (!editing || !["editing", "refused"].includes(editing.state)) throw new Error("The message being edited changed. Refresh before sending.");
@@ -78,6 +77,7 @@ export class ChatQueue {
       state.items.push(item);
       const agent = queueAgent(target);
       const waiting = activity === "busy" || !!(agent && state.barriers[agent]) || state.items.some(i => i.id !== id && i.state === "queued" && queueAgent(i.target) === agent);
+      if (enabled && !now && waiting && state.items.filter(i => i.state === "queued").length > 100) throw new Error("The queue is full. Remove a message before adding another.");
       return now || !enabled || !waiting ? { item: this.claim(state, item), dispatch: true, allowBusy: now || !enabled } : { item: structuredClone(item), dispatch: false, allowBusy: false };
     });
     if (claimed.dispatch) await this.dispatch(claimed.item, claimed.allowBusy);
