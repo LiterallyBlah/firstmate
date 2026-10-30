@@ -104,10 +104,9 @@ it("registration recovers an abandoned claim before any RPC provides an API", as
   saved.claims = { [id]: { owner: "previous-process", at: Date.now() } };
   await writeFile(f.path, JSON.stringify(saved));
   const stop = registerChatQueue({ handle() {}, on: () => () => {} } as unknown as PluginServerContext, {} as ScopeRuntime, {} as Parameters<typeof registerChatQueue>[2]);
-  try {
-    await vi.waitFor(async () => expect(JSON.parse(await readFile(f.path, "utf8")).items[0].state).toBe("held"));
-    expect(host.ask).not.toHaveBeenCalled();
-  } finally { await stop(); }
+  await stop(); // Awaits registration's startup recovery; no RPC supplied an API.
+  expect(JSON.parse(await readFile(f.path, "utf8")).items[0].state).toBe("held");
+  expect(host.ask).not.toHaveBeenCalled();
 });
 it("the scoped receiver rechecks queue availability immediately before the native effect", async () => {
   const send = vi.fn();

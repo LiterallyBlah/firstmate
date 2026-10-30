@@ -140,12 +140,13 @@ it("fresh idle polls release one message without any lifecycle hooks, including 
   }
 });
 it("a stale claim becomes removable without retry, and a late response cannot restore it", async () => {
-  const f = await fixture(); let clock = 1000, finish!: () => void;
+  const f = await fixture(); let clock = 1000, finish!: () => void, claimed!: () => void;
   const queue = new ChatQueue(f.path, { ...f.options, now: () => clock });
   f.options.activity.mockResolvedValue("ready");
-  f.options.deliver.mockImplementation(() => new Promise<void>(resolve => { finish = resolve; }));
+  const claim = new Promise<void>(resolve => { claimed = resolve; });
+  f.options.deliver.mockImplementation(() => new Promise<void>(resolve => { finish = resolve; claimed(); }));
   const id = randomUUID(), request = queue.submit(id, payload("uncertain"));
-  await vi.waitFor(() => expect(f.options.deliver).toHaveBeenCalledTimes(1));
+  await claim;
   clock += 60_001;
   await queue.recover();
   expect((await queue.snapshot(f.target)).items[0]!.state).toBe("held");

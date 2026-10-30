@@ -49,10 +49,11 @@ it("PROBE B: ended processed before started for the claimed item's own turn stil
 it("PROBE C: a claimed row left by a crash mid-delivery can be removed after reload", async () => {
   const f = fixture();
   f.options.activity.mockResolvedValue("ready");
-  let release!: () => void;
-  f.options.deliver.mockImplementation(() => new Promise<void>(r => { release = r; }));
+  let release!: () => void, claimed!: () => void;
+  const claim = new Promise<void>(resolve => { claimed = resolve; });
+  f.options.deliver.mockImplementation(() => new Promise<void>(r => { release = r; claimed(); }));
   const pending = f.queue.submit(randomUUID(), payload("in flight"));
-  await vi.waitFor(() => expect(f.options.deliver).toHaveBeenCalled()); // claim is durable, delivery in flight
+  await claim; // claim is durable, delivery in flight
   const stored = JSON.parse(await readFile(f.path, "utf8"));
   expect(stored.items[0].state).toBe("claimed");
   // Simulate daemon restart: brand-new instance over the same file, delivery outcome unknown.
@@ -60,7 +61,7 @@ it("PROBE C: a claimed row left by a crash mid-delivery can be removed after rel
   const snap = await after.snapshot(f.target);
   expect(snap.items[0]!.state).toBe("held");
   await expect(after.change(f.target, snap.items[0]!.id, "remove")).resolves.toBeTruthy();
-  release(); await pending.catch(() => undefined);
+  release(); await pending;
   expect((await after.snapshot(f.target)).items).toEqual([]);
   expect(f.options.deliver).toHaveBeenCalledTimes(1);
 });
