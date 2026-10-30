@@ -10,7 +10,7 @@ import { createServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
 import assert from 'node:assert/strict';
 const here = dirname(fileURLToPath(import.meta.url)), root = resolve(here, '../..'), out = resolve(root, '.local/chat-queue/ui');
-const baseline = '2c1b1ed96c73385ce72293e06aaf97b2a93a99ac';
+const baseline = 'e8a1c0810805b9e05c85cce20d275f52c14917d9';
 const repo = createRequire(resolve(root, 'package.json')), local = createRequire(resolve(root, 'docs/board-list/package.json'));
 const { build } = local('esbuild'), { chromium } = local('playwright');
 await mkdir(resolve(out, 'screenshots'), { recursive: true });
@@ -86,6 +86,9 @@ const origin = `http://127.0.0.1:${server.address().port}`, browser = await chro
 const results = [];
 try {
   for (const stage of ['before', 'after']) for (const theme of ['light', 'dark']) for (const [device, width, height] of [['desktop', 1440, 1000], ['phone', 390, 844]]) for (const scope of [false, true]) {
+    const key = `${stage}-${theme}-${device}-${scope ? 'project' : 'home'}`;
+    const selectedCase = process.argv.find(arg => arg.startsWith('--case='))?.slice(7);
+    if (selectedCase && selectedCase !== key) continue;
     const page = await browser.newPage({ viewport: { width, height } }), errors = [], id = randomUUID();
     page.on('pageerror', e => errors.push(e.message)); page.setDefaultTimeout(10000);
     const url = `${origin}/?stage=${stage}&theme=${theme}&home=upgraded&features=on&configured&session=${id}`;
@@ -93,12 +96,28 @@ try {
     if (scope) await page.evaluate(() => window.review.openScope(window.review.scope.scopes.find(s => s.kind === 'project').id));
     const input = page.getByRole('textbox', { name: scope ? 'Message recipient' : 'Message the first mate', exact: true }); await input.waitFor();
     const rpc = (name, data) => page.evaluate(async ({ name, data }) => (await fetch('/rpc/' + name + location.search, { method: 'POST', body: JSON.stringify(data) })).json(), { name, data });
-    if (stage === 'after') {
-      for (const text of ['Check the reader update.', 'Then review the tests.', 'Send me the result when ready.']) { await input.fill(text); await page.getByRole('button', { name: 'Send', exact: true }).click(); await page.waitForFunction(() => [...document.querySelectorAll('textarea')].some(e => e.value === '')); }
+    const composerY = (await input.boundingBox()).y;
+    const stableComposer = async () => {
+      const box = await input.boundingBox();
+      assert.ok(Math.abs(box.y - composerY) < 1, `queue changes must not move the input: ${JSON.stringify({ stage, theme, device, scope, composerY, box })}`);
+    };
+    {
+      for (const text of ['Check the reader update.', 'Then review the tests.', 'Send me the result when ready.']) {
+        await input.fill(text); await page.getByRole('button', { name: 'Send', exact: true }).click();
+        await page.waitForFunction(() => [...document.querySelectorAll('textarea')].some(e => e.value === ''));
+        if (stage === 'after') await stableComposer();
+      }
       await page.getByText('3 queued · Sent one at a time', { exact: true }).waitFor();
       assert.equal((await rpc('sent', {})).length, 0);
-    } else await input.fill('Check the reader update.');
-    const key = `${stage}-${theme}-${device}-${scope ? 'project' : 'home'}`;
+    }
+    const visibleQueue = page.getByTestId('chat-queue').filter({ visible: true });
+    if (stage === 'after') {
+      const queueBox = await visibleQueue.boundingBox(), inputBox = await input.boundingBox();
+      assert.ok(queueBox.y + queueBox.height <= inputBox.y, 'queue must appear before the composer');
+      assert.ok(await input.evaluate(el => !!(document.querySelector('[data-testid="chat-queue"]')?.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING)), 'DOM and visual order must agree');
+      assert.equal(await page.getByRole('button', { name: 'Send now', exact: true }).filter({ visible: true }).count(), 3, 'only per-item Send now controls');
+      assert.equal(await visibleQueue.getByRole('button', { name: 'Send now', exact: true }).count(), 3);
+    }
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     assert.doesNotMatch(await page.locator('body').innerText(), /Updating…|as of \d/);
     await page.screenshot({ path: resolve(out, 'screenshots', key + '.png') });
@@ -131,10 +150,18 @@ try {
       await saved.getByRole('button', { name: 'Remove', exact: true }).click();
       await saved.getByText('Saved messages', { exact: true }).waitFor({ state: 'hidden' });
       assert.equal((await rpc('poll', { agent })).length, 3);
-      results.push({ key, reload: true, edit: true, remove: true, onePerTurn: true, duplicateBlocked: true, missingHooks: true, interruptedDeliveryRemovable: true });
+      await input.fill('Send this queued item now.'); await page.getByRole('button', { name: 'Send', exact: true }).click();
+      await saved.getByText('1 queued · Sent one at a time', { exact: true }).waitFor();
+      await saved.getByRole('button', { name: 'Send now', exact: true }).click();
+      await page.waitForFunction(async () => (await (await fetch('/rpc/sent' + location.search, { method: 'POST', body: '{}' })).json()).length === 4);
+      await saved.getByText('1 queued · Sent one at a time', { exact: true }).waitFor({ state: 'hidden' });
+      assert.equal((await rpc('sent', {})).at(-1).payload.kind, scope ? 'scope' : 'mate');
+      await stableComposer();
+      assert.equal(await page.getByRole('button', { name: 'Send now', exact: true }).filter({ visible: true }).count(), 0);
+      results.push({ key, queueBeforeComposer: true, stableComposer: true, noStandaloneSendNow: true, perItemSendNow: true, reload: true, edit: true, remove: true, onePerTurn: true, duplicateBlocked: true, missingHooks: true, interruptedDeliveryRemovable: true });
     } else results.push({ key });
     assert.deepEqual(errors, [], key); await page.close();
   }
   await writeFile(resolve(out, 'results.json'), JSON.stringify(results, null, 2));
-  console.log('16 before/after and 8 recovery screenshots; both composers: reload, edit, remove, one-per-turn, missing/duplicate hooks and interrupted-delivery recovery passed.');
+  console.log(`${results.length} before/after cases; both composers: stable queue-before-input layout, no standalone Send now, per-item Send now, reload, edit, remove and delivery recovery passed.`);
 } finally { await browser.close(); await new Promise(done => server.close(done)); }

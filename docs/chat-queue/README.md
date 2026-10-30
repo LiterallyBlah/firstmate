@@ -2,8 +2,8 @@
 
 Home's FirstMate composer and the project/plan mate conversations opened from
 the conversation switcher share a daemon-owned queue. **Queue messages while busy**
-defaults on in FirstMate settings. Send saves a busy mate's message; Send now is
-an explicit immediate send through the same checked transport as before. With a
+defaults on in FirstMate settings. Send saves a busy mate's message; a queued item's
+Send now action is an explicit immediate send through the same checked transport as before. With a
 steer-capable provider it joins the current turn; it does not force-cancel it. Turning
 the setting off makes new sends immediate. Previously queued messages still leave
 one at a time.
@@ -56,6 +56,13 @@ unchanged. No Attach path is added.
 Suggestions, Bearings and Ahoy retain their existing immediate send behavior;
 queueing applies to the two chat composers.
 
+Both chats keep the queue immediately above the input, so queued rows grow upward
+and the message box stays in place as messages enter or leave the queue. There is
+no composer-level Send now control. Rows follow Paseo's queued-message treatment:
+bordered surface cards, two-line 14px previews, muted status labels and circular
+actions. Pencil edits, the accent up arrow sends now, and X removes. Accessible
+action names remain Edit, Send now and Remove; compact layouts keep 44px targets.
+
 The queue permits 100 waiting messages and a 128 MiB saved file. Completed receipts
 retain IDs and hashes without attachment bodies. Receipts and completed turn tokens
 accumulate up to that file cap; automatic pruning is deferred to preserve deduplication.
@@ -74,6 +81,15 @@ are outside the single daemon writer guarantee; damaged state refuses mutation.
 | Existing routing and outboxes | `server/chat-queue-rpc.test.ts`, existing scope runtime and composer tests |
 | Both themes, desktop and phone, before and after | `node docs/chat-queue/render.mjs`: 16 before/after PNGs and 8 interrupted-delivery recovery PNGs plus results in ignored `.local/chat-queue/ui/` |
 | Plain status copy, no Updating/as-of labels | Browser text and overflow assertions; visual inspection |
+| Queue before composer, stable input, item-only Send now | Browser DOM/bounds assertions across both chats, themes and widths; item-action RPC regression test |
+
+`node docs/chat-queue/reference.mjs /path/to/paseo` renders Paseo's actual
+`QueuedMessageRow` and queue styles read-only beside FirstMate's shared component.
+The fixture uses the same host palette, records the inspected upstream revision,
+and writes both-theme comparisons to ignored `.local/chat-queue/ui/screenshots/`.
+It is source-based visual evidence, not a live agent session. No upstream component
+is copied into the shipped plugin.
+Selected before/after and side-by-side captures are in [the layout review](review/README.md).
 
 Run `npm run typecheck` and `npm test -- --maxWorkers=2` for the full checks. On
 Windows this task also uses the repository's hosted 60-second test timeout. The

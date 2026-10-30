@@ -362,14 +362,14 @@ function GeneralMateChat({
     if (JSON.stringify(current) !== JSON.stringify(message)) return;
     setDraft(""); setAttachments([]);
   }
-  async function sendDraft(now = false): Promise<void> {
+  async function sendDraft(): Promise<void> {
     // Another open chat can clear or edit the stores before this render catches up.
     const text = drafts.get(mate.id);
     const attached = pendingAttachments.get(mate.id);
     if (!hasContent(text, attached) || sending) return;
     // Through the stores only: this chat may be gone by the time the send fails, and the one on screen follows them.
     const payload = { kind: "mate" as const, agentId: mate.id, message: keepSentImages(captainMessage(text, attached)) };
-    const sent = await queue.send(payload, now);
+    const sent = await queue.send(payload);
     if (!sent) return;
     follow.pin();
     clearConfirmed(payload);
@@ -623,6 +623,15 @@ function GeneralMateChat({
           )}
           {mentions.panel}
           {mentions.panel ? <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>To: FirstMate</Text> : null}
+          <ChatQueueRows queue={queue} theme={theme} compact={compact} onConfirmed={clearConfirmed} onEdit={payload => {
+            if (payload.kind !== "mate") return;
+            setDraft(payload.message.text);
+            setAttachments([
+              ...(payload.message.images ?? []).map((image, i) => ({ id: `queue-image-${i}`, kind: "image" as const, fileName: `Image ${i + 1}`, mimeType: image.mimeType, data: image.data, size: Math.floor(image.data.length * 3 / 4) })),
+              ...(payload.message.files ?? []).map((file, i) => ({ ...file, id: `queue-file-${i}`, kind: "file" as const, size: Math.floor(file.data.length * 3 / 4) })),
+            ]);
+            composer.current?.focus();
+          }} />
           <View style={styles.inputRow}>
             <GrowingChatInput
               ref={composer}
@@ -663,19 +672,6 @@ function GeneralMateChat({
               />
             </View>
           </View>
-          {queue.enabled && (status === "running" || status === "initializing" || queue.items.length > 0) ? <Pressable accessibilityRole="button" accessibilityLabel="Send now" disabled={sending || !hasContent(draft, attachments)}
-            onPress={() => { void sendDraft(true); }} style={{ minHeight: 44, justifyContent: "center", alignSelf: "flex-end", paddingHorizontal: 8, opacity: sending || !hasContent(draft, attachments) ? 0.5 : 1 }}>
-            <Text style={{ color: theme.colors.foreground, fontSize: 13, textDecorationLine: "underline" }}>Send now</Text>
-          </Pressable> : null}
-          <ChatQueueRows queue={queue} theme={theme} onConfirmed={clearConfirmed} onEdit={payload => {
-            if (payload.kind !== "mate") return;
-            setDraft(payload.message.text);
-            setAttachments([
-              ...(payload.message.images ?? []).map((image, i) => ({ id: `queue-image-${i}`, kind: "image" as const, fileName: `Image ${i + 1}`, mimeType: image.mimeType, data: image.data, size: Math.floor(image.data.length * 3 / 4) })),
-              ...(payload.message.files ?? []).map((file, i) => ({ ...file, id: `queue-file-${i}`, kind: "file" as const, size: Math.floor(file.data.length * 3 / 4) })),
-            ]);
-            composer.current?.focus();
-          }} />
         </View>
       </SafeAreaView>
       {dragging ? (

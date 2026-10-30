@@ -99,7 +99,7 @@ export function ScopeDiscussion({ snapshot, offline = false, hostId, theme, comp
     if (drafts.get(draftKey) === payload.input.addressedText) { drafts.set(draftKey, ""); setReplyTo(null); setReviewedMessage(null); }
     void cache.invalidateQueries({ queryKey: ["firstmate", "scope-conversations", hostId, snapshot.homeId] }); refresh();
   }
-  async function sendDraft(confirmed = false, now = false) {
+  async function sendDraft(confirmed = false) {
     if (blocked || !resolved || !recipient) return;
     if (needsCreation && (!confirmed || reviewedMessage !== reviewKey)) { setReviewedMessage(reviewKey); return; }
     const captured = { id: workflowRequestId(), text: resolved.text, addressedText: draft, defaultScope,
@@ -107,7 +107,7 @@ export function ScopeDiscussion({ snapshot, offline = false, hostId, theme, comp
     const checked = discussScope.input.safeParse(captured);
     if (!checked.success) { setValidationError("The message or its address is outside the supported limits. Shorten it or refresh before sending."); return; }
     const payload = { kind: "scope" as const, input: checked.data };
-    if (await queue.send(payload, now)) clearConfirmed(payload); else refresh();
+    if (await queue.send(payload)) clearConfirmed(payload); else refresh();
   }
   // A fresh home has one setup task; no unavailable General recipient/composer alongside it.
   if (unavailableGeneral && generalControls) return <ScrollView automaticallyAdjustKeyboardInsets>{generalControls}</ScrollView>;
@@ -162,7 +162,7 @@ export function ScopeDiscussion({ snapshot, offline = false, hostId, theme, comp
         }} />
       </View>)}
     </ScrollView>
-    <ScrollView style={{ flexGrow: 0, flexShrink: 1, width: "100%", maxWidth: 800, alignSelf: "center" }} contentContainerStyle={{ gap: 8, padding: compact ? 12 : 16, paddingBottom: (compact ? 12 : 16) + keyboardOverlap, borderTopWidth: 1, borderColor: colors.border }} keyboardShouldPersistTaps="handled">
+    <ScrollView style={{ flexGrow: 0, flexShrink: 0, maxHeight: "100%", width: "100%", maxWidth: 800, alignSelf: "center" }} contentContainerStyle={{ gap: 8, padding: compact ? 12 : 16, paddingBottom: (compact ? 12 : 16) + keyboardOverlap, borderTopWidth: 1, borderColor: colors.border }} keyboardShouldPersistTaps="handled">
       <Text style={{ color: colors.foreground, fontSize: 13 }}>To: {recipient?.title ?? "Check the address"}{resolved?.projectIds.length ? ` · context: ${resolved.projectIds.map(id => snapshot.projects.find(p => p.id === id)?.name ?? id).join(", ")}` : ""}{replyTo ? " · replying" : ""}</Text>
       {recipient ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{recipient.kind === "general" && generalMate?.id === recipient.target.agentId ? generalMate.status === "running" ? "FirstMate is working" : generalMate.status === "idle" ? "FirstMate is ready" : `FirstMate: ${generalMate.status}` : recipient.session === "not-created" ? "Ready for a new conversation" : recipient.session === "unknown" ? "Status unavailable. Refresh to check again." : recipient.session === "dormant" ? "Not currently working" : recipient.session === "awake" ? "Working" : "Paused"}</Text> : null}
       {!snapshot.executionEnabled ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>Sending is turned off for this conversation. Your draft is kept.</Text> : unavailableGeneral ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>Set up FirstMate before sending.</Text> : null}
@@ -173,6 +173,10 @@ export function ScopeDiscussion({ snapshot, offline = false, hostId, theme, comp
       {replyTo ? <Button label="Cancel reply" theme={theme} onPress={() => setReplyTo(null)} /> : null}
       {unavailableGeneral ? generalControls : null}
       {sending.pending && !sending.running ? <Button label="Reconcile original message" theme={theme} onPress={() => { void conversations.refetch(); refresh(); }} /> : null}
+      <ChatQueueRows queue={queue} theme={theme} compact={compact} onConfirmed={clearConfirmed} onEdit={payload => {
+        if (payload.kind !== "scope") return;
+        drafts.set(draftKey, payload.input.addressedText); setReplyTo(payload.input.route.replyTo); composer.current?.focus();
+      }} />
       <View style={{ flexDirection: "row", borderWidth: 1, borderColor: colors.border, borderRadius: 8, backgroundColor: colors.surface1 }}>
         <GrowingChatInput ref={composer} theme={theme} compact={compact} accessibilityLabel="Message recipient" multiline value={draft} onChangeText={text => drafts.set(draftKey, text)} placeholder={`Message ${recipient?.title ?? "selected recipient"}…`} />
       </View>
@@ -184,11 +188,6 @@ export function ScopeDiscussion({ snapshot, offline = false, hostId, theme, comp
         <Button label="Keep editing" theme={theme} onPress={() => { setReviewedMessage(null); composer.current?.focus(); }} />
       </View> : null}
       {reviewedMessage === null || reviewedMessage !== reviewKey ? <Button label={sending.running || queue.sending ? "Sending…" : needsCreation ? "Review first message" : "Send"} theme={theme} disabled={blocked} onPress={() => { void sendDraft(); }} /> : null}
-      {queue.enabled && !needsCreation && (recipient?.session === "awake" || queue.items.length > 0) ? <Button label="Send now" theme={theme} disabled={blocked} onPress={() => { void sendDraft(false, true); }} /> : null}
-      <ChatQueueRows queue={queue} theme={theme} onConfirmed={clearConfirmed} onEdit={payload => {
-        if (payload.kind !== "scope") return;
-        drafts.set(draftKey, payload.input.addressedText); setReplyTo(payload.input.route.replyTo); composer.current?.focus();
-      }} />
     </ScrollView>
   </View>;
 }
