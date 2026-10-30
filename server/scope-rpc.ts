@@ -7,6 +7,7 @@ import type { NeedsYouSnapshot } from "../shared/needs-you";
 import { readScopes, readScopeConversation, discussScope, activateScope, readScopeNeeds, answerScopeDecision } from "../shared/supervision-rpc";
 import { scopeConversationKey } from "../shared/scope-discussion";
 import { scopeSnapshot } from "./scope-projection";
+import { observeProjectSessions, withObservedProjectSessions } from "./scope-status";
 import { readThread } from "./item-threads";
 import { SupervisionError } from "./supervision-store";
 import { withScopedNeedsYou } from "./needs-you-service";
@@ -31,10 +32,16 @@ export function registerScopeRpcs(server: Pick<PluginServerContext, "handle">, d
     const policy = await deps.policy?.(home);
     return { ...withScopedNeedsYou(base, status), scopedAnswersEnabled: (policy?.effective.scopeExecution ?? !!deps.executionEnabled) && !!(deps.commands || deps.execute) };
   };
-  server.handle(readScopes, async () => {
-    const { status, generalId, home } = await deps.read();
-    const policy = await deps.policy?.(home);
-    return { ...scopeSnapshot(status, generalId, { uiEnabled: policy?.effective.scopeUi ?? deps.uiEnabled ?? false, executionEnabled: policy?.effective.scopeExecution ?? deps.executionEnabled ?? false, admittedProjectsOnly: deps.admittedProjectsOnly }),
+  server.handle(readScopes, async (_input, context) => {
+    let { status, generalId, home } = await deps.read();
+    let policy = await deps.policy?.(home);
+    const observations = (policy?.effective.scopeUi ?? deps.uiEnabled) ? await observeProjectSessions(status, context?.paseo) : [];
+    if (observations.length) {
+      ({ status, generalId, home } = await deps.read());
+      policy = await deps.policy?.(home);
+    }
+    const snapshot = scopeSnapshot(status, generalId, { uiEnabled: policy?.effective.scopeUi ?? deps.uiEnabled ?? false, executionEnabled: policy?.effective.scopeExecution ?? deps.executionEnabled ?? false, admittedProjectsOnly: deps.admittedProjectsOnly });
+    return { ...withObservedProjectSessions(snapshot, status, observations),
       ...((policy?.effective.scopeUi ?? deps.uiEnabled) ? { bearings: scopedBearings(status) } : {}),
       activation: { ...activationSnapshot(status, policy?.effective.scopedActivation ?? !!deps.activationEnabled),
         pause: policy ? featurePause(status, policy.effective, "plan") : null } };

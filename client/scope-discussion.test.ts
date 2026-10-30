@@ -9,9 +9,11 @@ import { drafts } from "./draft";
 import { scopeDraftKey } from "../shared/scope-discussion";
 import { discussionSender, discussionSendKey, type DiscussionInput } from "./scope-send";
 import { ScopeDiscussion } from "./scope-discussion";
-const rpc = vi.hoisted(() => ({ read: vi.fn(), send: vi.fn() }));
+import { useScopeSnapshot } from "./scope-query";
+const rpc = vi.hoisted(() => ({ read: vi.fn(), send: vi.fn(), snapshot: vi.fn() }));
 vi.mock("react-native", () => ({ View: "View", Text: "Text", Pressable: "Pressable", ScrollView: "ScrollView" }));
 vi.mock("@getpaseo/plugin/client", () => ({ useRpc: (contract: { name: string }) => {
+  if (contract.name === "firstmate.scope.read") return rpc.snapshot;
   if (contract.name === "firstmate.chat.queue") return async () => ({ enabled: true, items: [] });
   if (contract.name === "firstmate.chat.submit") return async (input: any) => { await rpc.send(input.payload.input); return { ...input, state: "sent" }; };
   return contract.name.endsWith(".conversation") ? rpc.read : rpc.send;
@@ -68,6 +70,30 @@ async function mount(snapshot: ScopeSnapshot, initialScope = "project", navigati
   await act(async () => { tree = create(createElement(QueryClientProvider, { client }, createElement(ScopeDiscussion, { snapshot, hostId: "local", theme: attentionTheme, compact: false, initialScope, refresh() {}, ...(navigation ? { navigation } : {}) }))); });
   await act(async () => { await new Promise(done => setTimeout(done, 0)); });
 }
+
+it("Refresh rereads scope status and replaces unavailable with the observed idle/working status without sending", async () => {
+  const snapshot = fixture(); snapshot.scopes[0]!.session = "unknown";
+  let latest = snapshot;
+  rpc.snapshot.mockImplementation(async () => latest);
+  rpc.read.mockResolvedValue({ key: "project", title: "Project", messages: [] });
+  client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  function Conversation() {
+    const query = useScopeSnapshot("local", snapshot.homeId);
+    return query.data ? createElement(ScopeDiscussion, { snapshot: query.data, hostId: "local", theme: attentionTheme,
+      compact: false, initialScope: "project", refresh: () => { void query.refetch(); } }) : null;
+  }
+  await act(async () => { tree = create(createElement(QueryClientProvider, { client }, createElement(Conversation))); });
+  await act(async () => { await new Promise(done => setTimeout(done, 20)); });
+  expect(JSON.stringify(tree.toJSON())).toContain("Status unavailable. Refresh to check again.");
+  for (const [session, label] of [["dormant", "Not currently working"], ["awake", "Working"]] as const) {
+    latest = structuredClone(snapshot); latest.scopes[0]!.session = session; latest.scopes[0]!.observedAt = new Date().toISOString();
+    await press("Refresh");
+    await act(async () => { await new Promise(done => setTimeout(done, 20)); });
+    expect(JSON.stringify(tree.toJSON())).toContain(label);
+    expect(JSON.stringify(tree.toJSON())).not.toContain("Status unavailable. Refresh to check again.");
+  }
+  expect(rpc.snapshot).toHaveBeenCalledTimes(3); expect(rpc.send).not.toHaveBeenCalled();
+});
 it("loads only the named history, switches recipients and restores each draft on remount without sending", async () => {
   const snapshot = fixture(); client = new QueryClient();
   await mount(snapshot);
