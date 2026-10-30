@@ -18,14 +18,15 @@ async function fixture() {
   host.home = `test-home-${randomUUID()}`; host.mate = "mate"; host.ask.mockReset();
   const handlers = new Map<string, Function>(), hooks = new Map<string, Function>();
   const agent = { id: "mate", status: "running", activeTurn: null as { turnId: string } | null, archivedAt: null, pendingPermissions: [] as unknown[] };
-  const paseo = { agents: { ref: () => ({ refresh: async () => ({ agent }) }) } } as unknown as PaseoApi;
+  const refresh = vi.fn(async () => ({ agent }));
+  const paseo = { agents: { ref: () => ({ refresh }) } } as unknown as PaseoApi;
   host.ask.mockImplementation(async (_paseo, _message, before) => { await before(host.mate); return host.mate; });
   const execute = vi.fn(async (_home, _scope, _paseo, run) => run({ discussions: { result: async (input: { id: string }) => ({ outcome: "recorded", thread: { messages: [{ id: input.id, delivery: "sent" }] } }) } }));
   let enabled = true;
   const stop = registerChatQueue({ handle: (contract: { name: string }, run: Function) => handlers.set(contract.name, run), on: (name: string, run: Function) => { hooks.set(name, run); return () => hooks.delete(name); } } as unknown as PluginServerContext,
     { execute } as unknown as ScopeRuntime, { read: async () => ({ status: "ready", revision: "1", values: displaySettings.schema.parse({ queueMessagesWhileBusy: enabled }) }), subscribe: () => () => {} });
   const call = (name: string, input: unknown) => handlers.get(`firstmate.chat.${name}`)!(input, { paseo });
-  return { call, agent, execute, stop, path: dataPath(`chat-queues/${createHash("sha256").update(host.home).digest("hex")}.json`), off: () => { enabled = false; }, end: (turnId: string) => hooks.get("agent.turn_ended")!({ agent: { id: "mate" }, turnId, outcome: { kind: "completed" } }, { paseo }) };
+  return { call, agent, refresh, execute, stop, path: dataPath(`chat-queues/${createHash("sha256").update(host.home).digest("hex")}.json`), off: () => { enabled = false; }, end: (turnId: string) => hooks.get("agent.turn_ended")!({ agent: { id: "mate" }, turnId, outcome: { kind: "completed" } }, { paseo }) };
 }
 afterEach(() => vi.restoreAllMocks());
 it("main queue uses the checked mate sender and preserves its message ID; off sends while busy", async () => {
@@ -73,18 +74,25 @@ it("the polling sweep releases one per actual idle turn even when every hook is 
   const f = await fixture(), payload: ChatQueuePayload = { kind: "mate", agentId: "mate", message: { text: "waiting" } };
   try {
     for (let i = 0; i < 3; i++) await f.call("submit", { id: randomUUID(), payload });
-    host.ask.mockImplementation(async (_paseo, _message, before) => { await before(host.mate); f.agent.activeTurn = { turnId: randomUUID() }; });
+    let accepted!: () => void;
+    host.ask.mockImplementation(async (_paseo, _message, before) => { await before(host.mate); f.agent.activeTurn = { turnId: randomUUID() }; accepted(); });
     f.agent.status = "idle";
     for (let count = 1; count <= 3; count++) {
-      f.agent.activeTurn = null; poll(); poll();
-      await vi.waitFor(() => expect(host.ask).toHaveBeenCalledTimes(count));
-      // Wait for settlement, then poll while native status still says idle but a turn is reserved.
-      await vi.waitFor(async () => {
-        const rows = (await f.call("queue", { target: queueTarget(payload) })).items;
-        expect(rows.filter((row: { state: string }) => row.state === "queued")).toHaveLength(3 - count);
-        expect(rows.some((row: { state: string }) => row.state === "claimed")).toBe(false);
-      });
+      const acceptance = new Promise<void>(resolve => { accepted = resolve; });
+      f.agent.activeTurn = null;
+      let observe!: () => void, unblock!: () => void;
+      const observed = new Promise<void>(resolve => { observe = resolve; });
+      const blocked = new Promise<void>(resolve => { unblock = resolve; });
+      f.refresh.mockImplementationOnce(async () => { observe(); await blocked; return { agent: f.agent }; });
+      // Await disk admission and native acceptance, not a one-second I/O deadline.
+      const polls = Promise.all([poll(), poll()]);
+      await observed; expect(host.ask).toHaveBeenCalledTimes(count - 1);
+      unblock(); await polls; await acceptance;
+      // Drain a further poll while status says idle but a native turn is reserved.
       await poll();
+      const rows = (await f.call("queue", { target: queueTarget(payload) })).items;
+      expect(rows.filter((row: { state: string }) => row.state === "queued")).toHaveLength(3 - count);
+      expect(rows.some((row: { state: string }) => row.state === "claimed")).toBe(false);
       expect(host.ask).toHaveBeenCalledTimes(count);
     }
   } finally { await f.stop(); }
