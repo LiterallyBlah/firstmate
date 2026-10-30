@@ -94,7 +94,7 @@ export class SupervisionLifecycle {
       try { observed = await observeWithin(this.gateway.receiver, `agent:${binding.agentId}`, () => this.gateway.receiver.findAgent(binding.agentId), this.options.observationTimeoutMs); }
       catch { return result("held", "This owner's observation is unavailable; identity and obligations remain unknown, not absent."); }
       // Optional projection metadata, excluded from the continuation's semantic inputs. A status
-      // read never performs this lookup and this bookkeeping cannot wake itself.
+      // read may independently observe display status; this bookkeeping cannot wake itself.
       if (observed?.id === binding.agentId) {
         const observedState = observed.archivedAt ? "unknown" as const : observed.status === "idle" ? "dormant" as const : observed.status === "running" || observed.status === "initializing" ? "awake" as const : "unknown" as const;
         const projectionState = await this.store.read(), current = projectionState.bindings.find(b => b.scopeId === scopeId);
