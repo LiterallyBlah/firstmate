@@ -64,9 +64,13 @@ it("opening, reading and remounting creates no session; explicit confirmation re
   await act(async () => button("Project mates and plans").props.onPress());
   expect(state.provision).not.toHaveBeenCalled();
   await act(async () => button("Create Alpha mate").props.onPress()); expect(state.provision).not.toHaveBeenCalled();
+  const createWords = visibleText(renderer!.toJSON());
+  expect(createWords).toContain("uses one conversation and one turn");
+  expect(createWords).not.toMatch(/caller identity|by convention|oversight grants|bounded context/);
   await act(async () => { const press = button("Create project mate").props.onPress; press(); press(); });
   expect(state.provision).toHaveBeenCalledTimes(1);
-  await act(async () => button("Resume recorded request").props.onPress());
+  expect(visibleText(renderer!.toJSON())).toContain("Stop setup cancels steps that haven't started.");
+  await act(async () => button("Resume setup").props.onPress());
   expect(state.provision.mock.calls[0]![0]).toEqual(state.provision.mock.calls[1]![0]);
 });
 it("a failed refresh disables a pending explicit confirmation", async () => {
@@ -163,7 +167,7 @@ it.each(["mounted", "remounted", "stop"])("review F2: %s app repairs through the
     await act(async () => { button("Create project mate").props.onPress(); await state.provision.mock.results.at(-1)!.value.catch(() => {}); });
     const input = state.provision.mock.calls[0]![0];
     await act(async () => { await cache.refetchQueries(); await new Promise(done => setTimeout(done, 20)); });
-    expect(button("Resume recorded request").props.disabled).toBe(true);
+    expect(button("Resume setup").props.disabled).toBe(true);
     if (mode === "remounted") {
       await act(async () => renderer?.unmount()); renderer = undefined; cache.clear();
       const readRpc = state.read.getMockImplementation()!;
@@ -180,12 +184,12 @@ it.each(["mounted", "remounted", "stop"])("review F2: %s app repairs through the
       await act(async () => button("Resume Alpha mate").props.onPress());
     }
     if (mode === "stop") receiver.faults.send = ["lose"];
-    await act(async () => { button(mode !== "remounted" ? "Resume recorded request" : "Resume project provisioning").props.onPress(); await state.provision.mock.results.at(-1)!.value; await new Promise(done => setTimeout(done, 20)); });
+    await act(async () => { button("Resume setup").props.onPress(); await state.provision.mock.results.at(-1)!.value; await new Promise(done => setTimeout(done, 20)); });
     expect(state.provision.mock.calls[1]![0]).toEqual(input);
     expect(receiver.agents.size).toBe(1); expect(receiver.sends).toHaveLength(1);
     expect((await service.read()).projects[0]).toMatchObject({ sessions: 1, turns: 1 });
     if (mode === "stop") {
-      await act(async () => { button("Stop recorded provisioning").props.onPress(); await state.abort.mock.results.at(-1)!.value; await cache.refetchQueries(); await new Promise(done => setTimeout(done, 20)); });
+      await act(async () => { button("Stop setup").props.onPress(); await state.abort.mock.results.at(-1)!.value; await cache.refetchQueries(); await new Promise(done => setTimeout(done, 20)); });
       expect(state.abort).toHaveBeenCalledTimes(1);
       expect((await service.read()).projects[0]).toMatchObject({ sessions: 1, turns: 1, uncertain: 1, reason: expect.stringContaining("Provisioning stopped") });
       await expect(service.provision(input, api)).rejects.toMatchObject({ code: "HELD" });

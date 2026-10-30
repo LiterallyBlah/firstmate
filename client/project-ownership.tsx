@@ -42,8 +42,10 @@ export function ProjectOwnershipBoard({ theme, compact, navigation, hostId = "lo
       await query.refetch();
       const current = next.projects.find(p => p.projectId === selected.projectId);
       if (current?.agentId && !current.reason) { select(null); pending.current = null; }
-      else setError(current?.reason ?? "Provisioning is recorded. Inspect the retained session and resume this request.");
-    } catch (e) { setError(`${errorText(e)} The request may be recorded; retry retains its identity.`); }
+      else setError(current?.reason?.startsWith("Provisioning incomplete")
+        ? "Setup needs checking. Choose Resume setup to check this mate. A message with an unknown result stays saved and will not be sent again."
+        : current?.reason ?? "Setup is saved. Choose Resume setup to check this mate and continue.");
+    } catch (e) { setError(`${errorText(e)} Resume setup continues this request without creating a second mate.`); }
     finally { gate.current = false; setBusy(false); }
   }
   async function repair() {
@@ -71,22 +73,24 @@ export function ProjectOwnershipBoard({ theme, compact, navigation, hostId = "lo
       onDiscuss={p => { if (p.scopeId && plans.canDiscussScope?.(p.scopeId, data.homeId) && plans.discussScope) { plans.discussScope(p.scopeId, data.homeId); onNavigate?.(); } }} canDiscuss={p => !!p.scopeId && !!plans.canDiscussScope?.(p.scopeId, data.homeId)}
       onOpen={navigation ? p => { if (p.agentId) { navigation.openAgent({ agentId: p.agentId, ...(hostId === "local" ? {} : { serverId: hostId }) }); onNavigate?.(); } } : undefined} />
     {!selected && error ? <Text accessibilityRole="alert" style={{ color: theme.colors.statusDanger }}>{error}</Text> : null}
-    {selected ? <Modal title={`${selected.provisionRequestId ? "Resume" : "Create"} project mate for ${selected.name}?`} open onOpenChange={open => { if (!open && !busy) select(null); }}>
-      <Modal.Content><View style={{ gap: 12 }}>
-        <Text style={{ color: theme.colors.foreground }}>Create one persistent conversation in its own workspace. This reserves a session and opening turn within the reviewed project limits.</Text>
-        <Text selectable style={{ color: theme.colors.foreground }}>{selected.profile?.provider} · {selected.profile?.modeId} · {selected.profile?.thinkingOptionId || "default reasoning"}</Text>
-        <Text style={{ color: theme.colors.foregroundMuted }}>Limits: {selected.limits?.supervisorSessions} sessions, {selected.limits?.supervisorTurns} turns. Spent: {selected.sessions} sessions, {selected.turns} turns.</Text>
-        <Text style={{ color: theme.colors.foregroundMuted }}>Explicit app action by convention; caller identity is unverified. Project oversight grants no plan execution or release authority.</Text>
+    {selected ? <Modal title={pending.current || selected.provisionRequestId ? `Resume setup for ${selected.name}?` : `Create a mate for ${selected.name}?`} open onOpenChange={open => { if (!open && !busy) select(null); }}>
+      <Modal.Content><ScrollView style={{ maxHeight: compact ? 480 : 600 }} contentContainerStyle={{ gap: 12 }}>
+        <Text style={{ color: theme.colors.foreground }}>{pending.current || selected.provisionRequestId
+          ? "Continue the saved setup for one project conversation in its own workspace. This checks the same mate and keeps any limits already used."
+          : "Create one project conversation in its own workspace. Starting it uses one conversation and one turn within this project's limits."}</Text>
+        <Text selectable style={{ color: theme.colors.foreground }}>Model: {selected.profile?.provider} · {selected.profile?.modeId.replace(/-/g, " ")} · {selected.profile?.thinkingOptionId === "xhigh" ? "extra high" : selected.profile?.thinkingOptionId || "default"} reasoning</Text>
+        <Text style={{ color: theme.colors.foregroundMuted }}>Project limits: {selected.limits?.supervisorSessions} conversation{selected.limits?.supervisorSessions === 1 ? "" : "s"}, {selected.limits?.supervisorTurns} turn{selected.limits?.supervisorTurns === 1 ? "" : "s"}. Used: {selected.sessions} conversation{selected.sessions === 1 ? "" : "s"}, {selected.turns} turn{selected.turns === 1 ? "" : "s"}.</Text>
+        <Text style={{ color: theme.colors.foregroundMuted }}>The mate helps you discuss and oversee this project. Running plans, merging and releasing still need their own approvals.</Text>
         {error ? <Text accessibilityRole="alert" style={{ color: theme.colors.statusDanger }}>{error}</Text> : null}
-        {stale ? <Text accessibilityRole="alert" style={{ color: theme.colors.statusWarning }}>{data.recovery ? "Recover project records, then resume the recorded request. Recovery checks retained history and creates no session." : "Project status changed or could not be refreshed. Close and refresh before acting."}</Text> : null}
-        {(pending.current || selected.provisionRequestId) && !stale ? <Text style={{ color: theme.colors.foregroundMuted }}>Stopping provisioning cancels only undispatched operations. Its identity, spent budget and uncertain operations remain recorded; no replacement mate is created.</Text> : null}
+        {stale ? <Text accessibilityRole="alert" style={{ color: theme.colors.statusWarning }}>{data.recovery ? "Choose Recover project records to check the saved history, then resume setup. Recovery starts no conversation." : "Project status changed or could not be refreshed. Close this dialog and reopen project details to check again."}</Text> : null}
+        {(pending.current || selected.provisionRequestId) && !stale ? <Text style={{ color: theme.colors.foregroundMuted }}>Stop setup cancels steps that haven't started. It keeps the saved mate and any limits already used. Steps whose result is unknown stay saved for checking.</Text> : null}
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-          <Action theme={theme} label="Cancel" disabled={busy} onPress={() => select(null)} />
+          <Action theme={theme} label={pending.current || selected.provisionRequestId ? "Close" : "Cancel"} disabled={busy} onPress={() => select(null)} />
           {data.recovery ? <Action theme={theme} label="Recover project records" disabled={busy || query.isError || !data.enabled} onPress={() => { void repair(); }} /> : null}
-          <Action theme={theme} label={busy ? "Provisioning…" : pending.current ? "Resume recorded request" : selected.provisionRequestId ? "Resume project provisioning" : "Create project mate"} disabled={busy || stale} onPress={() => { void confirm(); }} />
-          {pending.current || selected.provisionRequestId ? <Action theme={theme} label="Stop recorded provisioning" disabled={busy || stale} onPress={() => { void abort(); }} /> : null}
+          <Action theme={theme} label={busy ? "Setting up…" : pending.current || selected.provisionRequestId ? "Resume setup" : "Create project mate"} disabled={busy || stale} onPress={() => { void confirm(); }} />
+          {pending.current || selected.provisionRequestId ? <Action theme={theme} label="Stop setup" disabled={busy || stale} onPress={() => { void abort(); }} /> : null}
         </View>
-      </View></Modal.Content>
+      </ScrollView></Modal.Content>
     </Modal> : null}
   </>;
 }

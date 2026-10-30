@@ -34,6 +34,7 @@ jobs:
       - run: node docs/smooth-pr10/render-delayed.mjs
       - run: node docs/smooth-pr10/render-drawer.mjs
       - run: node docs/smooth-pr10/render-quiet.mjs
+      - run: node docs/project-mate-context/render.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: deck-before-after
@@ -69,6 +70,8 @@ jobs:
             .local/smooth-pr10/drawer/results.json
             .local/smooth-pr10/quiet/*.png
             .local/smooth-pr10/quiet/results.json
+            .local/project-mate-context/*.png
+            .local/project-mate-context/results.json
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 30

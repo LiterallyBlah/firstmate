@@ -53,5 +53,8 @@ export const abortProjectProvisionFromUi = defineRpc({ name: "firstmate.projects
 export const readProjectMemory = defineRpc({ name: "firstmate.projects.memory", input: z.object({ homeId: z.string(), projectId: SupervisionUuid }).strict(),
   output: z.object({ projectId: SupervisionUuid, scopeId: SupervisionUuid, name: z.string(), aliases: z.array(z.string()), authority: z.literal("none"),
     conventions: z.array(z.object({ path: z.string(), digest: SupervisionHash, text: z.string(), authority: z.literal("none") }).strict()),
+    documentation: z.array(z.object({ path: z.string(), digest: SupervisionHash, text: z.string(), authority: z.literal("none"),
+      sourceBytes: z.number().int().min(0).max(8 * 1024 * 1024), projection: z.enum(["full", "opening-and-headings"]), readFullFile: z.string(),
+      openingComplete: z.boolean().optional(), headingsIncluded: z.number().int().min(0).optional(), headingsTotal: z.number().int().min(0).optional() }).strict()),
     proposals: z.array(z.object({ id: SupervisionUuid, version: count, key: z.string(), expectedVersion: count, digest: SupervisionHash, text: z.string() }).strict()),
     memory: z.array(z.object({ key: z.string(), version: count, digest: SupervisionHash, text: z.string(), authority: z.literal("none") }).strict()) }).strict() });

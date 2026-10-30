@@ -336,7 +336,7 @@ export class ProjectRuntime {
     const proposals = [];
     for (const p of pending) {
       const content = await reader.readBlob(p.textDigest, 16384); bytes += content.length;
-      if (bytes > 128 * 1024) refuse("HELD", "Memory review exceeds its 128 KiB snapshot bound.");
+      if (bytes > 512 * 1024) refuse("HELD", "The saved memory review is too large to open (over 512 KiB). Review fewer pending proposals, then reopen memory.");
       const text = Buffer.from(content).toString("utf8");
       if (text.includes("\0") || !Buffer.from(text).equals(Buffer.from(content))) refuse("HELD", "Memory proposal is not valid UTF-8 text.");
       proposals.push({ id: p.id, version: p.version, key: p.key, expectedVersion: p.expectedVersion, digest: p.textDigest, text });
