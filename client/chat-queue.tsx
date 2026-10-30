@@ -71,6 +71,8 @@ export function useChatQueue(target: ChatQueueTarget | null, context: string) {
 
 export function ChatQueueRows({ queue, theme, onEdit, onConfirmed }: { queue: ReturnType<typeof useChatQueue>; theme: PluginTheme; onEdit(payload: ChatQueuePayload): void; onConfirmed(payload: ChatQueuePayload): void }) {
   const colors = theme.colors;
+  const waiting = queue.items.filter(item => item.state === "queued");
+  const positions = new Map(waiting.map((item, index) => [item.id, index + 1]));
   const button = (label: string, onPress: () => void, disabled = false) => <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={disabled || queue.sending}
     accessibilityState={{ disabled: disabled || queue.sending }} onPress={onPress} style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: 8, opacity: disabled || queue.sending ? 0.5 : 1 }}>
     <Text style={{ color: colors.foreground, fontSize: 13, textDecorationLine: "underline" }}>{label}</Text>
@@ -79,10 +81,10 @@ export function ChatQueueRows({ queue, theme, onEdit, onConfirmed }: { queue: Re
     {queue.problem ? <Text accessibilityRole="alert" style={{ color: colors.statusWarning, fontSize: 13 }}>{queue.problem}</Text> : null}
     {queue.unconfirmed ? button("Check message", () => { void queue.check().then(payload => { if (payload) onConfirmed(payload); }); }) : null}
     {queue.items.length ? <>
-      <Text accessibilityLiveRegion="polite" style={{ color: colors.foregroundMuted, fontSize: 12 }}>{queue.items.filter(i => i.state === "queued").length} queued · Sent one at a time</Text>
+      <Text accessibilityLiveRegion="polite" style={{ color: colors.foregroundMuted, fontSize: 12 }}>{waiting.length ? `${waiting.length} queued · Sent one at a time` : "Saved messages"}</Text>
       <ScrollView style={{ maxHeight: 224 }} keyboardShouldPersistTaps="handled">
-        {queue.items.map((item, index) => <View key={item.id} style={{ borderTopWidth: 1, borderColor: colors.border, paddingVertical: 4, gap: 2 }}>
-          <Text numberOfLines={2} style={{ color: colors.foreground, fontSize: 13 }}>{index + 1}. {item.text || "Attachments"}</Text>
+        {queue.items.map(item => <View key={item.id} style={{ borderTopWidth: 1, borderColor: colors.border, paddingVertical: 4, gap: 2 }}>
+          <Text numberOfLines={2} style={{ color: colors.foreground, fontSize: 13 }}>{positions.has(item.id) ? `${positions.get(item.id)}. ` : ""}{item.text || "Attachments"}</Text>
           {item.attachmentCount > 0 ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{item.attachmentCount} attachments</Text> : null}
           {item.state === "editing" ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>Editing · Send it from the message box</Text> : null}
           {item.state === "refused" ? <Text style={{ color: colors.statusWarning, fontSize: 12 }}>{item.problem ?? "Not sent · Edit to try again"}</Text> : null}

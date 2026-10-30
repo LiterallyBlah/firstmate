@@ -7,7 +7,7 @@ import { queueTarget, type ChatQueuePayload } from "../shared/chat-queue";
 const payload = (text: string): ChatQueuePayload => ({ kind: "mate", agentId: "mate", message: { text } });
 async function fixture() {
   const path = join(process.env.PASEO_HOME!, "chat-queue-tests", randomUUID(), "queue.json");
-  const options = { enabled: vi.fn(async () => true), activity: vi.fn(async () => "busy" as "ready" | "busy"), deliver: vi.fn(async (_payload: ChatQueuePayload, _id: string, _allowBusy: boolean) => {}) };
+  const options = { enabled: vi.fn(async () => true), activity: vi.fn(async () => "busy" as "ready" | "busy"), deliver: vi.fn(async (_payload: ChatQueuePayload, _id: string, _allowBusy: boolean) => { options.activity.mockResolvedValue("busy"); }) };
   const queue = new ChatQueue(path, options);
   return { queue, options, path, target: queueTarget(payload("")), add: (text: string) => queue.submit(randomUUID(), payload(text)) };
 }
@@ -17,13 +17,16 @@ it("releases three queued messages on three distinct completed turns, including 
   expect(f.options.deliver).not.toHaveBeenCalled();
   const queue = new ChatQueue(f.path, f.options);
   expect((await queue.snapshot(f.target)).items.map(i => i.id)).toEqual(items.map(i => i.id));
+  f.options.activity.mockResolvedValue("ready");
   await Promise.all([queue.ended("mate", "initial", true), queue.ended("mate", "initial", true)]);
   expect(f.options.deliver.mock.calls.map(c => c[1])).toEqual([items[0]!.id]);
   await queue.started("mate", "one");
+  f.options.activity.mockResolvedValue("ready");
   await new ChatQueue(f.path, f.options).ended("mate", "one", true);
   await queue.ended("mate", "initial", true);
   expect(f.options.deliver.mock.calls.map(c => c[1])).toEqual(items.slice(0, 2).map(i => i.id));
   await queue.started("mate", "two");
+  f.options.activity.mockResolvedValue("ready");
   await queue.ended("mate", "two", true);
   await queue.ended("mate", "two", true);
   expect(f.options.deliver.mock.calls.map(c => c[1])).toEqual(items.map(i => i.id));
@@ -36,12 +39,13 @@ it("edits are recoverable after reload, resending appends to the end, and Remove
   const edited = await queue.submit(randomUUID(), payload("edited"), false, first.id);
   await queue.change(f.target, second.id, "remove");
   expect((await queue.snapshot(f.target)).items.filter(i => i.state === "queued").map(i => i.id)).toEqual([edited.id]);
+  f.options.activity.mockResolvedValue("ready");
   await queue.ended("mate", "initial", true);
   expect(f.options.deliver.mock.calls[0]![0]).toEqual(payload("edited"));
 });
 it("concurrent and repeated admissions of one ID send at most once, even after reload", async () => {
   const f = await fixture(), id = randomUUID(); f.options.activity.mockResolvedValue("ready");
-  await Promise.all([f.queue.submit(id, payload("once")), new ChatQueue(f.path, f.options).submit(id, payload("once"))]);
+  await Promise.all([f.queue.submit(id, payload("once")), f.queue.submit(id, payload("once"))]);
   await new ChatQueue(f.path, f.options).submit(id, payload("once"));
   expect(f.options.deliver).toHaveBeenCalledTimes(1);
   await expect(f.queue.submit(id, payload("different"))).rejects.toThrow("another message");
@@ -50,6 +54,7 @@ it("an unknown delivery remains held and is never retried by admission, reload o
   const f = await fixture(), id = randomUUID();
   f.options.deliver.mockRejectedValue(new Error("Lost response"));
   await f.queue.submit(id, payload("uncertain"));
+  f.options.activity.mockResolvedValue("ready");
   await f.queue.ended("mate", "initial", true);
   const queue = new ChatQueue(f.path, f.options);
   await queue.submit(id, payload("uncertain"));
@@ -84,6 +89,7 @@ it("changed scope owners retain the captured target and remain visible without r
   const changed = { kind: "scope" as const, target: { ...scope.input.route.target, agentId: "replacement", epoch: 2 } };
   expect((await f.queue.snapshot(changed)).items[0]!.target).toEqual(queueTarget(scope));
   f.options.deliver.mockRejectedValue(new Error("Captured owner changed"));
+  f.options.activity.mockResolvedValue("ready");
   await f.queue.ended("owner", "initial", true);
   expect((await f.queue.snapshot(changed)).items[0]!.state).toBe("held");
   expect(f.options.deliver.mock.calls[0]![0]).toEqual(scope);
@@ -121,4 +127,31 @@ it("a full waiting queue still permits Send now and turning queueing off", async
   f.options.enabled.mockResolvedValue(false);
   expect((await f.add("immediate")).state).toBe("sent");
   expect(f.options.deliver).toHaveBeenCalledTimes(2);
+});
+it("fresh idle polls release one message without any lifecycle hooks, including competing polls", async () => {
+  const f = await fixture();
+  const rows = await Promise.all([f.add("one"), f.add("two"), f.add("three")]);
+  for (let count = 1; count <= 3; count++) {
+    f.options.activity.mockResolvedValue("ready");
+    await Promise.all([f.queue.reconcile(), f.queue.reconcile(), f.queue.reconcile()]);
+    expect(f.options.deliver.mock.calls.map(call => call[1])).toEqual(rows.slice(0, count).map(row => row.id));
+    await f.queue.reconcile(); // Native transport has reserved the next busy turn.
+    expect(f.options.deliver).toHaveBeenCalledTimes(count);
+  }
+});
+it("a stale claim becomes removable without retry, and a late response cannot restore it", async () => {
+  const f = await fixture(); let clock = 1000, finish!: () => void;
+  const queue = new ChatQueue(f.path, { ...f.options, now: () => clock });
+  f.options.activity.mockResolvedValue("ready");
+  f.options.deliver.mockImplementation(() => new Promise<void>(resolve => { finish = resolve; }));
+  const id = randomUUID(), request = queue.submit(id, payload("uncertain"));
+  await vi.waitFor(() => expect(f.options.deliver).toHaveBeenCalledTimes(1));
+  clock += 60_001;
+  await queue.recover();
+  expect((await queue.snapshot(f.target)).items[0]!.state).toBe("held");
+  await queue.change(f.target, id, "remove");
+  finish(); await request;
+  await queue.submit(id, payload("uncertain")); await queue.reconcile();
+  expect((await queue.snapshot(f.target)).items).toEqual([]);
+  expect(f.options.deliver).toHaveBeenCalledTimes(1);
 });

@@ -12,7 +12,10 @@ import { workflowHomeIdentity } from "./workflow-ownership";
 
 export function registerChatQueue(server: PluginServerContext, runtime: ScopeRuntime, settings: ReturnType<PluginServerContext["registerSettings"]>) {
   const queues = new Map<string, ChatQueue>();
-  async function queue(paseo: PaseoApi) {
+  let api: PaseoApi | undefined;
+  let stopped = false;
+  async function queue(paseo?: PaseoApi) {
+    if (paseo) api = paseo;
     const home = resolveHome(await readFirstmateConfig());
     let current = queues.get(home);
     if (!current) {
@@ -22,14 +25,17 @@ export function registerChatQueue(server: PluginServerContext, runtime: ScopeRun
           throw new Error("This conversation changed. Your message is kept; open its original conversation to continue.");
         const agentId = queueAgent(target);
         if (!agentId) return "ready" as const; // Only the existing reviewed first-send flow may create a scope.
-        const agent = (await paseo.agents.ref(agentId).refresh())?.agent;
+        if (!api) throw new Error("The conversation hasn't reconnected yet. Your message is kept.");
+        const agent = (await api.agents.ref(agentId).refresh())?.agent;
         if (!agent || agent.archivedAt || !["idle", "running", "initializing"].includes(agent.status)) throw new Error("This mate is unavailable. Your message is kept; check the full conversation.");
-        return agent.status !== "idle" || agent.pendingPermissions.length > 0 ? "busy" as const : "ready" as const;
+        return agent.status !== "idle" || agent.activeTurn != null || agent.pendingPermissions.length > 0 ? "busy" as const : "ready" as const;
       };
       current = new ChatQueue(dataPath(`chat-queues/${createHash("sha256").update(home).digest("hex")}.json`), {
         enabled: async () => { const result = await settings.read(); if (result.status !== "ready") throw new Error("Chat settings couldn't be checked. Your message is kept."); return displaySettings.schema.parse(result.values).queueMessagesWhileBusy; },
         activity,
         deliver: async (payload, id, allowBusy) => {
+          if (!api || stopped) throw new Error("The conversation disconnected before delivery. This message will not be resent.");
+          const paseo = api;
           const target: ChatQueueTarget = payload.kind === "mate" ? { kind: "mate", agentId: payload.agentId } : { kind: "scope", target: payload.input.route.target };
           const check = async () => { if (await activity(target) === "busy" && !allowBusy) throw new Error("This mate started other work before sending. The message is held; it will not be resent automatically."); };
           await check();
@@ -64,5 +70,15 @@ export function registerChatQueue(server: PluginServerContext, runtime: ScopeRun
   const end = server.on("agent.turn_ended", async (event, { paseo }) => {
     await (await queue(paseo)).ended(event.agent.id, event.turnId, event.outcome.kind === "completed");
   });
-  return () => { start(); end(); };
+  // Metadata recovery works before any client or lifecycle event provides an API.
+  // Thereafter polling reconciles actual idle state even if hooks are missed or
+  // reordered. It never retries a claimed/held message or creates a session.
+  const startup = queue().then(current => current.recover()).catch(error => console.error("[firstmate] chat queue recovery:", error));
+  let pending: Promise<void> | undefined;
+  const timer = setInterval(() => {
+    if (stopped || pending || !api) return;
+    return pending = queue().then(current => current.reconcile(undefined, false)).catch(error => console.error("[firstmate] chat queue reconciliation:", error)).finally(() => { pending = undefined; });
+  }, 1000);
+  timer.unref?.();
+  return async () => { stopped = true; clearInterval(timer); start(); end(); await Promise.all([startup, pending]); };
 }

@@ -30,3 +30,12 @@ it("checks the original request after a lost response and never creates a second
   expect(onConfirmed).toHaveBeenCalledWith(payload);
   expect(queue.unconfirmed).toBe(false);
 });
+it("numbers only queued rows and offers Remove after an uncertain delivery is held", async () => {
+  const target = { kind: "mate" as const, agentId: "mate" };
+  const rows = ["held", "queued", "editing", "queued"].map((state, index) => ({ id: String(index), state, text: `Message ${index}`, target, hash: "hash", problem: null, attachmentCount: 0 }));
+  await act(async () => { tree = create(createElement(ChatQueueRows, { queue: { items: rows, sending: false } as ReturnType<typeof useChatQueue>, theme: attentionTheme, onEdit, onConfirmed })); });
+  const text = JSON.stringify(tree.toJSON());
+  expect(text).toContain("2 queued"); expect(text).toContain("1. "); expect(text).toContain("2. "); expect(text).not.toContain("3. ");
+  expect(tree.root.findAllByProps({ accessibilityLabel: "Remove" })).toHaveLength(4);
+  expect(tree.root.findAllByProps({ accessibilityLabel: "Edit" })).toHaveLength(3);
+});

@@ -1,7 +1,5 @@
-/** The daemon owns the queue. Claims are durable BEFORE checked transport is entered.
- * A claimed/uncertain item is never retried. Completed turn IDs are durable too.
- * Network calls are outside the file lock so lifecycle hooks can record a fast turn.
- */
+/** Claims precede transport and are never retried. Readiness comes from fresh
+ * native status, not the order or identity of lifecycle callbacks. */
 import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, writeFile, stat } from "node:fs/promises";
 import { dirname } from "node:path";
@@ -9,9 +7,10 @@ import { z } from "zod";
 import { ChatQueueItemSchema, queueAgent, queueTarget, queueText, type ChatQueueItem, type ChatQueuePayload, type ChatQueueTarget } from "../shared/chat-queue";
 import { serialized } from "./serialize";
 
-const StateSchema = z.object({ items: z.array(ChatQueueItemSchema), active: z.record(z.string(), z.string()),
-  barriers: z.record(z.string(), z.object({ id: z.string(), turnId: z.string().nullable() })), ended: z.array(z.string()) });
+const StateSchema = z.object({ items: z.array(ChatQueueItemSchema), ended: z.array(z.string()),
+  claims: z.record(z.string(), z.object({ owner: z.string(), at: z.number() })).default({}) });
 type State = z.infer<typeof StateSchema>;
+export const CHAT_CLAIM_TIMEOUT_MS = 60_000;
 const hash = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
 const same = (a: ChatQueueTarget, b: ChatQueueTarget) => hash(a) === hash(b);
 const conversation = (a: ChatQueueTarget, b: ChatQueueTarget) => a.kind === "mate" ? b.kind === "mate" && a.agentId === b.agentId : b.kind === "scope" && a.target.homeId === b.target.homeId && a.target.scopeId === b.target.scopeId;
@@ -19,12 +18,17 @@ export interface ChatQueueOptions {
   enabled(): Promise<boolean>;
   activity(target: ChatQueueTarget): Promise<"busy" | "ready">;
   deliver(payload: ChatQueuePayload, id: string, allowBusy: boolean): Promise<void>;
+  now?(): number;
+  claimTimeoutMs?: number;
 }
 /** Only the checked discussion service can prove refusal before reservation. */
 export class ChatQueueRefusal extends Error {}
 export class ChatQueue {
   private cached: { identity: string; state: State } | null = null;
+  private readonly owner = randomUUID();
   constructor(readonly path: string, private options: ChatQueueOptions) {}
+  private now() { return this.options.now?.() ?? Date.now(); }
+  private timeout() { return this.options.claimTimeoutMs ?? CHAT_CLAIM_TIMEOUT_MS; }
   private async identity() { const file = await stat(this.path); return JSON.stringify([file.dev, file.ino, file.size, file.mtimeMs, file.ctimeMs]); }
   private async read(): Promise<State> {
     try {
@@ -33,11 +37,23 @@ export class ChatQueue {
       const state = StateSchema.parse(JSON.parse(await readFile(this.path, "utf8")));
       this.cached = { identity, state }; return state;
     }
-    catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; return { items: [], active: {}, barriers: {}, ended: [] }; }
+    catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; return { items: [], claims: {}, ended: [] }; }
+  }
+  private recoverState(state: State) {
+    for (const item of state.items) {
+      if (item.state !== "claimed") continue;
+      const claim = state.claims[item.id];
+      if (claim?.owner === this.owner && this.now() - claim.at < this.timeout()) continue;
+      item.state = "held";
+      item.problem = "Delivery couldn't be confirmed. This message will not be sent again. You can remove it after checking the conversation.";
+      delete state.claims[item.id];
+    }
   }
   private transaction<T>(run: (state: State) => T | Promise<T>): Promise<T> {
     return serialized(`chat-queue:${this.path}`, async () => {
-      const state = structuredClone(await this.read()), before = JSON.stringify(state), result = await run(state);
+      const state = structuredClone(await this.read()), before = JSON.stringify(state);
+      this.recoverState(state);
+      const result = await run(state);
       if (before === JSON.stringify(state)) return result;
       await mkdir(dirname(this.path), { recursive: true });
       const temporary = `${this.path}.${randomUUID()}.tmp`;
@@ -49,16 +65,22 @@ export class ChatQueue {
       return result;
     });
   }
+  /** Startup/stale-claim maintenance only. This never dispatches a message. */
+  async recover() { await this.transaction(() => undefined); }
   async snapshot(target: ChatQueueTarget) {
+    await this.recover();
     const [state, enabled] = await Promise.all([this.read(), this.options.enabled()]);
     return { enabled, items: state.items.filter(i => conversation(i.target, target) && !["sent", "removed"].includes(i.state)).map(({ payload, ...item }) => ({ ...item,
       text: payload ? queueText(payload) : "", attachmentCount: payload?.kind === "mate" ? (payload.message.images?.length ?? 0) + (payload.message.files?.length ?? 0) : 0 })) };
   }
   private claim(state: State, item: ChatQueueItem) {
     item.state = "claimed";
-    const agent = queueAgent(item.target);
-    if (agent) state.barriers[agent] = { id: item.id, turnId: state.active[agent] ?? null };
+    state.claims[item.id] = { owner: this.owner, at: this.now() };
     return structuredClone(item);
+  }
+  private group(target: ChatQueueTarget) { return queueAgent(target) ?? JSON.stringify(target); }
+  private inFlight(state: State, target: ChatQueueTarget) {
+    return state.items.some(i => i.state === "claimed" && this.group(i.target) === this.group(target));
   }
   async submit(id: string, payload: ChatQueuePayload, now = false, replaces?: string): Promise<ChatQueueItem> {
     const target = queueTarget(payload);
@@ -75,8 +97,7 @@ export class ChatQueue {
       }
       const item: ChatQueueItem = { id, target, payload, hash: hash(payload), state: "queued", problem: null };
       state.items.push(item);
-      const agent = queueAgent(target);
-      const waiting = activity === "busy" || !!(agent && state.barriers[agent]) || state.items.some(i => i.id !== id && i.state === "queued" && queueAgent(i.target) === agent);
+      const waiting = activity === "busy" || this.inFlight(state, target) || state.items.some(i => i.id !== id && i.state === "queued" && this.group(i.target) === this.group(target));
       if (enabled && !now && waiting && state.items.filter(i => i.state === "queued").length > 100) throw new Error("The queue is full. Remove a message before adding another.");
       return now || !enabled || !waiting ? { item: this.claim(state, item), dispatch: true, allowBusy: now || !enabled } : { item: structuredClone(item), dispatch: false, allowBusy: false };
     });
@@ -100,35 +121,59 @@ export class ChatQueue {
   private async dispatch(item: ChatQueueItem, allowBusy = false) {
     let problem: string | null = null;
     let refused = false;
-    try { await this.options.deliver(item.payload!, item.id, allowBusy); }
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([
+        this.options.deliver(item.payload!, item.id, allowBusy),
+        new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error("Delivery timed out. This message will not be sent again.")), this.timeout()); timer.unref?.(); }),
+      ]);
+    }
     catch (error) { problem = error instanceof Error ? error.message : String(error); refused = error instanceof ChatQueueRefusal; }
+    finally { clearTimeout(timer); }
     await this.transaction(state => {
       const saved = state.items.find(i => i.id === item.id)!;
+      // A recovery sweep or captain dismissal wins over a late transport reply.
+      if (saved.state !== "claimed" || state.claims[item.id]?.owner !== this.owner) return;
       saved.state = refused ? "refused" : problem ? "held" : "sent"; saved.problem = problem;
-      const agent = queueAgent(item.target);
-      if (refused && agent && state.barriers[agent]?.id === item.id) delete state.barriers[agent];
+      delete state.claims[item.id];
       if (!problem) saved.payload = null;
     });
   }
-  async started(agent: string, turnId: string | null) {
-    if (!turnId) return;
-    await this.transaction(state => { if (state.ended.includes(JSON.stringify([agent, turnId])) || !state.items.some(i => queueAgent(i.target) === agent)) return; state.active[agent] = turnId; const barrier = state.barriers[agent]; if (barrier) barrier.turnId = turnId; });
-  }
-  async ended(agent: string, turnId: string | null, completed: boolean) {
-    // An unidentified callback cannot prove a new completed turn.
-    if (!turnId) return;
-    const item = await this.transaction(state => {
-      if (!state.items.some(i => queueAgent(i.target) === agent)) return null;
-      const token = JSON.stringify([agent, turnId]);
-      if (state.ended.includes(token)) return null;
-      state.ended.push(token);
-      if (state.active[agent] === turnId) delete state.active[agent];
-      const barrier = state.barriers[agent];
-      if (!completed || (barrier && barrier.turnId !== turnId)) return null;
-      delete state.barriers[agent];
-      const next = state.items.find(i => i.state === "queued" && queueAgent(i.target) === agent);
-      return next ? this.claim(state, next) : null;
+  /** One fresh ready observation reserves at most one oldest item per agent.
+   * The claim blocks competing polls until transport settles. Active native
+   * turns (including an idle status with activeTurn) block the next admission.
+   */
+  async reconcile(agent?: string, waitForDelivery = true) {
+    const items = await this.transaction(async state => {
+      const checked = new Set<string>(), ready: ChatQueueItem[] = [];
+      for (const item of state.items) {
+        if (item.state !== "queued" || (agent !== undefined && queueAgent(item.target) !== agent)) continue;
+        const group = this.group(item.target);
+        if (checked.has(group)) continue;
+        checked.add(group);
+        if (this.inFlight(state, item.target)) continue;
+        try {
+          if (await this.options.activity(item.target) === "ready") ready.push(this.claim(state, item));
+        } catch (error) {
+          item.state = "held"; item.problem = error instanceof Error ? error.message : String(error);
+        }
+      }
+      return ready;
     });
-    if (item) await this.dispatch(item);
+    const deliveries = Promise.all(items.map(item => this.dispatch(item)));
+    if (waitForDelivery) await deliveries;
+    else void deliveries.catch(error => console.error("[firstmate] queued chat delivery:", error));
+  }
+  async started(agent: string, _turnId: string | null) { await this.reconcile(agent); }
+  async ended(agent: string, turnId: string | null, completed: boolean) {
+    const fresh = await this.transaction(state => {
+      if (!state.items.some(i => queueAgent(i.target) === agent)) return false;
+      if (turnId === null) return true;
+      const token = JSON.stringify([agent, turnId]);
+      if (state.ended.includes(token)) return false;
+      state.ended.push(token);
+      return true;
+    });
+    if (fresh && completed) await this.reconcile(agent);
   }
 }

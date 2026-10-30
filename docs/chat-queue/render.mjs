@@ -1,4 +1,4 @@
-/** Real composers + durable queue; a synthetic agent provides turn boundaries.
+/** Real composers + durable queue; independent native status drives readiness.
  * All state, bundles, before-source copies and PNGs remain in .local/chat-queue.
  */
 import { createRequire } from 'node:module';
@@ -32,12 +32,12 @@ for (const stage of ['before', 'after']) await build({ entryPoints: [resolve(her
 const sessions = new Map();
 function session(id) {
   if (!sessions.has(id)) {
-    const value = { sent: [], turn: 0, enabled: true };
-    value.queue = new ChatQueue(resolve(out, id + '.json'), { enabled: async () => value.enabled, activity: async () => 'busy', deliver: async (payload, messageId) => {
+    const value = { sent: [], turn: 0, enabled: true, active: 'initial', block: null };
+    value.createQueue = () => new ChatQueue(resolve(out, id + '.json'), { enabled: async () => value.enabled, activity: async () => value.active ? 'busy' : 'ready', deliver: async (payload, messageId) => {
       value.sent.push({ payload, messageId });
-      const agent = payload.kind === 'mate' ? payload.agentId : payload.input.route.target.agentId;
-      await value.queue.started(agent, 'turn-' + ++value.turn);
-    } }); sessions.set(id, value);
+      value.active = 'turn-' + ++value.turn; // Native reservation, with no started hook.
+      if (value.block) { value.block.started(); await value.block.wait; }
+    } }); value.queue = value.createQueue(); sessions.set(id, value);
   }
   return sessions.get(id);
 }
@@ -52,7 +52,24 @@ const server = createServer(async (req, res) => {
         case 'firstmate.chat.queue': result = await s.queue.snapshot(input.target); break;
         case 'firstmate.chat.submit': result = await s.queue.submit(input.id, input.payload, input.now, input.replaces); break;
         case 'firstmate.chat.queue.change': result = await s.queue.change(input.target, input.id, input.action); break;
-        case 'end': await s.queue.ended(input.agent, input.turn ?? (s.turn ? 'turn-' + s.turn : 'initial'), true); result = s.sent; break;
+        case 'end': {
+          const turn = input.turn ?? s.active;
+          if (turn === s.active) s.active = null;
+          await s.queue.ended(input.agent, turn, true); result = s.sent; break;
+        }
+        case 'idle': s.active = null; await s.queue.reconcile(input.agent); result = s.sent; break;
+        case 'poll': await s.queue.reconcile(input.agent); result = s.sent; break;
+        case 'restart': {
+          let started, finish;
+          const began = new Promise(resolve => { started = resolve; });
+          s.block = { started, wait: new Promise(resolve => { finish = resolve; }) };
+          s.active = null;
+          const pending = s.queue.reconcile(input.agent);
+          await began; // Claim is durable, but the native reply has not returned.
+          s.queue = s.createQueue(); await s.queue.recover();
+          finish(); await pending; s.block = null; // Late reply must not restore the row.
+          result = s.sent; break;
+        }
         case 'sent': result = s.sent; break;
         case 'setting': s.enabled = input.enabled; result = {}; break;
         default: throw Error('Unknown fixture RPC');
@@ -98,11 +115,26 @@ try {
       const agent = scope ? await page.evaluate(() => window.review.scope.scopes.find(s => s.kind === 'project').target.agentId) : 'first-mate';
       assert.equal((await rpc('end', { agent, turn: 'initial' })).length, 1);
       assert.equal((await rpc('end', { agent, turn: 'initial' })).length, 1);
-      assert.equal((await rpc('end', { agent })).length, 2);
-      results.push({ key, reload: true, edit: true, remove: true, onePerTurn: true, duplicateBlocked: true });
+      assert.equal((await rpc('poll', { agent })).length, 1);
+      assert.equal((await rpc('idle', { agent })).length, 2); // Completed native turn, no lifecycle hooks.
+      assert.equal((await rpc('poll', { agent })).length, 2);
+      await input.fill('Keep this message after a restart.'); await page.getByRole('button', { name: 'Send', exact: true }).click();
+      await page.getByText('1 queued · Sent one at a time', { exact: true }).waitFor();
+      assert.equal((await rpc('restart', { agent })).length, 3);
+      await page.reload({ waitUntil: 'networkidle' });
+      if (scope) await page.evaluate(() => window.review.openScope(window.review.scope.scopes.find(s => s.kind === 'project').id));
+      const saved = page.getByTestId('chat-queue').filter({ visible: true });
+      await saved.getByText('Saved messages', { exact: true }).waitFor();
+      await saved.getByText(/Delivery couldn't be confirmed/).waitFor();
+      assert.equal(await saved.getByRole('button', { name: 'Edit', exact: true }).count(), 0);
+      await page.screenshot({ path: resolve(out, 'screenshots', key.replace('after-', 'recovery-') + '.png') });
+      await saved.getByRole('button', { name: 'Remove', exact: true }).click();
+      await saved.getByText('Saved messages', { exact: true }).waitFor({ state: 'hidden' });
+      assert.equal((await rpc('poll', { agent })).length, 3);
+      results.push({ key, reload: true, edit: true, remove: true, onePerTurn: true, duplicateBlocked: true, missingHooks: true, interruptedDeliveryRemovable: true });
     } else results.push({ key });
     assert.deepEqual(errors, [], key); await page.close();
   }
   await writeFile(resolve(out, 'results.json'), JSON.stringify(results, null, 2));
-  console.log('16 before/after screenshots; both composers: durable reload, edit, remove, one-per-turn and duplicate callback checks passed.');
+  console.log('16 before/after and 8 recovery screenshots; both composers: reload, edit, remove, one-per-turn, missing/duplicate hooks and interrupted-delivery recovery passed.');
 } finally { await browser.close(); await new Promise(done => server.close(done)); }

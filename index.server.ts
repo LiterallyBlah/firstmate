@@ -457,7 +457,7 @@ export default function contribute(server: PluginServerContext) {
   });
 
   return async () => {
-    unregisterChatQueue();
+    await unregisterChatQueue();
     unregisterMaintenance();
     await stopWorkflows();
     unregisterRelay();
