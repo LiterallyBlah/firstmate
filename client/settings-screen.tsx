@@ -114,6 +114,14 @@ export function SettingsScreen({ theme, layout, host, navigation }: PluginSurfac
         </WorkflowSurface>
       </SettingsGroup>
       <SettingsGroup title="The first mate">
+        <SettingsSection title="Messages">
+          <SettingsSwitch label="Queue messages while busy" hint="Send one message after each reply. Use Send now for something urgent."
+            value={display.status === "ready" ? display.values.queueMessagesWhileBusy : true} disabled={display.status !== "ready"}
+            onValueChange={(queueMessagesWhileBusy) => {
+              if (display.status !== "ready") return;
+              void display.save({ ...display.values, queueMessagesWhileBusy }, display.revision).then(ok => { if (!ok) toast.error(display.saveError ?? "The message setting was not saved."); });
+            }} />
+        </SettingsSection>
         <SettingsSection title="Aboard">
           <SettingsRow
             label="First mate"

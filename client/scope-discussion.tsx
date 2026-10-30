@@ -8,7 +8,6 @@ import { readScopeConversation, discussScope, type ScopeSnapshot, type ScopeSumm
 import { resolveDiscussion, scopeDraftKey } from "../shared/scope-discussion";
 import type { DiscussionTarget } from "../shared/scope-discussion";
 import { sameConversationTarget } from "./conversation-list";
-import type { ItemThread } from "../shared/item-threads";
 import { drafts } from "./draft";
 import { discussionSender, discussionSendKey, discussionSendRegistry } from "./scope-send";
 import { workflowRequestId } from "./workflow-plans";
@@ -17,6 +16,8 @@ import { errorText } from "./format";
 import { OptionPicker } from "./option-picker";
 import type { AgentSummary } from "../shared/fleet";
 import { useKeyboardOverlap } from "./keyboard";
+import { useChatQueue, ChatQueueRows, pendingChatDiscussions, chatQueueEvents } from "./chat-queue";
+import type { ChatQueuePayload } from "../shared/chat-queue";
 
 function Button({ label, onPress, disabled = false, theme, selected = false, expanded, buttonRef }: { label: string; onPress(): void; disabled?: boolean; theme: PluginTheme; selected?: boolean; expanded?: boolean; buttonRef?: Ref<View> }) {
   return <Pressable ref={buttonRef} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled, selected, ...(expanded === undefined ? {} : { expanded }) }} disabled={disabled} onPress={onPress}
@@ -34,7 +35,7 @@ export function ScopeDiscussion({ snapshot, offline = false, hostId, theme, comp
   capturedTarget?: DiscussionTarget | undefined;
   focusComposer?: boolean | undefined;
 }) {
-  const read = useRpc(readScopeConversation), send = useRpc(discussScope), cache = useQueryClient();
+  const read = useRpc(readScopeConversation), cache = useQueryClient();
   const selectionKey = JSON.stringify(["firstmate.scope-selection/1", hostId, snapshot.homeId]);
   const savedSelection = useSyncExternalStore(drafts.subscribe, () => drafts.get(selectionKey));
   // The explicit route wins over an old preference, but deliberate recovery/reply
@@ -64,12 +65,14 @@ export function ScopeDiscussion({ snapshot, offline = false, hostId, theme, comp
   try { resolved = resolveDiscussion(draft, snapshot.scopes, snapshot.projects, defaultScope, true); } catch (e) { routeError = errorText(e); }
   if (replyTo && resolved && resolved.scope.id !== selected) routeError = "This reply belongs to another recipient. Cancel the reply or use its original recipient.";
   const recipient = resolved?.scope;
+  const queue = useChatQueue(recipient ? { kind: "scope", target: { ...recipient.target } } : null, JSON.stringify([hostId, snapshot.homeId, selected]));
   if (capturedTarget && recipient && !sameConversationTarget(capturedTarget, recipient.target)) routeError = "This message belongs to the selected mate. Open that conversation again before sending. Your draft is kept.";
   const gate = discussionSender(globalThis, discussionSendKey(hostId, snapshot.homeId, recipient?.id ?? defaultScope));
   const sending = useSyncExternalStore(gate.subscribe, gate.snapshot);
   const sendRegistry = discussionSendRegistry(globalThis);
   useSyncExternalStore(sendRegistry.subscribe, sendRegistry.version);
-  const unconfirmed = sendRegistry.pending(hostId, snapshot.homeId);
+  useSyncExternalStore(chatQueueEvents.subscribe, chatQueueEvents.version);
+  const unconfirmed = [...sendRegistry.pending(hostId, snapshot.homeId), ...pendingChatDiscussions(hostId, snapshot.homeId)];
   const conversations = useQuery({ queryKey: ["firstmate", "scope-conversations", hostId, snapshot.homeId, selected],
     queryFn: async () => {
       // A conversation reads only its own history; an old shared preference is
@@ -87,25 +90,24 @@ export function ScopeDiscussion({ snapshot, offline = false, hostId, theme, comp
   const remote = recipient?.hostId != null && recipient.hostId.trim().toLowerCase() !== "local";
   const unsupported = recipient?.kind === "maintenance" || remote;
   const scopeUnavailable = recipient?.id !== "general" && recipient && (!['active', 'dormant'].includes(recipient.state) || recipient.session === "held");
-  const blocked = offline || conversations.isPending || conversations.isError || !!conversations.data?.problems.length || !snapshot.executionEnabled || (recipient?.id !== "general" && snapshot.freshness !== "current") || scopeUnavailable || unavailableGeneral || unsupported || sending.running || !!sending.pending || !!routeError || !resolved?.text || !recipient;
+  const blocked = offline || conversations.isPending || conversations.isError || !!conversations.data?.problems.length || !snapshot.executionEnabled || (recipient?.id !== "general" && snapshot.freshness !== "current") || scopeUnavailable || unavailableGeneral || unsupported || sending.running || !!sending.pending || queue.sending || !!routeError || !resolved?.text || !recipient;
   const reviewKey = JSON.stringify([hostId, snapshot.homeId, draftKey, draft, defaultScope, recipient?.target, recipient?.title, resolved?.projectIds, replyTo]);
   useEffect(() => { if (reviewedMessage === reviewKey) confirmation.current?.focus(); }, [reviewedMessage, reviewKey]);
   const needsCreation = recipient?.kind !== "general" && recipient?.session === "not-created";
-  function sendDraft(confirmed = false) {
+  function clearConfirmed(payload: ChatQueuePayload) {
+    if (payload.kind !== "scope") return;
+    if (drafts.get(draftKey) === payload.input.addressedText) { drafts.set(draftKey, ""); setReplyTo(null); setReviewedMessage(null); }
+    void cache.invalidateQueries({ queryKey: ["firstmate", "scope-conversations", hostId, snapshot.homeId] }); refresh();
+  }
+  async function sendDraft(confirmed = false, now = false) {
     if (blocked || !resolved || !recipient) return;
     if (needsCreation && (!confirmed || reviewedMessage !== reviewKey)) { setReviewedMessage(reviewKey); return; }
     const captured = { id: workflowRequestId(), text: resolved.text, addressedText: draft, defaultScope,
       route: { target: { ...recipient.target }, recipient: recipient.title, projectIds: [...resolved.projectIds], conversationId: "main", replyTo } };
     const checked = discussScope.input.safeParse(captured);
     if (!checked.success) { setValidationError("The message or its address is outside the supported limits. Shorten it or refresh before sending."); return; }
-    if (gate.send(checked.data, send, (_thread: ItemThread) => {
-      void cache.invalidateQueries({ queryKey: ["firstmate", "scope-conversations", hostId, snapshot.homeId] }); refresh();
-    }, refused => {
-      if (!drafts.get(draftKey)) drafts.set(draftKey, refused.addressedText);
-      else drafts.set(`${draftKey}:refused`, refused.addressedText);
-      if (refused.route.replyTo) drafts.set(replyKey, refused.route.replyTo);
-      refresh();
-    })) { drafts.set(draftKey, ""); setReplyTo(null); setReviewedMessage(null); }
+    const payload = { kind: "scope" as const, input: checked.data };
+    if (await queue.send(payload, now)) clearConfirmed(payload); else refresh();
   }
   // A fresh home has one setup task; no unavailable General recipient/composer alongside it.
   if (unavailableGeneral && generalControls) return <ScrollView automaticallyAdjustKeyboardInsets>{generalControls}</ScrollView>;
@@ -181,7 +183,12 @@ export function ScopeDiscussion({ snapshot, offline = false, hostId, theme, comp
         <Button buttonRef={confirmation} label="Start conversation and send" theme={theme} disabled={blocked || reviewedMessage !== reviewKey} onPress={() => sendDraft(true)} />
         <Button label="Keep editing" theme={theme} onPress={() => { setReviewedMessage(null); composer.current?.focus(); }} />
       </View> : null}
-      {reviewedMessage === null || reviewedMessage !== reviewKey ? <Button label={sending.running ? "Sending…" : needsCreation ? "Review first message" : "Send"} theme={theme} disabled={blocked} onPress={() => sendDraft()} /> : null}
+      {reviewedMessage === null || reviewedMessage !== reviewKey ? <Button label={sending.running || queue.sending ? "Sending…" : needsCreation ? "Review first message" : "Send"} theme={theme} disabled={blocked} onPress={() => { void sendDraft(); }} /> : null}
+      {queue.enabled && !needsCreation && (recipient?.session === "awake" || queue.items.length > 0) ? <Button label="Send now" theme={theme} disabled={blocked} onPress={() => { void sendDraft(false, true); }} /> : null}
+      <ChatQueueRows queue={queue} theme={theme} onConfirmed={clearConfirmed} onEdit={payload => {
+        if (payload.kind !== "scope") return;
+        drafts.set(draftKey, payload.input.addressedText); setReplyTo(payload.input.route.replyTo); composer.current?.focus();
+      }} />
     </ScrollView>
   </View>;
 }

@@ -8,7 +8,7 @@ import { refuse } from "./supervision-effects";
 import { sendWithoutInterrupting } from "./send";
 
 export class SupervisionUiReceiver implements GatewayReceiver {
-  constructor(private readonly paseo: PaseoApi, private readonly root: string, private readonly options: { projectMates?: boolean; maintenanceMates?: boolean } = {}) {}
+  constructor(private readonly paseo: PaseoApi, private readonly root: string, private readonly options: { projectMates?: boolean; maintenanceMates?: boolean; beforeSend?: (agentId: string) => Promise<void> } = {}) {}
   async capabilities() { return { version: 1 as const, receiver: "paseo-sdk/cooperative-attach", qualification: "cooperative-paseo" as const,
     selectedAgentIds: true, createReceiptLookup: true, workspaceIntentLookup: false, persistedInventory: false,
     sendReceiptLookup: false as const, conditionalArchive: false as const }; }
@@ -47,7 +47,10 @@ export class SupervisionUiReceiver implements GatewayReceiver {
       modeId: agent.currentModeId ?? null, thinkingOptionId: agent.thinkingOptionId ?? null, status: agent.status,
       pendingPermissions: agent.pendingPermissions.length, archivedAt: agent.archivedAt ?? null };
   }
-  async send(agentId: string, text: string, messageId: string) { await sendWithoutInterrupting(this.paseo, agentId, text, { messageId }); }
+  async send(agentId: string, text: string, messageId: string) {
+    await this.options.beforeSend?.(agentId);
+    await sendWithoutInterrupting(this.paseo, agentId, text, { messageId });
+  }
   async interrupt(_id: string): Promise<void> { return refuse("UNSUPPORTED", "No interrupt adapter is installed."); }
   async archive(_id: string): Promise<never> { return refuse("UNSUPPORTED", "Conditional archive is gated on U3."); }
   async inventory(_id: string): Promise<never> { return refuse("UNSUPPORTED", "No archive inventory adapter is installed."); }

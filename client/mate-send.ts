@@ -60,7 +60,7 @@ export function createSendGate(): SendGate {
 
 const gates = new Map<string, SendGate>();
 
-function gateFor(mateId: string): SendGate {
+export function mateSendGate(mateId: string): SendGate {
   let gate = gates.get(mateId);
   if (gate === undefined) {
     gate = createSendGate();
@@ -90,7 +90,7 @@ export function useMateSender(mateId: string): MateSender {
   const update = useRpc(requestUpdate);
   const answer = useRpc(submitDecisionAnswer);
   const toast = useToast();
-  const gate = gateFor(mateId);
+  const gate = mateSendGate(mateId);
   const sending = useSyncExternalStore(gate.subscribe, gate.busy);
 
   function deliver(task: () => Promise<unknown>, onFailure?: () => void): boolean {

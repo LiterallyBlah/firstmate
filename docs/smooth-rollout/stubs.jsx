@@ -19,6 +19,7 @@ export function useRpc(contract){
   if(params.has('decision-pending')&&contract.name==='firstmate.needs-you.read')return new Promise(()=>{});
   if(params.has('failure')&&['firstmate.fleet.load','firstmate.needs-you.read'].includes(contract.name))throw new Error('Plugin request timed out (synthetic startup case)');
   switch(contract.name){
+   case 'firstmate.chat.queue':return {enabled:true,items:[]};
    case 'firstmate.config.read':return {resolvedHome:homeId,config:{home:homeId,mateAgentId:upgraded?'first-mate':'',mateSince:null,mateProvider:'',mateModeId:'',crewProvider:'',crewModeId:'',migration:null,previousMateIds:[]}};
    case 'firstmate.mate.candidates':return {home:homeId,agents:[]};
    case 'firstmate.scope.read':return {...clone(scope),uiEnabled:params.has('ui-only')||scope.uiEnabled,executionEnabled:!params.has('ui-only')&&scope.executionEnabled};

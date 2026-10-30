@@ -1,8 +1,11 @@
 import { useRpc as original } from '../smooth-rollout/stubs';
+import { legacyQueueAdapter } from "../chat-queue/legacy-adapter";
 import { scope, projects, homeId, clone, params, histories } from './data';
 export * from '../smooth-rollout/stubs';
 const methods = new Map();
+const queueRpc = legacyQueueAdapter((name, input) => useRpc({ name })(input));
 export function useRpc(contract) {
+  if (contract.name.startsWith('firstmate.chat.')) return queueRpc(contract.name);
   if (!['firstmate.mate.ask', 'firstmate.scope.read', 'firstmate.scope.conversation', 'firstmate.scope.discuss', 'firstmate.projects.setup.read', 'firstmate.projects.setup.status'].includes(contract.name)) return original(contract);
   if (!methods.has(contract.name)) methods.set(contract.name, async input => {
     window.review.calls.push({ name: contract.name, input: clone(input) });

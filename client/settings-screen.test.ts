@@ -34,6 +34,14 @@ beforeEach(() => {
 });
 afterEach(() => { act(() => renderer?.unmount()); renderer = null; });
 
+it("queues messages by default and saves turning the behavior off at the displayed revision", async () => {
+  await act(async () => { renderer = create(createElement(SettingsScreen, props)); });
+  const messages = renderer!.root.findByProps({ label: "Queue messages while busy" });
+  expect(messages.props.value).toBe(true);
+  await act(async () => messages.props.onValueChange(false));
+  expect(state.save).toHaveBeenCalledWith(expect.objectContaining({ queueMessagesWhileBusy: false }), 7);
+});
+
 it("shows the default and saves the switch in the host display document at its revision", async () => {
   await act(async () => { renderer = create(createElement(SettingsScreen, props)); });
   expect(toggle().props.value).toBe(true);

@@ -1,8 +1,11 @@
 import { useRpc as base } from '../board-list/stubs';
+import { legacyQueueAdapter } from "../chat-queue/legacy-adapter";
 import { clone,scope,decisions,histories,homeId,fleet } from './data';
 export * from '../board-list/stubs';
 const methods = new Map();
+const queueRpc = legacyQueueAdapter((name, input) => useRpc({ name })(input));
 export function useRpc(contract) {
+ if (contract.name.startsWith('firstmate.chat.')) return queueRpc(contract.name);
  if (!methods.has(contract.name)) methods.set(contract.name,async input=>{
   window.pr8.calls.push({name:contract.name,input:clone(input)});
   switch(contract.name) {
