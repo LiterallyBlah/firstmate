@@ -85,12 +85,12 @@ export function ChatQueueRows({ queue, theme, compact = false, onEdit, onConfirm
       backgroundColor: accent ? colors.accent : colors.surface2, opacity: queue.sending ? 0.5 : 1 }}>
     <Icon name={icon} size={14} color={accent ? colors.accentForeground : colors.foreground} />
   </Pressable>;
-  return <View testID="chat-queue" style={{ gap: 8 }}>
+  return <View testID="chat-queue" style={{ gap: 8, minHeight: 0, flexShrink: 1, overflow: "hidden" }}>
     {queue.problem ? <Text accessibilityRole="alert" style={{ color: colors.statusWarning, fontSize: 13 }}>{queue.problem}</Text> : null}
     {queue.unconfirmed ? button("Check message", () => { void queue.check().then(payload => { if (payload) onConfirmed(payload); }); }) : null}
     {queue.items.length ? <>
       <Text accessibilityLiveRegion="polite" style={{ color: colors.foregroundMuted, fontSize: 12 }}>{waiting.length ? `${waiting.length} queued · Sent one at a time` : "Saved messages"}</Text>
-      <ScrollView style={{ maxHeight: 224 }} contentContainerStyle={{ gap: 8 }} keyboardShouldPersistTaps="handled">
+      <ScrollView testID="chat-queue-scroll" style={{ maxHeight: 224, minHeight: 0, flexGrow: 0, flexShrink: 1 }} contentContainerStyle={{ gap: 8 }} keyboardShouldPersistTaps="handled">
         {queue.items.map(item => <View key={item.id} testID="chat-queue-item" style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between",
           paddingHorizontal: 12, paddingVertical: 8, backgroundColor: colors.surface1, borderRadius: 8, borderWidth: 1, borderColor: colors.border, gap: 8 }}>
           <View style={{ flex: 1, minWidth: 0, gap: 2 }}>

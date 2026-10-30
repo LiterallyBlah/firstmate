@@ -294,7 +294,7 @@ function GeneralMateChat({
     const { colors } = theme;
     return {
       pane: { flex: 1, minHeight: 0, backgroundColor: colors.surface0 },
-      transcript: { flex: 1 },
+      transcript: { flex: 1, minHeight: 0 },
       scroller: { flex: 1 },
       transcriptBody: { padding: compact ? 10 : 14, gap: 10, width: "100%" as const, maxWidth: 760, alignSelf: "center" as const },
       captain: {
@@ -314,11 +314,14 @@ function GeneralMateChat({
       error: { color: colors.statusDanger, fontSize: 12 },
       hint: { color: colors.foregroundMuted, fontSize: 12, textAlign: "center" as const, padding: 16 },
       composerFrame: {
+        maxHeight: "100%" as const,
+        minHeight: 0,
+        flexShrink: 1,
         borderTopWidth: 1,
         borderTopColor: colors.border,
         backgroundColor: colors.surface0,
       },
-      composer: { padding: compact ? 8 : 10, gap: 8, width: "100%" as const, maxWidth: 760, alignSelf: "center" as const },
+      composer: { padding: compact ? 8 : 10, gap: compact ? 4 : 8, width: "100%" as const, maxWidth: 760, alignSelf: "center" as const, minHeight: 0, flexShrink: 1 },
       quick: { flexDirection: "row" as const, alignItems: "center" as const, gap: 6 },
       prompts: { flexDirection: "row" as const, alignItems: "center" as const, gap: 6 },
       chips: { flexDirection: "row" as const, flexWrap: "wrap" as const, gap: 6 },

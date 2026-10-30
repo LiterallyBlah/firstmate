@@ -20,5 +20,30 @@ positions and Remove action, and uses 44px action targets on compact layouts.
 
 Regenerate all theme/width/surface checks with `node docs/chat-queue/render.mjs`.
 Generate the source comparison with `node docs/chat-queue/reference.mjs /path/to/paseo`.
-Both tools write only to ignored `.local/chat-queue/ui/`; these six selected review
+Both tools write only to ignored `.local/chat-queue/ui/`; these selected review
 images were copied here so PR screenshots remain viewable without a browser upload.
+
+## Short-viewport correction
+
+The independent review of b06dbbd found that three compact queue rows could push
+input and Send below short viewports. The queue and Home footer now yield height;
+scoped context/review/queue content scrolls above a fixed input-and-Send row.
+Compact outer composer gaps leave enough room for a complete 44px queued action.
+Queue card spacing, action names, keyboard behavior and delivery remain unchanged.
+
+| Short viewport | Reviewed head b06dbbd | Corrected layout |
+| --- | --- | --- |
+| Home, 320x640, three queued | ![Before correction](short-before-home.png) | ![After correction](short-after-home.png) |
+| Project, 390x480, three queued | ![Before correction](short-before-project.png) | ![After correction](short-after-project.png) |
+
+The project capture scrolls the bounded upper area to show queued work; input and
+Send remain outside that scroller. Ten-message queues in both themes and surfaces
+are also checked, including full visibility of the focused queued action:
+
+![Ten queued in dark Home](large-dark-small-phone-home.png)
+![Ten queued in dark project chat](large-dark-short-phone-project.png)
+
+[Recorded short-viewport geometry](short-results.json) includes empty, three, ten
+and emptied states, plus the independent review's original and rerun confirmation
+measurements. The accepted status change from PR183 is integrated unchanged; no
+status implementation is duplicated in this correction.

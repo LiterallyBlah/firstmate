@@ -85,7 +85,8 @@ await new Promise(done => server.listen(0, '127.0.0.1', done));
 const origin = `http://127.0.0.1:${server.address().port}`, browser = await chromium.launch({ headless: true, ...(process.platform === 'win32' ? { channel: 'msedge' } : {}) });
 const results = [];
 try {
-  for (const stage of ['before', 'after']) for (const theme of ['light', 'dark']) for (const [device, width, height] of [['desktop', 1440, 1000], ['phone', 390, 844]]) for (const scope of [false, true]) {
+  for (const stage of ['before', 'after']) for (const theme of ['light', 'dark']) for (const [device, width, height] of [['desktop', 1440, 1000], ['phone', 390, 844], ['small-phone', 320, 640], ['short-phone', 390, 480]]) for (const scope of [false, true]) {
+    if (stage === 'before' && ['small-phone', 'short-phone'].includes(device)) continue;
     const key = `${stage}-${theme}-${device}-${scope ? 'project' : 'home'}`;
     const selectedCase = process.argv.find(arg => arg.startsWith('--case='))?.slice(7);
     if (selectedCase && selectedCase !== key) continue;
@@ -96,11 +97,23 @@ try {
     if (scope) await page.evaluate(() => window.review.openScope(window.review.scope.scopes.find(s => s.kind === 'project').id));
     const input = page.getByRole('textbox', { name: scope ? 'Message recipient' : 'Message the first mate', exact: true }); await input.waitFor();
     const rpc = (name, data) => page.evaluate(async ({ name, data }) => (await fetch('/rpc/' + name + location.search, { method: 'POST', body: JSON.stringify(data) })).json(), { name, data });
-    const composerY = (await input.boundingBox()).y;
+    const send = page.getByRole('button', { name: 'Send', exact: true });
+    const bounds = async () => ({ input: await input.boundingBox(), send: await send.boundingBox() });
+    const empty = await bounds(), composerY = empty.input.y;
+    const withinViewport = async () => {
+      for (const [name, control] of [['input', input], ['Send', send]]) {
+        const box = await control.boundingBox();
+        assert.ok(box.y >= 0 && box.y + box.height <= height + 1, `${key}: ${name} must fit the viewport: ${JSON.stringify(box)}`);
+      }
+    };
     const stableComposer = async () => {
+      // Include delayed RN Web onLayout/measurement work, not just the admission render.
+      await page.waitForTimeout(200);
       const box = await input.boundingBox();
       assert.ok(Math.abs(box.y - composerY) < 1, `queue changes must not move the input: ${JSON.stringify({ stage, theme, device, scope, composerY, box })}`);
+      await withinViewport();
     };
+    if (stage === 'after') await withinViewport();
     {
       for (const text of ['Check the reader update.', 'Then review the tests.', 'Send me the result when ready.']) {
         await input.fill(text); await page.getByRole('button', { name: 'Send', exact: true }).click();
@@ -112,8 +125,15 @@ try {
     }
     const visibleQueue = page.getByTestId('chat-queue').filter({ visible: true });
     if (stage === 'after') {
-      const queueBox = await visibleQueue.boundingBox(), inputBox = await input.boundingBox();
+      const queueBox = await (scope ? page.getByTestId('scope-composer-context') : visibleQueue).boundingBox(), inputBox = await input.boundingBox();
       assert.ok(queueBox.y + queueBox.height <= inputBox.y, 'queue must appear before the composer');
+      if (scope) {
+        assert.ok(queueBox.height >= 44, 'the bounded context/queue viewport must fit a compact action');
+        // A short pane shares its upper viewport with recipient context. Scroll it
+        // to inspect the queued rows without scrolling the input or Send.
+        await page.getByTestId('scope-composer-context').evaluate(el => { el.scrollTop = el.scrollHeight; });
+        await stableComposer();
+      }
       assert.ok(await input.evaluate(el => !!(document.querySelector('[data-testid="chat-queue"]')?.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING)), 'DOM and visual order must agree');
       assert.equal(await page.getByRole('button', { name: 'Send now', exact: true }).filter({ visible: true }).count(), 3, 'only per-item Send now controls');
       assert.equal(await visibleQueue.getByRole('button', { name: 'Send now', exact: true }).count(), 3);
@@ -121,6 +141,7 @@ try {
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     assert.doesNotMatch(await page.locator('body').innerText(), /Updating…|as of \d/);
     await page.screenshot({ path: resolve(out, 'screenshots', key + '.png') });
+    const three = await bounds();
     if (stage === 'after') {
       await page.reload({ waitUntil: 'networkidle' });
       if (scope) await page.evaluate(() => window.review.openScope(window.review.scope.scopes.find(s => s.kind === 'project').id));
@@ -158,8 +179,35 @@ try {
       assert.equal((await rpc('sent', {})).at(-1).payload.kind, scope ? 'scope' : 'mate');
       await stableComposer();
       assert.equal(await page.getByRole('button', { name: 'Send now', exact: true }).filter({ visible: true }).count(), 0);
-      results.push({ key, queueBeforeComposer: true, stableComposer: true, noStandaloneSendNow: true, perItemSendNow: true, reload: true, edit: true, remove: true, onePerTurn: true, duplicateBlocked: true, missingHooks: true, interruptedDeliveryRemovable: true });
-    } else results.push({ key });
+      for (let i = 1; i <= 10; i++) {
+        await input.fill(`Message ${i}`); await send.click();
+        await saved.getByText(`${i} queued · Sent one at a time`, { exact: true }).waitFor();
+        await stableComposer();
+      }
+      const queueScroll = saved.getByTestId('chat-queue-scroll');
+      const scroll = await queueScroll.evaluate(el => ({ height: el.clientHeight, content: el.scrollHeight }));
+      assert.ok(scroll.content > scroll.height && scroll.height <= 224, 'large queues must scroll inside their height allowance');
+      await queueScroll.evaluate(el => { el.scrollTop = el.scrollHeight; });
+      if (scope) await page.getByTestId('scope-composer-context').evaluate(el => { el.scrollTop = el.scrollHeight; });
+      await saved.getByRole('button', { name: 'Send now', exact: true }).last().focus();
+      await stableComposer();
+      const actionBox = await saved.getByRole('button', { name: 'Send now', exact: true }).last().boundingBox();
+      const visibleBox = await (scope ? page.getByTestId('scope-composer-context') : queueScroll).boundingBox();
+      assert.ok(actionBox.y >= visibleBox.y - 1 && actionBox.y + actionBox.height <= visibleBox.y + visibleBox.height + 1, `a focused queue action must fit inside the scroll viewport: ${JSON.stringify({ key, actionBox, visibleBox })}`);
+      await page.screenshot({ path: resolve(out, 'screenshots', key.replace('after-', 'large-') + '.png') });
+      const ten = await bounds();
+      await page.keyboard.press('Enter');
+      await saved.getByText('9 queued · Sent one at a time', { exact: true }).waitFor();
+      const delivered = (await rpc('sent', {})).at(-1).payload;
+      assert.equal(scope ? delivered.input.addressedText : delivered.message.text, 'Message 10');
+      for (let i = 9; i > 0; i--) {
+        await saved.getByRole('button', { name: 'Remove', exact: true }).first().focus();
+        await page.keyboard.press('Space');
+        await saved.getByText(`${i} queued · Sent one at a time`, { exact: true }).waitFor({ state: 'hidden' });
+        await stableComposer();
+      }
+      results.push({ key, viewport: { width, height }, empty, three, ten, emptied: await bounds(), scroll, queueBeforeComposer: true, stableComposer: true, inputAndSendVisible: true, largeQueueScrollable: true, keyboardItemActions: true, noStandaloneSendNow: true, perItemSendNow: true, reload: true, edit: true, remove: true, onePerTurn: true, duplicateBlocked: true, missingHooks: true, interruptedDeliveryRemovable: true });
+    } else results.push({ key, viewport: { width, height }, empty, three });
     assert.deepEqual(errors, [], key); await page.close();
   }
   await writeFile(resolve(out, 'results.json'), JSON.stringify(results, null, 2));

@@ -162,32 +162,38 @@ export function ScopeDiscussion({ snapshot, offline = false, hostId, theme, comp
         }} />
       </View>)}
     </ScrollView>
-    <ScrollView style={{ flexGrow: 0, flexShrink: 0, maxHeight: "100%", width: "100%", maxWidth: 800, alignSelf: "center" }} contentContainerStyle={{ gap: 8, padding: compact ? 12 : 16, paddingBottom: (compact ? 12 : 16) + keyboardOverlap, borderTopWidth: 1, borderColor: colors.border }} keyboardShouldPersistTaps="handled">
-      <Text style={{ color: colors.foreground, fontSize: 13 }}>To: {recipient?.title ?? "Check the address"}{resolved?.projectIds.length ? ` · context: ${resolved.projectIds.map(id => snapshot.projects.find(p => p.id === id)?.name ?? id).join(", ")}` : ""}{replyTo ? " · replying" : ""}</Text>
-      {recipient ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{recipient.kind === "general" && generalMate?.id === recipient.target.agentId ? generalMate.status === "running" ? "FirstMate is working" : generalMate.status === "idle" ? "FirstMate is ready" : `FirstMate: ${generalMate.status}` : recipient.session === "not-created" ? "Ready for a new conversation" : recipient.session === "unknown" ? "Status unavailable. Refresh to check again." : recipient.session === "dormant" ? "Not currently working" : recipient.session === "awake" ? "Working" : "Paused"}</Text> : null}
-      {!snapshot.executionEnabled ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>Sending is turned off for this conversation. Your draft is kept.</Text> : unavailableGeneral ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>Set up FirstMate before sending.</Text> : null}
-      {routeError || validationError || sending.error ? <Text accessibilityRole="alert" style={{ color: colors.statusDanger }}>{routeError ?? validationError ?? sending.error}</Text> : null}
-      {unsupported ? <Text style={{ color: colors.foregroundMuted }}>{remote ? "Read-only here. Open the conversation on its original host to continue." : "Routine checks are read-only here. Open the full conversation to inspect their history."}</Text> : null}
-      {scopeUnavailable ? <Text style={{ color: colors.statusWarning }}>This conversation is paused or its owner has changed. Refresh before sending. Your draft is kept.</Text> : null}
-      {refusedDraft ? <Button label="Add refused message to draft" theme={theme} onPress={() => { drafts.set(draftKey, `${refusedDraft}${draft ? `\n\n${draft}` : ""}`); drafts.set(`${draftKey}:refused`, ""); }} /> : null}
-      {replyTo ? <Button label="Cancel reply" theme={theme} onPress={() => setReplyTo(null)} /> : null}
-      {unavailableGeneral ? generalControls : null}
-      {sending.pending && !sending.running ? <Button label="Reconcile original message" theme={theme} onPress={() => { void conversations.refetch(); refresh(); }} /> : null}
-      <ChatQueueRows queue={queue} theme={theme} compact={compact} onConfirmed={clearConfirmed} onEdit={payload => {
-        if (payload.kind !== "scope") return;
-        drafts.set(draftKey, payload.input.addressedText); setReplyTo(payload.input.route.replyTo); composer.current?.focus();
-      }} />
-      <View style={{ flexDirection: "row", borderWidth: 1, borderColor: colors.border, borderRadius: 8, backgroundColor: colors.surface1 }}>
-        <GrowingChatInput ref={composer} theme={theme} compact={compact} accessibilityLabel="Message recipient" multiline value={draft} onChangeText={text => drafts.set(draftKey, text)} placeholder={`Message ${recipient?.title ?? "selected recipient"}…`} />
+    <View style={{ flexShrink: 0, minHeight: 0, maxHeight: "100%", width: "100%", maxWidth: 800, alignSelf: "center", gap: 8, padding: compact ? 12 : 16, paddingBottom: (compact ? 12 : 16) + keyboardOverlap, borderTopWidth: 1, borderColor: colors.border }}>
+      {/* Context and queued rows yield to the input; scrolling never moves Send. */}
+      <ScrollView testID="scope-composer-context" style={{ flexGrow: 0, flexShrink: 1, minHeight: 0 }} contentContainerStyle={{ gap: 8 }} keyboardShouldPersistTaps="handled">
+        <Text style={{ color: colors.foreground, fontSize: 13 }}>To: {recipient?.title ?? "Check the address"}{resolved?.projectIds.length ? ` · context: ${resolved.projectIds.map(id => snapshot.projects.find(p => p.id === id)?.name ?? id).join(", ")}` : ""}{replyTo ? " · replying" : ""}</Text>
+        {recipient ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{recipient.kind === "general" && generalMate?.id === recipient.target.agentId ? generalMate.status === "running" ? "FirstMate is working" : generalMate.status === "idle" ? "FirstMate is ready" : `FirstMate: ${generalMate.status}` : recipient.session === "not-created" ? "Ready for a new conversation" : recipient.session === "unknown" ? "Status unavailable. Refresh to check again." : recipient.session === "dormant" ? "Not currently working" : recipient.session === "awake" ? "Working" : "Paused"}</Text> : null}
+        {!snapshot.executionEnabled ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>Sending is turned off for this conversation. Your draft is kept.</Text> : unavailableGeneral ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>Set up FirstMate before sending.</Text> : null}
+        {routeError || validationError || sending.error ? <Text accessibilityRole="alert" style={{ color: colors.statusDanger }}>{routeError ?? validationError ?? sending.error}</Text> : null}
+        {unsupported ? <Text style={{ color: colors.foregroundMuted }}>{remote ? "Read-only here. Open the conversation on its original host to continue." : "Routine checks are read-only here. Open the full conversation to inspect their history."}</Text> : null}
+        {scopeUnavailable ? <Text style={{ color: colors.statusWarning }}>This conversation is paused or its owner has changed. Refresh before sending. Your draft is kept.</Text> : null}
+        {refusedDraft ? <Button label="Add refused message to draft" theme={theme} onPress={() => { drafts.set(draftKey, `${refusedDraft}${draft ? `\n\n${draft}` : ""}`); drafts.set(`${draftKey}:refused`, ""); }} /> : null}
+        {replyTo ? <Button label="Cancel reply" theme={theme} onPress={() => setReplyTo(null)} /> : null}
+        {unavailableGeneral ? generalControls : null}
+        {sending.pending && !sending.running ? <Button label="Reconcile original message" theme={theme} onPress={() => { void conversations.refetch(); refresh(); }} /> : null}
+        {reviewedMessage !== null ? <View testID="discussion-first-send-review" style={{ gap: 8 }}>
+          <Text accessibilityRole="header" accessibilityLiveRegion="polite" style={{ color: colors.foreground, fontWeight: "600" }}>Start a conversation with {recipient?.title ?? "selected recipient"}?</Text>
+          <Text style={{ color: colors.foreground }}>This creates a persistent conversation and sends your message. It uses the configured model, permissions and spending limits. Discussing does not approve a plan or authorize its work.</Text>
+          {reviewedMessage !== reviewKey ? <Text accessibilityRole="alert" style={{ color: colors.statusWarning }}>The message or recipient changed. Review it again before sending.</Text> : null}
+          <Button buttonRef={confirmation} label="Start conversation and send" theme={theme} disabled={blocked || reviewedMessage !== reviewKey} onPress={() => sendDraft(true)} />
+          <Button label="Keep editing" theme={theme} onPress={() => { setReviewedMessage(null); composer.current?.focus(); }} />
+        </View> : null}
+        <ChatQueueRows queue={queue} theme={theme} compact={compact} onConfirmed={clearConfirmed} onEdit={payload => {
+          if (payload.kind !== "scope") return;
+          drafts.set(draftKey, payload.input.addressedText); setReplyTo(payload.input.route.replyTo); composer.current?.focus();
+        }} />
+      </ScrollView>
+      <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8 }}>
+        <View style={{ flex: 1, minWidth: 0, flexDirection: "row", borderWidth: 1, borderColor: colors.border, borderRadius: 8, backgroundColor: colors.surface1 }}>
+          <GrowingChatInput ref={composer} theme={theme} compact={compact} accessibilityLabel="Message recipient" multiline value={draft} onChangeText={text => drafts.set(draftKey, text)} placeholder={`Message ${recipient?.title ?? "selected recipient"}…`} />
+        </View>
+        {!needsCreation && (reviewedMessage === null || reviewedMessage !== reviewKey) ? <Button label={sending.running || queue.sending ? "Sending…" : "Send"} theme={theme} disabled={blocked} onPress={() => { void sendDraft(); }} /> : null}
       </View>
-      {reviewedMessage !== null ? <View testID="discussion-first-send-review" style={{ gap: 8 }}>
-        <Text accessibilityRole="header" accessibilityLiveRegion="polite" style={{ color: colors.foreground, fontWeight: "600" }}>Start a conversation with {recipient?.title ?? "selected recipient"}?</Text>
-        <Text style={{ color: colors.foreground }}>This creates a persistent conversation and sends your message. It uses the configured model, permissions and spending limits. Discussing does not approve a plan or authorize its work.</Text>
-        {reviewedMessage !== reviewKey ? <Text accessibilityRole="alert" style={{ color: colors.statusWarning }}>The message or recipient changed. Review it again before sending.</Text> : null}
-        <Button buttonRef={confirmation} label="Start conversation and send" theme={theme} disabled={blocked || reviewedMessage !== reviewKey} onPress={() => sendDraft(true)} />
-        <Button label="Keep editing" theme={theme} onPress={() => { setReviewedMessage(null); composer.current?.focus(); }} />
-      </View> : null}
-      {reviewedMessage === null || reviewedMessage !== reviewKey ? <Button label={sending.running || queue.sending ? "Sending…" : needsCreation ? "Review first message" : "Send"} theme={theme} disabled={blocked} onPress={() => { void sendDraft(); }} /> : null}
-    </ScrollView>
+      {needsCreation && (reviewedMessage === null || reviewedMessage !== reviewKey) ? <Button label={sending.running || queue.sending ? "Sending…" : "Review first message"} theme={theme} disabled={blocked} onPress={() => { void sendDraft(); }} /> : null}
+    </View>
   </View>;
 }
