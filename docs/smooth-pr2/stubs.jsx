@@ -10,6 +10,7 @@ const native=basePaseo();
 const paseo={...native,providers:{listAvailable:async()=>({providers:[{provider:'codex',available:true}]}),listModels:async()=>({models:[{id:'gpt-6.1-sol',label:'GPT 6.1 Sol',isSelectable:true}]}),listModes:async()=>({modes:[{id:'full-access',label:'Full access'}]})},agents:{ref:id=>({...native.agents.ref(id),refresh:async()=>({agent:fleet.mate?{...fleet.mate,pendingPermissions:[],archivedAt:null}:null})})}};
 export const usePaseo=()=>paseo;
 export function useRpc(contract){
+ if(contract.name==='firstmate.chat.queue')return original(contract);
  if(!methods.has(contract.name))methods.set(contract.name,async input=>{
   window.review.calls.push({name:contract.name,input});
   if(params.has('startup')&&contract.name==='firstmate.needs-you.read')return new Promise(()=>{});
