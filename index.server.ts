@@ -50,6 +50,7 @@ import { isScopedSourceWorker, refuseScopedRemoteMutation } from "./server/super
 import { readSupervisionInbox } from "./shared/supervision-rpc";
 import { registerScopeRpcs } from "./server/scope-rpc";
 import { ScopeRuntime } from "./server/scope-runtime";
+import { registerChatQueue } from "./server/chat-queue-rpc";
 import { withScopeInboxContext } from "./server/scope-inbox";
 import { withScopedNeedsYou } from "./server/needs-you-service";
 import { listDeckSettings, readDeckEngine, readDeckSetting } from "./server/deck-settings";
@@ -204,6 +205,8 @@ export default function contribute(server: PluginServerContext) {
   const scopeRuntime = new ScopeRuntime(supervisionRuntime, {
     planLimits: planSupervisorGatewayLimits, planBudgetRefused: (store, home, scopeId) => new PlanRules(store, home).budgetDecision(scopeId),
   });
+  const display = server.registerSettings(displaySettings);
+  const unregisterChatQueue = registerChatQueue(server, scopeRuntime, display);
   registerScopeRpcs(server, { read: async () => {
     const config = await readFirstmateConfig(), home = resolveHome(config);
     return { home, generalId: config.mateAgentId || null, status: await readSupervision(home) };
@@ -425,7 +428,6 @@ export default function contribute(server: PluginServerContext) {
 
   // Storage lives on the host; registering the definition is what makes the
   // board's `useSettings` reads and writes valid for this installation.
-  server.registerSettings(displaySettings);
   server.registerSettings(taskLayoutSettings);
 
   // The receipt journal's read-only timeline pages; refused while FIRSTMATE_RECEIPT_JOURNAL is off. See server/receipts.ts.
@@ -455,6 +457,7 @@ export default function contribute(server: PluginServerContext) {
   });
 
   return async () => {
+    await unregisterChatQueue();
     unregisterMaintenance();
     await stopWorkflows();
     unregisterRelay();

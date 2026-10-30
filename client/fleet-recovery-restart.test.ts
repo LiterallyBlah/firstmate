@@ -18,6 +18,12 @@ vi.mock("@getpaseo/plugin/client", () => {
       case "firstmate.config.read": return state.config;
       case "firstmate.mate.restart": return state.restart;
       case "firstmate.mate.ask": return state.ask;
+      case "firstmate.chat.queue": return async () => ({ enabled: true, items: [] });
+      case "firstmate.chat.submit": return async (input: { id: string; payload: { agentId: string; message: unknown } }) => {
+        expect(input.payload.agentId).toBe(state.current);
+        await state.ask(input.payload.message);
+        return { ...input, state: "sent" };
+      };
       default: return async () => { throw new Error(`Unexpected RPC: ${contract.name}`); };
     }
   } };

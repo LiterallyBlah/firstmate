@@ -11,7 +11,11 @@ import { discussionSender, discussionSendKey, type DiscussionInput } from "./sco
 import { ScopeDiscussion } from "./scope-discussion";
 const rpc = vi.hoisted(() => ({ read: vi.fn(), send: vi.fn() }));
 vi.mock("react-native", () => ({ View: "View", Text: "Text", Pressable: "Pressable", ScrollView: "ScrollView" }));
-vi.mock("@getpaseo/plugin/client", () => ({ useRpc: (contract: { name: string }) => contract.name.endsWith(".conversation") ? rpc.read : rpc.send }));
+vi.mock("@getpaseo/plugin/client", () => ({ useRpc: (contract: { name: string }) => {
+  if (contract.name === "firstmate.chat.queue") return async () => ({ enabled: true, items: [] });
+  if (contract.name === "firstmate.chat.submit") return async (input: any) => { await rpc.send(input.payload.input); return { ...input, state: "sent" }; };
+  return contract.name.endsWith(".conversation") ? rpc.read : rpc.send;
+} }));
 vi.mock("./growing-chat-input", () => ({ GrowingChatInput: (props: object) => createElement("Input", props) }));
 vi.mock("./option-picker", () => ({ OptionPicker: (props: object) => createElement("Picker", props) }));
 vi.mock("./keyboard", () => ({ useKeyboardOverlap: () => 0 }));

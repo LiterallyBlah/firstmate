@@ -1,10 +1,13 @@
 import { useRpc as baseRpc } from "../../board-list/stubs";
+import { legacyQueueAdapter } from "../../chat-queue/legacy-adapter";
 import { snapshot, threads, needs, maintenanceNeeds } from "./fixtures";
 export * from "../../board-list/stubs";
 const clone = value => JSON.parse(JSON.stringify(value));
 window.scopeActions = []; window.scopeSnapshot = clone(snapshot); window.scopeNeeds = clone(location.search.includes("maintenance") ? maintenanceNeeds : needs); window.holdSend = false; window.holdRead = false;
 const methods = new Map();
+const queueRpc = legacyQueueAdapter((name, input) => useRpc({ name })(input));
 export function useRpc(contract) {
+  if (contract.name.startsWith("firstmate.chat.")) return queueRpc(contract.name);
   if (!contract.name.startsWith("firstmate.scope.") && contract.name !== "firstmate.maintenance.answer-ui") return baseRpc(contract);
   if (!methods.has(contract.name)) methods.set(contract.name, async input => {
     window.scopeActions.push({ name: contract.name, input: clone(input) });

@@ -1,8 +1,7 @@
 /**
  * How the board is drawn, for this daemon's clients: a host settings document
- * the app reads and writes on its own. None of it means anything to the
- * daemon, which is why it is not in `config.json` — see "Which side owns a
- * persisted value" in the root AGENTS.md.
+ * the app reads and writes. The daemon also reads the chat queue preference;
+ * operational identity and launch configuration still live in `config.json`.
  */
 import { defineSettings } from "@getpaseo/plugin";
 import { z } from "zod";
@@ -25,6 +24,8 @@ export const displaySettings = defineSettings({
   scope: "host",
   version: 1,
   schema: z.object({
+    /** Read by the daemon as well as the composers; never inferred from an agent's status in the app. */
+    queueMessagesWhileBusy: z.boolean().default(true),
     /** Global setting for the fleet scene; per-project selection is a future resolver concern. */
     deckSetting: z
       .string()

@@ -1,5 +1,6 @@
 /** Only host APIs are stubbed; the panel, chat, rows, cards and watch content are real. */
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { legacyQueueAdapter } from "../chat-queue/legacy-adapter";
 import { createPortal } from "react-dom";
 import { TextInput as NativeTextInput } from "react-native-web";
 export { FlatList, ScrollView } from "react-native-web";
@@ -59,7 +60,9 @@ const calls = (window.fixtureCalls = []);
 window.fixtureSnapshot = snapshot;
 window.fixtureErrors = [];
 const rpc = new Map();
+const queueRpc = legacyQueueAdapter((name, input) => useRpc({ name })(input));
 export function useRpc(contract) {
+  if (contract.name.startsWith("firstmate.chat.")) return queueRpc(contract.name);
   if (!rpc.has(contract.name))
     rpc.set(contract.name, async (input) => {
       calls.push({ name: contract.name, input });

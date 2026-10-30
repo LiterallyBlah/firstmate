@@ -32,7 +32,6 @@ import {
   hasContent,
   pendingAttachments,
   readEach,
-  restoreFailed,
   type PendingAttachment,
 } from "./attachments";
 import { drafts } from "./draft";
@@ -48,7 +47,9 @@ import { MessageCopy } from "./message-copy";
 import { useMateSender } from "./mate-send";
 import { Markdown } from "./markdown";
 import { PermissionCard, usePendingRequests } from "./permission-card";
-import { sentImages } from "./sent-images";
+import { sentImages, keepSentImages } from "./sent-images";
+import { useChatQueue, ChatQueueRows } from "./chat-queue";
+import type { ChatQueuePayload } from "../shared/chat-queue";
 import { ATTACHMENTS_ONLY, transcriptRows, type TranscriptRow } from "./transcript-rows";
 import { IconButton, JumpToEnd, MONOSPACE, Spinner, errorText } from "./ui";
 import { useKeyboardOverlap } from "./keyboard";
@@ -151,8 +152,10 @@ function GeneralMateChat({
   useEffect(cacheSentImages, []);
   const workspaceLinks = useWorkspaceFileLink(theme, navigation, imageContext ?? {});
   /** Shared with the surface's suggestion buttons: one message on its way at a time — see `./mate-send`. */
-  const { sending, send, command: sendMateCommand } = useMateSender(mate.id);
+  const { sending: sendingOther, command: sendMateCommand } = useMateSender(mate.id);
   const returnKey = chatReturnKey(imageContext?.serverId ?? "local", imageContext?.home ?? "", mate.id);
+  const queue = useChatQueue({ kind: "mate", agentId: mate.id }, returnKey);
+  const sending = sendingOther || queue.sending;
   const returnState = chatReturnState(returnKey);
   const timeline = useAgentTimeline(mate.id, `${mate.updatedAt}:${mate.pendingPermissions}`, 150, returnKey);
   /** Decisions the first mate raised show once, as cards from the Needs-you snapshot — see `./decision-raised`. */
@@ -349,26 +352,27 @@ function GeneralMateChat({
   }, [theme, compact]);
 
   /**
-   * The draft and its attachments are cleared as the message goes, not when
-   * the daemon answers: the box stays editable while it is in flight, and a
-   * follow-up typed in that second must not be wiped by the reply. A failed
-   * send puts the text back, unless something new has been typed since, and
-   * its attachments ahead of any attached since.
+   * Clear only the draft the daemon has saved. Words or attachments added
+   * while saving stay in the box. Unknown delivery keeps the original ID.
    */
-  function sendDraft(): void {
+  function clearConfirmed(payload: ChatQueuePayload): void {
+    if (payload.kind !== "mate") return;
+    const current = captainMessage(drafts.get(mate.id), pendingAttachments.get(mate.id));
+    const { messageId: _id, ...message } = payload.message;
+    if (JSON.stringify(current) !== JSON.stringify(message)) return;
+    setDraft(""); setAttachments([]);
+  }
+  async function sendDraft(now = false): Promise<void> {
     // Another open chat can clear or edit the stores before this render catches up.
     const text = drafts.get(mate.id);
     const attached = pendingAttachments.get(mate.id);
     if (!hasContent(text, attached) || sending) return;
     // Through the stores only: this chat may be gone by the time the send fails, and the one on screen follows them.
-    const sent = send(captainMessage(text, attached), () => {
-      if (drafts.get(mate.id).trim() === "") drafts.set(mate.id, text);
-      pendingAttachments.set(mate.id, restoreFailed(pendingAttachments.get(mate.id), attached));
-    });
+    const payload = { kind: "mate" as const, agentId: mate.id, message: keepSentImages(captainMessage(text, attached)) };
+    const sent = await queue.send(payload, now);
     if (!sent) return;
     follow.pin();
-    setDraft("");
-    setAttachments([]);
+    clearConfirmed(payload);
   }
 
   /** Bearings or Ahoy: the words are the daemon's, from its templates. */
@@ -655,10 +659,23 @@ function GeneralMateChat({
                 tone="accent"
                 theme={theme}
                 disabled={sending || !hasContent(draft, attachments)}
-                onPress={sendDraft}
+                onPress={() => { void sendDraft(); }}
               />
             </View>
           </View>
+          {queue.enabled && (status === "running" || status === "initializing" || queue.items.length > 0) ? <Pressable accessibilityRole="button" accessibilityLabel="Send now" disabled={sending || !hasContent(draft, attachments)}
+            onPress={() => { void sendDraft(true); }} style={{ minHeight: 44, justifyContent: "center", alignSelf: "flex-end", paddingHorizontal: 8, opacity: sending || !hasContent(draft, attachments) ? 0.5 : 1 }}>
+            <Text style={{ color: theme.colors.foreground, fontSize: 13, textDecorationLine: "underline" }}>Send now</Text>
+          </Pressable> : null}
+          <ChatQueueRows queue={queue} theme={theme} onConfirmed={clearConfirmed} onEdit={payload => {
+            if (payload.kind !== "mate") return;
+            setDraft(payload.message.text);
+            setAttachments([
+              ...(payload.message.images ?? []).map((image, i) => ({ id: `queue-image-${i}`, kind: "image" as const, fileName: `Image ${i + 1}`, mimeType: image.mimeType, data: image.data, size: Math.floor(image.data.length * 3 / 4) })),
+              ...(payload.message.files ?? []).map((file, i) => ({ ...file, id: `queue-file-${i}`, kind: "file" as const, size: Math.floor(file.data.length * 3 / 4) })),
+            ]);
+            composer.current?.focus();
+          }} />
         </View>
       </SafeAreaView>
       {dragging ? (

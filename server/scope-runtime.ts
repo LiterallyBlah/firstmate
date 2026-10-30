@@ -37,10 +37,10 @@ export class ScopeRuntime {
     await this.runtime.features?.check(home, "scopeExecution");
     return { config, home };
   }
-  async execute<T>(homeId: string, scopeId: string, paseo: PaseoApi, run: (services: ScopeServices) => Promise<T>): Promise<T> {
+  async execute<T>(homeId: string, scopeId: string, paseo: PaseoApi, run: (services: ScopeServices) => Promise<T>, beforeNativeSend?: (agentId: string) => Promise<void>): Promise<T> {
     const { home } = await this.checked(homeId);
     const compose = async (store: SupervisionStore) => {
-      const receiver = this.options.receiver?.(paseo) ?? new SupervisionUiReceiver(paseo, this.runtime.root, { projectMates: true });
+      const receiver = this.options.receiver?.(paseo) ?? new SupervisionUiReceiver(paseo, this.runtime.root, { projectMates: true, ...(beforeNativeSend ? { beforeSend: beforeNativeSend } : {}) });
       const initialPolicy = await this.runtime.features?.read(home);
       const stored = await store.read();
       const planLimits = !this.runtime.features || initialPolicy?.effective.planSupervisors || stored.planRules?.some(r => r.scopeId === scopeId) ? this.options.planLimits : undefined;
@@ -129,7 +129,7 @@ export class ScopeRuntime {
         generalId: async () => (await this.checked(homeId)).config.mateAgentId || null,
         profile: async id => (await profileAndLimits(await store.read(), id)).profile,
         generalSend: (text, messageId, beforeSend) => askMate(paseo, { text, messageId }, async agentId => {
-          await this.checked(homeId); await beforeSend(agentId);
+          await this.checked(homeId); await beforeNativeSend?.(agentId); await beforeSend(agentId);
         }, start => this.runtime.features ? this.runtime.features.boundary(home, async () => {
           await this.checked(homeId);
           const pending = start(); void pending.catch(() => undefined); return { pending };

@@ -24,16 +24,20 @@ vi.mock("./scope-query", () => ({ useScopeSnapshot: () => ({ data: state.scopes,
 vi.mock("./scope-discussion", () => ({ ScopeDiscussion: (props: object) => createElement("ScopeDiscussion", props) }));
 vi.mock("./project-setup", () => ({ ProjectSetup: (props: object) => createElement("ProjectSetup", props) }));
 vi.mock("react-native", () => ({ Platform: { OS: "web" }, ...Object.fromEntries(["View", "Text", "Pressable", "ScrollView", "SafeAreaView", "Image"].map(name => [name, name])) }));
-vi.mock("@getpaseo/plugin/client", () => ({ useRpc: () => async () => ({}), openExternalUrl() {} }));
+vi.mock("@getpaseo/plugin/client", () => ({ useRpc: (contract: { name: string }) => async (input: any) => {
+  if (contract.name === "firstmate.chat.queue") return { enabled: true, items: [] };
+  if (contract.name === "firstmate.chat.submit") { state.send(input.payload.message); return { ...input, state: "sent" }; }
+  return {};
+}, openExternalUrl() {} }));
 vi.mock("@getpaseo/plugin/client/react-native", () => ({ TextInput: "TextInput", Icon: () => null, useToast: () => ({ error() {} }) }));
 vi.mock("./needs-you-query", () => ({ useNeedsYou: () => ({ data: state.snapshot, error: null }) }));
 vi.mock("./use-timeline", () => ({ useAgentTimeline: () => ({ entries: state.entries, error: null, hasOlder: false, loading: false }) }));
-vi.mock("./workflow-plans", () => ({ useWorkflowPlans: () => ({ snapshot: state.plans, open: state.openPlan }) }));
+vi.mock("./workflow-plans", () => ({ workflowRequestId: () => crypto.randomUUID(), useWorkflowPlans: () => ({ snapshot: state.plans, open: state.openPlan }) }));
 vi.mock("./permission-card", () => ({ usePendingRequests: () => ({ pending: [], respond() {} }), PermissionCard: () => null }));
 vi.mock("./follow-end", () => ({ useFollowEnd: () => ({ scrollProps: {}, away: false, pin() {}, keepAtEnd: state.keepAtEnd }) }));
 vi.mock("./keyboard", () => ({ useKeyboardOverlap: () => state.keyboard }));
 vi.mock("./workspace-file-link", () => ({ useWorkspaceFileLink: () => ({ dialog: null }) }));
-vi.mock("./mate-send", () => ({ useMateSender: () => ({ send: state.send, sending: false, command: state.send }) }));
+vi.mock("./mate-send", async importOriginal => ({ ...await importOriginal<typeof import("./mate-send")>(), useMateSender: () => ({ send: state.send, sending: false, command: state.send }) }));
 vi.mock("./mate-controls", () => ({ MateControls: () => null }));
 vi.mock("./markdown", () => ({ Markdown: () => null }));
 vi.mock("./decision-raised-card", () => ({ DecisionRaisedCard: () => null }));
@@ -190,13 +194,13 @@ it.each(["pending", "failed", "empty"])("keeps %s conversation discovery distinc
   state.scopeError = kind === "failed" ? new Error("Offline") : null;
   await render();
   await act(async () => renderer.root.findByType("TextInput" as never).props.onChangeText("@"));
-  await act(async () => button("Send").props.onPress());
-  expect(state.send).toHaveBeenCalledOnce();
   expect(renderer.root.findAll(n => n.type === ("Pressable" as never) && n.props.accessibilityLabel === "No project mates yet. Set one up")).toHaveLength(kind === "empty" ? 1 : 0);
   if (kind === "empty") {
     await act(async () => button("No project mates yet. Set one up").props.onPress());
     expect(renderer.root.findAllByType("ProjectSetup" as never)).toHaveLength(1);
   }
+  await act(async () => button("Send").props.onPress());
+  expect(state.send).toHaveBeenCalledOnce();
 });
 
 it("keeps a filtered picker reachable through every keystroke of a leading @ sentence", async () => {
