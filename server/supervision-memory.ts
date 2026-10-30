@@ -35,8 +35,8 @@ async function projectFile(directory: string, path: string, limit: number) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
     refuse("HELD", `${path} could not be opened inside the project folder. Check its location and file access, then resume setup.`);
   }
-  let handle;
-  try { handle = await open(absolute, "r"); }
+  let handle, pathBefore;
+  try { pathBefore = await stat(absolute); handle = await open(absolute, "r"); }
   catch { refuse("HELD", `${path} could not be opened. Check that the file or its link target is readable, then resume setup.`); }
   try {
     const before = await handle.stat();
@@ -53,7 +53,11 @@ async function projectFile(directory: string, path: string, limit: number) {
       length += bytesRead;
     }
     const after = await handle.stat(), checked = await resolveInHome(directory, path), current = await stat(checked.absolute);
-    if (length !== before.size || [after, current].some(s => s.size !== before.size || s.mtimeMs !== before.mtimeMs || s.ctimeMs !== before.ctimeMs || s.ino !== before.ino || s.dev !== before.dev))
+    const sameFile = (a: typeof before, b: typeof before) => a.size === b.size && a.mtimeMs === b.mtimeMs && a.ctimeMs === b.ctimeMs && a.ino === b.ino;
+    // Windows Node 23 path stat and fstat report different dev values for the same
+    // file. Pin each API's own device identity; retain cross-API inode/time/size checks.
+    if (length !== before.size || !sameFile(pathBefore, before) || !sameFile(before, after) || before.dev !== after.dev ||
+      !sameFile(pathBefore, current) || pathBefore.dev !== current.dev)
       refuse("STALE", `${path} changed while setup was reading it. Wait for edits to finish, then resume setup.`);
     const bytes = content.subarray(0, length), text = bytes.toString("utf8");
     if (text.includes("\0") || !Buffer.from(text).equals(bytes))

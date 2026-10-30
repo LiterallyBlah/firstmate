@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import * as fs from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -87,7 +87,31 @@ it.each(["AGENTS.md", "CLAUDE.md", "README.md"])("project context: binary %s ref
   await expect(service.memory({ homeId: read.homeId, projectId: p.projectId! })).rejects.toMatchObject({ code: "HELD", message: `${path} is not UTF-8 text. Save it as a UTF-8 text file, then resume setup.` });
   expect(receiver.calls).toHaveLength(0);
 });
-it("project context: replacing a file during its read refuses instead of silently dropping it", async () => {
+it.each([false, true])("project context: API-specific device IDs are stable, descriptor device changed=%s", async changed => {
+  const read = await admit(), p = read.projects.find(p => p.name === "scheduler")!;
+  const path = join(home, "projects/scheduler/AGENTS.md"), text = "Keep all project rules.\n";
+  await writeFile(path, text);
+  const { open: original } = await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises");
+  vi.mocked(fs.open).mockImplementation(async (...args) => {
+    const file = await original(...args);
+    if (String(args[0]).toLowerCase() === path.toLowerCase()) {
+      const originalStat = file.stat.bind(file); let calls = 0;
+      vi.spyOn(file, "stat").mockImplementation(async () => {
+        const value = await originalStat();
+        // Windows Node 23 path stat reports dev=0 while fstat reports the volume ID.
+        // Model this on every platform, and still refuse a change within the fstat chain.
+        value.dev = -100 - (changed ? calls++ : 0); return value;
+      });
+    }
+    return file;
+  });
+  try {
+    const context = readProjectContext(new SupervisionStore(data, home), p.projectId!);
+    if (changed) await expect(context).rejects.toMatchObject({ code: "STALE" });
+    else expect((await context).conventions[0]).toMatchObject({ text, digest: sha(text) });
+  } finally { vi.mocked(fs.open).mockImplementation(original); }
+});
+it.each(["edit", "replace"])("project context: %s during its read refuses instead of silently dropping the file", async kind => {
   const read = await admit(), p = read.projects.find(p => p.name === "scheduler")!;
   const path = join(home, "projects/scheduler/AGENTS.md"); await writeFile(path, "Initial rules.");
   const { open: original } = await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises");
@@ -97,7 +121,9 @@ it("project context: replacing a file during its read refuses instead of silentl
       const read = file.read.bind(file);
       vi.spyOn(file, "read").mockImplementationOnce(async options => {
         const result = await read(options);
-        await writeFile(path, "Changed rules."); return result;
+        if (kind === "replace") { await rename(path, path + ".old"); await writeFile(path, "Initial rules."); }
+        else await writeFile(path, "Changed rules.");
+        return result;
       });
     }
     return file;
