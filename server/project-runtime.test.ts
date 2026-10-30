@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
-import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, realpath, rename, rm, stat, writeFile } from "node:fs/promises";
+import * as fs from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { ProjectAdmin } from "../shared/project-runtime";
@@ -17,10 +18,146 @@ import { workflowStore } from "./workflow-service";
 import { askMate } from "./mate";
 import { canonical, digest } from "./submissions";
 import { stableId } from "./supervision-effects";
+import { readProjectContext } from "./supervision-memory";
+import { readProjectMemory } from "../shared/project-runtime";
+vi.mock("node:fs/promises", async importOriginal => {
+  const actual = await importOriginal<typeof import("node:fs/promises")>();
+  return { ...actual, open: vi.fn(actual.open) };
+});
 const root = process.env.PASEO_HOME!, api = {} as PaseoApi;
 let home: string, data: string, runtime: SupervisionRuntime, service: ProjectRuntime, receiver: SyntheticReceiver, source: Extract<ProjectAdmin, { op: "admit" }>["source"];
 const actor = { kind: "mate-chat" as const, id: "general", source: "project administration (same-user role convention, unverified)" };
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
+it("project context: 24 KiB conventions and a 76 KiB README retain full conventions and faithful documentation", async () => {
+  const read = await admit(), p = read.projects.find(p => p.name === "scheduler")!;
+  const agents = "# Rules\n" + "Keep all conventions.\n".repeat(1170), claude = "# Claude rules\nKeep the closing rule.\n";
+  const readme = "# Ariadne\nOpening overview.\n\n## Install\n" + "Detailed setup.\n".repeat(4900) + "\n## Final section\nFull document ending.\n";
+  expect(Buffer.byteLength(agents)).toBeGreaterThan(23 * 1024); expect(Buffer.byteLength(readme)).toBeGreaterThan(75 * 1024);
+  for (const [path, text] of Object.entries({ "AGENTS.md": agents, "CLAUDE.md": claude, "README.md": readme })) await writeFile(join(home, "projects/scheduler", path), text);
+  const context = readProjectMemory.output.parse(await service.memory({ homeId: read.homeId, projectId: p.projectId! }));
+  expect(context.conventions).toEqual([agents, claude].map((text, i) => ({ path: i ? "CLAUDE.md" : "AGENTS.md", text, digest: sha(text), authority: "none" })));
+  expect(context.documentation).toEqual([expect.objectContaining({ path: "README.md", digest: sha(readme), sourceBytes: Buffer.byteLength(readme), authority: "none", projection: "opening-and-headings" })]);
+  const doc = context.documentation[0]!;
+  expect(doc.text).toContain("Opening overview."); expect(doc.text).toContain("## Install"); expect(doc.text).toContain("## Final section");
+  expect(doc.text).not.toContain("Detailed setup."); expect(Buffer.byteLength(doc.text)).toBeLessThanOrEqual(16 * 1024);
+  expect(doc.readFullFile).toContain("README.md");
+  await service.provision({ homeId: read.homeId, requestId: randomUUID(), projectId: p.projectId!, projectVersion: p.version }, api);
+  expect(receiver.agents.size).toBe(1); expect(receiver.sends[0]?.text).toContain("opening-and-headings"); expect(receiver.sends[0]?.text).toContain("Keep the closing rule.");
+});
+it("project context: recorded pre-fix refusal resumes after restart without allocating a second mate or opening", async () => {
+  const read = await admit(), p = read.projects.find(p => p.name === "scheduler")!;
+  const input = { homeId: read.homeId, requestId: randomUUID(), projectId: p.projectId!, projectVersion: p.version };
+  // This is the exact durable state left by the old 64 KiB README refusal: input only, no binding or spend.
+  await runtime.mutate(home, store => store.transactCommand(stableId("project-provision-input", input.requestId), digest(input),
+    { kind: "plugin-ui-unverified", id: "unauthenticated-plugin-call", source: "project provision button (unverified)" },
+    async () => ({ mutations: [], expectedVersions: [], result: { planId: null, planHash: null, decisionId: null, outboxId: null, projectProvision: input } })));
+  await writeFile(join(home, "projects/scheduler/README.md"), "# Ariadne\nIntro.\n\n## Reference\n" + "x".repeat(76 * 1024));
+  await runtime.stop(); runtime = projectRuntimeFixture(data); service = make();
+  const saved = (await service.read()).projects.find(row => row.projectId === p.projectId)!.provisionInput!;
+  expect(saved).toEqual(input);
+  await service.provision(saved, api); await service.provision(saved, api); await service.provision({ ...saved, requestId: randomUUID() }, api);
+  expect(receiver.agents.size).toBe(1); expect(receiver.sends).toHaveLength(1);
+  expect((await service.read()).projects.find(row => row.projectId === p.projectId)).toMatchObject({ provisionRequestId: input.requestId, sessions: 1, turns: 1 });
+});
+it("project context: complete conventions above the old limit and a small README are carried unchanged", async () => {
+  const read = await admit(), p = read.projects.find(p => p.name === "scheduler")!;
+  const agents = "Rule.\n".repeat(16 * 1024), readme = "# Project\nFull overview.\n";
+  await writeFile(join(home, "projects/scheduler/AGENTS.md"), agents); await writeFile(join(home, "projects/scheduler/README.md"), readme);
+  const context = readProjectMemory.output.parse(await service.memory({ homeId: read.homeId, projectId: p.projectId! }));
+  expect(context.conventions[0]).toMatchObject({ text: agents, digest: sha(agents), authority: "none" });
+  expect(context.documentation[0]).toMatchObject({ text: readme, digest: sha(readme), projection: "full", authority: "none" });
+});
+it("project context: a README over one MiB has a valid bounded RPC projection, including an opening after its preamble", async () => {
+  const read = await admit(), p = read.projects.find(p => p.name === "scheduler")!;
+  const readme = "<!-- Project docs -->\n# Ariadne\nOpening overview.\n\n## Reference\n" + "detail.\n".repeat(160 * 1024);
+  await writeFile(join(home, "projects/scheduler/README.md"), readme);
+  const context = readProjectMemory.output.parse(await service.memory({ homeId: read.homeId, projectId: p.projectId! }));
+  expect(context.documentation[0]?.text).toContain("Opening overview."); expect(context.documentation[0]?.sourceBytes).toBe(Buffer.byteLength(readme));
+});
+it.each(["AGENTS.md", "CLAUDE.md"])("project context: oversized %s refuses plainly without dropping conventions", async path => {
+  const read = await admit(), p = read.projects.find(p => p.name === "scheduler")!;
+  await writeFile(join(home, "projects/scheduler", path), "x".repeat(128 * 1024 + 1));
+  await expect(service.provision({ homeId: read.homeId, requestId: randomUUID(), projectId: p.projectId!, projectVersion: p.version }, api))
+    .rejects.toMatchObject({ code: "HELD", message: expect.stringContaining(`${path} is too large`) });
+  expect(receiver.calls).toHaveLength(0);
+});
+it.each(["AGENTS.md", "CLAUDE.md", "README.md"])("project context: binary %s refuses with a recovery action", async path => {
+  const read = await admit(), p = read.projects.find(p => p.name === "scheduler")!;
+  await writeFile(join(home, "projects/scheduler", path), Buffer.from([0xff, 0x00]));
+  await expect(service.memory({ homeId: read.homeId, projectId: p.projectId! })).rejects.toMatchObject({ code: "HELD", message: `${path} is not UTF-8 text. Save it as a UTF-8 text file, then resume setup.` });
+  expect(receiver.calls).toHaveLength(0);
+});
+it.each([false, true])("project context: API-specific device IDs are stable, descriptor device changed=%s", async changed => {
+  const read = await admit(), p = read.projects.find(p => p.name === "scheduler")!;
+  const path = join(home, "projects/scheduler") + "/./AGENTS.md", text = "Keep all project rules.\n";
+  await writeFile(path, text);
+  // The reader canonicalizes the root; temp paths can use short-name aliases on Windows.
+  const canonicalPath = await realpath(path); let intercepted = 0;
+  const { open: original } = await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises");
+  vi.mocked(fs.open).mockImplementation(async (...args) => {
+    const file = await original(...args);
+    if (String(args[0]).toLowerCase() === canonicalPath.toLowerCase()) {
+      intercepted++;
+      const originalStat = file.stat.bind(file); let calls = 0;
+      vi.spyOn(file, "stat").mockImplementation(async () => {
+        const value = await originalStat();
+        // Windows Node 23 path stat reports dev=0 while fstat reports the volume ID.
+        // Model this on every platform, and still refuse a change within the fstat chain.
+        value.dev = -100 - (changed ? calls++ : 0); return value;
+      });
+    }
+    return file;
+  });
+  try {
+    const context = readProjectContext(new SupervisionStore(data, home), p.projectId!);
+    if (changed) await expect(context).rejects.toMatchObject({ code: "STALE" });
+    else expect((await context).conventions[0]).toMatchObject({ text, digest: sha(text) });
+    expect(intercepted).toBe(1);
+  } finally { vi.mocked(fs.open).mockImplementation(original); }
+});
+it.each(["edit", "replace"])("project context: %s during its read refuses instead of silently dropping the file", async kind => {
+  const read = await admit(), p = read.projects.find(p => p.name === "scheduler")!;
+  const path = join(home, "projects/scheduler") + "/./AGENTS.md"; await writeFile(path, "Initial rules.");
+  const canonicalPath = await realpath(path); let intercepted = 0;
+  const { open: original } = await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises");
+  vi.mocked(fs.open).mockImplementation(async (...args) => {
+    const file = await original(...args);
+    if (String(args[0]).toLowerCase() === canonicalPath.toLowerCase()) {
+      intercepted++;
+      const read = file.read.bind(file);
+      vi.spyOn(file, "read").mockImplementationOnce(async options => {
+        const result = await read(options);
+        if (kind === "replace") { await rename(path, path + ".old"); await writeFile(path, "Initial rules."); }
+        else await writeFile(path, "Changed rules.");
+        return result;
+      });
+    }
+    return file;
+  });
+  try {
+    await expect(readProjectContext(new SupervisionStore(data, home), p.projectId!)).rejects.toMatchObject({ code: "STALE", message: expect.stringContaining("Wait for edits to finish, then resume setup") });
+    expect(intercepted).toBe(1);
+  } finally { vi.mocked(fs.open).mockImplementation(original); }
+  expect(receiver.calls).toHaveLength(0);
+});
+it("project context: README excerpt ignores code headings, preserves UTF-8, and reports incomplete coverage", async () => {
+  const read = await admit(), p = read.projects.find(p => p.name === "scheduler")!;
+  const readme = "# Ariadne\n" + "界".repeat(4000) + "\n\n## Guide\n```md\n# Code example\n```\n" + Array.from({ length: 1000 }, (_, i) => `\n## Section ${i}\nDetailed prose.\n`).join("");
+  await writeFile(join(home, "projects/scheduler/README.md"), readme);
+  const context = await readProjectContext(new SupervisionStore(data, home), p.projectId!), doc = context.documentation[0]!;
+  expect(doc.text).not.toContain("Code example"); expect(doc.text).not.toContain("�"); expect(doc.projection).toBe("opening-and-headings");
+  expect(doc).toMatchObject({ openingComplete: false, headingsTotal: 1002 });
+  if (doc.projection !== "opening-and-headings") throw new Error("Expected a projected README");
+  expect(doc.headingsIncluded).toBeLessThan(doc.headingsTotal); expect(Buffer.byteLength(doc.text)).toBeLessThanOrEqual(16 * 1024);
+  expect(doc.digest).toBe(sha(readme));
+});
+it("project context: the encoded combined limit refuses full rules rather than clipping or escaping past the opening bound", async () => {
+  const read = await admit(), p = read.projects.find(p => p.name === "scheduler")!;
+  // Both files fit individually. Escaping '<' in the real opening must count toward the shared budget.
+  await writeFile(join(home, "projects/scheduler/AGENTS.md"), "<".repeat(30 * 1024));
+  await writeFile(join(home, "projects/scheduler/CLAUDE.md"), "Keep this complete.");
+  await expect(service.memory({ homeId: read.homeId, projectId: p.projectId! })).rejects.toMatchObject({ code: "HELD", message: expect.stringContaining("Keep all active rules") });
+});
 beforeEach(async () => {
   process.env.PASEO_HOME = join(root, randomUUID()); home = join(process.env.PASEO_HOME, "home"); data = join(process.env.PASEO_HOME, "data");
   await mkdir(join(home, "data"), { recursive: true });
