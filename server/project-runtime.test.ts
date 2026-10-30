@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, realpath, rename, rm, stat, writeFile } from "node:fs/promises";
 import * as fs from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -89,12 +89,15 @@ it.each(["AGENTS.md", "CLAUDE.md", "README.md"])("project context: binary %s ref
 });
 it.each([false, true])("project context: API-specific device IDs are stable, descriptor device changed=%s", async changed => {
   const read = await admit(), p = read.projects.find(p => p.name === "scheduler")!;
-  const path = join(home, "projects/scheduler/AGENTS.md"), text = "Keep all project rules.\n";
+  const path = join(home, "projects/scheduler") + "/./AGENTS.md", text = "Keep all project rules.\n";
   await writeFile(path, text);
+  // The reader canonicalizes the root; temp paths can use short-name aliases on Windows.
+  const canonicalPath = await realpath(path); let intercepted = 0;
   const { open: original } = await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises");
   vi.mocked(fs.open).mockImplementation(async (...args) => {
     const file = await original(...args);
-    if (String(args[0]).toLowerCase() === path.toLowerCase()) {
+    if (String(args[0]).toLowerCase() === canonicalPath.toLowerCase()) {
+      intercepted++;
       const originalStat = file.stat.bind(file); let calls = 0;
       vi.spyOn(file, "stat").mockImplementation(async () => {
         const value = await originalStat();
@@ -109,15 +112,18 @@ it.each([false, true])("project context: API-specific device IDs are stable, des
     const context = readProjectContext(new SupervisionStore(data, home), p.projectId!);
     if (changed) await expect(context).rejects.toMatchObject({ code: "STALE" });
     else expect((await context).conventions[0]).toMatchObject({ text, digest: sha(text) });
+    expect(intercepted).toBe(1);
   } finally { vi.mocked(fs.open).mockImplementation(original); }
 });
 it.each(["edit", "replace"])("project context: %s during its read refuses instead of silently dropping the file", async kind => {
   const read = await admit(), p = read.projects.find(p => p.name === "scheduler")!;
-  const path = join(home, "projects/scheduler/AGENTS.md"); await writeFile(path, "Initial rules.");
+  const path = join(home, "projects/scheduler") + "/./AGENTS.md"; await writeFile(path, "Initial rules.");
+  const canonicalPath = await realpath(path); let intercepted = 0;
   const { open: original } = await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises");
   vi.mocked(fs.open).mockImplementation(async (...args) => {
     const file = await original(...args);
-    if (String(args[0]).toLowerCase() === path.toLowerCase()) {
+    if (String(args[0]).toLowerCase() === canonicalPath.toLowerCase()) {
+      intercepted++;
       const read = file.read.bind(file);
       vi.spyOn(file, "read").mockImplementationOnce(async options => {
         const result = await read(options);
@@ -130,6 +136,7 @@ it.each(["edit", "replace"])("project context: %s during its read refuses instea
   });
   try {
     await expect(readProjectContext(new SupervisionStore(data, home), p.projectId!)).rejects.toMatchObject({ code: "STALE", message: expect.stringContaining("Wait for edits to finish, then resume setup") });
+    expect(intercepted).toBe(1);
   } finally { vi.mocked(fs.open).mockImplementation(original); }
   expect(receiver.calls).toHaveLength(0);
 });
