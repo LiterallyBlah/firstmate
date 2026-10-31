@@ -1,5 +1,6 @@
 import type { PluginTheme } from "@getpaseo/plugin";
 import { useRpc } from "@getpaseo/plugin/client";
+import { Icon } from "@getpaseo/plugin/client/react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useSyncExternalStore } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
@@ -65,11 +66,11 @@ export function useChatQueue(target: ChatQueueTarget | null, context: string) {
     return started === null ? null : started;
   }
   return { sending, send, act, items: query.data?.items.filter(i => !["sent", "removed"].includes(i.state)) ?? [],
-    enabled: query.data?.enabled ?? true, problem: problem ?? (query.isError ? "The queue couldn't be checked. Your draft is kept." : null),
+    problem: problem ?? (query.isError ? "The queue couldn't be checked. Your draft is kept." : null),
     checking: query.isPending, unconfirmed: pending.has(key), check: async () => { const request = pending.get(key); if (request && await send(request.payload, request.now)) return request.payload; return null; } };
 }
 
-export function ChatQueueRows({ queue, theme, onEdit, onConfirmed }: { queue: ReturnType<typeof useChatQueue>; theme: PluginTheme; onEdit(payload: ChatQueuePayload): void; onConfirmed(payload: ChatQueuePayload): void }) {
+export function ChatQueueRows({ queue, theme, compact = false, onEdit, onConfirmed }: { queue: ReturnType<typeof useChatQueue>; theme: PluginTheme; compact?: boolean; onEdit(payload: ChatQueuePayload): void; onConfirmed(payload: ChatQueuePayload): void }) {
   const colors = theme.colors;
   const waiting = queue.items.filter(item => item.state === "queued");
   const positions = new Map(waiting.map((item, index) => [item.id, index + 1]));
@@ -77,24 +78,34 @@ export function ChatQueueRows({ queue, theme, onEdit, onConfirmed }: { queue: Re
     accessibilityState={{ disabled: disabled || queue.sending }} onPress={onPress} style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: 8, opacity: disabled || queue.sending ? 0.5 : 1 }}>
     <Text style={{ color: colors.foreground, fontSize: 13, textDecorationLine: "underline" }}>{label}</Text>
   </Pressable>;
-  return <View testID="chat-queue" style={{ gap: 4 }}>
+  const action = (label: string, icon: string, onPress: () => void, accent = false) => <Pressable
+    accessibilityRole="button" accessibilityLabel={label} disabled={queue.sending}
+    accessibilityState={{ disabled: queue.sending }} onPress={onPress}
+    style={{ width: compact ? 44 : 32, height: compact ? 44 : 32, borderRadius: 9999, alignItems: "center", justifyContent: "center",
+      backgroundColor: accent ? colors.accent : colors.surface2, opacity: queue.sending ? 0.5 : 1 }}>
+    <Icon name={icon} size={14} color={accent ? colors.accentForeground : colors.foreground} />
+  </Pressable>;
+  return <View testID="chat-queue" style={{ gap: 8, minHeight: 0, flexShrink: 1, overflow: "hidden" }}>
     {queue.problem ? <Text accessibilityRole="alert" style={{ color: colors.statusWarning, fontSize: 13 }}>{queue.problem}</Text> : null}
     {queue.unconfirmed ? button("Check message", () => { void queue.check().then(payload => { if (payload) onConfirmed(payload); }); }) : null}
     {queue.items.length ? <>
       <Text accessibilityLiveRegion="polite" style={{ color: colors.foregroundMuted, fontSize: 12 }}>{waiting.length ? `${waiting.length} queued · Sent one at a time` : "Saved messages"}</Text>
-      <ScrollView style={{ maxHeight: 224 }} keyboardShouldPersistTaps="handled">
-        {queue.items.map(item => <View key={item.id} style={{ borderTopWidth: 1, borderColor: colors.border, paddingVertical: 4, gap: 2 }}>
-          <Text numberOfLines={2} style={{ color: colors.foreground, fontSize: 13 }}>{positions.has(item.id) ? `${positions.get(item.id)}. ` : ""}{item.text || "Attachments"}</Text>
-          {item.attachmentCount > 0 ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{item.attachmentCount} attachments</Text> : null}
-          {item.state === "editing" ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>Editing · Send it from the message box</Text> : null}
-          {item.state === "refused" ? <Text style={{ color: colors.statusWarning, fontSize: 12 }}>{item.problem ?? "Not sent · Edit to try again"}</Text> : null}
-          {item.state === "held" || item.state === "claimed" ? <Text style={{ color: colors.statusWarning, fontSize: 12 }}>{item.problem ?? "Checking delivery. This message will not be sent again."}</Text> : null}
-          <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+      <ScrollView testID="chat-queue-scroll" style={{ maxHeight: 224, minHeight: 0, flexGrow: 0, flexShrink: 1 }} contentContainerStyle={{ gap: 8 }} keyboardShouldPersistTaps="handled">
+        {queue.items.map(item => <View key={item.id} testID="chat-queue-item" style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+          paddingHorizontal: 12, paddingVertical: 8, backgroundColor: colors.surface1, borderRadius: 8, borderWidth: 1, borderColor: colors.border, gap: 8 }}>
+          <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+            <Text numberOfLines={2} ellipsizeMode="tail" style={{ color: colors.foreground, fontSize: 14 }}>{positions.has(item.id) ? `${positions.get(item.id)}. ` : ""}{item.text || "Attachments"}</Text>
+            {item.attachmentCount > 0 ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{item.attachmentCount} attachments</Text> : null}
+            {item.state === "editing" ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>Editing · Send it from the message box</Text> : null}
+            {item.state === "refused" ? <Text style={{ color: colors.statusWarning, fontSize: 12 }}>{item.problem ?? "Not sent · Edit to try again"}</Text> : null}
+            {item.state === "held" || item.state === "claimed" ? <Text style={{ color: colors.statusWarning, fontSize: 12 }}>{item.problem ?? "Checking delivery. This message will not be sent again."}</Text> : null}
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             {item.state === "queued" || item.state === "editing" || item.state === "refused" ? <>
-              {button("Edit", () => { void queue.act(item, "edit").then(payload => { if (payload) onEdit(payload); }); })}
-              {item.state === "queued" ? button("Send now", () => { void queue.act(item, "now"); }) : null}
+              {action("Edit", "Pencil", () => { void queue.act(item, "edit").then(payload => { if (payload) onEdit(payload); }); })}
+              {item.state === "queued" ? action("Send now", "ArrowUp", () => { void queue.act(item, "now"); }, true) : null}
             </> : null}
-            {item.state !== "claimed" ? button("Remove", () => { void queue.act(item, "remove"); }) : null}
+            {item.state !== "claimed" ? action("Remove", "X", () => { void queue.act(item, "remove"); }) : null}
           </View>
         </View>)}
       </ScrollView>
