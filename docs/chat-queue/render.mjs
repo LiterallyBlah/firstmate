@@ -87,6 +87,8 @@ const results = [];
 try {
   for (const stage of ['before', 'after']) for (const theme of ['light', 'dark']) for (const [device, width, height] of [['desktop', 1440, 1000], ['phone', 390, 844], ['small-phone', 320, 640], ['short-phone', 390, 480], ['short-pane', 390, 468]]) for (const scope of [false, true]) {
     if (stage === 'before' && ['small-phone', 'short-phone', 'short-pane'].includes(device)) continue;
+    // Extra Home stress for the hosted header wrap; project keeps both reviewed short sizes.
+    if (device === 'short-pane' && scope) continue;
     const key = `${stage}-${theme}-${device}-${scope ? 'project' : 'home'}`;
     const selectedCase = process.argv.find(arg => arg.startsWith('--case='))?.slice(7);
     if (selectedCase && selectedCase !== key) continue;
