@@ -85,8 +85,8 @@ await new Promise(done => server.listen(0, '127.0.0.1', done));
 const origin = `http://127.0.0.1:${server.address().port}`, browser = await chromium.launch({ headless: true, ...(process.platform === 'win32' ? { channel: 'msedge' } : {}) });
 const results = [];
 try {
-  for (const stage of ['before', 'after']) for (const theme of ['light', 'dark']) for (const [device, width, height] of [['desktop', 1440, 1000], ['phone', 390, 844], ['small-phone', 320, 640], ['short-phone', 390, 480]]) for (const scope of [false, true]) {
-    if (stage === 'before' && ['small-phone', 'short-phone'].includes(device)) continue;
+  for (const stage of ['before', 'after']) for (const theme of ['light', 'dark']) for (const [device, width, height] of [['desktop', 1440, 1000], ['phone', 390, 844], ['small-phone', 320, 640], ['short-phone', 390, 480], ['short-pane', 390, 468]]) for (const scope of [false, true]) {
+    if (stage === 'before' && ['small-phone', 'short-phone', 'short-pane'].includes(device)) continue;
     const key = `${stage}-${theme}-${device}-${scope ? 'project' : 'home'}`;
     const selectedCase = process.argv.find(arg => arg.startsWith('--case='))?.slice(7);
     if (selectedCase && selectedCase !== key) continue;
@@ -124,16 +124,15 @@ try {
       assert.equal((await rpc('sent', {})).length, 0);
     }
     const visibleQueue = page.getByTestId('chat-queue').filter({ visible: true });
+    const composerContext = page.getByTestId(scope ? 'scope-composer-context' : 'chat-composer-context');
     if (stage === 'after') {
-      const queueBox = await (scope ? page.getByTestId('scope-composer-context') : visibleQueue).boundingBox(), inputBox = await input.boundingBox();
+      const queueBox = await composerContext.boundingBox(), inputBox = await input.boundingBox();
       assert.ok(queueBox.y + queueBox.height <= inputBox.y, 'queue must appear before the composer');
-      if (scope) {
-        assert.ok(queueBox.height >= 44, 'the bounded context/queue viewport must fit a compact action');
-        // A short pane shares its upper viewport with recipient context. Scroll it
-        // to inspect the queued rows without scrolling the input or Send.
-        await page.getByTestId('scope-composer-context').evaluate(el => { el.scrollTop = el.scrollHeight; });
-        await stableComposer();
-      }
+      assert.ok(queueBox.height >= 44, 'the bounded context/queue viewport must fit a compact action');
+      // Short panes share their upper viewport with context and toolbar controls.
+      // Scroll it to inspect queued rows without scrolling the input or Send.
+      await composerContext.evaluate(el => { el.scrollTop = el.scrollHeight; });
+      await stableComposer();
       assert.ok(await input.evaluate(el => !!(document.querySelector('[data-testid="chat-queue"]')?.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING)), 'DOM and visual order must agree');
       assert.equal(await page.getByRole('button', { name: 'Send now', exact: true }).filter({ visible: true }).count(), 3, 'only per-item Send now controls');
       assert.equal(await visibleQueue.getByRole('button', { name: 'Send now', exact: true }).count(), 3);
@@ -188,11 +187,11 @@ try {
       const scroll = await queueScroll.evaluate(el => ({ height: el.clientHeight, content: el.scrollHeight }));
       assert.ok(scroll.content > scroll.height && scroll.height <= 224, 'large queues must scroll inside their height allowance');
       await queueScroll.evaluate(el => { el.scrollTop = el.scrollHeight; });
-      if (scope) await page.getByTestId('scope-composer-context').evaluate(el => { el.scrollTop = el.scrollHeight; });
+      await composerContext.evaluate(el => { el.scrollTop = el.scrollHeight; });
       await saved.getByRole('button', { name: 'Send now', exact: true }).last().focus();
       await stableComposer();
       const actionBox = await saved.getByRole('button', { name: 'Send now', exact: true }).last().boundingBox();
-      const visibleBox = await (scope ? page.getByTestId('scope-composer-context') : queueScroll).boundingBox();
+      const visibleBox = await composerContext.boundingBox();
       assert.ok(actionBox.y >= visibleBox.y - 1 && actionBox.y + actionBox.height <= visibleBox.y + visibleBox.height + 1, `a focused queue action must fit inside the scroll viewport: ${JSON.stringify({ key, actionBox, visibleBox })}`);
       await page.screenshot({ path: resolve(out, 'screenshots', key.replace('after-', 'large-') + '.png') });
       const ten = await bounds();

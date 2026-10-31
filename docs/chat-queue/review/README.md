@@ -1,6 +1,7 @@
 # Queue layout review
 
-Generated on 2026-10-30 with the real FirstMate chat surfaces and synthetic host APIs.
+Generated on 2026-10-30 and refreshed on 2026-10-31 with the real FirstMate chat
+surfaces and synthetic host APIs.
 The before revision is e8a1c0810805b9e05c85cce20d275f52c14917d9.
 
 | Surface | Before | After |
@@ -28,7 +29,9 @@ images were copied here so PR screenshots remain viewable without a browser uplo
 The independent review of b06dbbd found that three compact queue rows could push
 input and Send below short viewports. The queue and Home footer now yield height;
 scoped context/review/queue content scrolls above a fixed input-and-Send row.
-Compact outer composer gaps leave enough room for a complete 44px queued action.
+Both chats reserve the input and Send row, then allow context and queue content
+to scroll within the remaining height. A further 390x468 case checks that a
+wrapped host header or slightly shorter pane still fits a complete 44px action.
 Queue card spacing, action names, keyboard behavior and delivery remain unchanged.
 
 | Short viewport | Reviewed head b06dbbd | Corrected layout |
@@ -47,3 +50,13 @@ are also checked, including full visibility of the focused queued action:
 and emptied states, plus the independent review's original and rerun confirmation
 measurements. The accepted status change from PR183 is integrated unchanged; no
 status implementation is duplicated in this correction.
+
+The first integrated head d7c5c54 failed both hosted Ubuntu runs at 390x480:
+the host fixture's header wrapped onto a second line, leaving a 34px inner
+queue viewport for a 44px action. Windows was cancelled after the Ubuntu
+failure by the matrix's default fail-fast behavior. The bounded Home context
+scroller removes that dependence on host header height; the 390x468 regression
+failed locally before this correction. The harness now covers 28 cases across
+both themes and chat surfaces, with three and ten queued messages.
+
+![Focused action in the shorter 390x468 Home pane](large-light-short-pane-home.png)

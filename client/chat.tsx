@@ -321,7 +321,7 @@ function GeneralMateChat({
         borderTopColor: colors.border,
         backgroundColor: colors.surface0,
       },
-      composer: { padding: compact ? 8 : 10, gap: compact ? 4 : 8, width: "100%" as const, maxWidth: 760, alignSelf: "center" as const, minHeight: 0, flexShrink: 1 },
+      composer: { padding: compact ? 8 : 10, gap: 8, width: "100%" as const, maxWidth: 760, alignSelf: "center" as const, minHeight: 0, flexShrink: 1 },
       quick: { flexDirection: "row" as const, alignItems: "center" as const, gap: 6 },
       prompts: { flexDirection: "row" as const, alignItems: "center" as const, gap: 6 },
       chips: { flexDirection: "row" as const, flexWrap: "wrap" as const, gap: 6 },
@@ -559,82 +559,85 @@ function GeneralMateChat({
       */}
       <SafeAreaView style={styles.composerFrame}>
         <View style={styles.composer}>
-          {discussion ? (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              {discussing ? (
-                <Pressable accessibilityRole="button" accessibilityLabel={`Back to the decision: ${discussing.source.title}`}
-                  onPress={onReturnDecision} style={{ flex: 1, paddingVertical: 6, minHeight: compact ? 44 : undefined, justifyContent: "center" }}>
-                  <Text style={{ color: theme.colors.accent, fontSize: 12 }}>‹ Back to the decision · {discussing.source.title}</Text>
-                </Pressable>
-              ) : (
-                <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12, flex: 1 }}>
-                  This decision changed or is no longer waiting. Open Needs you to check.
-                </Text>
-              )}
-              <IconButton theme={theme} compact={compact} icon="X" label="Dismiss decision reference" onPress={() => onDismissDiscussion?.()} />
-            </View>
-          ) : null}
-          <View style={styles.quick} onLayout={(event) => setToolbarWidth(event.nativeEvent.layout.width)}>
-            <View style={styles.prompts}>
-              <IconButton
-                icon="Compass"
-                label="Bearings"
-                compact={compact}
-                tooltip="Ask for a fresh fleet overview from saved records and live crew."
-                showLabel={toolbarWidth >= 400}
-                theme={theme}
-                disabled={sending}
-                onPress={() => sendCommand("bearings")}
-              />
-              <IconButton
-                icon="Anchor"
-                label="Ahoy"
-                compact={compact}
-                tooltip="Recap this conversation and walk through open decisions. First contact gives Bearings."
-                showLabel={toolbarWidth >= 400}
-                theme={theme}
-                disabled={sending}
-                onPress={() => sendCommand("ahoy")}
-              />
-            </View>
-            <MateControls
-              theme={theme}
-              compact={compact}
-              onOpenConversation={
-                navigation === undefined ? undefined : () => navigation.openAgent({ agentId: mate.id })
-              }
-              usedTokens={usage?.contextWindowUsedTokens}
-              maxTokens={usage?.contextWindowMaxTokens}
-              running={status === "running" || status === "initializing"}
-              onChanged={onChanged}
-            />
-          </View>
-          {attachments.length === 0 ? null : (
-            <View style={styles.chips}>
-              {attachments.map((attachment) => (
-                <AttachmentChip
-                  key={attachment.id}
-                  attachment={attachment}
-                  theme={theme}
+          {/* Context and queue share the remaining height above the fixed input. */}
+          <ScrollView testID="chat-composer-context" style={{ flexGrow: 0, flexShrink: 1, minHeight: 0 }} contentContainerStyle={{ gap: 8 }} keyboardShouldPersistTaps="handled">
+            {discussion ? (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                {discussing ? (
+                  <Pressable accessibilityRole="button" accessibilityLabel={`Back to the decision: ${discussing.source.title}`}
+                    onPress={onReturnDecision} style={{ flex: 1, paddingVertical: 6, minHeight: compact ? 44 : undefined, justifyContent: "center" }}>
+                    <Text style={{ color: theme.colors.accent, fontSize: 12 }}>‹ Back to the decision · {discussing.source.title}</Text>
+                  </Pressable>
+                ) : (
+                  <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12, flex: 1 }}>
+                    This decision changed or is no longer waiting. Open Needs you to check.
+                  </Text>
+                )}
+                <IconButton theme={theme} compact={compact} icon="X" label="Dismiss decision reference" onPress={() => onDismissDiscussion?.()} />
+              </View>
+            ) : null}
+            <View style={styles.quick} onLayout={(event) => setToolbarWidth(event.nativeEvent.layout.width)}>
+              <View style={styles.prompts}>
+                <IconButton
+                  icon="Compass"
+                  label="Bearings"
                   compact={compact}
-                  onRemove={() =>
-                    setAttachments(pendingAttachments.get(mate.id).filter((kept) => kept.id !== attachment.id))
-                  }
+                  tooltip="Ask for a fresh fleet overview from saved records and live crew."
+                  showLabel={toolbarWidth >= 400}
+                  theme={theme}
+                  disabled={sending}
+                  onPress={() => sendCommand("bearings")}
                 />
-              ))}
+                <IconButton
+                  icon="Anchor"
+                  label="Ahoy"
+                  compact={compact}
+                  tooltip="Recap this conversation and walk through open decisions. First contact gives Bearings."
+                  showLabel={toolbarWidth >= 400}
+                  theme={theme}
+                  disabled={sending}
+                  onPress={() => sendCommand("ahoy")}
+                />
+              </View>
+              <MateControls
+                theme={theme}
+                compact={compact}
+                onOpenConversation={
+                  navigation === undefined ? undefined : () => navigation.openAgent({ agentId: mate.id })
+                }
+                usedTokens={usage?.contextWindowUsedTokens}
+                maxTokens={usage?.contextWindowMaxTokens}
+                running={status === "running" || status === "initializing"}
+                onChanged={onChanged}
+              />
             </View>
-          )}
-          {mentions.panel}
-          {mentions.panel ? <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>To: FirstMate</Text> : null}
-          <ChatQueueRows queue={queue} theme={theme} compact={compact} onConfirmed={clearConfirmed} onEdit={payload => {
-            if (payload.kind !== "mate") return;
-            setDraft(payload.message.text);
-            setAttachments([
-              ...(payload.message.images ?? []).map((image, i) => ({ id: `queue-image-${i}`, kind: "image" as const, fileName: `Image ${i + 1}`, mimeType: image.mimeType, data: image.data, size: Math.floor(image.data.length * 3 / 4) })),
-              ...(payload.message.files ?? []).map((file, i) => ({ ...file, id: `queue-file-${i}`, kind: "file" as const, size: Math.floor(file.data.length * 3 / 4) })),
-            ]);
-            composer.current?.focus();
-          }} />
+            {attachments.length === 0 ? null : (
+              <View style={styles.chips}>
+                {attachments.map((attachment) => (
+                  <AttachmentChip
+                    key={attachment.id}
+                    attachment={attachment}
+                    theme={theme}
+                    compact={compact}
+                    onRemove={() =>
+                      setAttachments(pendingAttachments.get(mate.id).filter((kept) => kept.id !== attachment.id))
+                    }
+                  />
+                ))}
+              </View>
+            )}
+            {mentions.panel}
+            {mentions.panel ? <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>To: FirstMate</Text> : null}
+            <ChatQueueRows queue={queue} theme={theme} compact={compact} onConfirmed={clearConfirmed} onEdit={payload => {
+              if (payload.kind !== "mate") return;
+              setDraft(payload.message.text);
+              setAttachments([
+                ...(payload.message.images ?? []).map((image, i) => ({ id: `queue-image-${i}`, kind: "image" as const, fileName: `Image ${i + 1}`, mimeType: image.mimeType, data: image.data, size: Math.floor(image.data.length * 3 / 4) })),
+                ...(payload.message.files ?? []).map((file, i) => ({ ...file, id: `queue-file-${i}`, kind: "file" as const, size: Math.floor(file.data.length * 3 / 4) })),
+              ]);
+              composer.current?.focus();
+            }} />
+          </ScrollView>
           <View style={styles.inputRow}>
             <GrowingChatInput
               ref={composer}
