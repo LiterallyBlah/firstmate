@@ -66,3 +66,14 @@ it("F2: a newer real report cannot be overwritten by an earlier captured clock p
   const s = await f.store.read(); expect(s.inbox.events).toHaveLength(2);
   expect(s.inbox.assignments.map(a => a.state)).toEqual(["observed", "assigned"]);
 });
+
+it("F5: retained refresh failure holds affected admission until an exact readable refresh clears it", async () => {
+  const f = await fixture(); await f.sources.observeWatch(f.fact);
+  await f.sources.observeWatch({ ...f.fact, watch: "two" });
+  await f.sources.gap("watch", "local", null, "one", ["stale", "fetch-failed"], f.target.scopeId);
+  await expect(f.sources.checkWatchAdmission(f.target.scopeId)).rejects.toThrow(/held/);
+  const before = await f.store.read();
+  expect(await f.sources.refreshWatches()).toEqual([]);
+  await expect(f.sources.checkWatchAdmission(f.target.scopeId)).resolves.toBeUndefined();
+  const after = await f.store.read(); expect(after.inbox.events).toEqual(before.inbox.events); expect(after.effects).toEqual(before.effects);
+});

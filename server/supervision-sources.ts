@@ -168,6 +168,8 @@ export class SupervisionSources {
     const s = await this.store.read();
     for (const b of s.sources.bindings.filter(b => b.kind === "watch" && b.scopeId === scopeId && b.state === "active")) {
       if (b.kind !== "watch") continue;
+      const source = s.inbox.sources.find(source => source.id === sourceRowId("watch", "local", null, b.name));
+      if (source?.gaps.includes("stale")) throw new SupervisionError("HELD", "Watch refresh remains held; reconcile its exact retained source before another action.");
       const task = s.tasks.find(t => t.id === b.taskId), event = s.inbox.events.filter(e => e.envelope.subject.watch === b.name).at(-1);
       const owner = s.bindings.find(v => v.scopeId === scopeId);
       if (!owner || owner.state !== "active" || digest({ agentId: owner.agentId, epoch: owner.epoch, profileDigest: owner.profileDigest }) !== digest(b.owner) ||

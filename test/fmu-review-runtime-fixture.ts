@@ -2,29 +2,29 @@ import { randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { expect, it, vi } from "vitest";
-import { s04Fixture, captain, type ScopeHandle } from "../test/supervision-s04-fixture";
-import { expected } from "../test/supervision-fixture";
+import { s04Fixture, captain, type ScopeHandle } from "./supervision-s04-fixture";
+import { expected } from "./supervision-fixture";
 import { FirstmateConfigSchema } from "../shared/fleet";
 import { PlanRuleRecordSchema, RuleVerificationSchema } from "../shared/plan-rules";
-import { PlanRuntime } from "./plan-runtime";
-import { SupervisionRuntime } from "./supervision-runtime";
-import type { PaseoApi } from "./host-types";
-import { PlanRules, ruleRef } from "./plan-rules";
-import { policyRef } from "./supervision-policy";
-import { digest } from "./submissions";
-import { expectedFor, stableId } from "./supervision-effects";
-import { oneAtATime } from "./mate";
-import { workflowHomeId, workflowSnapshot } from "./workflow-board";
-import { planSubjectHash } from "./workflow-plans";
-import { checkPlanAllocation } from "./plan-allocation";
-import type { SupervisionMutation } from "./supervision-store";
-import { normalizePullRequest } from "./supervision-sources";
-import { SupervisionSources } from "./supervision-sources";
-import { activationEffects } from "./supervisor-sessions";
-import { WatchConfigStore } from "./watch-config";
-import { pluginDir } from "./data-dir";
-import { watchPolicyDigest } from "./supervision-source-state";
-import { cutoverGate } from "./supervision-gate";
+import { PlanRuntime } from "../server/plan-runtime";
+import { SupervisionRuntime } from "../server/supervision-runtime";
+import type { PaseoApi } from "../server/host-types";
+import { PlanRules, ruleRef } from "../server/plan-rules";
+import { policyRef } from "../server/supervision-policy";
+import { digest } from "../server/submissions";
+import { expectedFor, stableId } from "../server/supervision-effects";
+import { oneAtATime } from "../server/mate";
+import { workflowHomeId, workflowSnapshot } from "../server/workflow-board";
+import { planSubjectHash } from "../server/workflow-plans";
+import { checkPlanAllocation } from "../server/plan-allocation";
+import type { SupervisionMutation } from "../server/supervision-store";
+import { normalizePullRequest } from "../server/supervision-sources";
+import { SupervisionSources } from "../server/supervision-sources";
+import { activationEffects } from "../server/supervisor-sessions";
+import { WatchConfigStore } from "../server/watch-config";
+import { pluginDir } from "../server/data-dir";
+import { watchPolicyDigest } from "../server/supervision-source-state";
+import { cutoverGate } from "../server/supervision-gate";
 
 export async function fixture(realOwners = false) {
   const f = await s04Fixture(), scopes: ScopeHandle[] = [];
@@ -67,4 +67,3 @@ export async function fixture(realOwners = false) {
   service.remember(api); await service.tick();
   return { ...f, runtime, service, api, scopes, records, queue, result, directory };
 }
-

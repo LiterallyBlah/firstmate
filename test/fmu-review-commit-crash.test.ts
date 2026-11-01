@@ -45,4 +45,3 @@ it("R2-F4: accepted app commit replay must finish the config-to-gate crash bound
   expect((await gate.readWatchRoute("one"))?.stage).toBe("committed");
  }finally{spy.mockRestore();await runtime.stop();}
 });
-

@@ -65,4 +65,3 @@ it("R2-F3: actual app prepare request replays its accepted receipt after plan pr
   await expect(act(request)).resolves.toMatchObject({watches:[expect.objectContaining({assignment:expect.objectContaining({requestId:request.requestId})})]});
  }finally{await runtime.stop();}
 });
-
