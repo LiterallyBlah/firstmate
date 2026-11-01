@@ -19,6 +19,7 @@ import { pluginDir } from "./data-dir";
 import { serialized } from "./serialize";
 import { canonical, digest, publish } from "./submissions";
 import type { SupervisionStore } from "./supervision-store";
+import { atomicJson } from "./watch-config";
 
 /** The existing home-scoped legacy workflow store; `workflowStore` uses the same directory. */
 export function legacyWorkflowRoot(home: string): string {
@@ -84,6 +85,17 @@ export class CutoverGate {
   }
   /** The gate's in-process lock; never held across a network or model call. */
   run<T>(work: () => Promise<T>): Promise<T> { return serialized(`firstmate.supervision.cutover:${this.root}`, work); }
+  async readWatchRoute(name: string) {
+    try { return z.object({ requestId: z.uuid(), stage: z.enum(["prepared", "committing", "committed", "aborted", "paused"]),
+      drains: z.array(z.string()).default([]) }).strict()
+      .parse(JSON.parse(await readFile(join(this.directory, "watch-routes", `${digest(name)}.json`), "utf8"))); }
+    catch (e) { if ((e as NodeJS.ErrnoException).code === "ENOENT") return null; throw e; }
+  }
+  /** Called under the existing gate lock; held before any new assignment is exposed. */
+  async watchRoute(name: string, requestId: string, stage: "prepared" | "committing" | "committed" | "aborted" | "paused", pending: unknown[] = []) {
+    const drains = pending.flatMap(p => { const item = p as Partial<GateItem>; return item.id && item.payloadHash ? [itemFingerprint({ source: "watch", id: item.id, payloadHash: item.payloadHash })] : []; });
+    await atomicJson(join(this.directory, "watch-routes", `${digest(name)}.json`), { requestId, stage, drains });
+  }
   async armed(): Promise<Armed | null> {
     try { return ArmedSchema.parse(JSON.parse(await readFile(join(this.directory, "armed.json"), "utf8"))); }
     catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return null; throw error; }
@@ -129,7 +141,7 @@ export class CutoverGate {
     try { names = await readdir(this.directory); }
     catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return []; throw error; }
     const result: (CutoverTarget | DamagedTarget)[] = [];
-    for (const plan of names.filter(n => n !== "claims" && n !== "refusals" && !n.endsWith(".json") && !n.endsWith(".tmp")).sort()) {
+    for (const plan of names.filter(n => n !== "claims" && n !== "refusals" && n !== "watch-routes" && !n.endsWith(".json") && !n.endsWith(".tmp")).sort()) {
       const stages = new Map<CutoverSidecar["stage"], CutoverSidecar>(), problems: string[] = [];
       for (const stage of ["aborted", "committed", "prepared", "freeze"] as const) {
         try { const value = await this.sidecar(plan, stage); if (value) stages.set(stage, value); }
@@ -165,6 +177,11 @@ export class CutoverGate {
    * its legacy owner until its disposition says otherwise; after commit it keeps its original route.
    */
   async verdict(item: GateItem, mode: "enqueue" | "send", targets?: (CutoverTarget | DamagedTarget)[]): Promise<{ admit: true } | { admit: false; plan: string; stage: string; reason: string }> {
+    if (item.source === "watch") {
+      const name = item.id.split("@")[0]!, route = await this.readWatchRoute(name);
+      if (route && route.stage !== "aborted" && !(mode === "send" && route.stage === "prepared" && route.drains.includes(itemFingerprint(item)))) return { admit: false, plan: "watch-route", stage: route.stage,
+        reason: "This exact watch has a retained Supervisor route; legacy delivery is held and never falls back to General." };
+    }
     for (const target of targets ?? await this.targets()) {
       const relation = CutoverGate.classify(item, target);
       if (!relation) continue;

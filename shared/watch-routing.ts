@@ -1,6 +1,33 @@
 import { defineRpc } from "@getpaseo/plugin";
 import { z } from "zod";
 
+const hash = z.string().regex(/^[0-9a-f]{64}$/);
+export const WatchAssignmentTargetSchema = z.object({ homeId: z.string().min(1), hostId: z.literal("local"), name: z.string().min(1).max(80),
+  definitionDigest: hash, scopeId: z.uuid(), taskId: z.uuid(), attemptId: z.uuid(), planId: z.string().min(1), planHash: hash,
+  planRevision: z.number().int().positive(), owner: z.object({ agentId: z.string().min(1), epoch: z.number().int().positive(), profileDigest: hash }).strict(),
+  policyDigest: hash }).strict();
+export type WatchAssignmentTarget = z.infer<typeof WatchAssignmentTargetSchema>;
+/** Structured adapter evidence only. Opaque initiative prompts cannot satisfy this contract. */
+export const WatchFactSchema = z.object({ format: z.literal("firstmate.watch-fact/1"), watch: z.string().min(1).max(80), definitionDigest: hash,
+  subject: z.string().min(1).max(256), state: z.string().min(1).max(256), evidence: z.string().min(1).max(4000),
+  observedAt: z.iso.datetime(), validUntil: z.iso.datetime(), deadline: z.iso.datetime().nullable(), coverage: z.enum(["complete", "gap"]),
+  policyDigest: hash, unknownEffects: z.boolean() }).strict();
+export type WatchFact = z.infer<typeof WatchFactSchema>;
+export const WatchAssignmentSchema = z.object({ requestId: z.uuid(), signature: hash, generation: z.number().int().positive(),
+  stage: z.enum(["prepared", "committed", "aborted", "paused"]), target: WatchAssignmentTargetSchema,
+  pending: z.array(z.unknown()).max(256), previous: z.unknown().optional(), lastActionId: z.uuid().optional() }).strict();
+export type WatchAssignment = z.infer<typeof WatchAssignmentSchema>;
+export const WatchSupervisorSnapshotSchema = z.object({ homeId: z.string(), watches: z.array(z.object({ name: z.string(), definitionDigest: hash,
+  assignment: WatchAssignmentSchema.nullable(), assignmentDigest: hash.nullable().optional(), problem: z.string().nullable().optional() }).strict()), targets: z.array(WatchAssignmentTargetSchema),
+  owners: z.array(z.object({ scopeId: z.string(), profile: z.string(), remainingSessions: z.number().nullable(), remainingTurns: z.number().nullable() }).strict()),
+  observer: z.object({ available: z.literal(false), reason: z.string() }).strict(), problems: z.array(z.string()) }).strict();
+export type WatchSupervisorSnapshot = z.infer<typeof WatchSupervisorSnapshotSchema>;
+export const readWatchSupervisors = defineRpc({ name: "firstmate.watch.supervisors.read", input: z.object({}).strict(), output: WatchSupervisorSnapshotSchema });
+export const actWatchSupervisor = defineRpc({ name: "firstmate.watch.supervisors.act-ui", input: z.discriminatedUnion("op", [
+  z.object({ op: z.literal("prepare"), requestId: z.uuid(), expectedGeneration: z.number().int().nonnegative(), target: WatchAssignmentTargetSchema }).strict(),
+  z.object({ op: z.enum(["commit", "abort", "pause", "unassign", "resume"]), requestId: z.uuid(), homeId: z.string(), name: z.string(), assignmentRequestId: z.uuid(), assignmentDigest: hash }).strict(),
+]), output: WatchSupervisorSnapshotSchema });
+
 export const WatchNameSchema = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$/).refine((name) => !name.endsWith(".md"));
 export const RoutingFields = {
   executionSession: z.enum(["current", "new"]),

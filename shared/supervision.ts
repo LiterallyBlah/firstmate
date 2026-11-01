@@ -80,7 +80,8 @@ export const SupervisionEventSchema = z.object({
   observedAt: SupervisionUtc, occurredAt: SupervisionUtc.optional(),
   subject: z.object({ planId: text().optional(), taskId: SupervisionUuid.optional(), attemptId: SupervisionUuid.optional(),
     agentId: text().optional(), turnId: text().optional(), permissionId: text().optional(), repositoryId: text().optional(),
-    pr: positive.optional(), head: z.string().min(40).max(64).regex(/^[0-9a-f]{40,64}$/).optional(), resourceId: text().optional() }).strict(),
+    pr: positive.optional(), head: z.string().min(40).max(64).regex(/^[0-9a-f]{40,64}$/).optional(), resourceId: text().optional(),
+    watch: text(80).optional(), watchDefinition: SupervisionHash.optional() }).strict(),
   evidence: z.array(z.object({ ref: text(1024), digest: SupervisionHash, freshness: SupervisionUtc }).strict()).max(256),
   certainty: z.enum(["verified", "reported", "inferred", "unknown"]), causationId: text(1024).optional(), payloadRef: text(1024),
 }).strict();

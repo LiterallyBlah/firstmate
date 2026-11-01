@@ -19,6 +19,10 @@ import { WatchRoutingSchema } from "../shared/watch-routing";
 import { resolveHome } from "./config";
 import { cutoverGate } from "./supervision-gate";
 import { digest } from "./submissions";
+import { SupervisorInspectionProfileSchema } from "../shared/supervisor-inspection";
+import { profileProblem } from "../shared/supervisor-profile";
+import { supervisorCatalog } from "./supervisor-catalog";
+import type { z as Zod } from "zod";
 
 export const INSPECTION_TIMEOUT_MS = 5 * 60 * 1000;
 const RunSchema = z.object({
@@ -31,6 +35,9 @@ const RunSchema = z.object({
   delivery: z.enum(["pending", "sent", "suppressed"]), attempts: z.array(z.string()),
   cleanup: z.enum(["pending", "archived"]), cleanupError: z.string().nullable(),
   deliveryError: z.string().nullable(), fingerprint: z.string().nullable(),
+  configuration: SupervisorInspectionProfileSchema.optional(),
+  operations: z.array(z.object({ operation: z.enum(["workspace.open", "agent.create", "agent.send"]), key: z.string(),
+    state: z.enum(["uncertain", "accepted"]) }).strict()).optional(),
 });
 type InspectionRun = z.infer<typeof RunSchema>;
 const InputSchema = z.object({ id: z.string().uuid(), name: z.string(), prompt: z.string(), routing: WatchRoutingSchema, note: z.object({
@@ -46,6 +53,11 @@ export interface InspectionOptions {
   snapshot: (paseo: PaseoApi, config: FirstmateConfig) => Promise<unknown>;
   now?: () => number;
   children?: typeof archiveChildren;
+  profile?: (name: string) => Promise<Zod.infer<typeof SupervisorInspectionProfileSchema> | null>;
+  /** Internal adapter qualification seam. The shipped production adapter has none. */
+  observerQualified?: (profile: Zod.infer<typeof SupervisorInspectionProfileSchema>) => boolean;
+  /** Existing route gate serializes only the local reservation, never native I/O. */
+  admit?: (name: string, reserve: () => Promise<boolean>) => Promise<boolean>;
 }
 
 export async function inspectionChoices(paseo: PaseoApi | null, config: FirstmateConfig) {
@@ -129,6 +141,13 @@ export class WatchInspections {
     return this.state;
   }
   private save() { return atomicJson(this.statePath, this.state); }
+  /** File-only handoff inventory. No inspector/lifecycle lock may be acquired under the route gate. */
+  async pendingInventory(name: string): Promise<unknown[]> {
+    let saved: State;
+    try { saved = StateSchema.parse(JSON.parse(await readFile(this.statePath, "utf8"))); }
+    catch (e) { if ((e as NodeJS.ErrnoException).code === "ENOENT") return []; throw e; }
+    return [...saved.inputs.filter(i => i.name === name), ...saved.runs.filter(r => r.name === name && (!this.terminal(r) || r.delivery === "pending" || r.cleanup !== "archived"))];
+  }
   private locked<T>(task: () => Promise<T>) { return serialized(`${this.statePath}.operations`, task); }
   stop() { this.stopped = true; }
   endedTurn(agentId: string, event: Ended) { this.ended.set(agentId, event); }
@@ -167,23 +186,37 @@ export class WatchInspections {
       if (state.runs.some((run) => run.name === name && (!this.terminal(run) || run.delivery === "pending" || run.cleanup !== "archived"))) return false;
       const paseo = this.options.paseo();
       if (!paseo) return false;
+      const savedProfile = await this.options.profile?.(name), configured = savedProfile ? structuredClone(savedProfile) : null;
       // No delivery helper is called from this non-reentrant gate.
-      return oneAtATime(async () => {
+      const enter = configured ? async <T>(run: () => Promise<T>) => run() : oneAtATime;
+      return enter(async () => {
         const config = await this.options.config();
         if (this.stopped || config.migration !== null || config.mateLaunch !== null) return false;
-        const { agent: mate } = await resolveMate(paseo, config);
-        if (!mate) return false;
+        const { agent: mate } = configured ? { agent: null } : await resolveMate(paseo, config);
+        if (!configured && !mate) return false;
+        const cwd = join(this.options.root, "workspaces", name);
+        if (configured) {
+          if (!this.options.observerQualified?.(configured)) throw Error("Installed read-only adapter is unqualified; full-access is not observation.");
+          const catalog = await supervisorCatalog(paseo, cwd), problem = profileProblem(configured.profile, catalog, true);
+          if (problem || digest(catalog) !== configured.catalogDigest) throw Error(problem ?? "Observer catalog changed; review its independent profile.");
+          if (configured.homeId !== (await import("./workflow-ownership")).workflowHomeIdentity(resolveHome(config)) || configured.watch !== name)
+            throw Error("Observer assignment changed home/watch.");
+          const spent = state.runs.filter(r => r.name === name);
+          if (spent.length >= configured.limits.sessions || spent.length >= configured.limits.turns) throw Error("Cumulative observer session/turn limit reached; prior reservations remain spent.");
+        }
         const runId = inputId ?? randomUUID();
         const run: InspectionRun = { runId, name, at: new Date(this.now()).toISOString(), home: resolveHome(config),
-          prompt: "", routing: { ...watchRouting(routing), executionSession: "new" }, provider: `${mate.provider}${mate.model ? `/${mate.model}` : ""}`,
-          thinkingOptionId: routing.newSessionReasoning === "inherit" ? mate.thinkingOptionId ?? "" : routing.newSessionReasoning,
+          prompt: "", routing: { ...watchRouting(routing), executionSession: "new" }, provider: configured?.profile.provider ?? `${mate!.provider}${mate!.model ? `/${mate!.model}` : ""}`,
+          thinkingOptionId: configured?.profile.thinkingOptionId ?? (routing.newSessionReasoning === "inherit" ? mate!.thinkingOptionId ?? "" : routing.newSessionReasoning),
           workspaceId: null, status: "prepared", rawText: "", report: null, error: null, delivery: "suppressed", attempts: [],
           errors: [], deliveryRevision: 0,
-          cleanup: "pending", cleanupError: null, deliveryError: null, fingerprint: null };
-        state.runs.push(run); await this.save();
+          cleanup: "pending", cleanupError: null, deliveryError: null, fingerprint: null,
+          ...(configured ? { configuration: configured, operations: [] } : {}) };
+        const reserve = async () => { state.runs.push(run); await this.save(); return true; };
+        if (!await (this.options.admit ? this.options.admit(name, reserve) : reserve())) return false;
         try {
           if (note?.kind === "failed") throw new Error(`${note.reason ?? "Watch script failed"}\n${note.text}`);
-          const choices = await inspectionChoices(paseo, config);
+          const choices = configured ? { available: true, reason: null, thinking: [{ id: run.thinkingOptionId }] } : await inspectionChoices(paseo, config);
           if (!choices.available) throw new Error(choices.reason ?? "Read-only inspection unavailable.");
           if (run.thinkingOptionId !== "" && !choices.thinking.some((option) => option.id === run.thinkingOptionId))
             throw new Error(`Reasoning '${run.thinkingOptionId}' is not supported by the current model. Edit this watch; no fallback was applied.`);
@@ -193,30 +226,41 @@ export class WatchInspections {
           run.prompt = await message(TEMPLATES.watchInspection, { runId, instructions, snapshot: snapshotText });
           const directory = this.directory(run);
           await mkdir(directory, { recursive: true });
-          const cwd = join(this.options.root, "workspaces", name);
           const homePath = resolve(resolveHome(config)).toLowerCase(); const inspectorPath = resolve(cwd).toLowerCase();
           if (inspectorPath === homePath || inspectorPath.startsWith(`${homePath}${sep}`)) throw new Error("Inspector directory must be outside the first-mate home.");
           await mkdir(cwd, { recursive: true });
           await writeFile(join(cwd, "AGENTS.md"), await message(TEMPLATES.watchInspectorAgents), "utf8");
           await writeFile(join(cwd, "inspector-mcp.mjs"), await readTemplate(TEMPLATES.inspectorMcp), "utf8");
           await atomicJson(join(directory, "input.json"), snapshot);
-          const workspace = await paseo.workspaces.open(cwd);
-          if (workspace.id === mate.workspaceId) throw new Error("Inspector workspace is not separate from the first mate.");
+          const operation = async (op: "workspace.open" | "agent.create" | "agent.send", action: () => Promise<unknown>) => {
+            if (configured && digest(await this.options.profile?.(name)) !== digest(configured)) throw Error("Observer profile/target changed at final admission.");
+            const receipt = { operation: op, key: `${runId}:${op}`, state: "uncertain" as "uncertain" | "accepted" };
+            if (run.operations) { run.operations.push(receipt); await this.save(); }
+            const value = await action(); receipt.state = "accepted"; if (run.operations) await this.save(); return value;
+          };
+          let workspace!: Awaited<ReturnType<PaseoApi["workspaces"]["open"]>>;
+          await operation("workspace.open", async () => { workspace = await paseo.workspaces.open(cwd); });
+          if (workspace.id === mate?.workspaceId) throw new Error("Inspector workspace is not separate from the first mate.");
           run.workspaceId = workspace.id; await this.save();
-          await workspace.agents.create({ agentId: runId, idempotencyKey: runId,
+          await operation("agent.create", async () => workspace.agents.create({ agentId: runId, idempotencyKey: runId,
             config: { provider: run.provider, modeId: "read-only", ...(run.thinkingOptionId ? { thinkingOptionId: run.thinkingOptionId } : {}),
               systemPrompt: await message(TEMPLATES.watchInspectorAgents),
               mcpServers: { paseo: { type: "stdio", command: process.execPath, args: [join(cwd, "inspector-mcp.mjs")] } },
-              ...(mate.provider === "codex" ? { options: { sandbox_mode: "read-only", approval_policy: "never", web_search: "disabled", features: { multi_agent_v2: false } } } : {}),
-            }, title: `Watch inspection: ${name}`, labels: { "firstmate.role": "watch-inspector", "firstmate.watch": name, "firstmate.watch-run": runId } });
+              ...(run.provider.split("/")[0] === "codex" ? { options: { sandbox_mode: "read-only", approval_policy: "never", web_search: "disabled", features: { multi_agent_v2: false } } } : {}),
+            }, title: `Watch inspection: ${name}`, labels: { "firstmate.role": "watch-inspector", "firstmate.watch": name, "firstmate.watch-run": runId } }));
           const inspector = await fetchLiveAgent(paseo, runId);
           if (!inspector || inspector.workspaceId !== workspace.id || inspector.labels["paseo.parent-agent-id"] || inspector.currentModeId !== "read-only")
             throw new Error("Inspector did not confirm independent read-only isolation.");
+          if (configured && (`${inspector.provider}/${inspector.model}` !== configured.profile.provider || inspector.thinkingOptionId !== configured.profile.thinkingOptionId || resolve(inspector.cwd) !== resolve(cwd)))
+            throw new Error("Observer runtime profile or directory differs from its captured configuration.");
           // Persist prepared identity and exact prompt before send. Reconciliation reuses this message ID.
           await this.save();
-          await sendWithoutInterrupting(paseo, runId, run.prompt, { messageId: `firstmate-inspection-${runId}` }, { channel: "inspection-prompt", actor: "plugin" });
+          await operation("agent.send", () => sendWithoutInterrupting(paseo, runId, run.prompt, { messageId: `firstmate-inspection-${runId}` }, { channel: "inspection-prompt", actor: "plugin" }));
           run.status = "sent"; await this.save();
-        } catch (error) { await this.fail(run, error); }
+        } catch (error) {
+          if (run.operations?.some(op => op.state === "uncertain")) { run.error = String(error); await this.save(); }
+          else await this.fail(run, error);
+        }
         return true;
       });
     });
@@ -236,6 +280,22 @@ export class WatchInspections {
       const state = await this.load();
       for (const run of state.runs) {
         if (this.stopped) return;
+        if (run.operations?.some(op => op.state === "uncertain")) {
+          const uncertain = run.operations.filter(op => op.state === "uncertain");
+          if (uncertain.length === 1 && uncertain[0]!.operation === "agent.send") {
+            try {
+              if (await timelineHasMessage(paseo, run.runId, `firstmate-inspection-${run.runId}`)) {
+                uncertain[0]!.state = "accepted"; run.status = "sent"; run.error = null; await this.save();
+              }
+            } catch { /* A gapped/unavailable read settles nothing. Never interpret absence as permission to resend. */ }
+          }
+          // Unknown workspace/create/send effects retain this slot and cumulative spend. No timeout,
+          // catalog/profile change or absent timeline authorizes another call or automatic cleanup.
+          if (run.operations.some(op => op.state === "uncertain")) {
+            run.error ??= "Uncertain observer operation requires exact evidence reconciliation.";
+            await this.save(); continue;
+          }
+        }
         if (!this.terminal(run)) {
           try {
             const agent = await fetchLiveAgent(paseo, run.runId);
@@ -255,7 +315,7 @@ export class WatchInspections {
             // End hooks can omit system notes and carry item-only data; use retained entries for
             // explicit turn/message boundaries, and the hook only for cancellation/failure.
             const accepted = page.entries.some(({ item }) => item.type === "user_message" && item.clientMessageId === `firstmate-inspection-${run.runId}`);
-            if (!accepted && run.status === "prepared") {
+            if (!accepted && run.status === "prepared" && !run.configuration) {
               // Do not create another agent after a lost acknowledgement. Existing identity is the recovery boundary.
               await sendWithoutInterrupting(paseo, run.runId, run.prompt, { messageId: `firstmate-inspection-${run.runId}` }, { channel: "inspection-prompt", actor: "plugin" });
               run.status = "sent"; await this.save(); continue;

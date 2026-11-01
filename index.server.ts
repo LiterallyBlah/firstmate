@@ -5,6 +5,7 @@ import { FeatureSettingsService, registerFeatureSettingsRpc } from "./server/fea
 import { syncFeatureHelpers } from "./server/home";
 import { PlanRules } from "./server/plan-rules";
 import { planSupervisorGatewayLimits } from "./shared/plan-supervisor-limits";
+import { WatchSupervisors } from "./server/watch-supervisors";
 import type { PluginServerContext } from "@getpaseo/plugin/server";
 import { startWorkflowService, workflowStore, queuePlanNotes } from "./server/workflow-service";
 import { workflowHomeId, workflowSnapshot, withWorkflowNeeds, withWorkflowFleet } from "./server/workflow-board";
@@ -159,7 +160,8 @@ export default function contribute(server: PluginServerContext) {
     // Crew label lookup already excludes inspectors. Watches, inspector history and role instructions stay out.
     return { capturedAt: new Date().toISOString(), cards: fleet.cards, projects: fleet.projects,
       remoteHosts: (await remotes.read()).hosts.map(({ serverId, label, online, checkedAt, error }) => ({ serverId, label, online, checkedAt, error })) };
-  });
+  }, { observe: fact => plans.watch(fact) });
+  new WatchSupervisors(supervisionRuntime, watches).register(server);
   // The backlog names the tasks whose remote worker the poll should look up by label; see server/remote-cards.ts.
   const remotes = new RemoteService(undefined, async (host) =>
     remoteTaskQueries(await readBacklog(resolveHome(await readFirstmateConfig())), host, (await remotes.read()).localServerId),

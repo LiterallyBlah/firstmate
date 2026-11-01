@@ -43,6 +43,9 @@ import { timerInventory, type TimerInventory } from "./supervision-jobs";
 import type { MaintenanceJob } from "../shared/supervision-maintenance";
 import type { NativeTimerInventory } from "./archive-inventory";
 import { SupervisionStatusReader } from "./supervision-status-reader";
+import { WatchFactSchema, type WatchFact, type WatchAssignment } from "../shared/watch-routing";
+import { readFile } from "node:fs/promises";
+import { workflowHomeIdentity } from "./workflow-ownership";
 
 /**
  * S10 timer disposition inventory: the home's script watches, managed watches, the config's off switches, native
@@ -86,7 +89,7 @@ export async function deliverToMate(
         const scoped = await new SupervisionStatusReader(pluginDir()).read(resolveHome(latest));
         // Final legacy-delivery recheck closes the routing-projection race. Retain the opaque
         // original note; typed observations/direct reads serve its exact scoped owner.
-        if (scoped.freshness === "held" || pulls.some(p => scoped.sources.bindings.some(b => b.state === "active" && b.repository.toLowerCase() === p[1]!.toLowerCase() && b.pr === Number(p[2])))) return "wait";
+        if (scoped.freshness === "held" || pulls.some(p => scoped.sources.bindings.some(b => b.kind === "pull-request" && b.state === "active" && b.repository.toLowerCase() === p[1]!.toLowerCase() && b.pr === Number(p[2])))) return "wait";
       }
     }
     if (expected && (watchOwner(cutoverGate(resolveHome(latest))) !== expected.owner || latest.mateAgentId.trim() !== expected.recipient)) return "wait";
@@ -115,6 +118,7 @@ export interface WatchService {
   options: () => Promise<Awaited<ReturnType<typeof inspectionChoices>> & { boardReview: ManagedWatch }>;
   summaries: () => Promise<WatchSummary[]>;
   history: (name: string) => ReturnType<WatchInspections["history"]>;
+  pendingInspections: (name: string) => Promise<unknown[]>;
   /** Read-only S10 timer inventory; unwired (no RPC). */
   timerInventory: (native?: NativeTimerInventory, jobs?: readonly MaintenanceJob[]) => Promise<TimerInventory>;
   stop: () => void;
@@ -124,14 +128,21 @@ export function startWatches(
   server: PluginLifecycleRegistration,
   readConfig: () => Promise<FirstmateConfig>,
   snapshot: (paseo: PaseoApi, config: FirstmateConfig) => Promise<unknown>,
+  scoped?: { observe(fact: WatchFact): Promise<{ eventId: string | null }> },
 ): WatchService {
   let paseo: PaseoApi | null = null;
   const remember = (handle: PaseoApi) => {
     paseo = handle;
   };
   const store = new WatchConfigStore(join(pluginDir(), "watch-config.json"));
-  const inspections = new WatchInspections({ root: join(pluginDir(), "watch-inspections"), paseo: () => paseo, config: readConfig, snapshot });
+  const inspections = new WatchInspections({ root: join(pluginDir(), "watch-inspections"), paseo: () => paseo, config: readConfig, snapshot,
+    profile: async name => (await store.read()).inspectionProfiles[name] ?? null,
+    admit: async (name, reserve) => {
+      const gate = cutoverGate(resolveHome(await readConfig()));
+      return gate.run(async () => { const route = await gate.readWatchRoute(name); return !route || route.stage === "aborted" ? reserve() : false; });
+    } });
   const scriptRuns = new Map<string, WatchRouting>();
+  const scriptAssignments = new Map<string, WatchAssignment>();
 
   const runner: WatchRunner = new WatchRunner({
     async home() {
@@ -145,11 +156,33 @@ export function startWatches(
       return deliverToMate(paseo, await readConfig(), text, readConfig, expected);
     },
     async canRun(name) {
-      const routing = (await store.read()).scripts[name] ?? CURRENT_ROUTING;
+      const saved = await store.read(), assignment = saved.assignments[name], routing = saved.scripts[name] ?? CURRENT_ROUTING;
+      const home = resolveHome(await readConfig()), transport = await cutoverGate(home).readWatchRoute(name);
+      if (transport && transport.stage !== "aborted" && (transport.stage !== "committed" || assignment?.requestId !== transport.requestId)) return false;
+      if (assignment && assignment.stage !== "aborted") {
+        if (assignment.stage !== "committed" || !scoped || assignment.target.homeId !== workflowHomeIdentity(home) || transport?.stage !== "committed") return false;
+        const definition = (await listWatches(resolveHome(await readConfig()))).find(w => w.name === name);
+        if (!definition || digest(await readFile(definition.path, "utf8")) !== assignment.target.definitionDigest) return false;
+        scriptAssignments.set(name, assignment);
+        return true; // Typed plan ingress never waits on unrelated inspectors or General's lifecycle lock.
+      }
       if (await inspections.busy(name) || (routing.executionSession === "new" && await runner.pendingDelivery(name))) return false;
       scriptRuns.set(name, routing); return true;
     },
     async routeNote(note) {
+      const assignment = scriptAssignments.get(note.name); scriptAssignments.delete(note.name);
+      if (assignment) {
+        const current = (await store.read()).assignments[note.name];
+        if (!scoped || digest(current) !== digest(assignment)) return false;
+        const fact = WatchFactSchema.safeParse((() => { try { return JSON.parse(note.text); } catch { return null; } })());
+        if (!fact.success || fact.data.watch !== note.name || fact.data.definitionDigest !== assignment.target.definitionDigest) return false;
+        try {
+          const receipt = await scoped.observe(fact.data);
+          if (!receipt.eventId) throw Error("The source inbox did not admit this fact; its exact output remains in the protected watch queue.");
+          return "recorded";
+        }
+        catch (error) { console.error("[firstmate] exact watch fact remains held:", error); return false; }
+      }
       const routing = scriptRuns.get(note.name) ?? CURRENT_ROUTING;
       scriptRuns.delete(note.name);
       if (routing.executionSession === "current") return false;
@@ -255,6 +288,7 @@ export function startWatches(
       name: "board-review", schedule: "*/10 * * * *", enabled: true, prompt: await message(TEMPLATES.boardReviewBrief), ...BOARD_REVIEW_ROUTING,
     } }),
     history: (name) => inspections.history(name),
+    pendingInspections: name => inspections.pendingInventory(name),
     async timerInventory(native, jobs) {
       const config = await readConfig();
       return readTimerInventory(resolveHome(config), config, store, native, jobs);

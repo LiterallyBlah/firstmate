@@ -125,7 +125,7 @@ export interface WatchRunnerOptions {
   /** Sends the note, or says to wait: while the first mate is mid-turn, or while there is none. */
   deliver: (text: string, expected?: WatchDelivery) => Promise<DeliveryOutcome>;
   /** Persist isolated-session inputs before removing them from the script's delivery path. */
-  routeNote?: (note: QueuedNote) => Promise<boolean>;
+  routeNote?: (note: QueuedNote) => Promise<boolean | "recorded">;
   canRun?: (name: string) => Promise<boolean>;
   /** S07 cutover gate for enqueue and send admission, with the configured recipient; none while unhomed. */
   gate?: () => Promise<{ gate: CutoverGate; recipient: string } | null>;
@@ -362,7 +362,8 @@ export class WatchRunner {
     const note: QueuedNote | null = reason !== null
       ? ((await this.load()).watches[name] ?? BLANK).failing ? null : { name, ran, kind: "failed", reason, text: stderr }
       : text === null ? null : { name, ran, kind: "output", text };
-    const routed = note !== null && !!(await this.options.routeNote?.(note));
+    const disposition = note !== null ? await this.options.routeNote?.(note) : false;
+    const routed = !!disposition;
     await this.gated(async gate => {
       // Replace our slot atomically with the resulting row (or release it for a silent/routed run).
       this.releaseReservation(reservation);
@@ -382,7 +383,7 @@ export class WatchRunner {
       } else {
         state.watches[name] = {
           lastRunAt: ran,
-          lastResult: "queued",
+          lastResult: disposition === "recorded" ? "recorded" : "queued",
           lastOutput: text,
           lastOutputAt: ran,
           lastError: null,
@@ -637,6 +638,8 @@ export class WatchRunner {
             await entry.gate.refusal(watchItem(queued), verdict.reason); heldChanged = true;
           }
         }
+        const watchReleased = queued.hold?.plan === "watch-route" && entry && (await entry.gate.readWatchRoute(queued.name))?.stage === "aborted";
+        if (watchReleased) { delete queued.hold; heldChanged = true; }
         if (queued.hold && (!entry || !await entry.gate.sidecar(queued.hold.plan, "aborted"))) {
           const target = entry && (await entry.gate.targets()).find(target => target.plan === queued.hold!.plan);
           if (!target || target.damaged || !target.drains.has(itemFingerprint(watchItem(queued)))) continue;
@@ -798,6 +801,7 @@ const RESULTS: ReadonlySet<string> = new Set<WatchResult>([
   "silent",
   "queued",
   "delivered",
+  "recorded",
   "dropped",
   "failed",
   "invalid",

@@ -1,5 +1,6 @@
 import { SupervisorProfileFields } from "./supervisor-profile";
 import { SupervisorControlsButton } from "./supervisor-controls";
+import { WatchSupervisorButton } from "./watch-supervisors";
 import { profileProblem } from "../shared/supervisor-profile";
 /** The only shipped attach caller. This app button is a convention: RPC origin is not authenticated. */
 import type { PluginTheme } from "@getpaseo/plugin";
@@ -34,6 +35,7 @@ export function SupervisionActivationBoard({ theme, compact, advanced = false, p
   if (!data || !activationHasHistory(data) && !data.problems.length && !data.pause && !readError && !(advanced && data.enabled && data.operatorEnabled)) return null;
   return <View testID="supervision-activation-board" style={{ gap: 8, padding: compact ? 12 : 16 }}>
     <Text style={{ color: theme.colors.foreground, fontWeight: "600" }}>Plan help</Text>
+    <WatchSupervisorButton theme={theme} {...(planId ? { planId } : {})} />
     {data.pause ? <Text accessibilityLiveRegion="polite" style={{ color: theme.colors.foregroundMuted }}>{data.pause}</Text> : null}
     {data.problems.map(p => <Text key={p} accessibilityRole="alert" style={{ color: theme.colors.foreground }}>{p}</Text>)}
     {readError ? <Text accessibilityRole="alert" style={{ color: theme.colors.foreground }}>Supervisor status could not be refreshed. Attach is unavailable.</Text> : null}

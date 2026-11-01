@@ -227,7 +227,7 @@ export function watchPath(name: string): string {
  * printed something a full queue pushed out before it could be sent; `failed` exited non-zero or ran out
  * of time; `invalid` cannot run at all; `never` has not run since it appeared.
  */
-export const WatchResultSchema = z.enum(["never", "silent", "queued", "delivered", "dropped", "failed", "invalid"]);
+export const WatchResultSchema = z.enum(["never", "silent", "queued", "delivered", "recorded", "dropped", "failed", "invalid"]);
 export type WatchResult = z.infer<typeof WatchResultSchema>;
 
 /**

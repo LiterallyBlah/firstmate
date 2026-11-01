@@ -10,12 +10,17 @@ import type { PaseoApi } from "./host-types";
 import { startWatches, type WatchService } from "./watch-service";
 import { listWatches } from "./watch-files";
 import { runWatchScript } from "./watch-run";
+import { digest } from "./submissions";
+import { cutoverGate } from "./supervision-gate";
+import { WatchConfigStore } from "./watch-config";
+import type { WatchFact } from "../shared/watch-routing";
+import { workflowHomeIdentity } from "./workflow-ownership";
 
 vi.mock("./watch-run", () => ({ runWatchScript: vi.fn(async () => ({ code: 0, stdout: "inspect this output", stderr: "", truncated: false, timedOut: false, spawnError: null })) }));
 const directories: string[] = []; const services: WatchService[] = [];
 afterEach(async () => { services.splice(0).forEach((service) => service.stop()); vi.unstubAllEnvs();
   vi.useRealTimers(); for (const directory of directories.splice(0)) await rm(directory, { recursive: true, force: true }); vi.restoreAllMocks(); vi.clearAllMocks(); });
-async function fixture() {
+async function fixture(scoped?: { observe(fact: WatchFact): Promise<{ eventId: string | null }> }) {
   const home = await mkdtemp(join(tmpdir(), "firstmate-watch-service-")); directories.push(home); vi.stubEnv("PASEO_HOME", home);
   await mkdir(join(home, "firstmate", "watches"), { recursive: true });
   await writeFile(join(home, "firstmate", "AGENTS.md"), "home charter");
@@ -30,7 +35,7 @@ async function fixture() {
     providers: { listModels: async () => ({ models: [{ id: "m", thinkingOptions: [{ id: "medium", label: "Medium" }] }] }),
       listModes: async () => ({ modes: [{ id: "read-only", label: "Read-only" }] }) } } as unknown as PaseoApi;
   const hooks = new Map<string, any>(); const server = { on: (name: string, handler: unknown) => { hooks.set(name, handler); return () => {}; } } as Parameters<typeof startWatches>[0];
-  const service = startWatches(server, readFirstmateConfig, async () => ({ cards: [] })); services.push(service); service.remember(paseo);
+  const service = startWatches(server, readFirstmateConfig, async () => ({ cards: [] }), scoped); services.push(service); service.remember(paseo);
   return { home, paseo, service, sent, hooks, script: (await listWatches(join(home, "firstmate")))[0]! };
 }
 it("preserves existing script defaults and their current-session output path", async () => {
@@ -38,6 +43,26 @@ it("preserves existing script defaults and their current-session output path", a
   await f.service.runner.runOne(join(f.home, "firstmate"), f.script); await f.service.runner.flush();
   expect(f.sent).toHaveLength(1); expect(f.sent[0].id).toBe("mate"); expect(f.sent[0].text).toContain("inspect this output");
   expect((await readFirstmateConfig()).disabledWatches).toEqual(["pr-watch"]);
+});
+it.each(["malformed", "pressure"])("A6/A8: the production script path records typed facts without model sends; %s output remains held", async mode => {
+  const observe = vi.fn(async (_fact: WatchFact): Promise<{eventId:string|null}> => ({eventId:randomUUID()})), f = await fixture({ observe });
+  const config = new WatchConfigStore(join(pluginDir(), "watch-config.json")), home = join(f.home, "firstmate"), requestId = randomUUID(), id = randomUUID();
+  const definitionDigest = digest(await readFile(f.script.path, "utf8"));
+  const target = { homeId: workflowHomeIdentity(home), hostId: "local" as const, name: "test-watch", definitionDigest, scopeId: id, taskId: id, attemptId: id,
+    planId: "plan", planHash: digest("plan"), planRevision: 1, owner: { agentId: "owner", epoch: 1, profileDigest: digest("profile") }, policyDigest: digest("policy") };
+  await config.change(s => { s.assignments["test-watch"] = { requestId, signature: digest(target), generation: 1, stage: "committed", target, pending: [] }; });
+  await cutoverGate(home).watchRoute("test-watch", requestId, "committed");
+  const fact = { format: "firstmate.watch-fact/1" as const, watch: "test-watch", definitionDigest, subject: "checks", state: "healthy", evidence: "Synthetic source",
+    observedAt: new Date().toISOString(), validUntil: new Date(Date.now() + 60000).toISOString(), deadline: null, coverage: "complete" as const, policyDigest: target.policyDigest, unknownEffects: false };
+  vi.mocked(runWatchScript).mockResolvedValueOnce({ code: 0, stdout: JSON.stringify(fact), stderr: "", truncated: false, timedOut: false, spawnError: null });
+  await f.service.runner.runOne(home, f.script); await f.service.runner.flush();
+  expect(observe).toHaveBeenCalledWith(fact); expect(f.sent).toEqual([]);
+  expect((await f.service.summaries()).find(w => w.name === "test-watch")?.lastResult).toBe("recorded");
+  if (mode === "pressure") observe.mockResolvedValueOnce({ eventId: null });
+  vi.mocked(runWatchScript).mockResolvedValueOnce({ code: 0, stdout: mode === "pressure" ? JSON.stringify(fact) : "Opaque instruction; launch another owner", stderr: "", truncated: false, timedOut: false, spawnError: null });
+  await expect(f.service.runner.runOne(home, f.script)).rejects.toThrow("retained Supervisor route"); await f.service.runner.flush();
+  expect(observe).toHaveBeenCalledTimes(mode === "pressure" ? 2 : 1); expect(f.sent).toEqual([]);
+  expect(await f.service.runner.queued()).toEqual([expect.objectContaining({ name: "test-watch", hold: expect.objectContaining({ plan: "watch-route" }) })]);
 });
 it("persists explicit script routing and queues inspection input without waking the mate", async () => {
   const f = await fixture(); await f.service.configure({ name: "test-watch", ...BOARD_REVIEW_ROUTING });

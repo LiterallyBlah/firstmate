@@ -18,6 +18,7 @@ import { errorText, watchAttention, watchStatusText, watchTone } from "./format"
 import { ControlTooltip, MONOSPACE } from "./ui";
 import { WatchEditor, WatchReports } from "./watch-editor";
 import { CURRENT_ROUTING } from "../shared/watch-routing";
+import { WatchSupervisorButton } from "./watch-supervisors";
 
 export const WATCHES_TITLE = "Watches";
 export const WATCHES_ICON = "Radar";
@@ -170,6 +171,7 @@ export function WatchList({
   return (
     <View style={styles.list}>
       <WatchEditor theme={theme} onChanged={onChanged} />
+      <WatchSupervisorButton theme={theme} />
       {watches.map((served) => {
         const pending = switched[served.name];
         const watch = pending === undefined ? served : { ...served, enabled: pending };
@@ -198,6 +200,7 @@ export function WatchList({
                 </Text>
               )}
               <WatchReports name={watch.name} theme={theme} />
+              <WatchSupervisorButton theme={theme} name={watch.name} />
               <WatchEditor theme={theme} watch={watch} onChanged={onChanged} />
               <Pressable
                 accessibilityRole="switch"

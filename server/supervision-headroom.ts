@@ -9,7 +9,7 @@ export function withScopeAdmission<T>(homeId: string, run: () => Promise<T>) {
   return serialized(`firstmate.scope-admission:${homeId}`, run);
 }
 /** Conservative plugin admission, not reserved provider quota or a fence against native/raw callers. */
-export async function pluginOccupancy(status: SupervisionStatus, receiver: GatewayReceiver, admittingEffectId?: string) {
+export async function pluginOccupancy(status: SupervisionStatus, receiver: GatewayReceiver, admittingEffectId?: string, sufficientBelow?: number) {
   const identities = new Map<string, string>();
   for (const b of status.bindings.filter(b => b.state !== "retired")) identities.set(b.agentId, b.scopeId);
   const workerIdentity = (attemptId: string) => {
@@ -27,6 +27,10 @@ export async function pluginOccupancy(status: SupervisionStatus, receiver: Gatew
   if (admittingEffectId && !admitting) refuse("STALE", "Capacity admission requires the exact reserved effect.");
   const ownIdentity = admitting ? admitting.attemptId ? workerIdentity(admitting.attemptId) : status.bindings.find(b => b.scopeId === admitting.scopeId)?.agentId : null;
   if (admitting && (!ownIdentity || !identities.has(ownIdentity))) refuse("HELD", "The selected capacity reservation is unavailable.");
+  // Counting every retained identity as occupied is a conservative upper bound. When even that
+  // bound leaves General's reservation, an unrelated liveness read cannot improve admission.
+  const upperBound = identities.size - (ownIdentity ? 1 : 0);
+  if (sufficientBelow !== undefined && upperBound < sufficientBelow) return upperBound;
   let occupied = 0;
   const deadline = Date.now() + LOOKUP_TIMEOUT_MS;
   for (const [agentId, scopeId] of identities) {
@@ -48,7 +52,7 @@ export async function pluginOccupancy(status: SupervisionStatus, receiver: Gatew
   }
   return occupied;
 }
-export async function checkGeneralHeadroom(status: SupervisionStatus, receiver: GatewayReceiver, slots: number, reserved: number, admittingEffectId?: string) {
-  if (await pluginOccupancy(status, receiver, admittingEffectId) >= slots - reserved)
+export async function checkGeneralHeadroom(status: SupervisionStatus, receiver: GatewayReceiver, slots: number, reserved: number, admittingEffectId?: string, continuingTurn = false) {
+  if (await pluginOccupancy(status, receiver, admittingEffectId, continuingTurn ? slots - reserved : undefined) >= slots - reserved)
     refuse("HELD", "Plugin work capacity is occupied; configured General headroom is reserved. Actual provider capacity is unknown.");
 }

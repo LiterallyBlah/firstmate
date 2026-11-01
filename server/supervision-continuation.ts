@@ -67,6 +67,8 @@ export function semanticInputs(status: SupervisionStatus, scopeId: string, planI
     effects: status.effects.filter(e => e.scopeId === scopeId && e.attemptId !== null).map(e => [e.id, effectClass(e.state)]),
     owner: binding ? [binding.epoch, binding.state] : null, scope: scope?.state ?? null,
     backend: status.backends.find(b => b.planId === planId)?.state ?? null,
+    policy: [...status.policySources, ...status.policyRules].map(p => [p.id, p.version]),
+    sourceCoverage: status.inbox.sources.filter(s => s.scopeId === scopeId).map(s => [s.id, s.coverage, s.gaps]),
     // Coarse liveness of external prerequisites: a definitive upstream launch failure is a new generation
     // (fresh wake key), while ordinary upstream effect progress does not churn this goal.
     externalLiveness: plan ? [...new Set(plan.definition.nodes.flatMap(n => n.after.map(e => e.node)).filter(id => !plan.nodes[id]))].sort()
