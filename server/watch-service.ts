@@ -128,7 +128,7 @@ export function startWatches(
   server: PluginLifecycleRegistration,
   readConfig: () => Promise<FirstmateConfig>,
   snapshot: (paseo: PaseoApi, config: FirstmateConfig) => Promise<unknown>,
-  scoped?: { observe(fact: WatchFact): Promise<unknown> },
+  scoped?: { observe(fact: WatchFact): Promise<{ eventId: string | null }> },
 ): WatchService {
   let paseo: PaseoApi | null = null;
   const remember = (handle: PaseoApi) => {
@@ -176,7 +176,11 @@ export function startWatches(
         if (!scoped || digest(current) !== digest(assignment)) return false;
         const fact = WatchFactSchema.safeParse((() => { try { return JSON.parse(note.text); } catch { return null; } })());
         if (!fact.success || fact.data.watch !== note.name || fact.data.definitionDigest !== assignment.target.definitionDigest) return false;
-        try { await scoped.observe(fact.data); return "recorded"; }
+        try {
+          const receipt = await scoped.observe(fact.data);
+          if (!receipt.eventId) throw Error("The source inbox did not admit this fact; its exact output remains in the protected watch queue.");
+          return "recorded";
+        }
         catch (error) { console.error("[firstmate] exact watch fact remains held:", error); return false; }
       }
       const routing = scriptRuns.get(note.name) ?? CURRENT_ROUTING;

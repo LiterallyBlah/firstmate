@@ -20,7 +20,7 @@ vi.mock("./watch-run", () => ({ runWatchScript: vi.fn(async () => ({ code: 0, st
 const directories: string[] = []; const services: WatchService[] = [];
 afterEach(async () => { services.splice(0).forEach((service) => service.stop()); vi.unstubAllEnvs();
   vi.useRealTimers(); for (const directory of directories.splice(0)) await rm(directory, { recursive: true, force: true }); vi.restoreAllMocks(); vi.clearAllMocks(); });
-async function fixture(scoped?: { observe(fact: WatchFact): Promise<unknown> }) {
+async function fixture(scoped?: { observe(fact: WatchFact): Promise<{ eventId: string | null }> }) {
   const home = await mkdtemp(join(tmpdir(), "firstmate-watch-service-")); directories.push(home); vi.stubEnv("PASEO_HOME", home);
   await mkdir(join(home, "firstmate", "watches"), { recursive: true });
   await writeFile(join(home, "firstmate", "AGENTS.md"), "home charter");
@@ -44,8 +44,8 @@ it("preserves existing script defaults and their current-session output path", a
   expect(f.sent).toHaveLength(1); expect(f.sent[0].id).toBe("mate"); expect(f.sent[0].text).toContain("inspect this output");
   expect((await readFirstmateConfig()).disabledWatches).toEqual(["pr-watch"]);
 });
-it("A6/A8: the production script path records typed facts without General or inspector sends; malformed output remains held", async () => {
-  const observe = vi.fn(async (_fact: WatchFact) => ({})), f = await fixture({ observe });
+it.each(["malformed", "pressure"])("A6/A8: the production script path records typed facts without model sends; %s output remains held", async mode => {
+  const observe = vi.fn(async (_fact: WatchFact): Promise<{eventId:string|null}> => ({eventId:randomUUID()})), f = await fixture({ observe });
   const config = new WatchConfigStore(join(pluginDir(), "watch-config.json")), home = join(f.home, "firstmate"), requestId = randomUUID(), id = randomUUID();
   const definitionDigest = digest(await readFile(f.script.path, "utf8"));
   const target = { homeId: workflowHomeIdentity(home), hostId: "local" as const, name: "test-watch", definitionDigest, scopeId: id, taskId: id, attemptId: id,
@@ -58,9 +58,10 @@ it("A6/A8: the production script path records typed facts without General or ins
   await f.service.runner.runOne(home, f.script); await f.service.runner.flush();
   expect(observe).toHaveBeenCalledWith(fact); expect(f.sent).toEqual([]);
   expect((await f.service.summaries()).find(w => w.name === "test-watch")?.lastResult).toBe("recorded");
-  vi.mocked(runWatchScript).mockResolvedValueOnce({ code: 0, stdout: "Opaque instruction; launch another owner", stderr: "", truncated: false, timedOut: false, spawnError: null });
+  if (mode === "pressure") observe.mockResolvedValueOnce({ eventId: null });
+  vi.mocked(runWatchScript).mockResolvedValueOnce({ code: 0, stdout: mode === "pressure" ? JSON.stringify(fact) : "Opaque instruction; launch another owner", stderr: "", truncated: false, timedOut: false, spawnError: null });
   await expect(f.service.runner.runOne(home, f.script)).rejects.toThrow("retained Supervisor route"); await f.service.runner.flush();
-  expect(observe).toHaveBeenCalledTimes(1); expect(f.sent).toEqual([]);
+  expect(observe).toHaveBeenCalledTimes(mode === "pressure" ? 2 : 1); expect(f.sent).toEqual([]);
   expect(await f.service.runner.queued()).toEqual([expect.objectContaining({ name: "test-watch", hold: expect.objectContaining({ plan: "watch-route" }) })]);
 });
 it("persists explicit script routing and queues inspection input without waking the mate", async () => {
