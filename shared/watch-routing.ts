@@ -15,17 +15,17 @@ export const WatchFactSchema = z.object({ format: z.literal("firstmate.watch-fac
 export type WatchFact = z.infer<typeof WatchFactSchema>;
 export const WatchAssignmentSchema = z.object({ requestId: z.uuid(), signature: hash, generation: z.number().int().positive(),
   stage: z.enum(["prepared", "committed", "aborted", "paused"]), target: WatchAssignmentTargetSchema,
-  pending: z.array(z.unknown()).max(256), previous: z.unknown().optional() }).strict();
+  pending: z.array(z.unknown()).max(256), previous: z.unknown().optional(), lastActionId: z.uuid().optional() }).strict();
 export type WatchAssignment = z.infer<typeof WatchAssignmentSchema>;
 export const WatchSupervisorSnapshotSchema = z.object({ homeId: z.string(), watches: z.array(z.object({ name: z.string(), definitionDigest: hash,
-  assignment: WatchAssignmentSchema.nullable(), problem: z.string().nullable().optional() }).strict()), targets: z.array(WatchAssignmentTargetSchema),
+  assignment: WatchAssignmentSchema.nullable(), assignmentDigest: hash.nullable().optional(), problem: z.string().nullable().optional() }).strict()), targets: z.array(WatchAssignmentTargetSchema),
   owners: z.array(z.object({ scopeId: z.string(), profile: z.string(), remainingSessions: z.number().nullable(), remainingTurns: z.number().nullable() }).strict()),
   observer: z.object({ available: z.literal(false), reason: z.string() }).strict(), problems: z.array(z.string()) }).strict();
 export type WatchSupervisorSnapshot = z.infer<typeof WatchSupervisorSnapshotSchema>;
 export const readWatchSupervisors = defineRpc({ name: "firstmate.watch.supervisors.read", input: z.object({}).strict(), output: WatchSupervisorSnapshotSchema });
 export const actWatchSupervisor = defineRpc({ name: "firstmate.watch.supervisors.act-ui", input: z.discriminatedUnion("op", [
   z.object({ op: z.literal("prepare"), requestId: z.uuid(), expectedGeneration: z.number().int().nonnegative(), target: WatchAssignmentTargetSchema }).strict(),
-  z.object({ op: z.enum(["commit", "abort", "pause", "unassign", "resume"]), requestId: z.uuid(), homeId: z.string(), name: z.string(), assignmentRequestId: z.uuid() }).strict(),
+  z.object({ op: z.enum(["commit", "abort", "pause", "unassign", "resume"]), requestId: z.uuid(), homeId: z.string(), name: z.string(), assignmentRequestId: z.uuid(), assignmentDigest: hash }).strict(),
 ]), output: WatchSupervisorSnapshotSchema });
 
 export const WatchNameSchema = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$/).refine((name) => !name.endsWith(".md"));

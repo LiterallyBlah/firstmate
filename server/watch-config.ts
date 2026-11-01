@@ -16,6 +16,7 @@ const StoreSchema = z.object({ version: z.literal(1), watches: z.array(ManagedWa
   assignments: z.record(WatchNameSchema, WatchAssignmentSchema).default({}),
   inspectionProfiles: z.record(WatchNameSchema, SupervisorInspectionProfileSchema).default({}) }).strict();
 export type WatchConfig = z.infer<typeof StoreSchema>;
+type RouteAction = { requestId: string; signature: string; assignmentDigest: string };
 export async function atomicJson(path: string, value: unknown): Promise<void> {
   await mkdir(dirname(path), { recursive: true });
   const temporary = `${path}.${randomUUID()}.tmp`;
@@ -91,10 +92,11 @@ export class WatchRouteHandoff {
       return accepted ?? (await this.options.config.read()).assignments[target.name]!;
     });
   }
-  async commit(requestId: string) {
+  async commit(requestId: string, action?: RouteAction) {
     return this.options.gate.run(async () => {
       const row = Object.values((await this.options.config.read()).assignments).find(r => r.requestId === requestId);
       if (!row || !["prepared", "committed"].includes(row.stage)) throw Error("No prepared watch assignment.");
+      if (action && digest(row) !== action.assignmentDigest) throw Error("The reviewed assignment changed.");
       if (row.stage === "committed") { await this.options.gate.watchRoute(row.target.name, requestId, "committed"); return row; }
       if (await this.options.definition(row.target.name) !== row.target.definitionDigest) throw Error("Watch definition changed; route remains held.");
       if ((await this.options.pending(row.target.name)).length) throw Error("Old pending/uncertain deliveries must drain with evidence before commit.");
@@ -105,19 +107,22 @@ export class WatchRouteHandoff {
       // starts, abort is refused: a crashed cross-store commit requires forward reconciliation.
       await this.options.gate.watchRoute(row.target.name, requestId, "committing");
       await this.options.bind(row.target, requestId);
-      await this.options.config.change(saved => { saved.assignments[row.target.name]!.stage = "committed"; });
+      await this.options.config.change(saved => { saved.assignments[row.target.name]!.stage = "committed";
+        if (action) { saved.assignments[row.target.name]!.lastActionId = action.requestId; saved.receipts[action.requestId] = action.signature; } });
       await this.options.gate.watchRoute(row.target.name, requestId, "committed");
       return (await this.options.config.read()).assignments[row.target.name]!;
     });
   }
-  async abort(requestId: string) {
+  async abort(requestId: string, action?: RouteAction) {
     return this.options.gate.run(async () => {
       const row = Object.values((await this.options.config.read()).assignments).find(r => r.requestId === requestId);
       if (!row || !["prepared", "aborted"].includes(row.stage)) throw Error("Committed routing needs forward reconciliation.");
+      if (action && digest(row) !== action.assignmentDigest) throw Error("The reviewed assignment changed.");
       const route = await this.options.gate.readWatchRoute(row.target.name);
       if (route?.stage === "committed" || route?.stage === "committing" && await this.options.bindingState?.(requestId) !== "absent")
         throw Error("Binding commit began; forward reconciliation is required.");
-      await this.options.config.change(saved => { saved.assignments[row.target.name]!.stage = "aborted"; });
+      await this.options.config.change(saved => { saved.assignments[row.target.name]!.stage = "aborted";
+        if (action) { saved.assignments[row.target.name]!.lastActionId = action.requestId; saved.receipts[action.requestId] = action.signature; } });
       await this.options.gate.watchRoute(row.target.name, requestId, "aborted");
     });
   }

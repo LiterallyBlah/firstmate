@@ -35,9 +35,9 @@ export class WatchSupervisors {
         task?.currentAttempt !== row.target.attemptId || watchPolicyDigest(s, row.target.scopeId) !== row.target.policyDigest
         ? "The captured owner, profile, attempt or policy changed. The original assignment remains held; review its exact disposition." : null;
     };
-    return { homeId: workflowHomeIdentity(home), watches: [...definitions.map(w => ({ ...w, assignment: saved.assignments[w.name] ?? null,
+    return { homeId: workflowHomeIdentity(home), watches: [...definitions.map(w => ({ ...w, assignment: saved.assignments[w.name] ?? null, assignmentDigest: saved.assignments[w.name] ? digest(saved.assignments[w.name]) : null,
       problem: saved.assignments[w.name] && saved.assignments[w.name]!.target.definitionDigest !== w.definitionDigest ? "Watch definition changed. Its original route and evidence remain held for review." : assignmentProblem(saved.assignments[w.name]) })),
-      ...Object.entries(saved.assignments).filter(([name]) => !definitions.some(w => w.name === name)).map(([name, assignment]) => ({ name, definitionDigest: assignment.target.definitionDigest, assignment,
+      ...Object.entries(saved.assignments).filter(([name]) => !definitions.some(w => w.name === name)).map(([name, assignment]) => ({ name, definitionDigest: assignment.target.definitionDigest, assignment, assignmentDigest: digest(assignment),
         problem: "Assigned watch is missing or renamed. Its original route remains held; restore the exact definition or reconcile it explicitly." }))],
       targets: s.freshness !== "current" ? [] : s.tasks.flatMap(t => {
         const plan = s.plans.find(p => p.scopeId === t.ownerScopeId && p.plan.definition.id === t.planId), binding = s.bindings.find(b => b.scopeId === t.ownerScopeId);
@@ -55,6 +55,8 @@ export class WatchSupervisors {
     server.handle(actWatchSupervisor, async input => {
       const c = await readFirstmateConfig(), home = resolveHome(c), homeId = workflowHomeIdentity(home);
       if (c.migration || c.mateLaunch || (input.op === "prepare" ? input.target.homeId : input.homeId) !== homeId) throw Error("Home changed or is migrating; reopen the exact assignment.");
+      const signature = digest(input), accepted = (await this.config.read()).receipts[input.requestId];
+      if (accepted) { if (accepted !== signature) throw Error("That request ID has different assignment action fields."); return this.read(); }
       await this.runtime.features?.check(home, "planSupervisors");
       const gate = cutoverGate(home), handoff = new WatchRouteHandoff({ config: this.config, gate,
         definition: async name => { const found = (await this.definitions(home)).find(w => w.name === name); if (!found) throw Error("Exact watch definition is unavailable."); return found.definitionDigest; },
@@ -70,8 +72,9 @@ export class WatchSupervisors {
       } else {
         const row = (await this.config.read()).assignments[input.name];
         if (row?.requestId !== input.assignmentRequestId) throw Error("Assignment changed; refresh this review.");
-        if (input.op === "commit") await handoff.commit(input.assignmentRequestId);
-        else if (input.op === "abort") await handoff.abort(input.assignmentRequestId);
+        const action = { requestId: input.requestId, signature, assignmentDigest: input.assignmentDigest };
+        if (input.op === "commit") await handoff.commit(input.assignmentRequestId, action);
+        else if (input.op === "abort") await handoff.abort(input.assignmentRequestId, action);
         else await gate.run(async () => {
           if (row.stage !== "committed" && row.stage !== "paused") throw Error("Only an established route can pause.");
           if (input.op === "resume") {
@@ -79,8 +82,13 @@ export class WatchSupervisors {
             if (!watch || watch.problem || snapshot.problems.length) throw Error("The paused exact target, source or policy needs review; its admissions remain held.");
           }
           const stage = input.op === "resume" ? "committed" : "paused";
-          await gate.watchRoute(input.name, row.requestId, stage);
-          await this.config.change(s => { s.assignments[input.name]!.stage = stage; });
+          await this.config.change(async s => {
+            if (s.receipts[input.requestId]) { if (s.receipts[input.requestId] !== signature) throw Error("Assignment action request conflicts."); return; }
+            const current = s.assignments[input.name];
+            if (!current || digest(current) !== input.assignmentDigest) throw Error("The reviewed assignment changed; reread before acting.");
+            await gate.watchRoute(input.name, row.requestId, stage);
+            current.stage = stage; current.lastActionId = input.requestId; s.receipts[input.requestId] = signature;
+          });
         });
       }
       return this.read();
