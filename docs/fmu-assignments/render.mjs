@@ -4,7 +4,7 @@ import {resolve} from "node:path";
 import {mkdir,readFile,writeFile} from "node:fs/promises";
 import {createServer} from "node:http";
 import assert from "node:assert/strict";
-const root=process.cwd(),out=resolve(root,".local/fmu-assignments/ui"),local=createRequire(resolve(root,"docs/board-list/package.json")),repo=createRequire(resolve(root,"package.json"));
+const root=process.cwd(),out=resolve(root,process.env.FMU_ASSIGNMENTS_RENDER_OUT??".local/fmu-assignments/ui"),local=createRequire(resolve(root,"docs/board-list/package.json")),repo=createRequire(resolve(root,"package.json"));
 const {build}=local("esbuild"),{chromium}=local("playwright");await mkdir(out,{recursive:true});
 await build({entryPoints:[resolve(root,"docs/fmu-assignments/panel.jsx")],outfile:resolve(out,"app.js"),bundle:true,jsx:"automatic",logLevel:"warning",define:{"process.env.NODE_ENV":'"development"'},plugins:[{name:"synthetic-host",setup(b){
  b.onResolve({filter:/^@getpaseo\/plugin$/},()=>({path:resolve(root,"docs/board-list/contracts.js")}));
@@ -15,7 +15,7 @@ await build({entryPoints:[resolve(root,"docs/fmu-assignments/panel.jsx")],outfil
 }}]});
 const server=createServer(async(req,res)=>{const js=req.url.endsWith(".js");res.setHeader("Content-Type",js?"text/javascript":"text/html");res.end(js?await readFile(resolve(out,"app.js")):`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body,#root{margin:0;width:100%;min-height:100%;font-family:system-ui}*{box-sizing:border-box}button:focus-visible{outline:2px solid #20744a;outline-offset:2px}</style><div id="root"></div><script src="/app.js"></script>`)});
 await new Promise(r=>server.listen(0,"127.0.0.1",r));const browser=await chromium.launch({...(process.platform==="win32"?{channel:"msedge"}:{}),headless:true}),results=[];
-try{for(const theme of ["light","dark"])for(const width of [1440,390])for(const scene of ["choose","review","prepared","committed","paused","stale","disabled"]){
+try{for(const theme of ["light","dark"])for(const width of [1440,390])for(const scene of ["choose","review","prepared","committed","paused","stale","disabled","transport-held"]){
  const captures=[];
  for(const entry of ["home","watch","plan"]){const page=await browser.newPage({viewport:{width,height:width===390?844:1000}}),errors=[];page.on("pageerror",e=>errors.push(e.message));
  await page.goto(`http://127.0.0.1:${server.address().port}/?${new URLSearchParams({theme,scene,entry})}`,{waitUntil:"networkidle"});

@@ -260,8 +260,9 @@ export class PlanRuntime {
         return;
       }
       await c.rules.observeFailures();
-      await c.sources.refreshWatches(async name => (await new WatchConfigStore(join(pluginDir(), "watch-config.json")).read()).assignments[name]?.stage === "committed",
-        fact => this.admitWatch(home, fact, own.sources));
+      const heldWatches = await c.sources.refreshWatches(async name => (await new WatchConfigStore(join(pluginDir(), "watch-config.json")).read()).assignments[name]?.stage === "committed",
+        (fact, id) => this.admitWatch(home, fact, own.sources, id));
+      for (const held of heldWatches) console.error("[firstmate] watch refresh held:", held);
       const stopRequests = await c.rules.requestStops(), projectInputs = await c.projectJudgments.observe();
       await c.rules.observeFailures();
       const logFailures = (results: PromiseSettledResult<unknown>[]) => results.forEach(r => { if (r.status === "rejected") console.error("[firstmate] scoped progress held:", r.reason); });
@@ -300,14 +301,14 @@ export class PlanRuntime {
     for (const [store, c] of this.components) if (store.homeId === workflowHomeIdentity(home)) await c.sources.observeRemote(snapshot);
   }
   /** Direct structured watch input; independent scope queues and existing lifecycle, never General's lock. */
-  private async admitWatch(home: string, fact: WatchFact, sources: SupervisionSources) {
+  private async admitWatch(home: string, fact: WatchFact, sources: SupervisionSources, retainedEventId?: string) {
     return cutoverGate(home).run(async () => {
       const current = (await new WatchConfigStore(join(pluginDir(), "watch-config.json")).read()).assignments[fact.watch],
         transport = await cutoverGate(home).readWatchRoute(fact.watch);
       if (current?.stage !== "committed" || current.target.homeId !== workflowHomeIdentity(home) || current.target.definitionDigest !== fact.definitionDigest ||
         transport?.stage !== "committed" || transport.requestId !== current.requestId)
         refuse("HELD", "Watch assignment changed before durable source admission.");
-      return sources.observeWatch(fact);
+      return sources.observeWatch(fact, undefined, retainedEventId);
     });
   }
   async watch(fact: WatchFact) {

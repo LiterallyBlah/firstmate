@@ -17,6 +17,8 @@ import { workflowHomeIdentity } from "./workflow-ownership";
 import { planSupervisorLimits } from "../shared/plan-supervisor-limits";
 import { supervisorConfigurations } from "./supervisor-configuration";
 import { watchPolicyDigest } from "./supervision-source-state";
+import { capacityHeld } from "../shared/supervision-capacity";
+import { SOURCE_LIMITS } from "../shared/supervision-sources";
 
 export class WatchSupervisors {
   readonly config = new WatchConfigStore(join(pluginDir(), "watch-config.json"));
@@ -27,11 +29,24 @@ export class WatchSupervisors {
   async read(): Promise<WatchSupervisorSnapshot> {
     const config = await readFirstmateConfig(), home = resolveHome(config), s = await this.runtime.read(home), saved = await this.config.read();
     const definitions = await this.definitions(home), policy = await this.runtime.features?.read(home);
+    const transportProblems = new Map<string, string>();
+    for (const [name, row] of Object.entries(saved.assignments)) {
+      try {
+        const route = await cutoverGate(home).readWatchRoute(name);
+        if (route?.requestId !== row.requestId || route.stage !== row.stage)
+          transportProblems.set(name, "Assignment transport is held: its saved disposition is unfinished. Retry the exact accepted action to reconcile it.");
+      } catch { transportProblems.set(name, "Assignment transport cannot be read; its original route remains held for reconciliation."); }
+    }
     const assignmentProblem = (row: WatchAssignment | undefined) => {
-      if (!row || row.stage === "aborted") return null;
+      if (!row) return null;
+      if (transportProblems.has(row.target.name)) return transportProblems.get(row.target.name)!;
+      if (row.stage === "aborted") return null;
       if (row.target.homeId !== workflowHomeIdentity(home)) return "This retained assignment belongs to another home. Its route and evidence are not adopted here.";
       const b = s.bindings.find(b => b.scopeId === row.target.scopeId), task = s.tasks.find(t => t.id === row.target.taskId);
-      return !b || digest({ agentId: b.agentId, epoch: b.epoch, profileDigest: b.profileDigest }) !== digest(row.target.owner) ||
+      const source = s.inbox.sources.find(source => source.kind === "watch" && source.id === digest(["s08-source", "watch", "local", null, row.target.name]));
+      if (row.stage === "committed" && source?.gaps.length) return `Watch evidence remains held (${source.gaps.join(", ")}); reconcile the source before new work.`;
+      if (row.stage === "committed" && capacityHeld(s, "sources", SOURCE_LIMITS.observationCeiling)) return "Watch source observation capacity is held; retained evidence and reconciliation reserves remain unchanged.";
+      return !b || b.state !== "active" || digest({ agentId: b.agentId, epoch: b.epoch, profileDigest: b.profileDigest }) !== digest(row.target.owner) ||
         task?.currentAttempt !== row.target.attemptId || watchPolicyDigest(s, row.target.scopeId) !== row.target.policyDigest
         ? "The captured owner, profile, attempt or policy changed. The original assignment remains held; review its exact disposition." : null;
     };
@@ -56,8 +71,7 @@ export class WatchSupervisors {
       const c = await readFirstmateConfig(), home = resolveHome(c), homeId = workflowHomeIdentity(home);
       if (c.migration || c.mateLaunch || (input.op === "prepare" ? input.target.homeId : input.homeId) !== homeId) throw Error("Home changed or is migrating; reopen the exact assignment.");
       const signature = digest(input), accepted = (await this.config.read()).receipts[input.requestId];
-      if (accepted) { if (accepted !== signature) throw Error("That request ID has different assignment action fields."); return this.read(); }
-      await this.runtime.features?.check(home, "planSupervisors");
+      if (accepted && accepted !== signature) throw Error("That request ID has different assignment action fields.");
       const gate = cutoverGate(home), handoff = new WatchRouteHandoff({ config: this.config, gate,
         definition: async name => { const found = (await this.definitions(home)).find(w => w.name === name); if (!found) throw Error("Exact watch definition is unavailable."); return found.definitionDigest; },
         pending: async name => [...(await this.service.runner.queued()).filter(n => n.name === name).map(n => ({ ...watchItem(n), delivery: n.delivery ?? null })),
@@ -65,9 +79,12 @@ export class WatchSupervisors {
         validate: async target => { if (!(await this.read()).targets.some(t => digest(t) === digest(target))) throw Error("The captured plan, owner, profile or policy changed; no assignment is admitted."); },
         bindingState: async requestId => { const s = await this.runtime.read(home); return s.freshness !== "current" ? "unknown" : s.inbox.requests.some(r => r.id === requestId) ? "committed" : "absent"; },
         bind: (target, requestId) => this.runtime.mutate(home, store => new SupervisionSources(store).bindWatch(target, requestId)) });
+      if (accepted && input.op !== "prepare") {
+        await handoff.replayAction({ ...input, signature, stage: input.op === "abort" ? "aborted" : input.op === "commit" || input.op === "resume" ? "committed" : "paused" });
+        return this.read();
+      }
+      await this.runtime.features?.check(home, "planSupervisors");
       if (input.op === "prepare") {
-        const snapshot = await this.read();
-        if (!snapshot.targets.some(t => digest(t) === digest(input.target))) throw Error("The exact target, owner, attempt or plan changed. Refresh before assigning.");
         await handoff.prepare(input);
       } else {
         const row = (await this.config.read()).assignments[input.name];
@@ -82,13 +99,19 @@ export class WatchSupervisors {
             if (!watch || watch.problem || snapshot.problems.length) throw Error("The paused exact target, source or policy needs review; its admissions remain held.");
           }
           const stage = input.op === "resume" ? "committed" : "paused";
+          let applicable = false;
           await this.config.change(async s => {
-            if (s.receipts[input.requestId]) { if (s.receipts[input.requestId] !== signature) throw Error("Assignment action request conflicts."); return; }
             const current = s.assignments[input.name];
+            if (s.receipts[input.requestId]) {
+              if (s.receipts[input.requestId] !== signature) throw Error("Assignment action request conflicts.");
+              applicable = current?.requestId === input.assignmentRequestId && current.lastActionId === input.requestId && current.stage === stage;
+              return;
+            }
             if (!current || digest(current) !== input.assignmentDigest) throw Error("The reviewed assignment changed; reread before acting.");
-            await gate.watchRoute(input.name, row.requestId, stage);
             current.stage = stage; current.lastActionId = input.requestId; s.receipts[input.requestId] = signature;
+            applicable = true;
           });
+          if (applicable) await gate.watchRoute(input.name, row.requestId, stage);
         });
       }
       return this.read();

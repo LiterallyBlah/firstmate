@@ -8,7 +8,7 @@ import {createRequire} from "node:module";
 import assert from "node:assert/strict";
 const compiler=process.env.PASEO_COMPILER;
 assert(compiler,"Set PASEO_COMPILER to the installed source compiler; no daemon is used.");
-const out=resolve(".local/fmu-assignments/native");await mkdir(out,{recursive:true});
+const out=resolve(process.env.FMU_ASSIGNMENTS_NATIVE_OUT??".local/fmu-assignments/native");await mkdir(out,{recursive:true});
 const {compilePlugin}=await import(pathToFileURL(compiler).href);
 const {clientBundle,serverBundle}=await compilePlugin({client:resolve("index.client.tsx"),server:resolve("index.server.ts")});
 const {parse}=createRequire(import.meta.url)("@babel/parser"),parsed=parse(clientBundle,{sourceType:"script"});

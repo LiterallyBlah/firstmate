@@ -70,16 +70,32 @@ export class WatchRouteHandoff {
     pending(name: string): Promise<unknown[]>; bind(target: WatchAssignmentTarget, requestId: string): Promise<unknown>;
     validate?: (target: WatchAssignmentTarget) => Promise<void>;
     bindingState?: (requestId: string) => Promise<"absent" | "committed" | "unknown"> }) {}
+  /** Recover only the latest accepted action's unfinished transport disposition. Historical
+   * receipts remain replies, never permission to overwrite a newer action or generation. */
+  async replayAction(input: { requestId: string; signature: string; name: string; assignmentRequestId: string; stage: "committed" | "aborted" | "paused" }) {
+    return this.options.gate.run(async () => {
+      const saved = await this.options.config.read();
+      if (saved.receipts[input.requestId] !== input.signature) throw Error("Assignment action request conflicts.");
+      const row = saved.assignments[input.name];
+      if (row?.requestId !== input.assignmentRequestId || row.lastActionId !== input.requestId) return;
+      if (row.stage !== input.stage) throw Error("Accepted assignment disposition needs explicit reconciliation.");
+      const route = await this.options.gate.readWatchRoute(input.name);
+      if (route?.requestId !== row.requestId) throw Error("Transport generation changed; the accepted action remains held for reconciliation.");
+      if (route.stage !== row.stage) await this.options.gate.watchRoute(input.name, row.requestId, row.stage);
+    });
+  }
   async prepare(input: { requestId: string; expectedGeneration: number; target: WatchAssignmentTarget }) {
     const target = WatchAssignmentTargetSchema.parse(input.target), signature = digest(input);
     return this.options.gate.run(async () => {
       let accepted: z.infer<typeof WatchAssignmentSchema> | undefined;
       await this.options.config.change(async saved => {
         const old = saved.assignments[target.name];
-        let prior = old;
-        while (prior) {
-          if (prior.requestId === input.requestId) { if (prior.signature !== signature) throw Error("Request identity has different fields."); accepted = prior; return; }
-          prior = prior.previous ? WatchAssignmentSchema.parse(prior.previous) : undefined;
+        for (const retained of Object.values(saved.assignments)) {
+          let prior: z.infer<typeof WatchAssignmentSchema> | undefined = retained;
+          while (prior) {
+            if (prior.requestId === input.requestId) { if (prior.signature !== signature) throw Error("Request identity has different fields."); accepted = prior; return; }
+            prior = prior.previous ? WatchAssignmentSchema.parse(prior.previous) : undefined;
+          }
         }
         if ((old?.generation ?? 0) !== input.expectedGeneration || old && old.stage !== "aborted") throw Error("Assignment conflict; reread the current route.");
         if (await this.options.definition(target.name) !== target.definitionDigest) throw Error("Watch definition changed; review the exact definition.");

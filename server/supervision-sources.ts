@@ -51,6 +51,7 @@ export interface SourceObservation {
   budgetExempt?: boolean;
   /** Adapter final guard; read dependencies are pinned with the resulting watch event. */
   validate?: (status: SupervisionStatus) => void;
+  criticalFor?: (status: SupervisionStatus) => Promise<boolean>;
 }
 export type SourceAdmission = { eventId: string | null; written: boolean; duplicate: boolean };
 
@@ -88,7 +89,7 @@ export class SupervisionSources {
         ...s.versions.filter(v => ["policy-rule", "policy-source"].includes(v.kind))] };
     }));
   }
-  async observeWatch(raw: WatchFact, requestId?: string) {
+  async observeWatch(raw: WatchFact, requestId?: string, retainedEventId?: string) {
     const fact = WatchFactSchema.parse(raw), status = await this.store.read();
     const binding = status.sources.bindings.find(b => b.kind === "watch" && b.name === fact.watch && b.state === "active");
     if (!binding || binding.kind !== "watch" || binding.definitionDigest !== fact.definitionDigest) throw new SupervisionError("UNKNOWN_OWNER", "No current exact watch assignment; evidence remains held for attribution.");
@@ -98,21 +99,31 @@ export class SupervisionSources {
     const at = Date.parse(this.now()), expired = Date.parse(fact.validUntil) <= at, due = !!fact.deadline && Date.parse(fact.deadline) <= at;
     if (Date.parse(fact.observedAt) > at + 5000 || Date.parse(fact.validUntil) - Date.parse(fact.observedAt) > 7 * 86400_000)
       throw new SupervisionError("HELD", "Watch evidence has an invalid future observation or unbounded freshness.");
-    const prior = status.inbox.events.filter(e => e.envelope.subject.watch === fact.watch).at(-1);
-    const priorPayload = prior ? JSON.parse(await readFile(join(this.store.root, "blobs", prior.envelope.payloadRef.slice(5)), "utf8")) as WatchFact : null;
     // Observed-at is transport metadata. Freshness/deadline/policy/effect state is semantic and wakes once.
     const semantic = { subject: fact.subject, state: fact.state, evidence: fact.evidence, validUntil: fact.validUntil, deadline: fact.deadline,
       coverage: fact.coverage, policyDigest: fact.policyDigest, unknownEffects: fact.unknownEffects, expired, due,
       admissionPolicyDigest: watchPolicyDigest(status, binding.scopeId) };
+    const stream = ["watch-fact", binding.scopeId, binding.taskId, binding.attemptId, fact.subject];
     const critical = fact.state !== "healthy" || expired || due || fact.coverage !== "complete" || fact.unknownEffects ||
-      watchPolicyDigest(status, binding.scopeId) !== binding.policyDigest ||
-      !!priorPayload && digest([priorPayload.subject, priorPayload.state, priorPayload.evidence, priorPayload.policyDigest]) !== digest([fact.subject, fact.state, fact.evidence, fact.policyDigest]);
+      semantic.admissionPolicyDigest !== binding.policyDigest;
     return this.admit({ kind: "watch", hostId: "local", agentId: null, scopeId: binding.scopeId, sourceName: fact.watch,
       gaps: fact.coverage === "gap" ? ["fetch-failed"] : [], coverage: "unknown",
-      stream: ["watch-fact", binding.scopeId, binding.taskId, binding.attemptId, fact.subject],
+      stream,
       subject: { watch: fact.watch, watchDefinition: fact.definitionDigest, planId: binding.planId, taskId: binding.taskId, attemptId: binding.attemptId },
       identity: semantic, consequence: semantic, payload: { ...fact, expired, due, admissionPolicyDigest: semantic.admissionPolicyDigest }, critical, certainty: "reported",
+      // Classify at the serialized admission boundary against the shared exact subject, including
+      // recoveries reported by another watch. Per-source transport fields do not change meaning.
+      criticalFor: async s => {
+        if (critical) return true;
+        const prior = s.inbox.events.filter(e => e.envelope.causationId === `s08:${digest(stream)}`).at(-1);
+        if (!prior) return false;
+        const { watch: _w, definitionDigest: _def, observedAt: _at, format: _f, ...meaning } =
+          JSON.parse(await readFile(join(this.store.root, "blobs", prior.envelope.payloadRef.slice(5)), "utf8"));
+        return digest(meaning) !== digest(semantic);
+      },
       validate: s => {
+        if (retainedEventId && s.inbox.events.filter(e => e.envelope.subject.watch === fact.watch).at(-1)?.id !== retainedEventId)
+          throw new SupervisionError("STALE", "A newer watch report superseded this retained clock input.");
         const current = s.bindings.find(b => b.scopeId === binding.scopeId);
         if (!current || current.state !== "active" || digest({ agentId: current.agentId, epoch: current.epoch, profileDigest: current.profileDigest }) !== digest(binding.owner) ||
           watchPolicyDigest(s, binding.scopeId) !== semantic.admissionPolicyDigest || !s.sources.bindings.some(b => b.id === binding.id && b.version === binding.version && b.state === "active"))
@@ -120,17 +131,38 @@ export class SupervisionSources {
       } }, requestId);
   }
   /** Existing workflow clock re-evaluates one retained freshness/deadline generation; no new timer. */
-  async refreshWatches(eligible: (name: string) => Promise<boolean> = async () => true, admit: (fact: WatchFact) => Promise<unknown> = fact => this.observeWatch(fact)) {
+  async refreshWatches(eligible: (name: string) => Promise<boolean> = async () => true, admit: (fact: WatchFact, retainedEventId: string) => Promise<unknown> = (fact, id) => this.observeWatch(fact, undefined, id)) {
     const s = await this.store.read();
+    const held: { name: string; scopeId: string; error: unknown; recordingError?: unknown }[] = [];
     for (const binding of s.sources.bindings.filter(b => b.kind === "watch" && b.state === "active")) {
       if (binding.kind !== "watch") continue;
-      if (!await eligible(binding.name)) continue;
-      const latest = s.inbox.events.filter(e => e.envelope.subject.watch === binding.name).at(-1);
-      if (latest) {
-        const { expired: _expired, due: _due, admissionPolicyDigest: _policy, ...raw } = JSON.parse(await readFile(join(this.store.root, "blobs", latest.envelope.payloadRef.slice(5)), "utf8"));
-        await admit(WatchFactSchema.parse(raw));
+      try {
+        if (!await eligible(binding.name)) continue;
+        const owner = s.bindings.find(b => b.scopeId === binding.scopeId);
+        if (owner?.state !== "active" || digest({ agentId: owner.agentId, epoch: owner.epoch, profileDigest: owner.profileDigest }) !== digest(binding.owner))
+          throw new SupervisionError("STALE", "The exact watch owner/profile changed; review this assignment again.");
+        const latest = s.inbox.events.filter(e => e.envelope.subject.watch === binding.name).at(-1);
+        if (!latest) continue; // No report yet; this is not fabricated healthy evidence.
+        const { expired, due, admissionPolicyDigest, ...raw } = JSON.parse(await readFile(join(this.store.root, "blobs", latest.envelope.payloadRef.slice(5)), "utf8"));
+        const fact = WatchFactSchema.parse(raw), at = Date.parse(this.now());
+        // Retained conflicting reports are provenance, not fresh A-to-B-to-A observations.
+        // Only a changed clock/policy generation re-enters admission from this consumer.
+        const source = s.inbox.sources.find(source => source.id === sourceRowId("watch", "local", null, binding.name));
+        if (expired !== (Date.parse(fact.validUntil) <= at) || due !== (!!fact.deadline && Date.parse(fact.deadline) <= at) ||
+          admissionPolicyDigest !== watchPolicyDigest(s, binding.scopeId) || source?.gaps.includes("stale")) {
+          const result = await admit(fact, latest.id) as SourceAdmission | undefined;
+          if (result && result.eventId === null) throw new SupervisionError("HELD", "Watch refresh remains unadmitted under inbox pressure.");
+        }
+      } catch (error) {
+        const failure: typeof held[number] = { name: binding.name, scopeId: binding.scopeId, error };
+        // Use the existing finite source accounting. If that too is held, expose both errors to
+        // the caller rather than borrowing reconciliation capacity or labelling it healthy.
+        try { await this.gap("watch", "local", null, binding.name, ["stale", "fetch-failed"], binding.scopeId); }
+        catch (recordingError) { failure.recordingError = recordingError; }
+        held.push(failure);
       }
     }
+    return held;
   }
   async checkWatchAdmission(scopeId: string) {
     const s = await this.store.read();
@@ -202,7 +234,7 @@ export class SupervisionSources {
       }
       const blob = await this.store.putBlob(Buffer.from(payload)), eventId = randomUUID(), at = this.now();
       const extraBlobs = await Promise.all((o.evidence ?? []).map(bytes => this.store.putBlob(bytes)));
-      const event: InboxEvent = { id: eventId, version: 1, critical: malformed || o.critical, consequenceKey, observationHash,
+      const event: InboxEvent = { id: eventId, version: 1, critical: malformed || (o.criticalFor ? await o.criticalFor(s) : o.critical), consequenceKey, observationHash,
         envelope: SupervisionEventSchema.parse({ version: 1, eventId, source: { kind: o.kind, hostId, key: sourceKey, epoch: null, cursor: null },
           observedAt: at, subject: { ...o.subject }, certainty: malformed ? "unknown" : o.certainty, payloadRef: `blob:${blob.id}`, causationId: stream,
           evidence: [blob, ...extraBlobs].map(b => ({ ref: `blob:${b.id}`, digest: b.id, freshness: at })) }) };
