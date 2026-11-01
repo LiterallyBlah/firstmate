@@ -172,7 +172,7 @@ beforeEach(async () => {
   await updateFirstmateConfig({ mateAgentId: "general" });
   source = { id: randomUUID(), version: 1, path: "data/orders.md", lineStart: 1, lineEnd: 1, fileHash: sha("Reviewed project allocation and project-mate profile.\n"),
     excerptHash: sha("Reviewed project allocation and project-mate profile."), provenance: actor, supersedes: [] };
-  runtime = projectRuntimeFixture(data); receiver = new SyntheticReceiver(); service = make();
+  runtime = projectRuntimeFixture(data); receiver = new SyntheticReceiver(); receiver.supervisorRoot = data; service = make();
 });
 afterEach(async () => { await runtime?.stop(); });
 const make = (enabled = true) => new ProjectRuntime(runtime, { enabled, receiver: () => receiver });

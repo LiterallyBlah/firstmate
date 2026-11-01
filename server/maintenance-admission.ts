@@ -22,7 +22,7 @@ export function maintenanceAdmission(status: SupervisionStatus, scopeId: string)
 }
 export async function admitMaintenanceOwner(runtime: SupervisionRuntime, raw: AdmitMaintenance, receiver: GatewayReceiver,
   checked: (homeId: string) => Promise<{ home: string; config: { mateAgentId: string } }>, headroom: { slots: number; reserved: number },
-  reviewProfile?: (input: z.infer<typeof MaintenanceAdmissionInputSchema>) => Promise<{ catalogDigest: string; policyDigest: string }>) {
+  reviewProfile?: (input: z.infer<typeof MaintenanceAdmissionInputSchema>) => Promise<{ catalogDigest: string; policyDigest: string; workspace?: { intentKey: string; directory: string } }>) {
   const request = AdmitMaintenanceSchema.parse(raw), { home, config } = await checked(request.homeId);
   if (!config.mateAgentId) refuse("UNKNOWN_OWNER", "A configured General is required; maintenance never adopts that identity.");
   const initial = await runtime.read(home);
@@ -61,7 +61,7 @@ export async function admitMaintenanceOwner(runtime: SupervisionRuntime, raw: Ad
         if (effect.requestId !== input.requestId || effect.scopeId !== input.scopeId || !effects || ![effects.workspace?.id, effects.create?.id, effects.send?.id].includes(effect.id))
           refuse("HELD", "Only the original maintenance admission effects may run here.");
       } });
-    const configuration = profileReview ? { id: input.requestId, scopeId: input.scopeId, generation: 1, requested: input.profile, resolved: input.profile,
+    const configuration = profileReview ? { id: input.requestId, scopeId: input.scopeId, generation: 1, ...(profileReview.workspace ? { workspace: profileReview.workspace } : {}), requested: input.profile, resolved: input.profile,
       catalogDigest: profileReview.catalogDigest, policyDigest: profileReview.policyDigest,
       target: { homeId: input.homeId, hostId: "local" as const, scopeId: input.scopeId, kind: "maintenance" as const, planId: null, planHash: null },
       limits: input.limits, effectiveEpoch: 1, provenance: "client UI (unverified)" as const } : undefined;

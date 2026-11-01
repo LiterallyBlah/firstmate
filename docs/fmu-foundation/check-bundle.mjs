@@ -12,7 +12,7 @@ const {compilePlugin}=await import(pathToFileURL(compiler).href),repo=createRequ
 const {clientBundle,serverBundle}=await compilePlugin({client:resolve("index.client.tsx"),server:resolve("index.server.ts")});
 const classes=[],walk=node=>{if(!node||typeof node!=="object")return;if(node.type==="ClassDeclaration"||node.type==="ClassExpression")classes.push(node.type);for(const value of Object.values(node))if(Array.isArray(value))value.forEach(walk);else if(value&&typeof value==="object")walk(value)};
 walk(parse(clientBundle,{sourceType:"script"}));assert.deepEqual(classes,[]);assert.equal(clientBundle.includes("node_modules/pixi.js"),false);assert.equal(clientBundle.includes("iVBORw0KGgo"),false);
-const out=resolve(".local/fmu-foundation/native");await mkdir(out,{recursive:true});const file=resolve(out,"client.js");await writeFile(file,clientBundle);
+const out=resolve(process.env.FMU_EVIDENCE_DIR??".local/fmu-foundation/native");await mkdir(out,{recursive:true});const file=resolve(out,"client.js");await writeFile(file,clientBundle);
 const platform=process.platform==="win32"?"win64-bin/hermesc.exe":process.platform==="darwin"?"osx-bin/hermesc":"linux64-bin/hermesc";
 execFileSync(resolve("node_modules/react-native/sdks/hermesc",platform),["-emit-binary","-out",resolve(out,"client.hbc"),file],{stdio:"pipe"});
 const receipt={compiler,clientBytes:Buffer.byteLength(clientBundle),serverBytes:Buffer.byteLength(serverBundle),classDeclarations:0,hermes:"pass",legacyClassWordMatches:[...clientBundle.matchAll(/\bclass\b/g)].length};

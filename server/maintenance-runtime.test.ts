@@ -47,7 +47,7 @@ beforeEach(async () => {
   watchConfig = new WatchConfigStore(join(root, "watch-config.json"));
   await watchConfig.create({ name: "Take-the-Initiative", schedule: "*/30 * * * *", prompt: "Synthetic initiative", enabled: true,
     executionSession: "current", newSessionReasoning: "inherit", notificationPolicy: "never" });
-  native = { complete: true, schedules: [] }; receiver = new SyntheticReceiver(); clock = "2026-10-26T12:00:00Z";
+  native = { complete: true, schedules: [] }; receiver = new SyntheticReceiver(); receiver.supervisorRoot = root; clock = "2026-10-26T12:00:00Z";
   runtime = new SupervisionRuntime(root, (data, home) => new SupervisionStore(data, home, { writable: true,
     processIdentity: async () => ({ state: "alive", start: "fixture" }) }));
   service = make();
@@ -486,3 +486,14 @@ it("A13 upgraded storage continues maintenance and summaries past every pilot ba
   expect((await service.summary()).lowerBound).toBe(false); expect(after.lowerBound).toBe(false);
   // Windows CI: median 17.6 s, passes up to 30.5 s; hosted Windows runner slowdowns add up to ~46 s (61 runs, 2026-10-28/29), so the budget is its Windows median + ~50 s.
 }, 90_000);
+
+it("F4: initial maintenance catalog and captured generation bind the intended session directory", async () => {
+  const cwd: string[] = [], lookup = api.providers.listModels;
+  const spy = vi.spyOn(api.providers, "listModels").mockImplementation(async (provider, options) => { cwd.push(options!.cwd!); return lookup(provider, options); });
+  try {
+    await service.admit({ homeId: (await service.read()).homeId, requestId: randomUUID(), scopeId: SCOPE, name: "Synthetic maintenance", profile, limits: { supervisorSessions: 1, supervisorTurns: 20 } }, api);
+    const state = await runtime.read(home), config = state.commands.find(c => c.result.supervisorConfiguration)?.result.supervisorConfiguration!;
+    const native = receiver.agents.get(state.bindings[0]!.agentId)!;
+    expect(cwd).toEqual([native.cwd]); expect(config.workspace?.directory).toBe(native.cwd);
+  } finally { spy.mockRestore(); }
+});

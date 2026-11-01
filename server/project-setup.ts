@@ -1,3 +1,4 @@
+import { supervisorWorkspace } from "./supervisor-workspace";
 import { profileProblem } from "../shared/supervisor-profile";
 /** Checked app review over Build A. Reads never acquire a writer or initialize a journal. */
 import { createHash } from "node:crypto";
@@ -32,7 +33,7 @@ const sha = (v: string) => createHash("sha256").update(v).digest("hex");
 const contextOnly = (path: string) => /^data\/(projects|backlog|suggestions|learnings|project-mates|maintenance|workflows)\.md$/i.test(path.replace(/\\/g, "/")) || /^data\/(scoped|project-memory)\//i.test(path.replace(/\\/g, "/"));
 export class ProjectSetupService {
   constructor(readonly projects: ProjectRuntime, private readonly options: {
-    models?: (paseo: PaseoApi) => Promise<ProjectSetupCatalog["models"]>; folder?: () => Promise<string | null>;
+    models?: (paseo: PaseoApi, cwd?: string) => Promise<ProjectSetupCatalog["models"]>; folder?: () => Promise<string | null>;
   } = {}) {}
   private async context(homeId: string, observed?: SupervisionStatus) {
     const c = await this.projects.inputs(observed);
@@ -42,7 +43,7 @@ export class ProjectSetupService {
   }
   private async models(paseo: PaseoApi, cwd?: string) {
     let timer!: ReturnType<typeof setTimeout>;
-    try { return await Promise.race([this.options.models?.(paseo) ?? migrationTargets(paseo, cwd).then(r => r.targets),
+    try { return await Promise.race([this.options.models?.(paseo, cwd) ?? migrationTargets(paseo, cwd).then(r => r.targets),
       new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error("Models and permissions couldn't be checked. Reconnect the host and refresh setup.")), 5000); })]); }
     finally { clearTimeout(timer); }
   }
@@ -92,7 +93,7 @@ export class ProjectSetupService {
     if (saved?.state === "stopped") reasons.push("This project's help was stopped. Review its saved allocation in Advanced work details before resuming.");
     if (p?.agentId || p?.provisionInput) reasons.push("This project already has a saved setup. Check saved setup or open its conversation; no new mate will be created.");
     const profile = saved?.owner?.profile ?? choices.profile, limits = saved?.owner?.limits ?? choices.limits, budget = saved?.budget ?? choices.budget;
-    const models = await this.models(paseo, row?.directory ?? undefined).catch(() => []);
+    const models = await this.models(paseo, row?.scopeId ? supervisorWorkspace(this.projects.runtime.root, row.scopeId, 1).directory : undefined).catch(() => []);
     if (profileProblem(profile, models)) reasons.push("Choose an available model and its actual permission mode. Refresh setup if the saved profile is unavailable.");
     if (!limits || limits.supervisorSessions !== 1 || !budget || budget.agents < 1 || budget.turns < limits.supervisorTurns) reasons.push("Review one session, its total turn limit and a project allocation that covers it. No preset spending limits have been approved.");
     let source = saved ? c.status.policySources.find(s => saved.sourceVector.some(ref => ref.id === s.id && ref.digest === digest(s))) : undefined;
@@ -127,7 +128,7 @@ export class ProjectSetupService {
     const review: Input["review"] = { homeId: choices.homeId, registryDigest: c.catalog.digest, generalAgentId: c.config.mateAgentId, projectId: row.projectId,
       name: row.name, projectVersion: saved?.version ?? 0, aliases: saved?.aliases ?? [], source, profile, budget,
       limits: { supervisorSessions: 1, supervisorTurns: limits.supervisorTurns }, capacity,
-      catalogDigest: digest(models),
+      catalogDigest: digest(models), workspace: supervisorWorkspace(this.projects.runtime.root, row.scopeId!, 1),
       policyHash: digest(policy ?? { enabled: snapshot.enabled, capacity }), sourceVector: saved?.sourceVector ?? [policyRef("policy-source", source)], opening,
       spent: { sessions: p?.sessions ?? 0, turns: p?.turns ?? 0 } };
     return { choices, review, reviewDigest: digest(review), reasons };
@@ -172,7 +173,9 @@ export class ProjectSetupService {
         const policy = await this.projects.runtime.features?.read(c.home), capacity = await this.projects.capacity(c.home);
         const enabled = policy?.effective.projectMates ?? this.projects.setupEnabled;
         if (!enabled || digest(policy ?? { enabled, capacity }) !== r.policyHash) refuse("STALE", "Help settings changed. Review the current setup before continuing.");
-        const models = await this.models(paseo, row?.directory ?? undefined);
+        const models = await this.models(paseo, row?.scopeId ? supervisorWorkspace(this.projects.runtime.root, row.scopeId, 1).directory : undefined);
+        if (r.workspace && digest(r.workspace) !== digest(supervisorWorkspace(this.projects.runtime.root, row.scopeId!, 1))) refuse("STALE", "The reviewed session workspace changed.");
+        if (r.catalogDigest && r.catalogDigest !== digest(models)) refuse("STALE", "The reviewed session catalog changed.");
         if (profileProblem(r.profile, models)) refuse("HELD", "The reviewed model or permission is unavailable. Restore it and check saved setup; another model will not be chosen.");
         const p = c.status.projects?.projects.find(p => p.id === r.projectId);
         if (p?.owner) {

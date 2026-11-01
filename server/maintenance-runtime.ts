@@ -1,3 +1,4 @@
+import { supervisorWorkspace } from "./supervisor-workspace";
 import { join } from "node:path";
 import { checkedSupervisorCatalog } from "./supervisor-catalog";
 import { effectLogicalKey, supervisorWorkspaceIntent } from "./supervision-effects";
@@ -104,7 +105,7 @@ export class MaintenanceRuntime {
       const key = effectLogicalKey({ scopeId: reviewed.scopeId, subject: "epoch:1", operation: "workspace.open", causation: "scope.activate", objectiveRevision: 0 });
       const intent = supervisorWorkspaceIntent(reviewed.scopeId, 1, stableId("effect", key));
       const catalog = await checkedSupervisorCatalog(paseo, join(this.runtime.root, "supervisor-workspaces", intent.key), reviewed.profile);
-      return { catalogDigest: digest(catalog), policyDigest: digest(await this.runtime.features?.read((await this.checked(input.homeId)).home) ?? { enabled: true }) };
+      return { workspace: supervisorWorkspace(this.runtime.root, reviewed.scopeId, 1), catalogDigest: digest(catalog), policyDigest: digest(await this.runtime.features?.read((await this.checked(input.homeId)).home) ?? { enabled: true }) };
     });
     return this.read();
   }

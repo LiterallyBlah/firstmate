@@ -1,4 +1,4 @@
-import { supervisorAdmissionHold } from "./supervisor-configuration";
+import { checkSupervisorTarget, supervisorConfigurations, supervisorAdmissionHold } from "./supervisor-configuration";
 /** S04 durable effect gateway. Disabled by default: no RPC, timer, executor or live receiver adapter.
  * Every external boundary is preceded by a published `dispatching` claim. That claim is the final
  * admission: inside the store's writer boundary it rechecks the complete current authority read set
@@ -329,6 +329,10 @@ export class SupervisionGateway {
         refuse("HELD", "The retained workspace's original worker is no longer observed quiescent.");
     }
     if (!supervisor && binding.purpose === "discussion") refuse("HELD", "Discussion-only sessions cannot dispatch worker effects.");
+    const configuration = supervisorConfigurations(status, scope.id).find(c => c.id === effect.configurationId);
+    // A reservation is not admission. Replays of settled/uncertain effects bypass this new-work boundary.
+    if (supervisor && configuration && effect.logicalKey === effectLogicalKey({ scopeId: scope.id, subject: `epoch:${effect.epoch}`, operation, causation: "scope.activate", objectiveRevision: 0 }))
+      checkSupervisorTarget(status, configuration);
     const activation = supervisor && (operation === "workspace.open" || operation === "agent.create");
     if (activation ? scope.state !== "transferring" || binding.state !== "prepared" : scope.state !== "active" || binding.state !== "active")
       refuse("HELD", "Owner is not admitted for this external effect.");
@@ -374,6 +378,8 @@ export class SupervisionGateway {
         if (!fresh.capabilities.selectedAgentIds) refuse("UNSUPPORTED", "Receiver no longer supports caller-selected IDs; the reservation stays as it is.");
         const workspace = workspaceReceipt(sibling("workspace.open"));
         if (!workspace) refuse("HELD", "The workspace effect has not succeeded; creation waits for it.");
+        if (supervisor && configuration?.workspace && !sameDirectory(workspace.directory, configuration.workspace.directory))
+          refuse("STALE", "The created workspace differs from the qualified session directory; no agent is created.");
         const create = supervisor ? supervisorCreate(effect, workspace, await this.profile(binding.profileDigest), scope.kind) : workerCreate(status, effect, workspace);
         return { run: async () => {
           const created = await this.receiver.createAgent(create);

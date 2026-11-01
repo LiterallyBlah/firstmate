@@ -1,3 +1,4 @@
+import { supervisorWorkspace } from "./supervisor-workspace";
 import { readSupervisorControls, actSupervisorControls, type SupervisorControlInput } from "../shared/supervisor-controls";
 import { supervisorView } from "./supervisor-configuration";
 import { SupervisorControls } from "./supervisor-controls";
@@ -272,7 +273,7 @@ export class SupervisionActivation {
           const intent = supervisorWorkspaceIntent(input.scopeId, 1, stableId("effect", effectLogicalKey({ scopeId: input.scopeId, subject: "epoch:1", operation: "workspace.open", causation: "scope.activate", objectiveRevision: 0 })));
           const catalog = await checkedSupervisorCatalog(paseo, join(this.root, "supervisor-workspaces", intent.key), input.profile);
           const policy = await this.runtime.features?.read(home);
-          configuration = { id: input.requestId, scopeId: input.scopeId, generation: 1, requested: input.profile, resolved: input.profile,
+          configuration = { id: input.requestId, scopeId: input.scopeId, generation: 1, workspace: supervisorWorkspace(this.root, input.scopeId, 1), requested: input.profile, resolved: input.profile,
             catalogDigest: digest(catalog), policyDigest: digest(policy ?? { enabled: true }),
             target: { homeId: input.homeId, hostId: "local", scopeId: input.scopeId, kind: "plan", planId: input.plan, planHash: input.planHash },
             limits: this.controlsLimits(await store.read(), input.scopeId) ?? { supervisorSessions: 1, supervisorTurns: 1 }, effectiveEpoch: 1, provenance: "client UI (unverified)" };
@@ -353,12 +354,18 @@ export class SupervisionActivation {
       const expected = view.configurations.find(g => g.id === view.binding?.configurationId)?.resolved ?? view.binding?.profileReadback;
       if (expected && (observed.provider !== expected.provider || observed.modeId !== (expected.modeId || null) || observed.thinkingOptionId !== (expected.thinkingOptionId || null)))
         problems.push("Native profile drift: the exact Supervisor differs from its recorded model, permissions or reasoning. Restore its recorded profile or inspect a checked replacement; no setting was adopted.");
-      catalog = await supervisorCatalog(paseo, observed.cwd);
+      catalog = await supervisorCatalog(paseo, supervisorWorkspace(this.root, input.scopeId, (view.binding?.epoch ?? 0) + 1).directory);
     } catch (e) { problems.push(e instanceof Error ? e.message : "The exact host catalog is unavailable."); }
     if (!c.enabled) problems.push("This responsibility is paused in Help settings. Inspect retained work before resuming.");
+    const reader = new SupervisionStore(this.root, c.home);
+    const reservedOwnerInputs = await Promise.all(view.reservedOwnerInputs.map(async input => {
+      try { const text = Buffer.from(await reader.readBlob(input.payloadDigest)).toString("utf8");
+        return { ...input, preview: text.slice(0, 16000), truncated: text.length > 16000 };
+      } catch { return { ...input, preview: null, truncated: false }; }
+    }));
     const plan = c.status.plans.find(p => p.scopeId === input.scopeId)?.plan;
     return { homeId: input.homeId, scopeId: input.scopeId, title: plan?.definition.title ?? c.scope.kind, planHash: plan?.hash ?? null,
-      view, catalog, problems, policyDigest: c.policyDigest, limits: this.controlsLimits(c.status, input.scopeId) };
+      view: { ...view, reservedOwnerInputs }, catalog, problems, policyDigest: c.policyDigest, limits: this.controlsLimits(c.status, input.scopeId) };
   }
   async control(input: SupervisorControlInput, paseo: PaseoApi) {
     await serialized(`${this.attachLock}:${input.scopeId}`, async () => {
@@ -405,15 +412,21 @@ export class SupervisionActivation {
             if (!accepted && capacity) await checkGeneralHeadroom(await store.read(), receiver, capacity.slots, capacity.generalHeadroom);
             return run();
           }),
-          catalog: async scopeId => {
-            const b = (await store.read()).bindings.find(b => b.scopeId === scopeId), old = b && await receiver.findAgent(b.agentId);
-            if (!old || old.id !== b?.agentId) refuse("HELD", "Exact native Supervisor unavailable; no configuration fallback.");
-            return supervisorCatalog(paseo, old.cwd);
+          workspace: (scopeId, epoch) => supervisorWorkspace(this.root, scopeId, epoch),
+          catalog: async (scopeId, configuration) => {
+            const b = (await store.read()).bindings.find(b => b.scopeId === scopeId);
+            if (!b) refuse("HELD", "Exact Supervisor unavailable; no configuration fallback.");
+            const workspace = supervisorWorkspace(this.root, scopeId, configuration?.effectiveEpoch ?? b.epoch + 1);
+            if (configuration && (!configuration.workspace || digest(configuration.workspace) !== digest(workspace)))
+              refuse("STALE", "The next workspace was not qualified by this proposal. Withdraw it and review again.");
+            return supervisorCatalog(paseo, workspace.directory);
           } });
         switch (input.op) {
           case "stage": await controls.stageFromUnverifiedUi(input); break;
           case "pause": await controls.pauseFromUnverifiedUi(input); break;
           case "resume": await controls.resumeFromUnverifiedUi(input); break;
+          case "withdraw-proposal": await controls.withdrawProposalFromUnverifiedUi(input); break;
+          case "withdraw-input": await controls.withdrawInputFromUnverifiedUi(input); break;
           case "replace": await controls.replaceFromUnverifiedUi(input); break;
         }
       }, true);

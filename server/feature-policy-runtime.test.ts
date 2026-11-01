@@ -234,7 +234,7 @@ it.each(["project", "maintenance"] as const)("%s provisioning hot-pauses after w
   await mkdir(join(home, "data"), { recursive: true }); await mkdir(projectPath);
   await writeFile(join(home, "data/projects.md"), `- Reader [local-only] - ${projectPath}\n`);
   const orders = "Reviewed bounded project help.\n"; await writeFile(join(home, "data/orders.md"), orders);
-  const policy = new FeaturePolicyRuntime(root), receiver = new SyntheticReceiver();
+  const policy = new FeaturePolicyRuntime(root), receiver = new SyntheticReceiver(); receiver.supervisorRoot = root;
   const create = vi.fn((data: string, path: string) => new SupervisionStore(data, path, { writable: true,
     processIdentity: async () => ({ state: "alive", start: "hot-policy-fixture" }) }));
   const runtime = new SupervisionRuntime(root, create, policy), config = async () => FirstmateConfigSchema.parse({ home, mateAgentId: "general" });

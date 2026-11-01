@@ -22,13 +22,14 @@ export function profileProblem(profile: SupervisorProfile | null, catalog: Super
 const uuid = z.string().uuid(), hash = z.string().regex(/^[0-9a-f]{64}$/);
 export const SupervisorConfigurationSchema = z.object({ id: uuid, scopeId: uuid, generation: z.number().int().positive(),
   requested: SupervisorProfileSchema, resolved: SupervisorProfileSchema, catalogDigest: hash, policyDigest: hash,
+  workspace: z.object({ intentKey: z.string().min(1), directory: z.string().min(1) }).strict().optional(),
   target: z.object({ homeId: z.string(), hostId: z.literal("local"), scopeId: uuid, kind: z.enum(["plan", "project", "maintenance"]),
     planId: z.string().nullable(), planHash: hash.nullable() }).strict(),
   limits: z.object({ supervisorSessions: z.number().int().min(1).max(1000), supervisorTurns: z.number().int().min(1).max(100000) }).strict(),
   effectiveEpoch: z.number().int().positive(), provenance: z.literal("client UI (unverified)") }).strict();
 export type SupervisorConfiguration = z.infer<typeof SupervisorConfigurationSchema>;
 export const SupervisorControlSchema = z.object({ id: uuid, scopeId: uuid, epoch: z.number().int().positive(),
-  action: z.enum(["stage", "pause", "resume", "replace"]), predecessor: uuid.nullable(),
+  action: z.enum(["stage", "pause", "resume", "replace", "withdraw"]), predecessor: uuid.nullable(),
   configuration: SupervisorConfigurationSchema.optional() }).strict();
 
 /** Original replacement review survives a lost app reply and a fresh client, including a hold-before-reserve crash. */

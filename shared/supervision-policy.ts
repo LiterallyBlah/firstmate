@@ -84,6 +84,7 @@ export const ProjectSetupInputSchema = z.object({ homeId: z.string(), requestId:
     profile: AgentProfileSchema, budget: z.object({ agents: version, turns: version }).strict(),
     limits: z.object({ supervisorSessions: z.literal(1), supervisorTurns: version }).strict(),
     catalogDigest: SupervisionHash.optional(),
+    workspace: SupervisorConfigurationSchema.shape.workspace,
     policyHash: SupervisionHash, sourceVector: z.array(SupervisionVersionRefSchema).min(1).max(64), opening: z.string().min(1).max(128 * 1024),
     capacity: z.object({ slots: version, generalHeadroom: version }).strict(),
     spent: z.object({ sessions: z.number().int().nonnegative(), turns: z.number().int().nonnegative() }).strict(),
@@ -101,7 +102,7 @@ export const ScopedCommandResultSchema = z.object({
   projectProvision: ProjectProvisionInputSchema.optional(),
   projectSetup: ProjectSetupInputSchema.optional(),
   maintenanceAdmission: MaintenanceAdmissionInputSchema.optional(),
-  maintenanceProfileReview: z.object({ requestId: SupervisionUuid, catalogDigest: SupervisionHash, policyDigest: SupervisionHash }).strict().optional(),
+  maintenanceProfileReview: z.object({ requestId: SupervisionUuid, workspace: SupervisorConfigurationSchema.shape.workspace, catalogDigest: SupervisionHash, policyDigest: SupervisionHash }).strict().optional(),
   /** Build D transport identity only; preserves exact accepted replay before mutable timer/owner checks. */
   maintenanceRequest: z.object({ inputHash: SupervisionHash }).strict().optional(),
   uiPlanIntent: ScopedPlanCommandSchema.optional(),

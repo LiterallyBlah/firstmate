@@ -35,7 +35,7 @@ beforeEach(async () => {
   await writeFile(join(home, "data/orders.md"), "The captain authorizes one persistent mate for alpha using the reviewed profile and allocation.\n");
   await updateFirstmateConfig({ home, mateAgentId: "", migration: null, mateLaunch: null }); await updateFirstmateConfig({ mateAgentId: "general" });
   models = [{ provider: "codex/test", label: "Test model", modes: [{ id: "full-access", label: "Full access" }], thinking: [] }];
-  receiver = new SyntheticReceiver(); runtime = projectRuntimeFixture(data); make();
+  receiver = new SyntheticReceiver(); receiver.supervisorRoot = data; runtime = projectRuntimeFixture(data); make();
 });
 afterEach(async () => { await runtime.stop(); });
 it("app reads/previews and cancel initialize no journal, source, coordinator or session", async () => {
@@ -235,4 +235,15 @@ it("feature-off and home switch refuse without weakening the original helper rol
   service = new ProjectSetupService(projects, { models: async () => models });
   await expect(service.commit(input, api)).rejects.toMatchObject({ code: "STALE" });
   await expect(service.read("another-home", api)).rejects.toMatchObject({ code: "STALE" }); expect(receiver.calls).toEqual([]);
+});
+
+it("F4: initial project review qualifies and binds the intended supervisor cwd, not the project folder", async () => {
+  const cwds: (string | undefined)[] = [];
+  service = new ProjectSetupService(projects, { models: async (_paseo, cwd) => { cwds.push(cwd); return structuredClone(models); } });
+  const input = await review(); await service.commit(input, api);
+  const state = await runtime.read(home), binding = state.bindings[0]!, configuration = state.commands.find(c => c.result.supervisorConfiguration)?.result.supervisorConfiguration!;
+  const native = receiver.agents.get(binding.agentId)!;
+  expect(input.review.workspace?.directory).toBe(native.cwd); expect(configuration.workspace).toEqual(input.review.workspace);
+  expect(cwds.length).toBeGreaterThan(1); expect(cwds.every(cwd => cwd === native.cwd)).toBe(true);
+  expect(native.cwd).not.toBe(join(home, "alpha"));
 });

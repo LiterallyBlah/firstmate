@@ -1,5 +1,5 @@
 import type { SupervisorConfiguration, SupervisorReplacementInput } from "../shared/supervisor-profile";
-import { supervisorConfigurations, supervisorAdmissionHold, supervisorControl } from "./supervisor-configuration";
+import { checkSupervisorTarget, supervisorConfigurations, supervisorAdmissionHold, supervisorControl } from "./supervisor-configuration";
 import type { PlanRuleRef } from "../shared/plan-rules";
 /** S04 plan-supervisor lifecycle: reserved/unprompted -> verified -> active -> send, and manual transfer.
  * Disabled by default; no RPC, timer, lease, executor or automatic takeover. A supervisor is a home
@@ -156,10 +156,12 @@ export class SupervisorSessions {
       const replacing = mode === "replace" || mode === "replace-ui-unverified";
       if (input.configuration && (input.configuration.scopeId !== scope.id || input.configuration.effectiveEpoch !== (old?.epoch ?? 0) + 1 ||
         digest(input.configuration.resolved) !== digest(profile))) refuse("STALE", "Profile generation does not match its exact owner or next epoch.");
+      if (input.configuration) checkSupervisorTarget(status, input.configuration);
       if (mode === "replace-ui-unverified") {
         const pending = supervisorControl(status, scope.id);
         if (pending?.action !== "stage" || pending.id !== input.controlId || digest(pending.configuration) !== digest(input.configuration) ||
           digest(profile) !== digest(input.configuration?.resolved)) refuse("STALE", "Pending configuration changed before replacement.");
+        if (status.effects.some(e => e.scopeId === scope.id && e.epoch === old?.epoch && e.state === "reserved")) refuse("HELD", "Prior reserved work needs explicit non-delivery disposition before replacement.");
         if (status.effects.some(e => e.scopeId === scope.id && ["dispatching", "accepted", "uncertain"].includes(e.state))) refuse("UNCERTAIN", "Reconcile prior effects before replacement.");
       }
       refuseHeld(status, scope.id, replacing);
@@ -172,6 +174,7 @@ export class SupervisorSessions {
         effectLogicalKey({ scopeId: scope.id, subject: `epoch:${epoch}`, operation, causation: "scope.activate", objectiveRevision: 0 });
       const ids = { workspace: stableId("effect", key("workspace.open")), create: stableId("effect", key("agent.create")), send: stableId("effect", key("agent.send")) };
       const agentId = stableId("agent", ids.create), intent = supervisorWorkspaceIntent(scope.id, epoch, ids.workspace);
+      if (input.configuration?.workspace && input.configuration.workspace.intentKey !== intent.key) refuse("STALE", "Qualified workspace differs from the reserved next session.");
       const attachedPlan = status.plans.find(p => p.scopeId === scope.id)?.plan;
       if (mode === "attach-ui-unverified" && (!attachedPlan || attachedPlan.definition.id !== input.planId || attachedPlan.hash !== input.planHash || agentId !== input.supervisorId))
         refuse("STALE", "The displayed plan or reserved supervisor changed. Refresh before attaching.");
@@ -236,15 +239,22 @@ export class SupervisorSessions {
     if (actor.kind !== "captain-ui") refuse("UNSUPPORTED", "Holding a supervisor for transfer is an explicit captain action.");
     return this.holdChecked(input, actor);
   }
-  async holdFromUnverifiedUi(input: { requestId: string; scopeId: string; expectedEpoch: number; reason: string; replacementInput?: SupervisorReplacementInput }) {
+  async holdFromUnverifiedUi(input: { requestId: string; scopeId: string; expectedEpoch: number; reason: string; replacementInput?: SupervisorReplacementInput; configuration?: SupervisorConfiguration; controlId?: string }) {
     this.enabled();
     if (!this.options.unverifiedUiAttach) refuse("UNSUPPORTED", "Unverified app replacement is disabled.");
     return this.holdChecked(input, { kind: "plugin-ui-unverified", id: "unauthenticated-plugin-call", source: "Supervisor controls (unverified)" });
   }
-  private holdChecked(input: { requestId: string; scopeId: string; expectedEpoch: number; reason: string; replacementInput?: SupervisorReplacementInput }, actor: SupervisionActor) {
-    return this.store.transactCommand(input.requestId, digest({ hold: input }), actor, async status => {
+  private holdChecked(input: { requestId: string; scopeId: string; expectedEpoch: number; reason: string; replacementInput?: SupervisorReplacementInput; configuration?: SupervisorConfiguration; controlId?: string }, actor: SupervisionActor) {
+    const { configuration: _configuration, controlId: _controlId, ...identity } = input;
+    return this.store.transactCommand(input.requestId, digest({ hold: identity }), actor, async status => {
       const scope = status.scopes.find(s => s.id === input.scopeId), binding = status.bindings.find(b => b.scopeId === input.scopeId);
       if (!scope || !binding || binding.epoch !== input.expectedEpoch || !["active", "prepared"].includes(binding.state)) refuse("STALE", "Binding epoch changed.");
+      if (input.configuration) {
+        checkSupervisorTarget(status, input.configuration);
+        const pending = supervisorControl(status, input.scopeId);
+        if (pending?.action !== "stage" || pending.id !== input.controlId || digest(pending.configuration) !== digest(input.configuration)) refuse("STALE", "Pending proposal changed before holding its predecessor.");
+        if (status.effects.some(e => e.scopeId === scope.id && ["reserved", "dispatching", "accepted", "uncertain"].includes(e.state))) refuse("HELD", "Prior effects require disposition before holding the predecessor.");
+      }
       // Uncertain and dispatched effects stay with their original epoch and reservations; nothing is cancelled as proof.
       const mutations: SupervisionMutation[] = [{ kind: "scope", value: { ...scope, state: "transferring", version: scope.version + 1 } },
         { kind: "binding", value: { ...binding, state: "suspect" } }];

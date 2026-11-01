@@ -1,6 +1,16 @@
 /** Pure projection over immutable command receipts in the existing owned journal. */
 import type { SupervisionStatus } from "../shared/supervision";
 import { digest } from "./submissions";
+import { refuse } from "./supervision-effects";
+import type { SupervisorConfiguration } from "../shared/supervisor-profile";
+/** The reviewed subject is pinned through reservation and each not-yet-admitted opening effect. */
+export function checkSupervisorTarget(status: SupervisionStatus, config: SupervisorConfiguration) {
+  const scope = status.scopes.find(s => s.id === config.scopeId), plan = status.plans.find(p => p.scopeId === config.scopeId)?.plan;
+  const t = config.target;
+  if (t.homeId !== status.homeId || t.hostId !== "local" || t.scopeId !== scope?.id || t.kind !== scope.kind ||
+    t.planId !== (plan?.definition.id ?? null) || t.planHash !== (plan?.hash ?? null))
+    refuse("STALE", "The reviewed Supervisor target changed; retain this request and review its pending proposal.");
+}
 export function supervisorControl(status: SupervisionStatus, scopeId: string) {
   return status.commands.flatMap(c => c.result.supervisorControl?.scopeId === scopeId ? [c.result.supervisorControl] : []).at(-1);
 }
@@ -17,15 +27,19 @@ export function supervisorView(status: SupervisionStatus, scopeId: string) {
   const configurations = supervisorConfigurations(status, scopeId), pending = control?.action === "stage" ? control.configuration : undefined;
   const effects = status.effects.filter(e => e.scopeId === scopeId);
   const replacement = status.commands.flatMap(c => c.result.supervisorReplacement?.scopeId === scopeId ? [c.result.supervisorReplacement] : []).at(-1);
+  const withdrawn = replacement && status.commands.some(c => c.result.supervisorControl?.action === "withdraw" && c.result.supervisorControl.predecessor === replacement.expectedControlId);
   const reserved = replacement && effects.filter(e => e.requestId === replacement.requestId);
-  const replacementResume = replacement && binding && binding.epoch <= replacement.expectedEpoch + 1 &&
+  const replacementResume = replacement && !withdrawn && binding && binding.epoch <= replacement.expectedEpoch + 1 &&
     (!reserved?.length || reserved.some(e => e.operation === "agent.send" && e.state === "reserved")) ? replacement : null;
   const opening = effects.find(e => e.attemptId === null && e.epoch === binding?.epoch && e.operation === "agent.send");
   const lifecycle = binding?.state === "active" ? effects.some(e => ["uncertain", "accepted"].includes(e.state)) ? "uncertain"
     : opening?.state === "reserved" ? "waiting" : opening?.state === "failed" ? "unavailable" : "active" : binding?.state ?? "unavailable";
   return { scopeId, binding: binding ?? null, bindingDigest: binding ? digest(binding) : null, controlId: control?.id ?? null,
     state: pending ? "change-pending" : control?.action === "pause" ? "paused" : lifecycle,
-    replacementResume, configurations, pending: pending ?? null,
+    replacementResume, configurations, pendingDigest: pending ? digest(pending) : null,
+    reservedOwnerInputs: effects.filter(e => e.epoch === binding?.epoch && e.attemptId === null && e.operation === "agent.send" && e.state === "reserved")
+      .map(e => ({ id: e.id, version: e.version, payloadDigest: e.payloadDigest! })),
+    pending: pending ?? null,
     sessions: effects.filter(e => e.attemptId === null && e.operation === "agent.create").length,
     turns: effects.filter(e => e.attemptId === null && e.operation === "agent.send").length,
     obligations: { uncertain: effects.filter(e => ["dispatching", "accepted", "uncertain"].includes(e.state)).map(e => e.id),

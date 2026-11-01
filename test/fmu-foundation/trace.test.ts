@@ -26,7 +26,7 @@ it("A10: identical necessary-work schedule adds zero paid status turns over the 
   const baseline = await trace(false), proposed = await trace(true);
   expect(proposed).toEqual(baseline); expect(proposed).toMatchObject({ sessions: 1, turns: 2, uniqueEffects: 4, paidStatusTurns: 0 });
   if (process.env.FIRSTMATE_PILOT_EVIDENCE === "1") {
-    const out = resolve(".local/fmu-foundation"); await mkdir(out, { recursive: true });
+    const out = resolve(process.env.FMU_TRACE_DIR ?? ".local/fmu-foundation"); await mkdir(out, { recursive: true });
     await writeFile(resolve(out, "same-input-trace.json"), JSON.stringify({ source: "synthetic existing direct runtime vs read-only controls", baseline, proposed,
       sourceHead: process.env.FIRSTMATE_PILOT_SOURCE_HEAD ?? null, measuredLiveSavings: null, boundary: "No watch suppression/delivery claim. No live host, provider, billing or captain-wait sample." }, null, 2));
   }

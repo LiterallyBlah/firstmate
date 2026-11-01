@@ -396,7 +396,7 @@ export class ProjectRuntime {
         } });
       const reviewed = status.commands.find(c => c.result.projectSetup?.review.projectId === project.id)?.result.projectSetup?.review;
       const configuration = reviewed?.catalogDigest ? { id: input.requestId, scopeId: project.scopeId, generation: 1,
-        requested: reviewed.profile, resolved: reviewed.profile, catalogDigest: reviewed.catalogDigest, policyDigest: reviewed.policyHash,
+        ...(reviewed.workspace ? { workspace: reviewed.workspace } : {}), requested: reviewed.profile, resolved: reviewed.profile, catalogDigest: reviewed.catalogDigest, policyDigest: reviewed.policyHash,
         target: { homeId: input.homeId, hostId: "local" as const, scopeId: project.scopeId, kind: "project" as const, planId: null, planHash: null },
         limits: reviewed.limits, effectiveEpoch: 1, provenance: "client UI (unverified)" as const } : undefined;
       const sessions = new SupervisorSessions(store, gateway, receiver, { enabled: true, ...(configuration ? { configuration } : {}),

@@ -65,7 +65,16 @@ export function SupervisorDetailView({ theme, compact, data, disabled = false, o
     {current ? <Text style={text}>Current generation {current.generation}: {current.resolved.provider} · {current.resolved.modeId} · reasoning {current.resolved.thinkingOptionId ?? "not offered"}</Text> : <Text style={note}>Historical profile stays attributed to its original reservation. A new review captures a separate generation.</Text>}
     {v.pending ? <><Text style={text}>Proposed generation {v.pending.generation}: {v.pending.resolved.provider} · {v.pending.resolved.modeId} · reasoning {v.pending.resolved.thinkingOptionId ?? "not offered"}</Text>
       <Text style={note}>Current work keeps its original profile. Stop the exact native session, then review one additional counted session and opening. Idle, offline and timeouts are insufficient.</Text>
-      <Action theme={theme} label="Review replacement" disabled={unavailable || !!v.obligations.uncertain.length || !!v.replacementResume} onPress={() => showReplacement(true)} />
+      <Text style={note}>Withdraw this exact proposal to review it again after work, catalog or policy changes. Its saved generation and other holds remain in history.</Text>
+      <Action theme={theme} label="Withdraw pending proposal" disabled={disabled || !v.pendingDigest || !(["active", "suspect"].includes(v.binding?.state ?? "")) || !!v.replacementResume && v.binding?.state !== "suspect"}
+        onPress={() => onAction({ ...base, op: "withdraw-proposal", expectedControlId: v.controlId!, configurationDigest: v.pendingDigest! })} />
+      {v.reservedOwnerInputs.map(input => <View key={input.id} style={{ gap: 6 }}>
+        <Text selectable style={note}>Undelivered owner input {input.id}. Saved payload {input.payloadDigest}. Withdrawal records non-delivery and keeps its original input and spent turn; it does not send it to the replacement.</Text>
+        <Text selectable style={text}>{input.preview ?? "Input preview unavailable; its exact saved payload remains retained."}{input.truncated ? " (Preview shortened; full payload retained.)" : ""}</Text>
+        <Action theme={theme} label={`Withdraw undelivered input ${input.id}`} disabled={disabled || v.binding?.state !== "active"}
+          onPress={() => onAction({ ...base, op: "withdraw-input", expectedControlId: v.controlId!, effectId: input.id, effectVersion: input.version })} />
+      </View>)}
+      <Action theme={theme} label="Review replacement" disabled={unavailable || !!v.obligations.uncertain.length || !!v.obligations.reserved.length || !!v.replacementResume} onPress={() => showReplacement(true)} />
       {replacement ? <><TextInput accessibilityLabel="Replacement checkpoint and opening" multiline value={opening} onChangeText={setOpening} editable={!disabled}
         style={{ ...text, minHeight: 100, padding: 10, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 8 }} />
         <Text style={text}>Only the captain should confirm. App provenance is unverified. History, workspace, transcript, task identities and all cumulative spending stay retained.</Text>

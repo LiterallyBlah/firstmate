@@ -20,7 +20,7 @@ beforeEach(() => {
     target: { homeId: "home", hostId: "local" as const, scopeId: id, kind: "plan" as const, planId: "trial", planHash: hash }, limits: { supervisorSessions: 3, supervisorTurns: 10 }, effectiveEpoch: 1, provenance: "client UI (unverified)" as const };
   data = { homeId: "home", scopeId: id, title: "Trial plan", planHash: hash, policyDigest: hash, limits: configuration.limits, problems: [],
     catalog: [{ provider: profile.provider, label: "Sol", modes: [{ id: profile.modeId, label: "Full access" }], thinking: [{ id: "high", label: "High" }] }],
-    view: { scopeId: id, binding: { scopeId: id, epoch: 1, hostId: "local", agentId: "native-id", workspaceId: "workspace", profileDigest: hash, checkpointHash: hash, acknowledgedSeq: 0, heartbeatDue: null, state: "active", configurationId: id },
+    view: { pendingDigest: null, reservedOwnerInputs: [], scopeId: id, binding: { scopeId: id, epoch: 1, hostId: "local", agentId: "native-id", workspaceId: "workspace", profileDigest: hash, checkpointHash: hash, acknowledgedSeq: 0, heartbeatDue: null, state: "active", configurationId: id },
       replacementResume: null, bindingDigest: hash, controlId: null, state: "active", configurations: [configuration], pending: null, sessions: 1, turns: 1,
       obligations: { uncertain: [], reserved: [], workers: [], sources: [], decisions: [], unlanded: [] }, retirement: "Retain all history and obligations." } };
   mocks.read.mockImplementation(async () => structuredClone(data));
@@ -55,4 +55,17 @@ it("a lost action reply retains the exact request, target and explicit reasoning
   const original = mocks.write.mock.calls[0]![0]; expect(original).toMatchObject({ op: "stage", homeId: "home", scopeId: id, planHash: hash, profile });
   await act(async () => button("Retry exact saved request").props.onPress());
   expect(mocks.write.mock.calls[1]![0]).toEqual(original); expect(mocks.write).toHaveBeenCalledTimes(2);
+});
+
+it("pending withdrawal and undelivered-input disposition remain usable after subject/catalog drift and preserve exact displayed identities", async () => {
+  const onAction = vi.fn(), pending = { ...data.view.configurations[0]!, effectiveEpoch: 2, generation: 2 };
+  data = { ...data, planHash: "b".repeat(64), catalog: [], problems: ["Reviewed catalog changed"], view: { ...data.view, state: "change-pending", controlId: id, pendingDigest: hash,
+    pending, reservedOwnerInputs: [{ id, version: 3, payloadDigest: hash, preview: "Original queued input" }], obligations: { ...data.view.obligations, reserved: [id] } } };
+  await mount(createElement(SupervisorDetailView, { theme, compact: true, data, onAction }));
+  expect(button("Review replacement").props.disabled).toBe(true); expect(button("Withdraw pending proposal").props.disabled).toBe(false);
+  await act(async () => button("Withdraw pending proposal").props.onPress());
+  expect(onAction.mock.calls[0]![0]).toMatchObject({ op: "withdraw-proposal", planHash: data.planHash, expectedControlId: id, configurationDigest: hash });
+  await act(async () => button(`Withdraw undelivered input ${id}`).props.onPress());
+  expect(onAction.mock.calls[1]![0]).toMatchObject({ op: "withdraw-input", effectId: id, effectVersion: 3, expectedControlId: id });
+  expect(data.view.configurations).toHaveLength(1);
 });

@@ -34,7 +34,7 @@ beforeEach(async () => {
   for (const name of names) { await mkdir(join(home, name)); await writeFile(join(home, "data", `${name}.md`), `The captain permits the reviewed persistent mate for ${name}.\n`); }
   await writeFile(join(home, "data/projects.md"), names.map(n => `- ${n} - ${join(home, n)}\n`).join(""));
   await updateFirstmateConfig({ home, mateAgentId: "", migration: null, mateLaunch: null }); await updateFirstmateConfig({ mateAgentId: "general" });
-  receiver = new SyntheticReceiver(); runtime = projectRuntimeFixture(data); make(); homeId = (await projects.read()).homeId;
+  receiver = new SyntheticReceiver(); receiver.supervisorRoot = data; runtime = projectRuntimeFixture(data); make(); homeId = (await projects.read()).homeId;
 });
 afterEach(async () => { await runtime.stop(); });
 it("preview and status are inert; six selected remain six when only three fit", async () => {

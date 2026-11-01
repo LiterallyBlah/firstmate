@@ -39,7 +39,7 @@ beforeEach(async () => {
   ledger = new NeedsYouService({ root: join(process.env.PASEO_HOME!, "ledger"), home: readConfiguredDecisionHome,
     catalog: async () => null, enabled: () => true, now: () => clock });
   await ledger.read(); clock += 2000; await ledger.read();
-  receiver = new SyntheticReceiver();
+  receiver = new SyntheticReceiver(); receiver.supervisorRoot = pluginDir();
   activation = make(true);
   prepare = { op: "prepare", homeId: workflowHomeIdentity(home), plan: "scheduler", scopeId: randomUUID(), projectId: randomUUID(),
     migrationId: randomUUID(), prerequisites: { inventory: "drained inventory", policy: "reviewed policy", rollbackBuild: "compatible build" } };
@@ -246,6 +246,7 @@ it("foundation app controls read inertly, pin generations and retain an exact pe
   const before = await new SupervisionStore(pluginDir(), home).read(), calls = receiver.calls.length;
   const review = await activation.readControls({ homeId: input.homeId, scopeId: input.scopeId }, api);
   expect(review.view.configurations).toHaveLength(1);
+  expect(review.view.configurations[0]?.workspace?.directory).toBe(receiver.agents.get(before.bindings[0]!.agentId)?.cwd);
   expect(review.view.configurations[0]).toMatchObject({ resolved: input.profile, effectiveEpoch: 1, provenance: "client UI (unverified)" });
   expect((await new SupervisionStore(pluginDir(), home).read()).sequence).toBe(before.sequence);
   const stage = { op: "stage" as const, requestId: randomUUID(), homeId: input.homeId, scopeId: input.scopeId,
