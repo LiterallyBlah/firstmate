@@ -34,6 +34,13 @@ it.each(["freshness", "coverage", "unknown"])("F1: overlapping %s recovery has o
   expect(new Set(s.inbox.assignments.map(a => a.scopeId))).toEqual(new Set([f.target.scopeId]));
 });
 
+it("F1: renewing a still-healthy freshness window is visible metadata without a model wake", async () => {
+  const f = await fixture();
+  for (let n = 0; n < 3; n++) await f.sources.observeWatch({ ...f.fact, observedAt: new Date(now.getTime() + n).toISOString(), validUntil: new Date(now.getTime() + 60_000 + n).toISOString() });
+  const s = await f.store.read(); expect(s.inbox.events).toHaveLength(3);
+  expect(s.inbox.assignments.map(a => a.state)).toEqual(["observed", "observed", "observed"]);
+});
+
 it("F2: 100 differing overlap clock passes spend nothing; a real later A-B-A still acts", async () => {
   const f = await fixture(); await f.sources.observeWatch(f.fact); await f.sources.observeWatch({ ...f.fact, watch: "two", state: "failed" });
   const before = await f.store.read();

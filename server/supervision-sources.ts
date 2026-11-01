@@ -117,9 +117,12 @@ export class SupervisionSources {
         if (critical) return true;
         const prior = s.inbox.events.filter(e => e.envelope.causationId === `s08:${digest(stream)}`).at(-1);
         if (!prior) return false;
-        const { watch: _w, definitionDigest: _def, observedAt: _at, format: _f, ...meaning } =
+        const { watch: _w, definitionDigest: _def, observedAt: _at, format: _f, validUntil: _until, deadline: _deadline, ...meaning } =
           JSON.parse(await readFile(join(this.store.root, "blobs", prior.envelope.payloadRef.slice(5)), "utf8"));
-        return digest(meaning) !== digest(semantic);
+        // Renewing a still-fresh healthy lease is metadata; crossing expiry/due or recovering
+        // coverage/effect/state remains actionable. Do not turn every healthy poll into a wake.
+        const { validUntil: _currentUntil, deadline: _currentDeadline, ...actionable } = semantic;
+        return digest(meaning) !== digest(actionable);
       },
       validate: s => {
         if (retainedEventId && s.inbox.events.filter(e => e.envelope.subject.watch === fact.watch).at(-1)?.id !== retainedEventId)
