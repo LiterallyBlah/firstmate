@@ -394,7 +394,12 @@ export class ProjectRuntime {
           const live = (await registry(home)).rows.find(r => r.projectId === project.id);
           if (!live || live.reason || live.directory !== project.owner!.directory) refuse("HELD", "Registry ownership changed before dispatch.");
         } });
-      const sessions = new SupervisorSessions(store, gateway, receiver, { enabled: true,
+      const reviewed = status.commands.find(c => c.result.projectSetup?.review.projectId === project.id)?.result.projectSetup?.review;
+      const configuration = reviewed?.catalogDigest ? { id: input.requestId, scopeId: project.scopeId, generation: 1,
+        ...(reviewed.workspace ? { workspace: reviewed.workspace } : {}), requested: reviewed.profile, resolved: reviewed.profile, catalogDigest: reviewed.catalogDigest, policyDigest: reviewed.policyHash,
+        target: { homeId: input.homeId, hostId: "local" as const, scopeId: project.scopeId, kind: "project" as const, planId: null, planHash: null },
+        limits: reviewed.limits, effectiveEpoch: 1, provenance: "client UI (unverified)" as const } : undefined;
+      const sessions = new SupervisorSessions(store, gateway, receiver, { enabled: true, ...(configuration ? { configuration } : {}),
         featurePolicy: async () => this.runtime.features?.reservation(home, "projectMates"),
         reserveBoundary: run => this.runtime.features ? this.runtime.features.boundary(home, run) : run(), limits: project.owner.limits,
         globalMateId: async () => (await this.checkedConfig(input.homeId, config.mateAgentId)).config.mateAgentId || null,

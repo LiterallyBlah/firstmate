@@ -15,6 +15,8 @@ export const fullCapabilities: ReceiverCapabilities = { version: 1, receiver: "s
   sendReceiptLookup: false, conditionalArchive: false };
 
 export class SyntheticReceiver implements GatewayReceiver {
+  /** Synthetic app fixtures opt into the same reserved directory layout as SupervisionUiReceiver. */
+  supervisorRoot?: string;
   calls: { op: Operation; target: string }[] = [];
   workspaces = new Map<string, WorkspaceReceipt>();
   agents = new Map<string, AgentObservation>();
@@ -51,7 +53,7 @@ export class SyntheticReceiver implements GatewayReceiver {
     return this.perform("openWorkspace", intent.key, () => {
       const existing = this.workspaces.get(intent.key);
       if (existing) return existing;
-      const receipt = { workspaceId: `ws-${this.workspaces.size + 1}`, directory: join(this.root, intent.purpose, intent.key) };
+      const receipt = { workspaceId: `ws-${this.workspaces.size + 1}`, directory: intent.purpose === "supervisor" && this.supervisorRoot ? join(this.supervisorRoot, "supervisor-workspaces", intent.key) : join(this.root, intent.purpose, intent.key) };
       this.workspaces.set(intent.key, receipt); return receipt;
     });
   }

@@ -1,0 +1,115 @@
+{
+  "format": "firstmate.fmu-acceptance/1",
+  "sourceCommit": "37113ec6b694a08a47f96d62fee5ff55c2889004",
+  "sourceTree": "5778945d4f6e80a981ac48e97d8f6a6e0b2d75a1",
+  "acceptedPlanSha256": "de8423e7e603d4957f467e39740301df08b0270142244c20a35b082897cedd82",
+  "baseline": "Existing direct scoped runtime; project admission already independent of model provisioning. No measured live savings.",
+  "contracts": [
+    {
+      "id": "A1",
+      "contract": "Browsing/status/filtering creates zero sessions/writes. Concurrent assignment has one winner. Unknown host, alias collision, second executing target and stale home/subject refuse without effect",
+      "stage1": "foundation subset"
+    },
+    {
+      "id": "A2",
+      "contract": "Explicit high survives save/reload and reservation. Catalog/provider/mode/thinking mismatch refuses with no fallback. Drift and mid-turn change preserve old attribution; queued change creates no effect until checked replacement",
+      "stage1": "foundation subset"
+    },
+    {
+      "id": "A3",
+      "contract": "Wrong old identity, idle-only proof, unavailable host, insufficient cumulative cap and uncertain prior send refuse. Exact stopped predecessor plus retained checkpoint yields one next epoch/opening; crash replay never creates another",
+      "stage1": "foundation subset"
+    },
+    {
+      "id": "A4",
+      "contract": "Missing read-only capability yields zero inspector creation. Qualified synthetic adapter has independent cwd, no parent, restricted tools and immutable own profile; config change cannot make an inspector executable",
+      "stage1": "foundation subset"
+    },
+    {
+      "id": "A5",
+      "contract": "Profile, source or policy changes at final guard hold. Plan approval and watch assignment never allow merge/deploy/discard, remote workers or another plan's budget",
+      "stage1": "foundation subset"
+    },
+    {
+      "id": "A6",
+      "contract": "100 unchanged typed waits/healthy observations produce zero owner/General/inspector model sends. A\u2192B\u2192A preserves three transitions; due deadline, changed policy, exact answer or new captain instruction is not swallowed",
+      "stage1": "deferred to stage 2; integrated qualification stage 3"
+    },
+    {
+      "id": "A7",
+      "contract": "Expired evidence, incomplete coverage, failed dependency, unhandled result, malformed wait and unknown effect cannot disappear behind identical text/backlog hash; no repeated action or duplicate captain question",
+      "stage1": "deferred to stage 2; integrated qualification stage 3"
+    },
+    {
+      "id": "A8",
+      "contract": "Restart at each watch-route prepare/drain/commit/send boundary preserves one authoritative route, exact pending entries and uncertainty. Overlapping watches cannot produce two execution owners; source rename/digest change requires review",
+      "stage1": "deferred to stage 2; integrated qualification stage 3"
+    },
+    {
+      "id": "A9",
+      "contract": "Two production-composed local chains advance while General's conversation lifecycle lock is held; stall one owner receiver and the other advances. Captain queue stays one-per-completed-turn with no background interruption",
+      "stage1": "foundation subset"
+    },
+    {
+      "id": "A10",
+      "contract": "Replay identical input schedule against existing runtime and proposed path; count unique operation effects, openings, owner/inspector/worker turns and unknowns. New controls add no paid status turns; unknown token/billing values stay unknown",
+      "stage1": "foundation subset"
+    },
+    {
+      "id": "A11",
+      "contract": "Both entry points use same captured target and review. Wide 1440/compact 390, both themes, no overflow; automatic screenshot comparison with stage 1's frozen native fixture. Stale/uncertain/disabled/config-pending states and keyboard navigation included",
+      "stage1": "foundation subset"
+    },
+    {
+      "id": "A12",
+      "contract": "Old journal/config/inspection history replay unchanged; removed spending remains counted. Disable/pause does not erase effects or reactivate old route. Corrupt/missing records hold only appropriate scope without lying about totals",
+      "stage1": "foundation subset"
+    }
+  ],
+  "sourceFiles": {
+    "server/plan-runtime.test.ts": "70231a042955e81bd298381911a8bd4826c1e5b9eb17c1662b178793c6a8c95d",
+    "server/project-setup.test.ts": "41714f203eedf06c65d13e51314655d5d9877372de0aacdb3873b8d62ca8b46d",
+    "server/supervisor-sessions.test.ts": "1293b30c5043df0aff9d1d2d067e30787b99f0f4d5f93e773c76590038a6506f",
+    "server/supervision-effects.test.ts": "0c80a7e749883585a799d13b81ce3ddac49ae8a1d90ad8abed79bc00ded53b52",
+    "server/supervision-activation.test.ts": "a43967ae3c798194bb2561242da1b5112a7e7beddc199c2371884ecd41261cf3",
+    "server/supervision-activation-recovery.test.ts": "9d10aa2ab8888aa99d64de7d4b0bff10432bb0fcbc523231ffa938b1f936eaf1",
+    "server/watch-inspections.test.ts": "f1fc277dc1b2b3056e6fd1d4d2d9878dd20f6b0b946bac35708a7e2578348967",
+    "server/chat-queue.test.ts": "f7811e24f2b6baa1c89f34b65dc37403a2b06b5418908774f7a8aeefbcbc453a",
+    "server/chat-queue-rpc.test.ts": "ed13b775d4181e44ff523625dafd1bfc5ecd0bf96f43113d91fbe0a0df6be206",
+    "server/supervision-capacity.test.ts": "85f13c47011f51421a58e1f865344c59c70fb84302783227d20ba0b145908271",
+    "server/supervision-migrate.test.ts": "0c610bf429068016b71c8c39509387d1054c2732da8914c26d00949885850c0c",
+    "test/journal-isolation.test.ts": "30515463636b41c3801a123703af7a369cc336c53a2c81ff9f6fc2e00ed029a4",
+    "docs/scoped-supervision/build-b-ui/render.mjs": "271731cd5a96c73024f3b71908116713e7e1be22935e6fe1531029a0f5ec6473",
+    "docs/project-mate-context/render.mjs": "55c886dda5b74a42b7d422c3f7589669c6b0ebad46d4a7d889ebb1d5173582b0",
+    "docs/shell-phase1/check-bundle.mjs": "487a59586b0e3cbea05742795139ec3376aa6665d047a282f1259d2d6fd5a06e",
+    ".github/workflows/check.yml": "4b9447501faabbe9410023a325aba7ac5c972d21815d213091dad1986a110f8d"
+  },
+  "commands": {
+    "typecheck": "node node_modules/typescript/bin/tsc --noEmit",
+    "baseline": "node node_modules/vitest/vitest.mjs run server/plan-runtime.test.ts server/project-setup.test.ts server/supervisor-sessions.test.ts server/supervision-effects.test.ts server/supervision-activation.test.ts server/supervision-activation-recovery.test.ts server/watch-inspections.test.ts server/chat-queue.test.ts server/chat-queue-rpc.test.ts server/supervision-capacity.test.ts server/supervision-migrate.test.ts test/journal-isolation.test.ts --maxWorkers=2 --testTimeout=60000",
+    "native": [
+      "node docs/scoped-supervision/build-b-ui/render.mjs",
+      "node docs/project-mate-context/render.mjs",
+      "node docs/shell-phase1/check-bundle.mjs"
+    ],
+    "full": "npm test -- --maxWorkers=2 --testTimeout=60000; all render commands in .github/workflows/check.yml"
+  },
+  "ui": {
+    "themes": [
+      "light",
+      "dark"
+    ],
+    "widths": [
+      1440,
+      390
+    ],
+    "output": ".local/fmu-foundation"
+  },
+  "deferred": [
+    "Both watch assignment entry points, exact watch destination generations, typed delivery and handoff (stage 2)",
+    "Pre-model quietness, A-B-A, unknown wait regressions (stage 2)",
+    "Whole-release cost/latency, migration compatibility and native-to-effect qualification (stage 3)"
+  ],
+  "billing": null,
+  "liveLatency": null
+}

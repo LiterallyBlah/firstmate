@@ -1,0 +1,38 @@
+{
+  "sourceHead": "37113ec6b694a08a47f96d62fee5ff55c2889004",
+  "typecheckExit": 0,
+  "baselineTests": {
+    "passed": 217,
+    "failed": 0,
+    "suites": 16
+  },
+  "native": {
+    "build-b-uiExit": 0,
+    "project-mate-contextExit": 0,
+    "widths": [
+      1440,
+      390
+    ],
+    "themes": [
+      "light",
+      "dark"
+    ]
+  },
+  "intendedRed": {
+    "exit": 1,
+    "reason": "New profile and lifecycle contract modules absent on pinned source; 4 tests fail before product changes."
+  },
+  "environment": {
+    "node": "23.7.0",
+    "npm": "11.5.2",
+    "npmLauncher": "Broken PowerShell shim; direct npm-cli.js succeeded",
+    "finalRequiredNode": "24.22.1 available; final gates will use Node 24"
+  },
+  "evidenceHashes": {
+    ".local\\fmu-foundation\\baseline-tests.json": "d96bfced8993da5fbbda56980daa8ab7a27abfb826636f939f9b9c89fe9f6969",
+    ".local\\fmu-foundation\\baseline-tests.log": "c9501ce39ef72c07b9cb4bdcd0f6e0cdab3d1b2af49b820806e36e590248da7b",
+    ".local\\fmu-foundation\\intended-red.log": "824e1cb463d56be892729c9e10b4f1177bb8ed53f007e5c98b85723ade6d0fc0",
+    ".local\\build-b-ui\\results.json": "633dec3ea3a7df121c09989afd82492898d9172f0dde09c7f2d7c1695080b163",
+    ".local\\project-mate-context\\results.json": "e33911358ecf2b29fd04260ec3c9721ec258938c336f83b8d196fa42a0ba6691"
+  }
+}

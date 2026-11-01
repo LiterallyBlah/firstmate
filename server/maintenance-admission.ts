@@ -21,12 +21,15 @@ export function maintenanceAdmission(status: SupervisionStatus, scopeId: string)
     c.inputHash === digest(c.result.maintenanceAdmission) && digest(c.actor) === digest(UI))?.result.maintenanceAdmission ?? null;
 }
 export async function admitMaintenanceOwner(runtime: SupervisionRuntime, raw: AdmitMaintenance, receiver: GatewayReceiver,
-  checked: (homeId: string) => Promise<{ home: string; config: { mateAgentId: string } }>, headroom: { slots: number; reserved: number }) {
+  checked: (homeId: string) => Promise<{ home: string; config: { mateAgentId: string } }>, headroom: { slots: number; reserved: number },
+  reviewProfile?: (input: z.infer<typeof MaintenanceAdmissionInputSchema>) => Promise<{ catalogDigest: string; policyDigest: string; workspace?: { intentKey: string; directory: string } }>) {
   const request = AdmitMaintenanceSchema.parse(raw), { home, config } = await checked(request.homeId);
   if (!config.mateAgentId) refuse("UNKNOWN_OWNER", "A configured General is required; maintenance never adopts that identity.");
   const initial = await runtime.read(home);
   const retained = initial.commands.find(c => c.id === stableId("maintenance-admission-input", request.requestId))?.result.maintenanceAdmission;
   const input: z.infer<typeof MaintenanceAdmissionInputSchema> = "resume" in request ? retained ?? refuse("UNKNOWN_OWNER", "No recorded maintenance admission has this request ID.") : request;
+  const reviewed = initial.commands.find(c => c.result.maintenanceProfileReview?.requestId === input.requestId)?.result.maintenanceProfileReview;
+  const profileReview = reviewed ?? (!retained && reviewProfile ? { requestId: input.requestId, ...await reviewProfile(input) } : undefined);
   if (input.homeId !== request.homeId) refuse("STALE", "Recorded maintenance home differs from this request.");
   return serialized(`${runtime.root}:maintenance-admission:${input.homeId}:${input.scopeId}`, () => runtime.mutate(home, async store => {
     if ((await store.read()).problems.includes("Final transaction awaits publication.")) await store.recoverPublication();
@@ -45,7 +48,7 @@ export async function admitMaintenanceOwner(runtime: SupervisionRuntime, raw: Ad
         refuse("CONFLICT", "Maintenance scope already exists; resume its original recorded request. No identity is replaced.");
       const mutations = [{ kind: "scope" as const, value: { id: input.scopeId, homeId: store.homeId, kind: "maintenance" as const,
         mode: "scoped" as const, state: "dormant" as const, version: 1, projectIds: [], sponsorId: null } }];
-      return { mutations, expectedVersions: expectedFor(status, mutations), result: { ...result, maintenanceAdmission: input } };
+      return { mutations, expectedVersions: expectedFor(status, mutations), result: { ...result, maintenanceAdmission: input, ...(profileReview ? { maintenanceProfileReview: profileReview } : {}) } };
     });
     let status = await store.read(); await fresh(status);
     const binding = status.bindings.find(b => b.scopeId === input.scopeId);
@@ -58,7 +61,11 @@ export async function admitMaintenanceOwner(runtime: SupervisionRuntime, raw: Ad
         if (effect.requestId !== input.requestId || effect.scopeId !== input.scopeId || !effects || ![effects.workspace?.id, effects.create?.id, effects.send?.id].includes(effect.id))
           refuse("HELD", "Only the original maintenance admission effects may run here.");
       } });
-    const sessions = new SupervisorSessions(store, gateway, receiver, { enabled: true,
+    const configuration = profileReview ? { id: input.requestId, scopeId: input.scopeId, generation: 1, ...(profileReview.workspace ? { workspace: profileReview.workspace } : {}), requested: input.profile, resolved: input.profile,
+      catalogDigest: profileReview.catalogDigest, policyDigest: profileReview.policyDigest,
+      target: { homeId: input.homeId, hostId: "local" as const, scopeId: input.scopeId, kind: "maintenance" as const, planId: null, planHash: null },
+      limits: input.limits, effectiveEpoch: 1, provenance: "client UI (unverified)" as const } : undefined;
+    const sessions = new SupervisorSessions(store, gateway, receiver, { enabled: true, ...(configuration ? { configuration } : {}),
         featurePolicy: async () => runtime.features?.reservation(home, "maintenance"),
         reserveBoundary: run => runtime.features ? runtime.features.boundary(home, run) : run(), limits: input.limits,
       globalMateId: async () => (await checked(input.homeId)).config.mateAgentId, reserveCheck: fresh });

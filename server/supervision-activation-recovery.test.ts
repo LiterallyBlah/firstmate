@@ -50,6 +50,9 @@ function nativeDaemon() {
   const sendAgentMessage = vi.fn(async () => {});
   // Exercise the installed SDK's provider/model parsing and workspace/agent handles too.
   const api = createPaseoApi({ openProject, createAgent, sendAgentMessage,
+    listAvailableProviders: async () => ({ providers: [{ provider: "codex", available: true }] }),
+    listProviderModels: async () => ({ models: [{ id: "gpt-6.1-sol", label: "Sol", thinkingOptions: [{ id: "high", label: "High" }] }] }),
+    listProviderModes: async () => ({ modes: [{ id: "full-access", label: "Full access" }] }),
     fetchWorkspaces: async () => ({ entries: workspaces, pageInfo: { nextCursor: null } }),
     fetchAgent: async ({ agentId }: { agentId: string }) => ({ agent: visible ? agents.get(agentId) ?? null : null }),
   } as unknown as Daemon);

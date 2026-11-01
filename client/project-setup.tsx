@@ -1,3 +1,4 @@
+import { SupervisorProfileFields } from "./supervisor-profile";
 /** Shared destination for Settings and Home. Mount only on an explicit setup action. */
 import type { PluginTheme } from "@getpaseo/plugin";
 import type { PluginSurfaceProps } from "@getpaseo/plugin/client";
@@ -95,7 +96,6 @@ function ProjectSetupSession({ theme, compact, home, hostId, onClose, navigation
       await refresh(); void cache.invalidateQueries({ queryKey: ["firstmate", "project-ownership"] });
     });
   }
-  const model = data?.models.find(m => m.provider === choices?.profile?.provider);
   const field = (label: string, value: string, change: (v: string) => void) => <View style={{ gap: 5 }}><Text style={text}>{label}</Text><TextInput accessibilityLabel={label} value={value}
     editable={!disabled && !request} keyboardType="number-pad" onChangeText={change} style={{ ...text, minHeight: 44, padding: 10, borderWidth: 1, borderRadius: 8, borderColor: theme.colors.border, backgroundColor: theme.colors.surface1 }} /></View>;
   const eligible = data?.snapshot.projects.filter(p => !!p.projectId && !!p.directory && p.hostId === "local" && ["admitted", "unadmitted"].includes(p.state) &&
@@ -173,12 +173,8 @@ function ProjectSetupSession({ theme, compact, home, hostId, onClose, navigation
         {choices ? <View style={{ gap: 14 }}>
           <SetupAction theme={theme} label="Back to projects" disabled={disabled} onPress={() => { choose(null); setReview(null); }} />
           {data.reviewed.some(r => r.name === choices.name) ? <Text style={text}>Using this project's reviewed model, permissions and limits. Unavailable choices remain blocked; another model is never substituted.</Text> : <Text style={note}>Choose the model, permissions and limits you want this mate to use. No spending limits are chosen for you.</Text>}
-          <OptionPicker roomy theme={theme} compact={compact} label="Model" title="Choose a model" value={choices.profile?.provider ?? ""} options={data.models.map(m => ({ label: m.label, value: m.provider }))}
-            disabled={disabled || data.reviewed.some(r => r.name === choices.name)} onSelect={provider => choose({ ...choices, profile: { provider, modeId: "" } })} />
-          <OptionPicker roomy theme={theme} compact={compact} label="Permissions" title="Choose permissions" value={choices.profile?.modeId ?? ""} options={(model?.modes ?? []).map(m => ({ label: `${m.label} (${m.id})`, value: m.id }))}
-            disabled={disabled || !model || data.reviewed.some(r => r.name === choices.name)} onSelect={modeId => choose({ ...choices, profile: { ...choices.profile!, modeId } })} />
-          {model?.thinking.length ? <OptionPicker roomy theme={theme} compact={compact} label="Reasoning" title="Choose reasoning" value={choices.profile?.thinkingOptionId ?? ""} options={[{ label: "Provider default", value: "" }, ...model.thinking.map(t => ({ label: t.label, value: t.id }))]}
-            disabled={disabled || data.reviewed.some(r => r.name === choices.name)} onSelect={thinkingOptionId => choose({ ...choices, profile: { ...choices.profile!, ...(thinkingOptionId ? { thinkingOptionId } : { thinkingOptionId: undefined }) } })} /> : null}
+          <SupervisorProfileFields theme={theme} compact={compact} catalog={data.models} profile={choices.profile}
+            disabled={disabled || data.reviewed.some(r => r.name === choices.name)} onChange={profile => choose({ ...choices, profile })} />
           {!data.reviewed.some(r => r.name === choices.name) ? <>
             <Text style={text}>One persistent session. Setup and every later reply count toward the total turn limit.</Text>
             {field("Total conversation turns", choices.limits ? String(choices.limits.supervisorTurns) : "", v => choose({ ...choices, limits: /^\d+$/.test(v) ? { supervisorSessions: 1, supervisorTurns: Number(v) } : null }))}

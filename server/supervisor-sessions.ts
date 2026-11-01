@@ -1,3 +1,5 @@
+import type { SupervisorConfiguration, SupervisorReplacementInput } from "../shared/supervisor-profile";
+import { checkSupervisorTarget, supervisorConfigurations, supervisorAdmissionHold, supervisorControl } from "./supervisor-configuration";
 import type { PlanRuleRef } from "../shared/plan-rules";
 /** S04 plan-supervisor lifecycle: reserved/unprompted -> verified -> active -> send, and manual transfer.
  * Disabled by default; no RPC, timer, lease, executor or automatic takeover. A supervisor is a home
@@ -20,6 +22,8 @@ export interface SupervisorOptions {
   unverifiedUiAttach?: boolean;
   /** Fixture-supplied caps; the durable policy source for them is an integration item. */
   limits: GatewayLimits;
+  /** Captured reviewed catalog metadata for new app setup; never a raw config setter. */
+  configuration?: SupervisorConfiguration;
   ruleRef?: (status: SupervisionStatus, scopeId: string) => PlanRuleRef | undefined;
   limitsFor?: (status: SupervisionStatus, scopeId: string) => GatewayLimits;
   reservationQueue?: <T>(run: () => Promise<T>) => Promise<T>;
@@ -47,7 +51,9 @@ export function activationEffects(status: SupervisionStatus, scopeId: string, ep
   return { workspace: of("workspace.open"), create: of("agent.create"), send: of("agent.send") };
 }
 /** A committed stop or policy hold freezes new supervisor model work for this scope, as for workers. */
-function refuseHeld(status: SupervisionStatus, scopeId: string) {
+function refuseHeld(status: SupervisionStatus, scopeId: string, replacement = false) {
+  const controlHold = supervisorAdmissionHold(status, scopeId);
+  if (controlHold && !replacement) refuse("HELD", controlHold);
   if (status.operationHolds.some(h => h.scopeId === scopeId && h.state === "held" && h.operations.some(o => o === "plan.start" || o === "model.use")))
     refuse("HELD", "Admissions are held for this scope; no supervisor session or turn is reserved.");
 }
@@ -105,13 +111,28 @@ export class SupervisorSessions {
     if (old?.id !== binding.agentId || (!old.archivedAt && old.status !== "closed")) refuse("HELD", "The previous full-access supervisor is not shown stopped under its exact identity; no automatic takeover.");
     return this.reserve(input, actor, "replace", binding);
   }
-  private async reserve(input: { requestId: string; scopeId: string; scopeVersion: number; expectedEpoch?: number; profile: AgentProfile; opening: string; purpose?: "discussion" | "work";
-    planId?: string; planHash?: string; supervisorId?: string },
-    actor: SupervisionActor, mode: "activate" | "attach" | "attach-ui-unverified" | "replace", checked: SupervisionBinding | null) {
+  /** Dedicated app replacement convention; no caller-supplied principal and no hot setting API. */
+  async prepareReplacementFromUnverifiedUi(input: { requestId: string; scopeId: string; scopeVersion: number; expectedEpoch: number;
+    profile: AgentProfile; opening: string; configuration: SupervisorConfiguration; controlId: string; reviewIdentity: string; replacementInput: SupervisorReplacementInput }) {
     this.enabled();
-    const inputHash = digest({ supervisor: mode, input });
+    if (!this.options.unverifiedUiAttach) refuse("UNSUPPORTED", "Unverified app replacement is disabled.");
+    const actor = { kind: "plugin-ui-unverified" as const, id: "unauthenticated-plugin-call", source: "Supervisor controls (unverified)" };
+    const inputHash = digest({ supervisor: "replace-ui-unverified", reviewIdentity: input.reviewIdentity });
+    if (await this.accepted(input.requestId)) return this.replay(input.requestId, inputHash, actor);
+    const binding = (await this.store.read()).bindings.find(b => b.scopeId === input.scopeId);
+    if (!binding || binding.epoch !== input.expectedEpoch || !["suspect", "retired"].includes(binding.state)) refuse("STALE", "Replacement requires the held exact predecessor.");
+    const old = await this.receiver.findAgent(binding.agentId);
+    if (old?.id !== binding.agentId || (!old.archivedAt && old.status !== "closed")) refuse("HELD", "The exact predecessor is not shown stopped.");
+    return this.reserve(input, actor, "replace-ui-unverified", binding);
+  }
+  private async reserve(input: { requestId: string; scopeId: string; scopeVersion: number; expectedEpoch?: number; profile: AgentProfile; opening: string; purpose?: "discussion" | "work";
+    planId?: string; planHash?: string; supervisorId?: string; configuration?: SupervisorConfiguration; controlId?: string; reviewIdentity?: string; replacementInput?: SupervisorReplacementInput },
+    actor: SupervisionActor, mode: "activate" | "attach" | "attach-ui-unverified" | "replace" | "replace-ui-unverified", checked: SupervisionBinding | null) {
+    this.enabled();
+    const inputHash = mode === "replace-ui-unverified" ? digest({ supervisor: mode, reviewIdentity: input.reviewIdentity }) : digest({ supervisor: mode, input });
     if (mode !== "replace" && await this.accepted(input.requestId)) return this.replay(input.requestId, inputHash, actor);
     if (actor.kind === "agent") refuse("UNSUPPORTED", "Agents cannot activate scopes; General and supervisors are not bypass principals.");
+    input = { ...input, ...(this.options.configuration && !input.configuration ? { configuration: this.options.configuration } : {}) };
     const profile = AgentProfileSchema.parse(input.profile), capabilities = await this.gateway.capabilities();
     if (!capabilities.selectedAgentIds) refuse("UNSUPPORTED", "Receiver lacks caller-selected agent IDs; no legacy or fresh-ID fallback.");
     // Blobs are content-addressed and inert until referenced, so preparing them before the lock is safe.
@@ -131,24 +152,38 @@ export class SupervisorSessions {
           : mode === "attach" || mode === "attach-ui-unverified" ? "Only a scope S07 has cut over (committed, active, no binding and no migration in progress) is attached here."
           : "Replacement needs the held previous epoch.");
       // The observed-stopped identity must still be the binding being replaced.
-      if (mode === "replace" && digest(old) !== digest(checked)) refuse("STALE", "The held binding changed after its quiescence was observed.");
-      refuseHeld(status, scope.id);
-      const spent = supervisorSpend(status, scope.id), limits = this.options.limitsFor?.(status, scope.id) ?? this.options.limits;
+      if ((mode === "replace" || mode === "replace-ui-unverified") && digest(old) !== digest(checked)) refuse("STALE", "The held binding changed after its quiescence was observed.");
+      const replacing = mode === "replace" || mode === "replace-ui-unverified";
+      if (input.configuration && (input.configuration.scopeId !== scope.id || input.configuration.effectiveEpoch !== (old?.epoch ?? 0) + 1 ||
+        digest(input.configuration.resolved) !== digest(profile))) refuse("STALE", "Profile generation does not match its exact owner or next epoch.");
+      if (input.configuration) checkSupervisorTarget(status, input.configuration);
+      if (mode === "replace-ui-unverified") {
+        const pending = supervisorControl(status, scope.id);
+        if (pending?.action !== "stage" || pending.id !== input.controlId || digest(pending.configuration) !== digest(input.configuration) ||
+          digest(profile) !== digest(input.configuration?.resolved)) refuse("STALE", "Pending configuration changed before replacement.");
+        if (status.effects.some(e => e.scopeId === scope.id && e.epoch === old?.epoch && e.state === "reserved")) refuse("HELD", "Prior reserved work needs explicit non-delivery disposition before replacement.");
+        if (status.effects.some(e => e.scopeId === scope.id && ["dispatching", "accepted", "uncertain"].includes(e.state))) refuse("UNCERTAIN", "Reconcile prior effects before replacement.");
+      }
+      refuseHeld(status, scope.id, replacing);
+      const spent = supervisorSpend(status, scope.id), allowed = this.options.limitsFor?.(status, scope.id) ?? this.options.limits;
+      const limits = input.configuration ? { supervisorSessions: Math.min(allowed.supervisorSessions, input.configuration.limits.supervisorSessions),
+        supervisorTurns: Math.min(allowed.supervisorTurns, input.configuration.limits.supervisorTurns) } : allowed;
       if (spent.sessions + 1 > limits.supervisorSessions || spent.turns + 1 > limits.supervisorTurns)
         refuse("HELD", "Supervisor session/turn budget is exhausted; one scoped budget decision is required. Nothing was reserved.");
       const epoch = (old?.epoch ?? 0) + 1, key = (operation: "workspace.open" | "agent.create" | "agent.send") =>
         effectLogicalKey({ scopeId: scope.id, subject: `epoch:${epoch}`, operation, causation: "scope.activate", objectiveRevision: 0 });
       const ids = { workspace: stableId("effect", key("workspace.open")), create: stableId("effect", key("agent.create")), send: stableId("effect", key("agent.send")) };
       const agentId = stableId("agent", ids.create), intent = supervisorWorkspaceIntent(scope.id, epoch, ids.workspace);
+      if (input.configuration?.workspace && input.configuration.workspace.intentKey !== intent.key) refuse("STALE", "Qualified workspace differs from the reserved next session.");
       const attachedPlan = status.plans.find(p => p.scopeId === scope.id)?.plan;
       if (mode === "attach-ui-unverified" && (!attachedPlan || attachedPlan.definition.id !== input.planId || attachedPlan.hash !== input.planHash || agentId !== input.supervisorId))
         refuse("STALE", "The displayed plan or reserved supervisor changed. Refresh before attaching.");
       // Explicit intent; the verified workspace ID is unknown (null) until its own effect succeeds and verify binds it.
-      const binding: SupervisionBinding = { scopeId: scope.id, epoch, hostId: "local", agentId, workspaceId: null, workspaceIntent: intent.key,
+      const binding: SupervisionBinding = { ...(input.configuration ? { configurationId: input.configuration.id } : {}), scopeId: scope.id, epoch, hostId: "local", agentId, workspaceId: null, workspaceIntent: intent.key,
         profileDigest: profileBlob.id, state: "prepared", checkpointHash: opening.id, acknowledgedSeq: old?.acknowledgedSeq ?? 0, heartbeatDue: null,
         purpose: old?.purpose === "discussion" || input.purpose === "discussion" ? "discussion" : "work" };
       const featurePolicy = await this.options.featurePolicy?.(status, scope.id);
-      const base = { ...(featurePolicy ? { featurePolicy } : {}), requestId: input.requestId, requestHash: digest(input), scopeId: scope.id, epoch, attemptId: null, planRevision: null,
+      const base = { ...(input.configuration ? { configurationId: input.configuration.id } : {}), ...(featurePolicy ? { featurePolicy } : {}), requestId: input.requestId, requestHash: digest(input), scopeId: scope.id, epoch, attemptId: null, planRevision: null,
         ...(this.options.ruleRef ? { planRules: this.options.ruleRef(status, scope.id) } : {}),
         subjectHash: digest({ scope: scope.id, epoch }), policyVector: [], evidenceVector: [], approvalId: null, state: "reserved" as const, receiptRef: null, version: 1 };
       const effects: SupervisionEffect[] = [
@@ -164,10 +199,11 @@ export class SupervisorSessions {
       const plan = status.plans.find(p => p.scopeId === scope.id)?.plan;
       if (mode === "attach-ui-unverified" && !plan) refuse("UNKNOWN_OWNER", "Attachment requires the imported plan.");
       return { expectedVersions: expectedFor(status, mutations), mutations, result: mode === "attach-ui-unverified" ? {
-        ...NO_RESULT, planId: plan!.definition.id, planHash: plan!.hash,
+        ...NO_RESULT, ...(input.configuration ? { supervisorConfiguration: input.configuration } : {}), planId: plan!.definition.id, planHash: plan!.hash,
         attachmentAudit: { at: new Date().toISOString(), plan: plan!.definition.id, supervisor: agentId,
           source: "client UI (unverified)" as const, authorization: "by convention, not verified" as const },
-      } : NO_RESULT };
+      } : input.configuration && mode === "replace-ui-unverified" ? { ...NO_RESULT, ...(input.replacementInput ? { supervisorReplacement: input.replacementInput } : {}), supervisorControl: { id: input.requestId, scopeId: scope.id, epoch,
+        action: "replace", predecessor: input.controlId ?? null, configuration: input.configuration } } : input.configuration ? { ...NO_RESULT, supervisorConfiguration: input.configuration } : NO_RESULT };
     });
     return this.options.reserveBoundary ? this.options.reserveBoundary(commit) : commit();
   }
@@ -182,14 +218,16 @@ export class SupervisorSessions {
     const effects = activationEffects(status, scopeId, epoch), workspace = workspaceReceipt(effects.workspace);
     if (effects.create?.state !== "succeeded" || !workspace || effects.workspace?.receiverKey !== binding.workspaceIntent)
       refuse("HELD", "Supervisor creation is not confirmed for this intent; verification waits.");
-    const problem = verifyObservation(await this.receiver.findAgent(binding.agentId), { agentId: binding.agentId, workspace,
+    const observed = await this.receiver.findAgent(binding.agentId);
+    const problem = verifyObservation(observed, { agentId: binding.agentId, workspace,
       profile: await this.gateway.profile(binding.profileDigest), labels: supervisorLabels(scopeId, epoch, status.scopes.find(s => s.id === scopeId)?.kind) });
     if (problem) refuse("HELD", `${problem} No opening was sent.`);
     // No scope authority may leak into the global role: a supervisor is always a home guest.
     if ((await this.options.globalMateId()) === binding.agentId) refuse("CONFLICT", "The global first mate cannot also be a scope supervisor.");
     const fresh = await this.store.read(), scope = fresh.scopes.find(s => s.id === scopeId)!, current = fresh.bindings.find(b => b.scopeId === scopeId)!;
     if (digest(current) !== digest(binding) || scope.state !== "transferring") refuse("STALE", "The binding changed during verification.");
-    const active: SupervisionBinding = { ...binding, workspaceId: workspace.workspaceId, state: "active" };
+    const active: SupervisionBinding = { ...binding, workspaceId: workspace.workspaceId, state: "active",
+      profileReadback: { provider: observed!.provider, modeId: observed!.modeId, thinkingOptionId: observed!.thinkingOptionId } };
     const mutations: SupervisionMutation[] = [{ kind: "binding", value: active }, { kind: "scope", value: { ...scope, state: "active", version: scope.version + 1 } }];
     await this.store.transact(expectedFor(fresh, mutations), randomUUID(), mutations);
     return active;
@@ -199,13 +237,28 @@ export class SupervisorSessions {
   async hold(input: { requestId: string; scopeId: string; expectedEpoch: number; reason: string }, actor: SupervisionActor) {
     this.enabled();
     if (actor.kind !== "captain-ui") refuse("UNSUPPORTED", "Holding a supervisor for transfer is an explicit captain action.");
-    return this.store.transactCommand(input.requestId, digest({ hold: input }), actor, async status => {
+    return this.holdChecked(input, actor);
+  }
+  async holdFromUnverifiedUi(input: { requestId: string; scopeId: string; expectedEpoch: number; reason: string; replacementInput?: SupervisorReplacementInput; configuration?: SupervisorConfiguration; controlId?: string }) {
+    this.enabled();
+    if (!this.options.unverifiedUiAttach) refuse("UNSUPPORTED", "Unverified app replacement is disabled.");
+    return this.holdChecked(input, { kind: "plugin-ui-unverified", id: "unauthenticated-plugin-call", source: "Supervisor controls (unverified)" });
+  }
+  private holdChecked(input: { requestId: string; scopeId: string; expectedEpoch: number; reason: string; replacementInput?: SupervisorReplacementInput; configuration?: SupervisorConfiguration; controlId?: string }, actor: SupervisionActor) {
+    const { configuration: _configuration, controlId: _controlId, ...identity } = input;
+    return this.store.transactCommand(input.requestId, digest({ hold: identity }), actor, async status => {
       const scope = status.scopes.find(s => s.id === input.scopeId), binding = status.bindings.find(b => b.scopeId === input.scopeId);
       if (!scope || !binding || binding.epoch !== input.expectedEpoch || !["active", "prepared"].includes(binding.state)) refuse("STALE", "Binding epoch changed.");
+      if (input.configuration) {
+        checkSupervisorTarget(status, input.configuration);
+        const pending = supervisorControl(status, input.scopeId);
+        if (pending?.action !== "stage" || pending.id !== input.controlId || digest(pending.configuration) !== digest(input.configuration)) refuse("STALE", "Pending proposal changed before holding its predecessor.");
+        if (status.effects.some(e => e.scopeId === scope.id && ["reserved", "dispatching", "accepted", "uncertain"].includes(e.state))) refuse("HELD", "Prior effects require disposition before holding the predecessor.");
+      }
       // Uncertain and dispatched effects stay with their original epoch and reservations; nothing is cancelled as proof.
       const mutations: SupervisionMutation[] = [{ kind: "scope", value: { ...scope, state: "transferring", version: scope.version + 1 } },
         { kind: "binding", value: { ...binding, state: "suspect" } }];
-      return { expectedVersions: expectedFor(status, mutations), mutations, result: NO_RESULT };
+      return { expectedVersions: expectedFor(status, mutations), mutations, result: { ...NO_RESULT, ...(input.replacementInput ? { supervisorReplacement: input.replacementInput } : {}) } };
     });
   }
 
@@ -240,12 +293,14 @@ export class SupervisorSessions {
         refuseHeld(status, scope.id);
         if (status.effects.some(e => e.scopeId === scope.id && e.attemptId === null && e.operation === "agent.send" && ["reserved", "dispatching", "uncertain", "accepted"].includes(e.state)))
           refuse("HELD", "Reconcile the existing supervisor turn before reserving another; uncertainty retains its spend.");
+        const configured = supervisorConfigurations(status, scope.id).find(c => c.id === binding.configurationId);
+        if (configured && supervisorSpend(status, scope.id).turns + 1 > configured.limits.supervisorTurns) refuse("HELD", "Supervisor configured cumulative turn limit is exhausted.");
         if (supervisorSpend(status, scope.id).turns + 1 > (this.options.limitsFor?.(status, scope.id) ?? this.options.limits).supervisorTurns) refuse("HELD", "Supervisor turn budget is exhausted; one scoped budget decision is required.");
         const key = effectLogicalKey({ scopeId: scope.id, subject: `epoch:${binding.epoch}`, operation: "agent.send", causation: input.causation, objectiveRevision: 0 });
         if (status.index.effectKeys[key]) refuse("CONFLICT", `This turn's cause is already reserved as ${status.index.effectKeys[key]}.`);
         const id = stableId("effect", key);
         const featurePolicy = await this.options.featurePolicy?.(status, scope.id);
-        const effect: SupervisionEffect = { ...(featurePolicy ? { featurePolicy } : {}), id, logicalKey: key, requestId: input.requestId, requestHash: digest(input), scopeId: scope.id, epoch: binding.epoch,
+        const effect: SupervisionEffect = { ...(binding.configurationId ? { configurationId: binding.configurationId } : {}), ...(featurePolicy ? { featurePolicy } : {}), id, logicalKey: key, requestId: input.requestId, requestHash: digest(input), scopeId: scope.id, epoch: binding.epoch,
           attemptId: null, operation: "agent.send", planRevision: null, subjectHash: digest({ turn: input.causation }), policyVector: [],
           evidenceVector: [], approvalId: null, resourceIds: [`turn:${binding.agentId}`], state: "reserved", receiverKey: sendMessageId(id), receiptRef: null, version: 1,
           payloadDigest: blob.id, ...(this.options.ruleRef ? { planRules: this.options.ruleRef(status, scope.id) } : {}), ...(input.maintenanceIncident ? { maintenanceIncident: input.maintenanceIncident } : {}) };

@@ -39,7 +39,7 @@ beforeEach(async () => {
   ledger = new NeedsYouService({ root: join(process.env.PASEO_HOME!, "ledger"), home: readConfiguredDecisionHome,
     catalog: async () => null, enabled: () => true, now: () => clock });
   await ledger.read(); clock += 2000; await ledger.read();
-  receiver = new SyntheticReceiver();
+  receiver = new SyntheticReceiver(); receiver.supervisorRoot = pluginDir();
   activation = make(true);
   prepare = { op: "prepare", homeId: workflowHomeIdentity(home), plan: "scheduler", scopeId: randomUUID(), projectId: randomUUID(),
     migrationId: randomUUID(), prerequisites: { inventory: "drained inventory", policy: "reviewed policy", rollbackBuild: "compatible build" } };
@@ -47,7 +47,9 @@ beforeEach(async () => {
 afterEach(async () => { await activation?.stop(); await ledger?.stop(); });
 function make(enabled?: boolean) { return new SupervisionActivation(pluginDir(), { ...(enabled === undefined ? {} : { enabled }),
   adapters: () => legacyAdapters(null, () => ledger.read()), receiver: () => receiver }); }
-const api = {} as PaseoApi;
+const api = { providers: { listAvailable: async () => ({ providers: [{ provider: "codex", available: true }] }),
+  listModels: async () => ({ models: [{ id: "gpt-6.1-sol", label: "Sol", thinkingOptions: [] }] }),
+  listModes: async () => ({ modes: [{ id: "full-access", label: "Full access" }] }) } } as unknown as PaseoApi;
 async function guided() {
   await activation.stop();
   const backupSettings = new MigrationSettings(pluginDir()), runtime = new SupervisionRuntime(pluginDir());
@@ -239,6 +241,32 @@ async function attachment(): Promise<AttachSupervisorInput> {
   return { requestId: randomUUID(), homeId: prepare.homeId, plan: plan.plan, planHash: plan.hash, scopeId: plan.scopeId,
     scopeVersion: plan.scopeVersion, supervisorId: plan.supervisorId, profile: { provider: "codex/gpt-6.1-sol", modeId: "full-access" }, opening: "Supervise Scheduler only; do not invoke attach." };
 }
+it("foundation app controls read inertly, pin generations and retain an exact pending profile request without native work", async () => {
+  await cutover(); const input = await attachment(); await activation.attach(input, api);
+  const before = await new SupervisionStore(pluginDir(), home).read(), calls = receiver.calls.length;
+  const review = await activation.readControls({ homeId: input.homeId, scopeId: input.scopeId }, api);
+  expect(review.view.configurations).toHaveLength(1);
+  expect(review.view.configurations[0]?.workspace?.directory).toBe(receiver.agents.get(before.bindings[0]!.agentId)?.cwd);
+  expect(review.view.configurations[0]).toMatchObject({ resolved: input.profile, effectiveEpoch: 1, provenance: "client UI (unverified)" });
+  expect((await new SupervisionStore(pluginDir(), home).read()).sequence).toBe(before.sequence);
+  const stage = { op: "stage" as const, requestId: randomUUID(), homeId: input.homeId, scopeId: input.scopeId,
+    expectedEpoch: 1, bindingDigest: review.view.bindingDigest, planHash: review.planHash, profile: input.profile,
+    limits: review.limits!, policyDigest: review.policyDigest };
+  await activation.control(stage, api); await activation.control(stage, api);
+  const pending = await activation.readControls(stage, api);
+  expect(pending.view.state).toBe("change-pending"); expect(pending.view.configurations).toHaveLength(2);
+  expect(receiver.calls).toHaveLength(calls); expect((await new SupervisionStore(pluginDir(), home).read()).effects).toEqual(before.effects);
+  await expect(activation.control({ ...stage, profile: { provider: "codex/missing", modeId: "full-access" } }, api)).rejects.toMatchObject({ code: "CONFLICT" });
+});
+it("foundation app pause is independent of transfer and exact resume leaves all original reservations intact", async () => {
+  await cutover(); const input = await attachment(); await activation.attach(input, api);
+  const review = await activation.readControls({ homeId: input.homeId, scopeId: input.scopeId }, api), before = await new SupervisionStore(pluginDir(), home).read();
+  const pause = { op: "pause" as const, requestId: randomUUID(), homeId: input.homeId, scopeId: input.scopeId,
+    expectedEpoch: 1, bindingDigest: review.view.bindingDigest, planHash: review.planHash };
+  const paused = await activation.control(pause, api); expect(paused.view.state).toBe("paused"); expect(paused.view.binding?.state).toBe("active");
+  const resumed = await activation.control({ ...pause, op: "resume", requestId: randomUUID(), expectedControlId: paused.view.controlId! }, api);
+  expect(resumed.view.state).toBe("active"); expect((await new SupervisionStore(pluginDir(), home).read()).effects).toEqual(before.effects);
+});
 it("default off: view and every mutation leave supervision, gate and receiver untouched", async () => {
   activation = make();
   expect((await activation.read()).enabled).toBe(false);
@@ -362,7 +390,7 @@ it("strict RPCs accept no actor/source and no attach operation exists on migrati
   expect(MigrationCommandSchema.safeParse({ ...prepare, op: "attach" }).success).toBe(false);
   const handlers: string[] = [];
   registerSupervisionActivation({ handle: (rpc: { name: string }) => { handlers.push(rpc.name); } } as never, activation);
-  expect(handlers).toEqual(["firstmate.supervision.plan-help.evidence", "firstmate.supervision.backup.read", "firstmate.supervision.backup.set", "firstmate.supervision.plan-help.read", "firstmate.supervision.activation", "firstmate.supervision.migrate", "firstmate.supervision.attach-ui"]);
+  expect(handlers).toEqual(["firstmate.supervisor.controls.read", "firstmate.supervisor.controls.act-ui", "firstmate.supervision.plan-help.evidence", "firstmate.supervision.backup.read", "firstmate.supervision.backup.set", "firstmate.supervision.plan-help.read", "firstmate.supervision.activation", "firstmate.supervision.migrate", "firstmate.supervision.attach-ui"]);
   for (const file of await readdir("templates/tools")) {
     const source = await readFile(join("templates/tools", file), "utf8");
     expect(source).not.toMatch(/attach-ui|attachSupervisorFromUi|attachFromUnverifiedUi/);

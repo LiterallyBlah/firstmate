@@ -69,7 +69,7 @@ export function WorkDetails({ theme, compact, hostId = "local", navigation, alwa
           onPress={refresh} style={{ minHeight: 44, maxWidth: "100%", minWidth: 0, justifyContent: "center", padding: 10, borderWidth: 1, borderRadius: 7, borderColor: theme.colors.border }}>
           <Text style={{ color: theme.colors.foreground, flexShrink: 1 }}>Refresh details</Text>
         </Pressable>
-        <SupervisionActivationBoard theme={theme} compact={compact} advanced />
+        <SupervisionActivationBoard theme={theme} compact={compact} advanced navigation={navigation} />
         <ProjectOwnershipBoard theme={theme} compact={compact} hostId={hostId} {...(navigation ? { navigation } : {})} onNavigate={() => setOpen(false)}
           onSetup={project => { setOpen(false); setSetup(project.name); }} advanced />
         <MaintenanceOwnershipBoard theme={theme} compact={compact} hostId={hostId} {...(navigation ? { navigation } : {})} onNavigate={() => setOpen(false)} advanced />

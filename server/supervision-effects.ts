@@ -1,3 +1,4 @@
+import { checkSupervisorTarget, supervisorConfigurations, supervisorAdmissionHold } from "./supervisor-configuration";
 /** S04 durable effect gateway. Disabled by default: no RPC, timer, executor or live receiver adapter.
  * Every external boundary is preceded by a published `dispatching` claim. That claim is the final
  * admission: inside the store's writer boundary it rechecks the complete current authority read set
@@ -171,6 +172,8 @@ export class SupervisionGateway {
     }
     let started: StartedAttempt = { attemptId: null, effects: null };
     const committed = await this.commands.planCommandWith(input, actor, "s04.start-worker/1", async (status, prepared) => {
+      const configurationHold = supervisorAdmissionHold(status, input.scopeId);
+      if (configurationHold) refuse("HELD", configurationHold);
       this.options.startCheck?.(status, input);
       const workflow = prepared.mutations.find(m => m.kind === "workflow");
       if (workflow?.kind !== "workflow") refuse("CONFLICT", "A start needs its workflow event.");
@@ -201,7 +204,7 @@ export class SupervisionGateway {
       const agentId = stableId("agent", ids.create);
       // The admission read set is pinned: start and model-use policy refs, admission evidence and approval.
       const featurePolicy = await this.options.featurePolicy?.();
-      const base = { ...(featurePolicy ? { featurePolicy } : {}), requestId: input.requestId, requestHash: digest(input), scopeId, epoch: binding.epoch, attemptId,
+      const base = { ...(binding.configurationId ? { configurationId: binding.configurationId } : {}), ...(featurePolicy ? { featurePolicy } : {}), requestId: input.requestId, requestHash: digest(input), scopeId, epoch: binding.epoch, attemptId,
         planRevision: input.revision || null, subjectHash: input.subjectHash ?? digest(command), policyVector: unionVectors(input.policyVector, input.modelPolicyVector),
         evidenceVector: input.evidenceVector, approvalId: input.approvalId, state: "reserved" as const, receiptRef: null, version: 1,
         ...(input.planRules ? { planRules: input.planRules } : {}),
@@ -326,9 +329,16 @@ export class SupervisionGateway {
         refuse("HELD", "The retained workspace's original worker is no longer observed quiescent.");
     }
     if (!supervisor && binding.purpose === "discussion") refuse("HELD", "Discussion-only sessions cannot dispatch worker effects.");
+    const configuration = supervisorConfigurations(status, scope.id).find(c => c.id === effect.configurationId);
+    // A reservation is not admission. Replays of settled/uncertain effects bypass this new-work boundary.
+    if (supervisor && configuration && effect.logicalKey === effectLogicalKey({ scopeId: scope.id, subject: `epoch:${effect.epoch}`, operation, causation: "scope.activate", objectiveRevision: 0 }))
+      checkSupervisorTarget(status, configuration);
     const activation = supervisor && (operation === "workspace.open" || operation === "agent.create");
     if (activation ? scope.state !== "transferring" || binding.state !== "prepared" : scope.state !== "active" || binding.state !== "active")
       refuse("HELD", "Owner is not admitted for this external effect.");
+    const configurationHold = supervisorAdmissionHold(status, scope.id);
+    if (!stopping && configurationHold) refuse("HELD", configurationHold);
+    if (!stopping && effect.configurationId !== binding.configurationId) refuse("STALE", "Configuration generation changed; retain the original effect.");
     // A stop/policy hold freezes new work. Interrupt and archive remain the safe-stop path.
     if (!stopping && status.operationHolds.some(h => h.scopeId === scope.id && h.state === "held" && h.operations.some(o => o === "plan.start" || o === "model.use")))
       refuse("HELD", "Admissions are held for this scope.");
@@ -368,6 +378,8 @@ export class SupervisionGateway {
         if (!fresh.capabilities.selectedAgentIds) refuse("UNSUPPORTED", "Receiver no longer supports caller-selected IDs; the reservation stays as it is.");
         const workspace = workspaceReceipt(sibling("workspace.open"));
         if (!workspace) refuse("HELD", "The workspace effect has not succeeded; creation waits for it.");
+        if (supervisor && configuration?.workspace && !sameDirectory(workspace.directory, configuration.workspace.directory))
+          refuse("STALE", "The created workspace differs from the qualified session directory; no agent is created.");
         const create = supervisor ? supervisorCreate(effect, workspace, await this.profile(binding.profileDigest), scope.kind) : workerCreate(status, effect, workspace);
         return { run: async () => {
           const created = await this.receiver.createAgent(create);

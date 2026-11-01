@@ -1,3 +1,4 @@
+import { supervisorAdmissionHold } from "./supervisor-configuration";
 /** Explicit reviewed policy records for isolated S03 callers. Never extracts authority from prose. */
 import { createHash } from "node:crypto";
 import { readFile, stat } from "node:fs/promises";
@@ -60,6 +61,10 @@ export async function checkPolicy(home: string, status: SupervisionStatus, input
   // already admitted (and stops) continue. Absent project records leave the pre-S09 behaviour unchanged.
   const stopped = status.projects?.projects.filter(p => p.state === "stopped" && input.projectIds.includes(p.id)) ?? [];
   if (input.operation === "plan.start" && stopped.length) refuse("HELD", `Admissions are stopped for ${stopped.map(p => p.name).join(", ")}.`);
+  if (["plan.start", "model.use"].includes(input.operation)) {
+    const held = supervisorAdmissionHold(status, input.scopeId);
+    if (held) refuse("HELD", held);
+  }
   if (status.operationHolds.some(h => h.scopeId === input.scopeId && h.planId === input.planId && h.state === "held" && h.operations.includes(input.operation)))
     refuse("HELD", "This operation has a committed admission hold.");
   const rules = applicableRules(status, input), expected = currentPolicyVector(status, input);
