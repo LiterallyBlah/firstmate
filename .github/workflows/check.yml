@@ -119,6 +119,7 @@ jobs:
       - run: node docs/smooth-rollout/render.mjs
       - run: node docs/smooth-rollout/review-regressions.mjs
       - run: node docs/scoped-supervision/build-b-ui/render.mjs
+      - run: node docs/fmu-foundation/render.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -150,6 +151,8 @@ jobs:
             .local/smooth-rollout-review/after/independent-results.json
             .local/build-b-ui/*.png
             .local/build-b-ui/results.json
+            .local/fmu-foundation/ui/*.png
+            .local/fmu-foundation/ui/results.json
             .local/s01/ci-tests.json
             .local/ci-diagnostics/*.json
             .local/s06/*.json

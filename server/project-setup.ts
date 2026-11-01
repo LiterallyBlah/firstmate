@@ -1,3 +1,4 @@
+import { profileProblem } from "../shared/supervisor-profile";
 /** Checked app review over Build A. Reads never acquire a writer or initialize a journal. */
 import { createHash } from "node:crypto";
 import { readFile, readdir, realpath, stat } from "node:fs/promises";
@@ -39,9 +40,9 @@ export class ProjectSetupService {
     requireNoMigration(c.config);
     return c;
   }
-  private async models(paseo: PaseoApi) {
+  private async models(paseo: PaseoApi, cwd?: string) {
     let timer!: ReturnType<typeof setTimeout>;
-    try { return await Promise.race([this.options.models?.(paseo) ?? migrationTargets(paseo).then(r => r.targets),
+    try { return await Promise.race([this.options.models?.(paseo) ?? migrationTargets(paseo, cwd).then(r => r.targets),
       new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error("Models and permissions couldn't be checked. Reconnect the host and refresh setup.")), 5000); })]); }
     finally { clearTimeout(timer); }
   }
@@ -91,8 +92,8 @@ export class ProjectSetupService {
     if (saved?.state === "stopped") reasons.push("This project's help was stopped. Review its saved allocation in Advanced work details before resuming.");
     if (p?.agentId || p?.provisionInput) reasons.push("This project already has a saved setup. Check saved setup or open its conversation; no new mate will be created.");
     const profile = saved?.owner?.profile ?? choices.profile, limits = saved?.owner?.limits ?? choices.limits, budget = saved?.budget ?? choices.budget;
-    const models = await this.models(paseo).catch(() => []), model = models.find(m => m.provider === profile?.provider);
-    if (!profile || !model || !model.modes.some(m => m.id === profile.modeId) || profile.thinkingOptionId && !model.thinking.some(t => t.id === profile.thinkingOptionId)) reasons.push("Choose an available model and its actual permission mode. Refresh setup if the saved profile is unavailable.");
+    const models = await this.models(paseo, row?.directory ?? undefined).catch(() => []);
+    if (profileProblem(profile, models)) reasons.push("Choose an available model and its actual permission mode. Refresh setup if the saved profile is unavailable.");
     if (!limits || limits.supervisorSessions !== 1 || !budget || budget.agents < 1 || budget.turns < limits.supervisorTurns) reasons.push("Review one session, its total turn limit and a project allocation that covers it. No preset spending limits have been approved.");
     let source = saved ? c.status.policySources.find(s => saved.sourceVector.some(ref => ref.id === s.id && ref.digest === digest(s))) : undefined;
     if (!source && choices.sourcePath && contextOnly(choices.sourcePath)) reasons.push("Project lists, work records and memory cannot authorize setup. Choose or write this project's instructions instead.");
@@ -126,6 +127,7 @@ export class ProjectSetupService {
     const review: Input["review"] = { homeId: choices.homeId, registryDigest: c.catalog.digest, generalAgentId: c.config.mateAgentId, projectId: row.projectId,
       name: row.name, projectVersion: saved?.version ?? 0, aliases: saved?.aliases ?? [], source, profile, budget,
       limits: { supervisorSessions: 1, supervisorTurns: limits.supervisorTurns }, capacity,
+      catalogDigest: digest(models),
       policyHash: digest(policy ?? { enabled: snapshot.enabled, capacity }), sourceVector: saved?.sourceVector ?? [policyRef("policy-source", source)], opening,
       spent: { sessions: p?.sessions ?? 0, turns: p?.turns ?? 0 } };
     return { choices, review, reviewDigest: digest(review), reasons };
@@ -170,8 +172,8 @@ export class ProjectSetupService {
         const policy = await this.projects.runtime.features?.read(c.home), capacity = await this.projects.capacity(c.home);
         const enabled = policy?.effective.projectMates ?? this.projects.setupEnabled;
         if (!enabled || digest(policy ?? { enabled, capacity }) !== r.policyHash) refuse("STALE", "Help settings changed. Review the current setup before continuing.");
-        const models = await this.models(paseo), model = models.find(m => m.provider === r.profile.provider);
-        if (!model?.modes.some(m => m.id === r.profile.modeId) || r.profile.thinkingOptionId && !model.thinking.some(t => t.id === r.profile.thinkingOptionId)) refuse("HELD", "The reviewed model or permission is unavailable. Restore it and check saved setup; another model will not be chosen.");
+        const models = await this.models(paseo, row?.directory ?? undefined);
+        if (profileProblem(r.profile, models)) refuse("HELD", "The reviewed model or permission is unavailable. Restore it and check saved setup; another model will not be chosen.");
         const p = c.status.projects?.projects.find(p => p.id === r.projectId);
         if (p?.owner) {
           const expectedVersion = r.projectVersion || 2;

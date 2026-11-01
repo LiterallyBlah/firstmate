@@ -39,6 +39,9 @@ export const SupervisionScopeSchema = z.object({
 export const SupervisionBindingSchema = z.object({
   scopeId: SupervisionUuid, epoch: positive, hostId: text(), agentId: text(), workspaceId: text().nullable(),
   workspaceIntent: text().optional(),
+  configurationId: SupervisionUuid.optional(),
+  /** Actual exact-recipient profile observed at prepared -> active; absent on historical bindings. */
+  profileReadback: z.object({ provider: text(), modeId: text().nullable(), thinkingOptionId: text().nullable() }).strict().optional(),
   profileDigest: SupervisionHash, state: z.enum(["prepared", "active", "suspect", "retired"]),
   checkpointHash: SupervisionHash, acknowledgedSeq: count, heartbeatDue: SupervisionUtc.nullable(),
   /** Exact owner observation, never inferred from send acceptance. Optional for old ledgers. */
@@ -49,6 +52,7 @@ export const SupervisionBindingSchema = z.object({
   "An unverified binding needs a workspace intent and cannot be active.");
 export const SupervisionEffectSchema = z.object({
   /** The reserving capability/revision survives pause, resume and another service's dispatch. */
+  configurationId: SupervisionUuid.optional(),
   featurePolicy: z.object({ capability: z.enum(FEATURE_CAPABILITIES), revision: z.number().int().nonnegative() }).strict().optional(),
   id: SupervisionUuid, logicalKey: text(1024), requestId: SupervisionUuid, requestHash: SupervisionHash,
   scopeId: SupervisionUuid, epoch: positive, attemptId: SupervisionUuid.nullable(), operation: text(),

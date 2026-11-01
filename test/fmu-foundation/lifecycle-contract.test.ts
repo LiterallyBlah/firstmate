@@ -30,7 +30,7 @@ describe("frozen foundation lifecycle contract (A1/A2/A3/A5/A10/A12)", {timeout:
   const fx=await fixture(); const s=await fx.store.read(); const view=fx.controls.read(s,fx.scope.id);
   const base={requestId:randomUUID(),homeId:s.homeId,scopeId:fx.scope.id,expectedEpoch:1,bindingDigest:view.bindingDigest};
   await fx.controls.pauseFromUnverifiedUi(base);
-  expect((await fx.store.read()).bindings[0].state).toBe("active");
+  expect((await fx.store.read()).bindings[0]!.state).toBe("active");
   const paused=fx.controls.read(await fx.store.read(),fx.scope.id);
   await fx.controls.resumeFromUnverifiedUi({...base,requestId:randomUUID(),expectedControlId:paused.controlId});
   expect(fx.controls.read(await fx.store.read(),fx.scope.id).state).toBe("active");

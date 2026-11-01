@@ -254,7 +254,8 @@ it.each(["project", "maintenance"] as const)("%s provisioning hot-pauses after w
     provision = () => project.provision(input, {} as PaseoApi);
   } else {
     const input = { homeId: (await policy.read(home)).homeId, requestId: randomUUID(), scopeId: randomUUID(), name: "Routine checks", profile, limits };
-    provision = () => maintenance.admit(input, {} as PaseoApi);
+    provision = () => maintenance.admit(input, { providers: { listAvailable: async () => ({providers:[{provider:"codex",available:true}]}),
+      listModels: async () => ({models:[{id:"test",label:"Test",thinkingOptions:[]}]}), listModes:async()=>({modes:[{id:"full-access",label:"Full"}]}) } } as unknown as PaseoApi);
   }
   const entered = deferred(), release = deferred(); receiver.afterAdmission = entered.resolve; receiver.gate = release.promise;
   const pending = provision(); void pending.catch(() => {});

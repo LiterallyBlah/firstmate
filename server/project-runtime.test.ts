@@ -24,7 +24,11 @@ vi.mock("node:fs/promises", async importOriginal => {
   const actual = await importOriginal<typeof import("node:fs/promises")>();
   return { ...actual, open: vi.fn(actual.open) };
 });
-const root = process.env.PASEO_HOME!, api = {} as PaseoApi;
+const root = process.env.PASEO_HOME!, api = { providers: {
+  listAvailable: async () => ({ providers: [{ provider: "codex", available: true }] }),
+  listModels: async () => ({ models: [{ id: "test", label: "Test", thinkingOptions: [] }] }),
+  listModes: async () => ({ modes: [{ id: "full-access", label: "Full access" }] }),
+} } as unknown as PaseoApi;
 let home: string, data: string, runtime: SupervisionRuntime, service: ProjectRuntime, receiver: SyntheticReceiver, source: Extract<ProjectAdmin, { op: "admit" }>["source"];
 const actor = { kind: "mate-chat" as const, id: "general", source: "project administration (same-user role convention, unverified)" };
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");

@@ -1,3 +1,4 @@
+import { supervisorAdmissionHold } from "./supervisor-configuration";
 /** S04 durable effect gateway. Disabled by default: no RPC, timer, executor or live receiver adapter.
  * Every external boundary is preceded by a published `dispatching` claim. That claim is the final
  * admission: inside the store's writer boundary it rechecks the complete current authority read set
@@ -171,6 +172,8 @@ export class SupervisionGateway {
     }
     let started: StartedAttempt = { attemptId: null, effects: null };
     const committed = await this.commands.planCommandWith(input, actor, "s04.start-worker/1", async (status, prepared) => {
+      const configurationHold = supervisorAdmissionHold(status, input.scopeId);
+      if (configurationHold) refuse("HELD", configurationHold);
       this.options.startCheck?.(status, input);
       const workflow = prepared.mutations.find(m => m.kind === "workflow");
       if (workflow?.kind !== "workflow") refuse("CONFLICT", "A start needs its workflow event.");
@@ -201,7 +204,7 @@ export class SupervisionGateway {
       const agentId = stableId("agent", ids.create);
       // The admission read set is pinned: start and model-use policy refs, admission evidence and approval.
       const featurePolicy = await this.options.featurePolicy?.();
-      const base = { ...(featurePolicy ? { featurePolicy } : {}), requestId: input.requestId, requestHash: digest(input), scopeId, epoch: binding.epoch, attemptId,
+      const base = { ...(binding.configurationId ? { configurationId: binding.configurationId } : {}), ...(featurePolicy ? { featurePolicy } : {}), requestId: input.requestId, requestHash: digest(input), scopeId, epoch: binding.epoch, attemptId,
         planRevision: input.revision || null, subjectHash: input.subjectHash ?? digest(command), policyVector: unionVectors(input.policyVector, input.modelPolicyVector),
         evidenceVector: input.evidenceVector, approvalId: input.approvalId, state: "reserved" as const, receiptRef: null, version: 1,
         ...(input.planRules ? { planRules: input.planRules } : {}),
@@ -329,6 +332,9 @@ export class SupervisionGateway {
     const activation = supervisor && (operation === "workspace.open" || operation === "agent.create");
     if (activation ? scope.state !== "transferring" || binding.state !== "prepared" : scope.state !== "active" || binding.state !== "active")
       refuse("HELD", "Owner is not admitted for this external effect.");
+    const configurationHold = supervisorAdmissionHold(status, scope.id);
+    if (!stopping && configurationHold) refuse("HELD", configurationHold);
+    if (!stopping && effect.configurationId !== binding.configurationId) refuse("STALE", "Configuration generation changed; retain the original effect.");
     // A stop/policy hold freezes new work. Interrupt and archive remain the safe-stop path.
     if (!stopping && status.operationHolds.some(h => h.scopeId === scope.id && h.state === "held" && h.operations.some(o => o === "plan.start" || o === "model.use")))
       refuse("HELD", "Admissions are held for this scope.");

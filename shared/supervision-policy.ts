@@ -1,3 +1,4 @@
+import { SupervisorConfigurationSchema, SupervisorControlSchema, SupervisorReplacementInputSchema } from "./supervisor-profile";
 /** S03's closed pilot vocabulary. No release operations or transport authority. */
 import { z } from "zod";
 import { PlanId } from "./workflow-plans";
@@ -82,6 +83,7 @@ export const ProjectSetupInputSchema = z.object({ homeId: z.string(), requestId:
     name: label, projectVersion: z.number().int().nonnegative(), aliases: z.array(label).max(16), source: PolicySourceSchema,
     profile: AgentProfileSchema, budget: z.object({ agents: version, turns: version }).strict(),
     limits: z.object({ supervisorSessions: z.literal(1), supervisorTurns: version }).strict(),
+    catalogDigest: SupervisionHash.optional(),
     policyHash: SupervisionHash, sourceVector: z.array(SupervisionVersionRefSchema).min(1).max(64), opening: z.string().min(1).max(128 * 1024),
     capacity: z.object({ slots: version, generalHeadroom: version }).strict(),
     spent: z.object({ sessions: z.number().int().nonnegative(), turns: z.number().int().nonnegative() }).strict(),
@@ -93,9 +95,13 @@ export const MaintenanceAdmissionInputSchema = z.object({ homeId: z.string(), re
   limits: GatewayLimitsSchema.extend({ supervisorSessions: z.literal(1), supervisorTurns: z.number().int().min(1).max(100000) }) }).strict();
 export const ScopedCommandResultSchema = z.object({
   planId: PlanId.nullable(), planHash: SupervisionHash.nullable(), decisionId: SupervisionUuid.nullable(), outboxId: SupervisionUuid.nullable(),
+  supervisorConfiguration: SupervisorConfigurationSchema.optional(),
+  supervisorControl: SupervisorControlSchema.optional(),
+  supervisorReplacement: SupervisorReplacementInputSchema.optional(),
   projectProvision: ProjectProvisionInputSchema.optional(),
   projectSetup: ProjectSetupInputSchema.optional(),
   maintenanceAdmission: MaintenanceAdmissionInputSchema.optional(),
+  maintenanceProfileReview: z.object({ requestId: SupervisionUuid, catalogDigest: SupervisionHash, policyDigest: SupervisionHash }).strict().optional(),
   /** Build D transport identity only; preserves exact accepted replay before mutable timer/owner checks. */
   maintenanceRequest: z.object({ inputHash: SupervisionHash }).strict().optional(),
   uiPlanIntent: ScopedPlanCommandSchema.optional(),

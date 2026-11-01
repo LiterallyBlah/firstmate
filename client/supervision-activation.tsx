@@ -1,5 +1,9 @@
+import { SupervisorProfileFields } from "./supervisor-profile";
+import { SupervisorControlsButton } from "./supervisor-controls";
+import { profileProblem } from "../shared/supervisor-profile";
 /** The only shipped attach caller. This app button is a convention: RPC origin is not authenticated. */
 import type { PluginTheme } from "@getpaseo/plugin";
+import type { PluginSurfaceProps } from "@getpaseo/plugin/client";
 import { useRpc } from "@getpaseo/plugin/client";
 import { Modal, TextInput } from "@getpaseo/plugin/client/react-native";
 import { useQuery } from "@tanstack/react-query";
@@ -8,7 +12,6 @@ import { Pressable, Text, View } from "react-native";
 import { ActivationSnapshotSchema, attachSupervisorFromUi,
   type ActivationSnapshot, type AttachSupervisorInput, type ResumeSupervisorInput } from "../shared/supervision-activation";
 import { migrationTargets } from "../shared/fleet";
-import { OptionPicker } from "./option-picker";
 import { workflowRequestId, useWorkflowPlans } from "./workflow-plans";
 import { errorText } from "./format";
 import { MigrationOperations } from "./migration-operations";
@@ -20,7 +23,7 @@ function Action({ theme, label, onPress, disabled = false }: { theme: PluginThem
     <Text style={{ color: theme.colors.foreground, flexShrink: 1 }}>{label}</Text>
   </Pressable>;
 }
-export function SupervisionActivationBoard({ theme, compact, advanced = false, planId }: { theme: PluginTheme; compact: boolean; advanced?: boolean; planId?: string }) {
+export function SupervisionActivationBoard({ theme, compact, advanced = false, planId, navigation }: { theme: PluginTheme; compact: boolean; advanced?: boolean; planId?: string; navigation?: PluginSurfaceProps["navigation"] | undefined }) {
   const { activation, activationError: readError, updateActivation } = useWorkflowPlans();
   const data = activation && planId ? { ...activation, plans: activation.plans.filter(p => p.plan === planId),
     migrations: activation.migrations.filter(m => m.planId === planId), dispositions: activation.dispositions.filter(d => d.planId === planId),
@@ -38,6 +41,7 @@ export function SupervisionActivationBoard({ theme, compact, advanced = false, p
       <Text style={{ color: theme.colors.foreground }}>{planId ? plan.binding === "active" && plan.opening === "succeeded" ? "Plan helper is ready." : !plan.binding ? "Ready for the captain's Attach review." : "Saved helper setup needs checking. Inspect its attachment before continuing." : `${plan.title} · ${plan.binding ?? "No supervisor"}${plan.opening ? ` · opening ${plan.opening}` : ""}`}</Text>
       {showDetails ? <Text selectable style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>Plan {plan.plan} · scope {plan.scopeId} · version {plan.scopeVersion} · supervisor {plan.supervisorId}</Text> : null}
       {showDetails && plan.readiness ? <Text style={{ color: theme.colors.foregroundMuted }}>{plan.readiness.ready ? "Stored readiness checks met; live qualification still required." : `Readiness held: ${plan.readiness.reasons.join(" ")}`}</Text> : null}
+      {plan.binding ? <SupervisorControlsButton theme={theme} compact={compact} homeId={data.homeId} scopeId={plan.scopeId} navigation={navigation} /> : null}
       {plan.canAttach ? <Action theme={theme} label={planId ? "Attach plan helper" : `Attach supervisor to ${plan.title}`} disabled={!!readError || !data.enabled} onPress={() => select(plan)} /> : null}
       {plan.resumeRequestId ? <Action theme={theme} label={`Resume attachment to ${plan.title}`} disabled={!!readError || !data.enabled} onPress={() => select(plan)} /> : null}
     </View>)}
@@ -62,18 +66,18 @@ export function AttachConfirmation({ theme, compact, homeId, plan, stale, onClos
   const attach = useRpc(attachSupervisorFromUi), catalog = useRpc(migrationTargets);
   const resuming = !!plan.resumeRequestId;
   const models = useQuery({ queryKey: ["firstmate", "attach-models", homeId], queryFn: () => catalog({}), enabled: !resuming });
-  const [provider, setProvider] = useState(""), [mode, setMode] = useState(""), [opening, setOpening] = useState("");
+  const [provider, setProvider] = useState(""), [mode, setMode] = useState(""), [thinking, setThinking] = useState<string | undefined>(undefined), [opening, setOpening] = useState("");
   const [busy, setBusy] = useState(false), [error, setError] = useState<string | null>(null), [uncertain, setUncertain] = useState(false);
   const [details, setDetails] = useState(false);
   const pending = useRef<AttachSupervisorInput | ResumeSupervisorInput | null>(null), gate = useRef(false);
   const targets = models.data?.targets ?? [], target = targets.find(t => t.provider === provider);
-  const valid = !stale && (resuming || !!target && target.modes.some(m => m.id === mode) && !!opening.trim());
+  const valid = !stale && (resuming || !!target && !profileProblem({ provider, modeId: mode, ...(thinking ? { thinkingOptionId: thinking } : {}) }, targets) && !!opening.trim());
   async function confirm() {
     if (gate.current || !valid && !pending.current) return;
     gate.current = true; setBusy(true); setError(null);
     // On a lost reply keep the exact request, including profile, opening and reserved supervisor.
     pending.current ??= plan.resumeRequestId ? { homeId, requestId: plan.resumeRequestId, resume: true } : { requestId: workflowRequestId(), homeId, plan: plan.plan, planHash: plan.hash,
-      scopeId: plan.scopeId, scopeVersion: plan.scopeVersion, supervisorId: plan.supervisorId, profile: { provider, modeId: mode }, opening: opening.trim() };
+      scopeId: plan.scopeId, scopeVersion: plan.scopeVersion, supervisorId: plan.supervisorId, profile: { provider, modeId: mode, ...(thinking ? { thinkingOptionId: thinking } : {}) }, opening: opening.trim() };
     try {
       const next = ActivationSnapshotSchema.parse(await attach(pending.current)); onRead(next);
       const audit = next.audits.find(a => a.supervisor === plan.supervisorId && a.plan === plan.plan);
@@ -91,10 +95,8 @@ export function AttachConfirmation({ theme, compact, homeId, plan, stale, onClos
         {!plain || details ? <Text selectable style={{ color: theme.colors.foreground }}>Supervisor: {plan.supervisorId}{provider ? ` · ${provider}` : ""}</Text> : null}
         <Text style={{ color: theme.colors.foregroundMuted }}>{resuming ? "Resume the recorded attachment after inspecting this reserved supervisor. Recovery looks up its exact identity and sends the saved opening only if it has not been dispatched." : plain ? "This creates one separate plan helper and sends the opening below. One session and one opening turn count against the recorded budget, including uncertain outcomes." : "This creates one independent supervisor and sends the opening below."} {plain ? "Only the captain should press Attach. Paseo cannot verify who pressed this button; the action is recorded for review." : "This is a captain action by convention, not verified. Paseo supplies no caller identity. The board records “client UI (unverified)”."}</Text>
         {resuming ? !plain || details ? <Text selectable style={{ color: theme.colors.foregroundMuted }}>Saved attachment request: {plan.resumeRequestId}</Text> : null : <>
-        <OptionPicker theme={theme} compact={compact} roomy={plain} label={plain ? "Plan helper model" : "Supervisor model"} title={plain ? "Plan helper model" : "Supervisor model"} value={provider}
-          options={targets.map(t => ({ value: t.provider, label: t.label }))} disabled={busy || uncertain} onSelect={v => { setProvider(v); setMode(""); }} />
-        <OptionPicker theme={theme} compact={compact} roomy={plain} label="Permission mode" title={plain ? "Plan helper permissions" : "Supervisor permission mode"} value={mode}
-          options={target?.modes.map(m => ({ value: m.id, label: m.label })) ?? []} disabled={!target || busy || uncertain} onSelect={setMode} />
+        <SupervisorProfileFields theme={theme} compact={compact} modelLabel={plain ? "Plan helper model" : "Supervisor model"} permissionLabel="Permission mode" catalog={targets} profile={provider ? { provider, modeId: mode, ...(thinking ? { thinkingOptionId: thinking } : {}) } : null}
+          disabled={busy || uncertain} onChange={p => { setProvider(p.provider); setMode(p.modeId); setThinking(p.thinkingOptionId); }} />
         <Text style={{ color: theme.colors.foreground }}>{plain ? "Opening for this plan helper" : "Opening for this supervisor"}</Text>
         <TextInput accessibilityLabel={plain ? "Opening for this plan helper" : "Opening for this supervisor"} value={opening} onChangeText={setOpening} editable={!busy && !uncertain} multiline maxLength={16000}
           style={{ minHeight: 100, color: theme.colors.foreground, backgroundColor: theme.colors.surface1, borderColor: theme.colors.border, borderWidth: 1, borderRadius: 7, padding: 12 }} />

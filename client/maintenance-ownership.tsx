@@ -1,3 +1,6 @@
+import { SupervisorProfileFields } from "./supervisor-profile";
+import { SupervisorControlsButton } from "./supervisor-controls";
+import { profileProblem } from "../shared/supervisor-profile";
 /** Captain-app maintenance admission. Decisions use the shared Needs-you inbox. */
 import type { PluginTheme } from "@getpaseo/plugin";
 import { useRpc } from "@getpaseo/plugin/client";
@@ -9,7 +12,6 @@ import { Pressable, Text, View } from "react-native";
 import { readMaintenance, admitMaintenanceFromUi, MaintenanceRuntimeSnapshotSchema,
   type MaintenanceRuntimeSnapshot, type AdmitMaintenance } from "../shared/maintenance-runtime";
 import { migrationTargets } from "../shared/fleet";
-import { OptionPicker } from "./option-picker";
 import { workflowRequestId } from "./workflow-plans";
 import { errorText } from "./format";
 import { maintenanceHasHistory } from "./ownership-state";
@@ -43,6 +45,7 @@ export function MaintenanceOwnershipBoard({ theme, compact, hostId = "local", na
         <Text style={{ color: colors.foreground }}>{owner.admission?.name ?? "Maintenance owner"} · {owner.state}{owner.opening ? ` · opening ${owner.opening}` : ""}</Text>
         <Text style={{ color: colors.foregroundMuted }}>{owner.sessions} session reserved · {owner.turns} turns reserved{owner.uncertain ? ` · ${owner.uncertain} uncertain` : ""}</Text>
         <Text selectable style={{ color: colors.foregroundMuted, fontSize: 12 }}>Scope {owner.scopeId} · epoch {owner.epoch} · agent {owner.agentId ?? "not recorded"}</Text>
+        {owner.agentId ? <SupervisorControlsButton theme={theme} compact={compact} homeId={data.homeId} scopeId={owner.scopeId} navigation={navigation} /> : null}
         {owner.agentId && navigation ? <Action theme={theme} label={`Open ${owner.admission?.name ?? "maintenance owner"}`} onPress={() => { navigation.openAgent({ agentId: owner.agentId!, ...(hostId === "local" ? {} : { serverId: hostId }) }); onNavigate?.(); }} /> : null}
         {owner.admission && owner.opening !== "succeeded" ? <Action theme={theme} label={`Resume ${owner.admission.name}`} disabled={stale} onPress={() => selectAdmission(owner)} /> : null}
       </View>)}
@@ -63,17 +66,18 @@ export function MaintenanceAdmissionConfirmation({ theme, compact, homeId, owner
 }) {
   const admit = useRpc(admitMaintenanceFromUi), read = useRpc(readMaintenance), catalog = useRpc(migrationTargets), resume = owner?.admission;
   const models = useQuery({ queryKey: ["firstmate", "maintenance-models", homeId], queryFn: () => catalog({}), enabled: !resume });
+  const [thinking, setThinking] = useState<string | undefined>(undefined);
   const [name, setName] = useState(""), [provider, setProvider] = useState(""), [mode, setMode] = useState(""), [turns, setTurns] = useState("20");
   const [busy, setBusy] = useState(false), [error, setError] = useState<string | null>(null);
   const [details, setDetails] = useState(false);
   const pending = useRef<AdmitMaintenance | null>(null), gate = useRef(false), locked = busy || !!pending.current;
   const target = models.data?.targets.find(t => t.provider === provider);
-  const valid = !!resume || !!name.trim() && !!target?.modes.some(m => m.id === mode) && /^\d+$/.test(turns) && Number(turns) >= 1 && Number(turns) <= 100000;
+  const valid = !!resume || !!name.trim() && !!target && !profileProblem({ provider, modeId: mode, ...(thinking ? { thinkingOptionId: thinking } : {}) }, models.data?.targets ?? []) && /^\d+$/.test(turns) && Number(turns) >= 1 && Number(turns) <= 100000;
   async function confirm() {
     if (gate.current || stale || !valid && !pending.current) return;
     gate.current = true; setBusy(true); setError(null);
     pending.current ??= resume ? { homeId, requestId: resume.requestId, resume: true } : { homeId, requestId: workflowRequestId(), scopeId: workflowRequestId(), name: name.trim(),
-      profile: { provider, modeId: mode }, limits: { supervisorSessions: 1, supervisorTurns: Number(turns) } };
+      profile: { provider, modeId: mode, ...(thinking ? { thinkingOptionId: thinking } : {}) }, limits: { supervisorSessions: 1, supervisorTurns: Number(turns) } };
     try {
       const next = MaintenanceRuntimeSnapshotSchema.parse(await admit(pending.current)); onRead();
       const current = next.owners.find(o => o.admission?.requestId === pending.current!.requestId);
@@ -105,11 +109,9 @@ export function MaintenanceAdmissionConfirmation({ theme, compact, homeId, owner
       {resume ? <Text selectable style={{ color: theme.colors.foreground }}>{resume.profile.provider} · {resume.profile.modeId} · one session · {resume.limits.supervisorTurns} total turns. Resume uses the saved profile and request.</Text> : <>
         <Text style={{ color: theme.colors.foreground }}>Conversation name</Text>
         <TextInput accessibilityLabel="Checks conversation name" value={name} onChangeText={setName} maxLength={120} editable={!locked} style={field} />
-        <OptionPicker theme={theme} compact={compact} roomy label="Checks model" title="Checks model" value={provider} options={models.data?.targets.map(t => ({ value: t.provider, label: t.label })) ?? []}
-          disabled={locked} onSelect={v => { setProvider(v); setMode(""); }} />
-        <OptionPicker theme={theme} compact={compact} roomy label="Checks permission mode" title="Checks permission mode" value={mode} options={target?.modes.map(m => ({ value: m.id, label: m.label })) ?? []}
-          disabled={locked || !target} onSelect={setMode} />
-        <Text style={{ color: theme.colors.foreground }}>Total conversation turns, including the opening, incidents and answer notifications (1–100,000). One session; no automatic limit increase.</Text>
+        <SupervisorProfileFields theme={theme} compact={compact} modelLabel="Checks model" permissionLabel="Checks permission mode" catalog={models.data?.targets ?? []} profile={provider ? { provider, modeId: mode, ...(thinking ? { thinkingOptionId: thinking } : {}) } : null}
+        disabled={locked} onChange={p => { setProvider(p.provider); setMode(p.modeId); setThinking(p.thinkingOptionId); }} />
+      <Text style={{ color: theme.colors.foreground }}>Total conversation turns, including the opening, incidents and answer notifications (1–100,000). One session; no automatic limit increase.</Text>
         <TextInput accessibilityLabel="Checks conversation turn limit" value={turns} onChangeText={setTurns} maxLength={6} editable={!locked} keyboardType="number-pad" style={field} />
         {provider && mode ? <Text selectable style={{ color: theme.colors.foreground }}>Selected: {target?.label ?? provider} · {target?.modes.find(m => m.id === mode)?.label ?? mode} ({mode}). These permissions determine which tools this conversation can use. Instructions to report problems do not reduce those permissions.</Text> : null}
       </>}

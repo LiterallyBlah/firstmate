@@ -515,8 +515,10 @@ export class SupervisionStore {
         if (mutation.kind === "binding" && old) {
           const binding = mutation.value;
           if (binding.epoch < Number(old.epoch) || binding.epoch > Number(old.epoch) + 1 || binding.acknowledgedSeq < Number(old.acknowledgedSeq) ||
-            (binding.epoch === old.epoch && ["hostId", "agentId", "profileDigest", "workspaceIntent"].some(p => old[p] !== binding[p as keyof typeof binding]))) fail("STALE", "Binding identity change requires the next epoch; acknowledgement cannot regress.");
+            (binding.epoch === old.epoch && ["hostId", "agentId", "profileDigest", "workspaceIntent", "configurationId"].some(p => old[p] !== binding[p as keyof typeof binding]))) fail("STALE", "Binding identity change requires the next epoch; acknowledgement cannot regress.");
           // The verified workspace is set once, by prepared -> active; it never changes within an epoch.
+          if (binding.epoch === old.epoch && old.profileReadback && digest(old.profileReadback) !== digest(binding.profileReadback))
+            fail("STALE", "Verified native profile readback is immutable within its epoch.");
           if (binding.epoch === old.epoch && old.workspaceId !== binding.workspaceId &&
             !(old.workspaceId === null && old.state === "prepared" && binding.state === "active")) fail("STALE", "A verified workspace identity is set once on activation and is otherwise immutable within its epoch.");
           if (binding.epoch !== old.epoch && (binding.state !== "prepared" || !["retired", "suspect"].includes(String(old.state)))) fail("HELD", "Replacement must be explicitly prepared from a retired/suspect binding.");
@@ -686,6 +688,13 @@ export class SupervisionStore {
       if (scopeId && !get("scope", String(scopeId))) fail("UNKNOWN_OWNER", "A row has no registered scope owner.");
       if (frame.kind === "binding") {
         const binding = SupervisionBindingSchema.parse(value);
+        if (binding.configurationId) {
+          const command = get("command", binding.configurationId) as z.infer<typeof AcceptedScopedCommandSchema> | undefined;
+          const configuration = command?.result.supervisorConfiguration;
+          if (!configuration || configuration.id !== binding.configurationId || configuration.scopeId !== binding.scopeId ||
+            configuration.effectiveEpoch !== binding.epoch || digest(configuration.resolved) !== binding.profileDigest)
+            fail("HELD", "Binding configuration generation is missing or does not match its immutable profile and epoch.");
+        }
         if (binding.workspaceId !== null && binding.workspaceIntent !== undefined) {
           const intent = [...frames.values()].find(f => f.kind === "effect" && (f.value as z.infer<typeof SupervisionEffectSchema>).scopeId === binding.scopeId &&
             (f.value as z.infer<typeof SupervisionEffectSchema>).epoch === binding.epoch && (f.value as z.infer<typeof SupervisionEffectSchema>).operation === "workspace.open" &&
@@ -734,6 +743,12 @@ export class SupervisionStore {
       }
       if (frame.kind === "effect") {
         const effect = SupervisionEffectSchema.parse(value);
+        if (effect.configurationId) {
+          const command = get("command", effect.configurationId) as z.infer<typeof AcceptedScopedCommandSchema> | undefined;
+          const configuration = command?.result.supervisorConfiguration;
+          if (!configuration || configuration.id !== effect.configurationId || configuration.scopeId !== effect.scopeId || configuration.effectiveEpoch !== effect.epoch)
+            fail("HELD", "Effect configuration generation is missing or belongs to another owner/epoch.");
+        }
         if (effects.has(effect.logicalKey)) fail("CONFLICT", "Logical effect already reserved."); effects.add(effect.logicalKey);
         const binding = get("binding", effect.scopeId) as z.infer<typeof SupervisionBindingSchema> | undefined;
         if (!binding || binding.epoch < effect.epoch) fail("STALE", "Effect binding epoch is unavailable.");

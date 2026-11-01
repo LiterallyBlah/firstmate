@@ -1,3 +1,12 @@
+import { readSupervisorControls, actSupervisorControls, type SupervisorControlInput } from "../shared/supervisor-controls";
+import { supervisorView } from "./supervisor-configuration";
+import { SupervisorControls } from "./supervisor-controls";
+import { supervisorCatalog, checkedSupervisorCatalog } from "./supervisor-catalog";
+import { supervisorWorkspaceIntent } from "./supervision-effects";
+import { planSupervisorLimits } from "../shared/plan-supervisor-limits";
+import { checkPlanSupervisorAuthority } from "./plan-supervisor-authority";
+import type { GatewayLimits } from "../shared/supervision-effects";
+import type { SupervisorConfiguration } from "../shared/supervisor-profile";
 import { featurePause } from "../shared/feature-settings";
 /** Default-off production wiring. Views never initialize a store or acquire a coordinator.
  * Attach is an app convention, NOT a verified captain principal. Build B's operating loop is separate. */
@@ -257,7 +266,18 @@ export class SupervisionActivation {
           const capacity = await this.runtime.features?.capacity(home);
           if (capacity) await checkGeneralHeadroom(status, receiver, capacity.slots, capacity.generalHeadroom, effect.id);
         } });
-        const sessions = new SupervisorSessions(store, gateway, receiver, { enabled: true,
+        let configuration: SupervisorConfiguration | undefined;
+        const prior = (await store.read()).commands.find(c => c.id === input.requestId);
+        if (!("resume" in input) && !prior) {
+          const intent = supervisorWorkspaceIntent(input.scopeId, 1, stableId("effect", effectLogicalKey({ scopeId: input.scopeId, subject: "epoch:1", operation: "workspace.open", causation: "scope.activate", objectiveRevision: 0 })));
+          const catalog = await checkedSupervisorCatalog(paseo, join(this.root, "supervisor-workspaces", intent.key), input.profile);
+          const policy = await this.runtime.features?.read(home);
+          configuration = { id: input.requestId, scopeId: input.scopeId, generation: 1, requested: input.profile, resolved: input.profile,
+            catalogDigest: digest(catalog), policyDigest: digest(policy ?? { enabled: true }),
+            target: { homeId: input.homeId, hostId: "local", scopeId: input.scopeId, kind: "plan", planId: input.plan, planHash: input.planHash },
+            limits: this.controlsLimits(await store.read(), input.scopeId) ?? { supervisorSessions: 1, supervisorTurns: 1 }, effectiveEpoch: 1, provenance: "client UI (unverified)" };
+        }
+        const sessions = new SupervisorSessions(store, gateway, receiver, { enabled: true, ...(configuration ? { configuration } : {}),
         featurePolicy: async () => this.runtime.features?.reservation(home, "scopedActivation"),
         reserveBoundary: run => this.runtime.features ? this.runtime.features.boundary(home, run) : run(), unverifiedUiAttach: true,
           limits: { supervisorSessions: 1, supervisorTurns: 1 }, reserveCheck: checkOwner,
@@ -308,6 +328,98 @@ export class SupervisionActivation {
       }, true);
     });
   }
+  private controlsLimits(status: SupervisionStatus, scopeId: string): GatewayLimits | null {
+    const scope = status.scopes.find(s => s.id === scopeId);
+    if (scope?.kind === "plan") { const c = planSupervisorLimits(status, scopeId).limits; return c ? { supervisorSessions: c.sessions, supervisorTurns: c.turns } : { supervisorSessions: 1, supervisorTurns: 1 }; }
+    if (scope?.kind === "project") return status.projects?.projects.find(p => p.scopeId === scopeId)?.owner?.limits ?? null;
+    return status.commands.find(c => c.result.maintenanceAdmission?.scopeId === scopeId)?.result.maintenanceAdmission?.limits ?? null;
+  }
+  private async controlsContext(homeId: string, scopeId: string) {
+    const config = await this.config(), home = resolveHome(config);
+    if (this.closed || workflowHomeIdentity(home) !== homeId || !config.mateAgentId || config.migration || config.mateLaunch) refuse("STALE", "Home or FirstMate changed; reopen Supervisor controls.");
+    const status = await this.runtime.read(home), scope = status.scopes.find(s => s.id === scopeId);
+    if (!scope || !["plan", "project", "maintenance"].includes(scope.kind)) refuse("UNKNOWN_OWNER", "One exact local Supervisor scope is required.");
+    const capability = scope.kind === "project" ? "projectMates" as const : scope.kind === "maintenance" ? "maintenance" as const : "scopedActivation" as const;
+    const policy = await this.runtime.features?.read(home);
+    return { config, home, status, scope, capability, policyDigest: digest(policy ?? { enabled: !!this.options.enabled }), enabled: policy?.effective[capability] ?? !!this.options.enabled };
+  }
+  async readControls(input: { homeId: string; scopeId: string }, paseo: PaseoApi) {
+    const c = await this.controlsContext(input.homeId, input.scopeId), view = supervisorView(c.status, input.scopeId), problems = [...c.status.problems];
+    const receiver = this.options.receiver?.(paseo) ?? new SupervisionUiReceiver(paseo, this.root);
+    let catalog: Awaited<ReturnType<typeof supervisorCatalog>> = [];
+    try {
+      const observed = view.binding && await receiver.findAgent(view.binding.agentId);
+      if (!observed || observed.id !== view.binding?.agentId) throw Error("The exact native Supervisor is unavailable. Reconnect its host before reviewing configuration.");
+      const expected = view.configurations.find(g => g.id === view.binding?.configurationId)?.resolved ?? view.binding?.profileReadback;
+      if (expected && (observed.provider !== expected.provider || observed.modeId !== (expected.modeId || null) || observed.thinkingOptionId !== (expected.thinkingOptionId || null)))
+        problems.push("Native profile drift: the exact Supervisor differs from its recorded model, permissions or reasoning. Restore its recorded profile or inspect a checked replacement; no setting was adopted.");
+      catalog = await supervisorCatalog(paseo, observed.cwd);
+    } catch (e) { problems.push(e instanceof Error ? e.message : "The exact host catalog is unavailable."); }
+    if (!c.enabled) problems.push("This responsibility is paused in Help settings. Inspect retained work before resuming.");
+    const plan = c.status.plans.find(p => p.scopeId === input.scopeId)?.plan;
+    return { homeId: input.homeId, scopeId: input.scopeId, title: plan?.definition.title ?? c.scope.kind, planHash: plan?.hash ?? null,
+      view, catalog, problems, policyDigest: c.policyDigest, limits: this.controlsLimits(c.status, input.scopeId) };
+  }
+  async control(input: SupervisorControlInput, paseo: PaseoApi) {
+    await serialized(`${this.attachLock}:${input.scopeId}`, async () => {
+      const c = await this.controlsContext(input.homeId, input.scopeId);
+      if (!c.enabled) refuse("UNSUPPORTED", "This Supervisor responsibility is disabled.");
+      await this.runtime.mutate(c.home, async store => {
+        const receiver = this.options.receiver?.(paseo) ?? new SupervisionUiReceiver(paseo, this.root, { projectMates: true, maintenanceMates: true });
+        const validate = async (status: SupervisionStatus, scopeId: string) => {
+          const current = await this.controlsContext(input.homeId, scopeId);
+          if (current.config.mateAgentId !== c.config.mateAgentId || current.policyDigest !== c.policyDigest || !current.enabled) refuse("STALE", "General or effective policy changed.");
+          await this.runtime.features?.check(c.home, c.capability);
+          if (c.scope.kind === "plan" && this.runtime.features) await checkPlanSupervisorAuthority(c.home, status, scopeId);
+          const project = status.projects?.projects.find(p => p.scopeId === scopeId);
+          if (project && project.state !== "admitted") refuse("HELD", "This project is stopped or held.");
+          for (const ref of project?.sourceVector ?? []) {
+            const source = status.policySources.find(s => s.id === ref.id);
+            if (!source || digest(policyRef("policy-source", source)) !== digest(ref) || status.policySources.some(s => s.supersedes.includes(ref.id))) refuse("STALE", "Reviewed project sources changed.");
+            await checkPolicySource(c.home, source);
+          }
+        };
+        const limitsFor = (s: SupervisionStatus, id: string) => this.controlsLimits(s, id) ?? refuse("HELD", "Reviewed cumulative caps are unavailable.");
+        const commands = new SupervisionCommands(store, c.home, { enabled: true });
+        const occupancy = (s: SupervisionStatus) => digest({ bindings: s.bindings, attempts: s.attempts,
+          effects: s.effects.filter(e => ["reserved", "dispatching", "accepted", "uncertain"].includes(e.state)) });
+        const gateway = new SupervisionGateway(store, commands, c.home, receiver, { enabled: true,
+          policyFence: this.runtime.features?.gateway(c.home, c.capability, () => store.read()),
+          // Native capacity reads finish outside the owned writer. The final claim rechecks their read set.
+          prepareAdmission: async effect => {
+            const before = await store.read(), cap = await this.runtime.features?.capacity(c.home);
+            if (cap) await checkGeneralHeadroom(before, receiver, cap.slots, cap.generalHeadroom, effect.id);
+            const expected = occupancy(before);
+            return current => { if (occupancy(current) !== expected) refuse("STALE", "Capacity reservations changed; inspect and retry this reserved effect."); };
+          }, admissionCheck: (s, effect) => validate(s, effect.scopeId) });
+        const sessions = new SupervisorSessions(store, gateway, receiver, { enabled: true, unverifiedUiAttach: true,
+          limits: limitsFor(await store.read(), input.scopeId), limitsFor, reserveCheck: validate,
+          reserveBoundary: run => this.runtime.features ? this.runtime.features.boundary(c.home, run) : run(),
+          featurePolicy: async () => this.runtime.features?.reservation(c.home, c.capability),
+          globalMateId: async () => (await this.controlsContext(input.homeId, input.scopeId)).config.mateAgentId });
+        const controls = new SupervisorControls(store, sessions, gateway, receiver, { enabled: true, validate, limits: limitsFor,
+          policyDigest: async () => (await this.controlsContext(input.homeId, input.scopeId)).policyDigest,
+          reserve: run => withScopeAdmission(input.homeId, async () => {
+            const accepted = (await store.read()).commands.some(command => command.id === input.requestId);
+            const capacity = await this.runtime.features?.capacity(c.home);
+            if (!accepted && capacity) await checkGeneralHeadroom(await store.read(), receiver, capacity.slots, capacity.generalHeadroom);
+            return run();
+          }),
+          catalog: async scopeId => {
+            const b = (await store.read()).bindings.find(b => b.scopeId === scopeId), old = b && await receiver.findAgent(b.agentId);
+            if (!old || old.id !== b?.agentId) refuse("HELD", "Exact native Supervisor unavailable; no configuration fallback.");
+            return supervisorCatalog(paseo, old.cwd);
+          } });
+        switch (input.op) {
+          case "stage": await controls.stageFromUnverifiedUi(input); break;
+          case "pause": await controls.pauseFromUnverifiedUi(input); break;
+          case "resume": await controls.resumeFromUnverifiedUi(input); break;
+          case "replace": await controls.replaceFromUnverifiedUi(input); break;
+        }
+      }, true);
+    });
+    return this.readControls(input, paseo);
+  }
   async stop() {
     await serialized(this.lock, async () => { this.closed = true; });
     // Drain independently so a migration never acquires General's lock then waits for native Attach IO.
@@ -317,6 +429,8 @@ export class SupervisionActivation {
   }
 }
 export function registerSupervisionActivation(server: Pick<PluginServerContext, "handle">, activation: SupervisionActivation) {
+  server.handle(readSupervisorControls, (input, { paseo }) => activation.readControls(input, paseo));
+  server.handle(actSupervisorControls, (input, { paseo }) => activation.control(input, paseo));
   server.handle(readHandoverEvidence, input => activation.evidence(input));
   server.handle(readMigrationSettings, input => activation.readBackup(input.homeId, input.workflowHomeId));
   server.handle(setMigrationSettings, input => activation.saveBackup(input));

@@ -1,3 +1,6 @@
+import { join } from "node:path";
+import { checkedSupervisorCatalog } from "./supervisor-catalog";
+import { effectLogicalKey, supervisorWorkspaceIntent } from "./supervision-effects";
 import { featurePause } from "../shared/feature-settings";
 /** Default-off Build D. One owned workflow clock, S10 observe records and exception-only owner turns.
  * Only the captain-app admission creates an owner. No Attach, timer mutation, worker dispatch or deletion executor.
@@ -97,7 +100,12 @@ export class MaintenanceRuntime {
   async summary() { return maintenanceSummary(await this.runtime.read(resolveHome(await this.config()))); }
   async admit(input: AdmitMaintenance, paseo: PaseoApi) {
     await this.checked(input.homeId); this.remember(paseo);
-    await admitMaintenanceOwner(this.runtime, input, this.receiver(paseo), id => this.checked(id), this.runtime.features ? await this.runtime.features.capacity(input.homeId).then(c => ({ slots: c.slots, reserved: c.generalHeadroom })) : this.headroom);
+    await admitMaintenanceOwner(this.runtime, input, this.receiver(paseo), id => this.checked(id), this.runtime.features ? await this.runtime.features.capacity(input.homeId).then(c => ({ slots: c.slots, reserved: c.generalHeadroom })) : this.headroom, async reviewed => {
+      const key = effectLogicalKey({ scopeId: reviewed.scopeId, subject: "epoch:1", operation: "workspace.open", causation: "scope.activate", objectiveRevision: 0 });
+      const intent = supervisorWorkspaceIntent(reviewed.scopeId, 1, stableId("effect", key));
+      const catalog = await checkedSupervisorCatalog(paseo, join(this.runtime.root, "supervisor-workspaces", intent.key), reviewed.profile);
+      return { catalogDigest: digest(catalog), policyDigest: digest(await this.runtime.features?.read((await this.checked(input.homeId)).home) ?? { enabled: true }) };
+    });
     return this.read();
   }
   async answer(input: MaintenanceAnswer, paseo: PaseoApi) {

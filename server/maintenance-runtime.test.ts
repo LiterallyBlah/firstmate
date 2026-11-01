@@ -30,7 +30,9 @@ import { registerScopeRpcs } from "./scope-rpc";
 
 vi.setConfig({ testTimeout: 30000 });
 const SCOPE = "00000000-0000-4000-8000-000000000001", JOB = "00000000-0000-4000-8000-000000000002";
-const api = {} as PaseoApi;
+const api = { providers: { listAvailable: async () => ({ providers: [{ provider: "codex", available: true }] }),
+  listModels: async () => ({ models: [{ id: "test", label: "Test", thinkingOptions: [{ id: "xhigh", label: "Extra high" }] }] }),
+  listModes: async () => ({ modes: [{ id: "full-access", label: "Full access" }] }) } } as unknown as PaseoApi;
 const profile = { provider: "codex/test", modeId: "full-access", thinkingOptionId: "xhigh" };
 const captain = { kind: "captain-ui" as const, id: "fixture", source: "fixture" };
 let home: string, root: string, runtime: SupervisionRuntime, service: MaintenanceRuntime, receiver: SyntheticReceiver,

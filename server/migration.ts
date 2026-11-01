@@ -14,8 +14,8 @@ import { sendWithoutInterrupting } from "./send";
 import { message, TEMPLATES } from "./templates";
 import { archiveChildren } from "./archive-inventory";
 
-export async function migrationTargets(paseo: PaseoApi) {
-  const home = resolveHome(await readFirstmateConfig());
+export async function migrationTargets(paseo: PaseoApi, cwd?: string) {
+  const home = cwd ?? resolveHome(await readFirstmateConfig());
   const available = await paseo.providers.listAvailable();
   const lists = await Promise.all(
     available.providers

@@ -19,6 +19,11 @@ import { SupervisionWorkerReceiver } from './supervision-worker-receiver';
 import { s04Fixture } from '../test/supervision-s04-fixture';
 import type { PaseoApi } from './host-types';
 
+// Synthetic provider discovery only; no model or provider trial is run.
+const providers = { listAvailable: async () => ({ providers: [{ provider: 'codex', available: true }] }),
+  listModels: async () => ({ models: [{ id: 'test', label: 'Test', thinkingOptions: [] }] }),
+  listModes: async () => ({ modes: [{ id: 'full-access', label: 'Full access' }] }) };
+
 // Pause only real receiver filesystem preparation; every store/policy operation still uses real IO.
 const gate = vi.hoisted(() => ({ wait: null as Promise<void> | null, entered: null as (() => void) | null,
   project: null as string | null, realpathWait: null as Promise<void> | null, realpathEntered: null as (() => void) | null }));
@@ -101,7 +106,7 @@ it('off completed before native workspace creation must refuse that still-undisp
     change: { requested: { ...FEATURES_OFF, maintenance }, capacity: DEFAULT_FEATURE_CAPACITY },
   });
   const nativeOpen = vi.fn(async () => ({ id: 'native-workspace' }));
-  const api = { workspaces: { open: nativeOpen } };
+  const api = { providers, workspaces: { open: nativeOpen } };
   let release!: () => void, enter!: () => void;
   gate.wait = new Promise<void>(r => { release = r; });
   const entered = new Promise<void>(r => { enter = r; }); gate.entered = enter;
@@ -195,7 +200,7 @@ it.each([false, true])('production RPC in-flight maintenance opening settles acr
       status: 'idle', pendingPermissions: [], archivedAt: null };
     agents.set(agent.id, agent); return { id: agent.id };
   });
-  const api = { workspaces: {
+  const api = { providers, workspaces: {
     open: vi.fn(async (path: string) => { workspaceDirectory = path; return { id: 'rpc-workspace' }; }),
     ref: () => ({ agents: { create } }),
   }, agents: { ref: (id: string) => ({ refresh: async () => ({ agent: agents.get(id) }), send }) } };

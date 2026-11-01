@@ -1,3 +1,4 @@
+import { SupervisorControlsButton } from "./supervisor-controls";
 import type { PluginTheme } from "@getpaseo/plugin";
 import type { PluginScreenProps } from "@getpaseo/plugin/client";
 import { useRpc } from "@getpaseo/plugin/client";
@@ -144,6 +145,7 @@ export function ProjectOwnershipView({ theme, compact, data, readError = false, 
               <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>Details</Text><Icon name={technical === key ? "ChevronDown" : "ChevronRight"} size={14} color={colors.foregroundMuted} /></Pressable>
           </View>
           {technical === key ? <View style={{ gap: 6 }}>
+          {p.agentId && p.scopeId ? <SupervisorControlsButton theme={theme} compact={compact} homeId={data.homeId} scopeId={p.scopeId} onOpenNative={onOpen ? () => onOpen(p) : undefined} /> : null}
           <Text selectable style={{ color: colors.foregroundMuted, fontSize: 13 }}>{readiness.description}</Text>
           <Text selectable style={{ color: colors.foregroundMuted, fontSize: 12 }}>Stored state: {p.state} · version {p.version} · project {p.projectId ?? "not recorded"} · scope {p.scopeId ?? "not recorded"}{p.reason ? ` · ${p.reason}` : ""}</Text>
           <Text selectable style={{ color: colors.foregroundMuted, fontSize: 12 }}>{p.hostId ?? "Host not recorded"} · {p.directory ?? p.registryLocation ?? "Folder not recorded"}</Text>
