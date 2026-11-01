@@ -160,6 +160,7 @@ const WATCH_RESULTS: Readonly<Record<WatchResult, string>> = {
   queued: "waiting for the first mate",
   dropped: "dropped before the first mate could take it",
   delivered: "sent to the first mate",
+  recorded: "recorded for its Supervisor",
   failed: "failed",
   invalid: "cannot run",
 };

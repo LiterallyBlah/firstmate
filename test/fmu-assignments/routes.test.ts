@@ -2,12 +2,14 @@
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { expect, it } from "vitest";
+import { vi } from "vitest";
 import { now } from "../supervision-inbox-fixture";
 import { s04Fixture } from "../supervision-s04-fixture";
 import { WatchConfigStore, WatchRouteHandoff } from "../../server/watch-config";
 import { CutoverGate } from "../../server/supervision-gate";
 import { SupervisionSources } from "../../server/supervision-sources";
 import { digest } from "../../server/submissions";
+import { watchPolicyDigest } from "../../server/supervision-source-state";
 
 async function fixture() {
   const f = await s04Fixture(), scope = await f.addScope(1, "plan", ["build"]);
@@ -17,7 +19,8 @@ async function fixture() {
   const gate = new CutoverGate(f.home, join(f.home, "legacy"));
   let pending: any[] = [];
   const target = { homeId: f.store.homeId, hostId: "local" as const, name: "checks", definitionDigest: digest("definition"),
-    scopeId: scope.id, taskId: task.id, attemptId: task.currentAttempt!, planId: "plan", planHash: state.plans[0]!.plan.hash };
+    scopeId: scope.id, taskId: task.id, attemptId: task.currentAttempt!, planId: "plan", planHash: state.plans[0]!.plan.hash, planRevision: state.plans[0]!.plan.revision,
+    owner: { agentId: state.bindings[0]!.agentId, epoch: state.bindings[0]!.epoch, profileDigest: state.bindings[0]!.profileDigest }, policyDigest: watchPolicyDigest(state, scope.id) };
   const options = { config, gate, definition: async () => target.definitionDigest, pending: async () => pending,
     bind: async (input: typeof target, requestId: string) => sources.bindWatch(input, requestId) };
   const handoff = new WatchRouteHandoff(options);
@@ -39,6 +42,37 @@ it("A8: prepare blocks old transport, restart commits one source association and
   expect((await f.store.read()).sources.bindings.filter(b => b.kind === "watch")).toHaveLength(1);
   expect((await f.config.read()).assignments.checks).toMatchObject({ stage: "committed", generation: 1, target: f.target });
   expect((await f.gate.verdict({ source: "watch", id: "checks@new#output", payloadHash: digest("new") }, "enqueue")).admit).toBe(false);
+});
+it("A8: crash after journal binding resumes the exact commit without another owner or receipt", async () => {
+  const f = await fixture(), request = { requestId: randomUUID(), expectedGeneration: 0, target: f.target };
+  await f.handoff.prepare(request);
+  const original = f.options.bind; let crashed = false;
+  f.options.bind = async (target, id) => { const result = await original(target, id); if (!crashed) { crashed = true; throw Error("synthetic crash after binding"); } return result; };
+  await expect(f.handoff.commit(request.requestId)).rejects.toThrow("synthetic crash");
+  await expect(f.handoff.abort(request.requestId)).rejects.toThrow(/forward/);
+  const before = await f.store.read(); await new WatchRouteHandoff(f.options).commit(request.requestId);
+  expect((await f.store.read()).sequence).toBe(before.sequence);
+  expect((await f.config.read()).assignments.checks?.stage).toBe("committed");
+});
+it("A8: accepted binding replay finishes its original route after later plan progress", async () => {
+  const f = await fixture(), request = { requestId: randomUUID(), expectedGeneration: 0, target: f.target };
+  let current = true, crash = true;
+  const handoff = new WatchRouteHandoff({ ...f.options,
+    validate: async () => { if (!current) throw Error("Later plan progress"); },
+    bindingState: async id => (await f.store.read()).inbox.requests.some(r => r.id === id) ? "committed" : "absent",
+    bind: async (target, id) => { const receipt = await f.options.bind(target, id); if (crash) { crash = false; throw Error("lost local reply"); } return receipt; } });
+  await handoff.prepare(request); await expect(handoff.commit(request.requestId)).rejects.toThrow("lost local reply");
+  current = false; await handoff.commit(request.requestId);
+  expect((await f.config.read()).assignments.checks?.target).toEqual(f.target);
+});
+it("A8: exact pending queue fingerprints may drain before commit; newly produced rows stay held", async () => {
+  const f = await fixture(), pending = { id: "checks@old#output", payloadHash: digest("old") };
+  f.setPending([pending]); const request = { requestId: randomUUID(), expectedGeneration: 0, target: f.target };
+  await f.handoff.prepare(request);
+  expect((await f.gate.verdict({ source: "watch", ...pending }, "send")).admit).toBe(true);
+  expect((await f.gate.verdict({ source: "watch", ...pending, payloadHash: digest("changed") }, "send")).admit).toBe(false);
+  f.setPending([]); await f.handoff.commit(request.requestId);
+  expect((await f.gate.verdict({ source: "watch", ...pending }, "send")).admit).toBe(false);
 });
 it("A8: pending and uncertain old deliveries remain exact and prevent commit", async () => {
   const f = await fixture(), pending = [{ id: "old", payloadHash: digest("old"), delivery: { state: "uncertain" } }]; f.setPending(pending);
@@ -97,4 +131,17 @@ it("A7/A8: malformed or unassigned facts stay refused; no inferred prose ownersh
   const f = await routed(); await expect(f.sources.observeWatch({ ...f.fact, watch: "unknown" })).rejects.toThrow(/owner|route|assignment/i);
   await expect(f.sources.observeWatch({ ...f.fact, validUntil: "tomorrow" })).rejects.toThrow();
   expect((await f.store.read()).inbox.events).toEqual([]);
+});
+it("A6/A7: the existing clock admits one expired-evidence wake without a new source message", async () => {
+  const f = await routed(); await f.sources.observeWatch(f.fact);
+  const expired = new SupervisionSources(f.store, { now: () => new Date(now.getTime() + 120_000) });
+  await expired.refreshWatches(); const sequence = (await f.store.read()).sequence; await expired.refreshWatches();
+  const s = await f.store.read(); expect(s.sequence).toBe(sequence);
+  expect(s.inbox.assignments.filter(a => a.state === "assigned")).toHaveLength(1);
+  await expect(expired.checkWatchAdmission(f.target.scopeId)).rejects.toThrow(/expired/);
+});
+it("A1/A5: changed captured owner/profile and live policy cannot admit a stale assignment", async () => {
+  const f = await fixture();
+  await expect(f.sources.bindWatch({ ...f.target, owner: { ...f.target.owner, epoch: 2 } }, randomUUID())).rejects.toThrow(/owner|stale/i);
+  await expect(f.sources.bindWatch({ ...f.target, policyDigest: digest("other") }, randomUUID())).rejects.toThrow(/policy|stale/i);
 });

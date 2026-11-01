@@ -19,11 +19,24 @@ import { planSubjectHash } from "./workflow-plans";
 import { checkPlanAllocation } from "./plan-allocation";
 import type { SupervisionMutation } from "./supervision-store";
 import { normalizePullRequest } from "./supervision-sources";
+import { SupervisionSources } from "./supervision-sources";
+import { activationEffects } from "./supervisor-sessions";
+import { WatchConfigStore } from "./watch-config";
+import { pluginDir } from "./data-dir";
+import { watchPolicyDigest } from "./supervision-source-state";
+import { cutoverGate } from "./supervision-gate";
 
-async function fixture() {
+async function fixture(realOwners = false) {
   const f = await s04Fixture(), scopes: ScopeHandle[] = [];
   for (let n = 1; n <= 2; n++) {
-    const scope = await f.addScope(n, `chain-${n}`, [`build-${n}`, `review-${n}`]); scopes.push(scope);
+    const scope = await f.addScope(n, `chain-${n}`, [`build-${n}`, `review-${n}`], !realOwners); scopes.push(scope);
+    if (realOwners) {
+      await f.sessions.prepare({ requestId: randomUUID(), scopeId: scope.id, scopeVersion: (await f.store.read()).scopes.find(s => s.id === scope.id)!.version,
+        profile: { provider: "codex/gpt-6.1-sol", modeId: "full-access", thinkingOptionId: "high" }, opening: "Synthetic isolated owner" }, captain);
+      const b = (await f.store.read()).bindings.find(b => b.scopeId === scope.id)!; scope.owner.id = b.agentId;
+      const e = activationEffects(await f.store.read(), scope.id, b.epoch);
+      await f.gateway.dispatch(e.workspace!.id); await f.gateway.dispatch(e.create!.id); await f.sessions.verify(scope.id, b.epoch); await f.gateway.dispatch(e.send!.id); f.receiver.finish(b.agentId);
+    }
     await f.draft(scope, [{ id: `build-${n}` }, { id: `review-${n}`, after: [{ node: `build-${n}`, on: "done" }] }], true);
     const s = await f.store.read(), projectScope = randomUUID(), own = s.scopes.find(s => s.id === scope.id)!;
     const mutations: SupervisionMutation[] = [
@@ -61,6 +74,41 @@ it("default-off registration, view handles and ticks create no home, journal, se
   expect(await service.act({} as never, {} as PaseoApi)).toBe(false); expect(on).not.toHaveBeenCalled(); expect(receiver).not.toHaveBeenCalled();
   await expect(stat(root)).rejects.toMatchObject({ code: "ENOENT" }); await service.stop(); await runtime.stop();
 });
+it("A9: typed watch input advances its independent owner while General and another owner lookup are held", async () => {
+  const f = await fixture(true), sources = new SupervisionSources(f.store), config = new WatchConfigStore(join(pluginDir(), "watch-config.json"));
+  let releaseGeneral!: () => void, generalEntered!: () => void, releaseOwner!: () => void, ownerEntered!: () => void;
+  const ready = new Promise<void>(r => { generalEntered = r; }), slow = new Promise<void>(r => { ownerEntered = r; });
+  let general: Promise<unknown> | undefined, blocked: Promise<unknown> | undefined;
+  try {
+    const facts = [];
+    for (const [i, scope] of f.scopes.entries()) {
+      const binding = (await f.store.read()).bindings.find(b => b.scopeId === scope.id)!; scope.owner.id = binding.agentId;
+      f.receiver.finish(binding.agentId);
+      await f.launch(scope, scope.nodes[0]!);
+      const current = await f.store.read(), task = current.tasks.find(t => t.ownerScopeId === scope.id && t.nodeId === scope.nodes[0])!;
+      const target = { homeId: current.homeId, hostId: "local" as const, name: `checks-${i}`, definitionDigest: digest(`checks-${i}`),
+        scopeId: scope.id, taskId: task.id, attemptId: task.currentAttempt!, planId: scope.planId, planHash: current.plans.find(p => p.scopeId === scope.id)!.plan.hash,
+        planRevision: current.plans.find(p => p.scopeId === scope.id)!.plan.revision, owner: { agentId: binding.agentId, epoch: binding.epoch, profileDigest: binding.profileDigest },
+        policyDigest: watchPolicyDigest(current, scope.id) };
+      await sources.bindWatch(target, randomUUID());
+      const requestId = randomUUID();
+      await config.change(saved => { saved.assignments[target.name] = { requestId, signature: digest(target), generation: 1, stage: "committed", target, pending: [] }; });
+      await cutoverGate(f.home).watchRoute(target.name, requestId, "committed");
+      facts.push({ format: "firstmate.watch-fact/1" as const, watch: target.name, definitionDigest: target.definitionDigest, subject: "checks", state: "failed",
+        evidence: "Synthetic exact owner check", observedAt: new Date().toISOString(), validUntil: new Date(Date.now() + 3600_000).toISOString(), deadline: null,
+        coverage: "complete" as const, policyDigest: digest("policy"), unknownEffects: false });
+    }
+    general = oneAtATime(async () => { generalEntered(); await new Promise<void>(r => { releaseGeneral = r; }); }); await ready;
+    const original = f.receiver.findAgent.bind(f.receiver);
+    let stalled = false;
+    vi.spyOn(f.receiver, "findAgent").mockImplementation(async id => { if (id === f.scopes[0]!.owner.id && !stalled) { stalled = true; ownerEntered(); await new Promise<void>(r => { releaseOwner = r; }); } return original(id); });
+    blocked = f.service.watch(facts[0]!); await slow;
+    const before = f.receiver.sends.length; await f.service.watch(facts[1]!);
+    expect(f.receiver.sends.slice(before).some(s => s.agentId === f.scopes[1]!.owner.id)).toBe(true);
+    expect(f.receiver.sends.every(s => s.agentId !== "general")).toBe(true);
+    expect((await f.store.read()).inbox.assignments.filter(a => a.state === "assigned" || a.state === "offered")).toHaveLength(2);
+  } finally { releaseOwner?.(); releaseGeneral?.(); await blocked?.catch(() => {}); await general; await f.service.stop(); await f.runtime.stop(); }
+}, 90_000);
 it("the first callback after restart is journaled before any view/tick, with one root subscription and one consequence", async () => {
   const f = await fixture(), scope = f.scopes[0]!, launched = await f.launch(scope, scope.nodes[0]!), hooks = new Map<string, (...args: unknown[]) => unknown>();
   const restarted = new PlanRuntime(f.runtime, { enabled: true, config: async () => FirstmateConfigSchema.parse({ home: f.home, mateAgentId: "general" }), receiver: () => f.receiver });

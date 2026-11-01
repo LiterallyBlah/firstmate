@@ -29,6 +29,8 @@ import { SupervisionError, SupervisionStore, type SupervisionMutation } from "./
 import { sendWithoutInterrupting } from "./send";
 import { serialized } from "./serialize";
 import { canonical, digest } from "./submissions";
+import { WatchAssignmentTargetSchema, WatchFactSchema, type WatchAssignmentTarget, type WatchFact } from "../shared/watch-routing";
+import { watchBindingId, watchPolicyDigest } from "./supervision-source-state";
 
 type Subject = z.infer<typeof SupervisionEventSchema>["subject"];
 const blobId = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
@@ -47,6 +49,8 @@ export interface SourceObservation {
   evidence?: Uint8Array[];
   /** Completing an already reserved board submission is not a new observation and spends no observation budget. */
   budgetExempt?: boolean;
+  /** Adapter final guard; read dependencies are pinned with the resulting watch event. */
+  validate?: (status: SupervisionStatus) => void;
 }
 export type SourceAdmission = { eventId: string | null; written: boolean; duplicate: boolean };
 
@@ -58,6 +62,91 @@ const normalHost = (host: string) => host.trim().toLowerCase();
 export class SupervisionSources {
   constructor(readonly store: SupervisionStore, private readonly options: { now?: () => Date; observationCeiling?: number } = {}) {}
   private now() { return SupervisionUtc.parse((this.options.now?.() ?? new Date()).toISOString()); }
+  /** An exact app-captured association, not execution authority and not a second owner registry. */
+  async bindWatch(raw: WatchAssignmentTarget, requestId: string) {
+    const input = WatchAssignmentTargetSchema.parse(raw), id = watchBindingId(input.homeId, input.name);
+    return serialized(`${this.store.root}:ingress`, () => inboxTransaction(this.store, requestId, { op: "bind-watch", ...input }, s => {
+      this.budget(s);
+      const task = s.tasks.find(t => t.id === input.taskId), attempt = s.attempts.find(a => a.id === input.attemptId);
+      const plan = s.plans.find(p => p.scopeId === input.scopeId && p.plan.definition.id === input.planId)?.plan;
+      const scope = s.scopes.find(v => v.id === input.scopeId);
+      const owner = s.bindings.find(b => b.scopeId === input.scopeId);
+      if (s.homeId !== input.homeId || scope?.kind !== "plan" || scope.mode !== "scoped" || scope.state === "retired" ||
+        !task || task.ownerScopeId !== input.scopeId || task.planId !== input.planId || task.currentAttempt !== input.attemptId || attempt?.taskId !== task.id)
+        throw new SupervisionError("UNKNOWN_OWNER", "A watch route needs one exact current registered local plan attempt.");
+      if (task.hostId !== "local" || plan?.hash !== input.planHash || plan.revision !== input.planRevision || owner?.state !== "active" ||
+        digest({ agentId: owner.agentId, epoch: owner.epoch, profileDigest: owner.profileDigest }) !== digest(input.owner) || watchPolicyDigest(s, input.scopeId) !== input.policyDigest)
+        throw new SupervisionError("STALE", "The reviewed plan, owner, profile or policy changed.");
+      const prior = s.sources.bindings.find(b => b.id === id);
+      const value: SourceBinding = { id, kind: "watch", ...input, state: "active", version: (prior?.version ?? 0) + 1 };
+      if (prior) {
+        if (digest({ ...prior, version: 0 }) !== digest({ ...value, version: 0 })) throw new SupervisionError("CONFLICT", "The watch already has a different exact assignment.");
+        return { mutations: [], resultIds: [id] };
+      }
+      return { mutations: [{ kind: "source-binding", value }], resultIds: [id], pins: [inboxRef(s, "task", task.id), inboxRef(s, "attempt", attempt.id),
+        inboxRef(s, "scope", input.scopeId), inboxRef(s, "binding", input.scopeId), inboxRef(s, "workflow", input.planId),
+        ...s.versions.filter(v => ["policy-rule", "policy-source"].includes(v.kind))] };
+    }));
+  }
+  async observeWatch(raw: WatchFact, requestId?: string) {
+    const fact = WatchFactSchema.parse(raw), status = await this.store.read();
+    const binding = status.sources.bindings.find(b => b.kind === "watch" && b.name === fact.watch && b.state === "active");
+    if (!binding || binding.kind !== "watch" || binding.definitionDigest !== fact.definitionDigest) throw new SupervisionError("UNKNOWN_OWNER", "No current exact watch assignment; evidence remains held for attribution.");
+    const owner = status.bindings.find(b => b.scopeId === binding.scopeId);
+    if (!owner || owner.state !== "active" || digest({ agentId: owner.agentId, epoch: owner.epoch, profileDigest: owner.profileDigest }) !== digest(binding.owner))
+      throw new SupervisionError("STALE", "The exact watch owner/profile changed; review this assignment again.");
+    const at = Date.parse(this.now()), expired = Date.parse(fact.validUntil) <= at, due = !!fact.deadline && Date.parse(fact.deadline) <= at;
+    if (Date.parse(fact.observedAt) > at + 5000 || Date.parse(fact.validUntil) - Date.parse(fact.observedAt) > 7 * 86400_000)
+      throw new SupervisionError("HELD", "Watch evidence has an invalid future observation or unbounded freshness.");
+    const prior = status.inbox.events.filter(e => e.envelope.subject.watch === fact.watch).at(-1);
+    const priorPayload = prior ? JSON.parse(await readFile(join(this.store.root, "blobs", prior.envelope.payloadRef.slice(5)), "utf8")) as WatchFact : null;
+    // Observed-at is transport metadata. Freshness/deadline/policy/effect state is semantic and wakes once.
+    const semantic = { subject: fact.subject, state: fact.state, evidence: fact.evidence, validUntil: fact.validUntil, deadline: fact.deadline,
+      coverage: fact.coverage, policyDigest: fact.policyDigest, unknownEffects: fact.unknownEffects, expired, due,
+      admissionPolicyDigest: watchPolicyDigest(status, binding.scopeId) };
+    const critical = fact.state !== "healthy" || expired || due || fact.coverage !== "complete" || fact.unknownEffects ||
+      watchPolicyDigest(status, binding.scopeId) !== binding.policyDigest ||
+      !!priorPayload && digest([priorPayload.subject, priorPayload.state, priorPayload.evidence, priorPayload.policyDigest]) !== digest([fact.subject, fact.state, fact.evidence, fact.policyDigest]);
+    return this.admit({ kind: "watch", hostId: "local", agentId: null, scopeId: binding.scopeId, sourceName: fact.watch,
+      gaps: fact.coverage === "gap" ? ["fetch-failed"] : [], coverage: "unknown",
+      stream: ["watch-fact", binding.scopeId, binding.taskId, binding.attemptId, fact.subject],
+      subject: { watch: fact.watch, watchDefinition: fact.definitionDigest, planId: binding.planId, taskId: binding.taskId, attemptId: binding.attemptId },
+      identity: semantic, consequence: semantic, payload: { ...fact, expired, due, admissionPolicyDigest: semantic.admissionPolicyDigest }, critical, certainty: "reported",
+      validate: s => {
+        const current = s.bindings.find(b => b.scopeId === binding.scopeId);
+        if (!current || current.state !== "active" || digest({ agentId: current.agentId, epoch: current.epoch, profileDigest: current.profileDigest }) !== digest(binding.owner) ||
+          watchPolicyDigest(s, binding.scopeId) !== semantic.admissionPolicyDigest || !s.sources.bindings.some(b => b.id === binding.id && b.version === binding.version && b.state === "active"))
+          throw new SupervisionError("STALE", "Exact watch ownership or policy changed before source admission.");
+      } }, requestId);
+  }
+  /** Existing workflow clock re-evaluates one retained freshness/deadline generation; no new timer. */
+  async refreshWatches(eligible: (name: string) => Promise<boolean> = async () => true, admit: (fact: WatchFact) => Promise<unknown> = fact => this.observeWatch(fact)) {
+    const s = await this.store.read();
+    for (const binding of s.sources.bindings.filter(b => b.kind === "watch" && b.state === "active")) {
+      if (binding.kind !== "watch") continue;
+      if (!await eligible(binding.name)) continue;
+      const latest = s.inbox.events.filter(e => e.envelope.subject.watch === binding.name).at(-1);
+      if (latest) {
+        const { expired: _expired, due: _due, admissionPolicyDigest: _policy, ...raw } = JSON.parse(await readFile(join(this.store.root, "blobs", latest.envelope.payloadRef.slice(5)), "utf8"));
+        await admit(WatchFactSchema.parse(raw));
+      }
+    }
+  }
+  async checkWatchAdmission(scopeId: string) {
+    const s = await this.store.read();
+    for (const b of s.sources.bindings.filter(b => b.kind === "watch" && b.scopeId === scopeId && b.state === "active")) {
+      if (b.kind !== "watch") continue;
+      const task = s.tasks.find(t => t.id === b.taskId), event = s.inbox.events.filter(e => e.envelope.subject.watch === b.name).at(-1);
+      const owner = s.bindings.find(v => v.scopeId === scopeId);
+      if (!owner || owner.state !== "active" || digest({ agentId: owner.agentId, epoch: owner.epoch, profileDigest: owner.profileDigest }) !== digest(b.owner) ||
+        watchPolicyDigest(s, scopeId) !== b.policyDigest) throw new SupervisionError("STALE", "The watch's reviewed owner, profile or policy changed.");
+      if (task?.currentAttempt !== b.attemptId || !event) throw new SupervisionError("HELD", "Watch subject attempt or evidence needs a fresh exact assignment.");
+      const { expired: _e, due: _d, admissionPolicyDigest: _p, ...raw } = JSON.parse(await readFile(join(this.store.root, "blobs", event.envelope.payloadRef.slice(5)), "utf8"));
+      const fact = WatchFactSchema.parse(raw);
+      if (Date.parse(fact.validUntil) <= Date.parse(this.now()) || fact.coverage !== "complete" || fact.unknownEffects)
+        throw new SupervisionError("HELD", "Watch evidence is expired, incomplete or uncertain; reconcile before another action.");
+    }
+  }
   /** F6: observations share the pilot journal, so they stop at a lower ceiling than effects (192) and all
    * writes (256). Transactions from the ceiling up stay reserved for gateway effects and reconciliation. */
   budget(s: SupervisionStatus, exempt = false) {
@@ -72,11 +161,12 @@ export class SupervisionSources {
     let payload = canonical(o.payload ?? null), malformed = false;
     if (Buffer.byteLength(payload) > INBOX_LIMITS.payloadBytes) { payload = canonical({ digest: digest(o.payload), bytes: Buffer.byteLength(payload), omitted: "oversized" }); malformed = true; }
     const hostId = normalHost(o.hostId), scopeId = o.scopeId ?? null, gaps = [...new Set<InboxSource["gaps"][number]>([...o.gaps, ...(malformed ? ["malformed" as const] : [])])];
-    const id = sourceRowId(o.kind, hostId, o.agentId, o.sourceName), observationHash = digest([o.kind, hostId, o.agentId, o.identity]);
+    const id = sourceRowId(o.kind, hostId, o.agentId, o.sourceName), observationHash = digest([o.kind, hostId, o.agentId, o.identity, ...(o.subject.watch ? [o.sourceName] : [])]);
     const stream = `s08:${digest(o.stream)}`, family = o.kind === "watch" ? "pr" : o.kind, content = digest(o.consequence);
     const place = (s: SupervisionStatus) => {
       const events = s.inbox.events.filter(e => e.envelope.causationId === stream);
-      const own = events.filter(e => e.envelope.source.kind === o.kind && e.envelope.source.hostId === hostId).at(-1);
+      const own = events.filter(e => e.envelope.source.kind === o.kind && e.envelope.source.hostId === hostId &&
+        (!o.subject.watch || e.envelope.subject.watch === o.subject.watch)).at(-1);
       const transitions = new Set(events.map(e => e.consequenceKey)).size, current = digest(["s08", family, stream, content, transitions]);
       const repeat = events.at(-1)?.consequenceKey === current, prior = s.inbox.sources.find(c => c.id === id);
       // Equal remote content under a different settled update may hide a new turn; it stays flagged until the content changes.
@@ -88,11 +178,12 @@ export class SupervisionSources {
       return { prior, gaps: all, coverage, known, quiet: !!known && sameGaps(prior, all, coverage, scopeId) && !extra,
         consequenceKey: repeat ? current : digest(["s08", family, stream, content, transitions + 1]), sourceKey: digest([o.sourceName, observationHash, events.length]) };
     };
-    const status = await this.store.read(), early = place(status);
+    const status = await this.store.read(), early = place(status); o.validate?.(status);
     if (early.quiet) return { eventId: early.known!.id, written: false, duplicate: true };
     this.budget(status, o.budgetExempt);
     let outcome: SourceAdmission = { eventId: null, written: true, duplicate: false };
     await serialized(`${this.store.root}:ingress`, () => inboxTransaction(this.store, requestId, { op: "s08-source", kind: o.kind, hostId, stream, observationHash, gaps }, async s => {
+      o.validate?.(s);
       this.budget(s, o.budgetExempt);
       const { prior, gaps, coverage, known, consequenceKey, sourceKey } = place(s);
       const source: InboxSource = { id, kind: o.kind, hostId, agentId: o.agentId, epoch: null, cursor: null, maxSeq: null,
@@ -135,6 +226,7 @@ export class SupervisionSources {
       outcome = { eventId, written: true, duplicate: !!primary };
       return { mutations: [...mutations, ...(extra?.(s, eventId) ?? [])], resultIds: [eventId],
         pins: [...owners.flatMap(x => [inboxRef(s, "task", x.task.id), inboxRef(s, "attempt", x.attempt.id)]),
+          ...(o.subject.watch ? s.versions.filter(v => ["source-binding", "binding", "scope", "policy-rule", "policy-source"].includes(v.kind)) : []),
           ...s.sources.bindings.filter(b => b.id === (o.subject.repositoryId && o.subject.pr ? sourceBindingId(o.subject.repositoryId, o.subject.pr) : "")).map(b => inboxRef(s, "source-binding", b.id))] };
     }));
     return outcome;

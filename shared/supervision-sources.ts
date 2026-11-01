@@ -4,6 +4,7 @@
  */
 import { z } from "zod";
 import { SupervisionHash, SupervisionUtc, SupervisionUuid } from "./supervision";
+import { WatchAssignmentTargetSchema } from "./watch-routing";
 
 const count = z.number().int().min(0).max(Number.MAX_SAFE_INTEGER), positive = count.min(1);
 const text = (max = 256) => z.string().min(1).max(max);
@@ -34,11 +35,14 @@ export type PrObservation = z.infer<typeof PrObservationSchema>;
 export type PrCheck = z.infer<typeof PrCheckSchema>;
 
 /** One primary owner per pull request: an explicit registry join, never a title, label or backlog line. */
-export const SourceBindingSchema = z.object({
+const PullRequestBindingSchema = z.object({
   id: SupervisionHash, kind: z.literal("pull-request"), repository: Repository, pr: positive,
   scopeId: SupervisionUuid, taskId: SupervisionUuid, attemptId: SupervisionUuid,
   state: z.enum(["active", "retired"]), version: positive,
 }).strict();
+export const WatchSourceBindingSchema = WatchAssignmentTargetSchema.extend({ id: SupervisionHash, kind: z.literal("watch"),
+  state: z.enum(["active", "retired"]), version: positive }).strict();
+export const SourceBindingSchema = z.discriminatedUnion("kind", [PullRequestBindingSchema, WatchSourceBindingSchema]);
 export type SourceBinding = z.infer<typeof SourceBindingSchema>;
 export const pullRequestBindingKey = (repository: string, pr: number) => ["pull-request", repository.toLowerCase(), pr] as const;
 

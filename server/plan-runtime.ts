@@ -39,6 +39,9 @@ import { workflowHomeId } from "./workflow-board";
 import { ProjectJudgments } from "./project-judgments";
 import { mkdir } from "node:fs/promises";
 import { checkPlanAllocation } from "./plan-allocation";
+import type { WatchFact } from "../shared/watch-routing";
+import { WatchConfigStore } from "./watch-config";
+import { cutoverGate } from "./supervision-gate";
 
 const Import = z.object({ sources: z.array(PolicySourceSchema).max(64), rules: z.array(PolicyRuleSchema).max(64),
   reviewedHolds: z.array(z.object({ id: z.uuid(), version: z.number().int().positive() }).strict()).max(64).optional() }).strict();
@@ -127,11 +130,13 @@ export class PlanRuntime {
       prepareAdmission: async e => {
         const s = await store.read();
         await admissionCheck(s, e.scopeId);
+        if (e.attemptId) await sources.checkWatchAdmission(e.scopeId);
         const task = s.attempts.find(a => a.id === e.attemptId)?.taskId;
         const relevant = (status: SupervisionStatus) => e.attemptId ? status.sources.bindings.filter(b => b.scopeId === e.scopeId && b.state === "active" &&
           (b.taskId === task || e.dependencyBindings?.some(d => d.attemptId === b.attemptId))) : [];
         const bindings = relevant(s);
         for (const binding of bindings) {
+          if (binding.kind !== "pull-request") continue;
           if (!e.admissionHead) refuse("HELD", "Bound PR sources require the exact selected source head.");
           const read = await sources.admissionCheck(this.options.readPr ?? ghPullRequestReader(), { repository: binding.repository, pr: binding.pr, expectedHead: e.admissionHead, requiredApprovals: 0 });
           if (read.code) refuse(read.code, read.message);
@@ -145,6 +150,7 @@ export class PlanRuntime {
       },
       admissionCheck: async (s, e) => {
         await admissionCheck(s, e.scopeId);
+        if (e.attemptId) await sources.checkWatchAdmission(e.scopeId);
         if (e.attemptId && !["agent.interrupt", "agent.archive"].includes(e.operation)) {
           checkPlanAllocation(s, e.scopeId, false);
           const cap = await this.capacity(home); await checkGeneralHeadroom(s, receiver, cap.slots, cap.generalHeadroom, e.id);
@@ -152,7 +158,7 @@ export class PlanRuntime {
         const scope = s.scopes.find(v => v.id === e.scopeId);
         if (scope?.projectIds.some(id => s.projects?.projects.find(p => p.id === id)?.state === "stopped")) refuse("HELD", "This project's new effects are stopped.");
         if (e.attemptId === null && this.runtime.features) {
-          const cap = await this.capacity(home); await checkGeneralHeadroom(s, receiver, cap.slots, cap.generalHeadroom, e.id);
+          const cap = await this.capacity(home); await checkGeneralHeadroom(s, receiver, cap.slots, cap.generalHeadroom, e.id, e.operation === "agent.send");
         }
         if (e.attemptId === null && e.operation === "agent.send" && scope?.kind === "plan") {
           const authority = planSupervisorAuthority(s, e.scopeId);
@@ -167,7 +173,7 @@ export class PlanRuntime {
       ruleRef: (s, scopeId) => s.scopes.some(v => v.id === scopeId && v.kind === "plan") ? planSupervisorAuthority(s, scopeId) : undefined,
       budgetRefused: scopeId => rules.budgetDecision(scopeId),
       reservationQueue: run => withScopeAdmission(store.homeId, run),
-      preflightTurn: async scopeId => { await admissionCheck(await store.read(), scopeId); const cap = await this.capacity(home); await checkGeneralHeadroom(await store.read(), receiver, cap.slots, cap.generalHeadroom); },
+      preflightTurn: async scopeId => { await admissionCheck(await store.read(), scopeId); const cap = await this.capacity(home); await checkGeneralHeadroom(await store.read(), receiver, cap.slots, cap.generalHeadroom, undefined, true); },
       limits: { supervisorSessions: 1, supervisorTurns: 1 },
       limitsFor: (s, scopeId) => {
         const scope = s.scopes.find(v => v.id === scopeId);
@@ -224,7 +230,7 @@ export class PlanRuntime {
       if (!c) { c = this.compose(store, home, config.mateAgentId, paseo); this.components.set(store, c); }
       const own = c;
       const routeStatus = await store.read(), routes = { format: "firstmate.scoped-pr-routes/1", homeId: store.homeId,
-        bindings: routeStatus.sources.bindings.filter(b => b.state === "active").map(b => ({ repository: b.repository, pr: b.pr })) };
+        bindings: routeStatus.sources.bindings.filter(b => b.kind === "pull-request").filter(b => b.state === "active").map(b => ({ repository: b.repository, pr: b.pr })) };
       if (digest(routes) !== c.routesHash) {
         const directory = join(pluginDir(), "watch-state", "pr-watch"); await mkdir(directory, { recursive: true });
         // Routing projection only; the authoritative bindings remain in the existing journal.
@@ -254,6 +260,8 @@ export class PlanRuntime {
         return;
       }
       await c.rules.observeFailures();
+      await c.sources.refreshWatches(async name => (await new WatchConfigStore(join(pluginDir(), "watch-config.json")).read()).assignments[name]?.stage === "committed",
+        fact => this.admitWatch(home, fact, own.sources));
       const stopRequests = await c.rules.requestStops(), projectInputs = await c.projectJudgments.observe();
       await c.rules.observeFailures();
       const logFailures = (results: PromiseSettledResult<unknown>[]) => results.forEach(r => { if (r.status === "rejected") console.error("[firstmate] scoped progress held:", r.reason); });
@@ -275,6 +283,7 @@ export class PlanRuntime {
       if (!c.recovered || Date.now() - c.recoveredAt >= 60000) {
         if (!c.recovered) await c.ingress.boot();
         for (const binding of s.sources.bindings.filter(b => b.state === "active")) {
+          if (binding.kind !== "pull-request") continue;
           try { await c.sources.observePullRequest(await (this.options.readPr ?? ghPullRequestReader())(binding.repository, binding.pr), { kind: "pr", key: "existing-workflow-clock" }); }
           catch { await c.sources.gap("pr", "github.com", null, `${binding.repository}#${binding.pr}`, ["fetch-failed", "no-cursor"], binding.scopeId); }
         }
@@ -289,6 +298,33 @@ export class PlanRuntime {
     if ((!this.options.enabled && !this.runtime.features) || this.closed) return;
     const home = resolveHome(await this.config());
     for (const [store, c] of this.components) if (store.homeId === workflowHomeIdentity(home)) await c.sources.observeRemote(snapshot);
+  }
+  /** Direct structured watch input; independent scope queues and existing lifecycle, never General's lock. */
+  private async admitWatch(home: string, fact: WatchFact, sources: SupervisionSources) {
+    return cutoverGate(home).run(async () => {
+      const current = (await new WatchConfigStore(join(pluginDir(), "watch-config.json")).read()).assignments[fact.watch],
+        transport = await cutoverGate(home).readWatchRoute(fact.watch);
+      if (current?.stage !== "committed" || current.target.homeId !== workflowHomeIdentity(home) || current.target.definitionDigest !== fact.definitionDigest ||
+        transport?.stage !== "committed" || transport.requestId !== current.requestId)
+        refuse("HELD", "Watch assignment changed before durable source admission.");
+      return sources.observeWatch(fact);
+    });
+  }
+  async watch(fact: WatchFact) {
+    const config = await this.config(), home = resolveHome(config);
+    await this.guard(home, config.mateAgentId);
+    const route = (await new WatchConfigStore(join(pluginDir(), "watch-config.json")).read()).assignments[fact.watch];
+    if (route?.stage !== "committed" || route.target.homeId !== workflowHomeIdentity(home) || route.target.definitionDigest !== fact.definitionDigest)
+      refuse("HELD", "Exact watch routing is paused, changed or uncommitted; no new input is admitted.");
+    if (!this.paseo) refuse("HELD", "A connected local receiver is required; watch output remains retained.");
+    return this.runtime.mutate(home, async store => {
+      let c = this.components.get(store);
+      if (!c) { c = this.compose(store, home, config.mateAgentId, this.paseo!); this.components.set(store, c); }
+      const result = await this.admitWatch(home, fact, c.sources);
+      const s = await store.read(), assignment = s.inbox.assignments.find(a => a.id === result.eventId);
+      if (assignment?.state === "assigned" && assignment.scopeId) await c.lifecycle.wake(assignment.scopeId, "event");
+      return result;
+    });
   }
   async steer(paseo: PaseoApi, agentId: string, text: string) {
     if (!this.options.enabled && !this.runtime.features) refuse("UNSUPPORTED", "Scoped board steering is disabled.");

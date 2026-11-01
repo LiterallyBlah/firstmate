@@ -1,0 +1,14 @@
+import React from "react";
+import {createRoot} from "react-dom/client";
+import {WatchAssignmentReview} from "../../client/watch-supervisors";
+import {theme as dark} from "../board-list/theme";
+const args=new URLSearchParams(location.search),scene=args.get("scene"),compact=innerWidth<600;
+const light={colors:{...dark.colors,surface0:"#ffffff",surface1:"#f4f6f5",surface2:"#e8ecea",border:"#a8b5ad",foreground:"#17211b",foregroundMuted:"#4d5c53",accent:"#17603b",accentForeground:"#ffffff"}};
+const theme=args.get("theme")==="light"?light:dark;
+const id="00000000-0000-4000-8000-000000000001",hash="a".repeat(64);
+const target={homeId:"synthetic-home",hostId:"local",name:"export-checks",definitionDigest:hash,scopeId:id,taskId:id,attemptId:id,planId:"local-export",planHash:hash,planRevision:3,owner:{agentId:id,epoch:1,profileDigest:hash},policyDigest:hash};
+const stage=scene==="prepared"?"prepared":scene==="paused"?"paused":"committed";
+const assignment=scene==="choose"||scene==="review"||scene==="disabled"?null:{requestId:id,signature:hash,generation:1,stage,target,pending:scene==="prepared"?[{id:"retained-unknown",delivery:"uncertain"}]:[]};
+const data={homeId:target.homeId,watches:[{name:target.name,definitionDigest:scene==="stale"?"b".repeat(64):hash,assignment}],targets:[target],owners:[{scopeId:id,profile:"codex/gpt-6.1-sol · full-access · high",remainingSessions:2,remainingTurns:7}],observer:{available:false,reason:"Installed read-only observer adapter is unqualified. Full-access cannot replace independent read-only observation. Existing inspector history is retained."},problems:scene==="disabled"?["Plan Supervisor execution is disabled. Saved routes and pending effects remain retained."]:[]};
+window.actions=[];window.fixtureCalls=[];
+createRoot(document.getElementById("root")).render(<main style={{padding:compact?12:24,background:theme.colors.surface0,minHeight:"100vh"}}><section style={{maxWidth:680,margin:"auto"}}><WatchAssignmentReview theme={theme} data={data} name={args.get("entry")==="watch"?target.name:undefined} planId={args.get("entry")==="plan"?target.planId:undefined} onAction={v=>window.actions.push(v)}/></section></main>);

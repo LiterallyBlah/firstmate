@@ -284,6 +284,7 @@ export class PlanRules {
       if (target.stage === "completion") {
         const task = s.tasks.find(t => t.ownerScopeId === target.scopeId && t.planId === target.planId && t.nodeId === target.nodeId);
         for (const binding of s.sources.bindings.filter(b => b.state === "active" && b.scopeId === target.scopeId && b.taskId === task?.id)) {
+          if (binding.kind !== "pull-request") continue;
           const latest = s.inbox.events.filter(e => e.envelope.subject.repositoryId === binding.repository && e.envelope.subject.pr === binding.pr && e.envelope.subject.head).at(-1);
           if (!latest || latest.envelope.subject.head !== target.head || s.inbox.sources.some(source => source.scopeId === target.scopeId &&
             ["pr", "watch"].includes(source.kind) && source.gaps.some(g => g === "fetch-failed" || g === "queue-pressure")))

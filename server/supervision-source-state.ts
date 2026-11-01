@@ -7,6 +7,11 @@ import { digest } from "./submissions";
 
 type Fail = (code: SupervisionCode, message: string) => never;
 export const sourceBindingId = (repository: string, pr: number) => digest(pullRequestBindingKey(repository, pr));
+export const watchBindingId = (homeId: string, name: string) => digest(["watch", homeId, "local", name]);
+export const watchPolicyDigest = (s: SupervisionStatus, scopeId: string) => digest({
+  rules: s.policyRules.filter(r => r.selector.scopeIds.includes(scopeId)),
+  sources: s.policySources.filter(source => s.policyRules.some(r => r.selector.scopeIds.includes(scopeId) && r.sources.some(ref => ref.id === source.id))),
+});
 
 /** The exact registered owner of a pull request subject. A retired binding keeps history, not routing. */
 export function pullRequestOwners(subject: { repositoryId?: string | undefined; pr?: number | undefined; attemptId?: string | undefined },
@@ -23,6 +28,12 @@ export function validateSourceChange(kind: string, value: unknown, prior: unknow
   const get = (k: string, id: string) => frames.get(inboxKey(k, id))?.value as Record<string, unknown> | undefined;
   if (kind === "source-binding") {
     const row = value as SourceBinding, old = prior as SourceBinding | undefined;
+    if (row.kind === "watch") {
+      if (row.id !== watchBindingId(row.homeId, row.name)) fail("CONFLICT", "Watch binding needs its exact home and name.");
+      if (old && (digest({ ...row, version: 0, state: "active" }) !== digest({ ...old, version: 0, state: "active" }) || old.state === "retired" && row.state !== "retired"))
+        fail("CONFLICT", "A watch keeps its exact subject and owner; reassignment requires explicit disposition.");
+      return;
+    }
     if (row.id !== sourceBindingId(row.repository, row.pr)) fail("CONFLICT", "Pull request binding identity is derived from its repository and number.");
     if (old) {
       if (["repository", "pr", "scopeId", "taskId", "kind"].some(k => old[k as keyof SourceBinding] !== row[k as keyof SourceBinding]))
@@ -65,6 +76,8 @@ export function validateSourceRows(frames: Map<string, InboxFrame>, fail: Fail) 
     if (frame.kind === "source-binding") {
       const row = SourceBindingSchema.parse(frame.value), attempt = get("attempt", row.attemptId), task = get("task", row.taskId), scope = get("scope", row.scopeId);
       if (!attempt || !task || attempt.taskId !== row.taskId || task.ownerScopeId !== row.scopeId) fail("UNKNOWN_OWNER", "A pull request binding needs its exact registered attempt and task owner.");
+      if (row.kind === "watch" && (row.homeId !== scope?.homeId || row.planId !== task?.planId || task?.hostId !== "local"))
+        fail("UNKNOWN_OWNER", "Watch association must retain its exact home, local task and owning plan.");
       if (row.state === "active" && scope?.mode !== "scoped") fail("UNKNOWN_OWNER", "Only a scoped owner can receive pull request evidence.");
     }
     if (frame.kind === "board-submission") {

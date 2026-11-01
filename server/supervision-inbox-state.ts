@@ -24,6 +24,10 @@ export function inboxProjection(frames: Map<string, InboxFrame>): InboxProjectio
 export function eventOwners(event: InboxEvent, tasks: SupervisionStatus["tasks"], attempts: SupervisionStatus["attempts"],
   bindings: readonly SourceBinding[] = []) {
   const subject = event.envelope.subject;
+  if (subject.watch) return bindings.filter(b => b.kind === "watch" && b.name === subject.watch && b.definitionDigest === subject.watchDefinition && b.state === "active")
+    .flatMap(b => { const task = tasks.find(t => t.id === b.taskId), attempt = attempts.find(a => a.id === b.attemptId);
+      return task && attempt && task.ownerScopeId === b.scopeId && attempt.taskId === task.id &&
+        (!subject.taskId || subject.taskId === task.id) && (!subject.attemptId || subject.attemptId === attempt.id) && (!subject.planId || subject.planId === task.planId) ? [{ task, attempt, scopeId: b.scopeId }] : []; });
   // S08: a pull request subject is owned only through its explicit registry binding, never its agent text.
   if (subject.pr !== undefined || subject.repositoryId !== undefined) {
     const owners = pullRequestOwners(subject, tasks, attempts, bindings);
