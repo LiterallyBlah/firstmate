@@ -18,6 +18,13 @@ export const ChatQueueItemSchema = z.object({
   id: z.string().uuid(), target: ChatQueueTargetSchema, payload: ChatQueuePayloadSchema.nullable(),
   hash: z.string(), state: z.enum(["queued", "editing", "claimed", "sent", "held", "refused", "removed"]),
   problem: z.string().nullable(),
+  /** Additive observation only. A transport acknowledgement is not a measured model start.
+   * Historical rows intentionally have no invented enqueue/accept time. */
+  timing: z.object({
+    enqueuedAt: z.number().finite().nonnegative(), attemptedAt: z.number().finite().nonnegative().nullable(),
+    acceptedAt: z.number().finite().nonnegative().nullable(),
+    busyCause: z.enum(["receiver-busy", "in-flight", "earlier-message", "ready", "explicit-now", "queue-disabled"]),
+  }).strict().optional(),
 });
 export type ChatQueueItem = z.infer<typeof ChatQueueItemSchema>;
 export const ChatQueuePreviewSchema = ChatQueueItemSchema.omit({ payload: true }).extend({ text: z.string(), attachmentCount: z.number().int().nonnegative() });

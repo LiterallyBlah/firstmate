@@ -43,6 +43,7 @@ export function WatchAssignmentReview({ theme, data, name, planId, disabled = fa
   const [selected, select] = useState<WatchAssignmentTarget | null>(null);
   const text = { color: theme.colors.foreground, lineHeight: 21, fontSize: 14 }, note = { ...text, color: theme.colors.foregroundMuted };
   const blocked = disabled || !!data.problems.length;
+  const selectedAssignment = data.watches.find(w => w.name === selected?.name)?.assignment;
   return <View testID="watch-assignment-review" style={{ gap: 14, minWidth: 0, maxWidth: "100%" }}>
     <Text style={{ ...text, fontWeight: "600", fontSize: 18 }}>Exact watch inputs</Text>
     <Text style={note}>A typed watch fact goes directly to one plan owner. This adds no session, grant or worker budget. Opaque prompts need an explicit attribution review.</Text>
@@ -68,7 +69,7 @@ export function WatchAssignmentReview({ theme, data, name, planId, disabled = fa
           label={`Review ${w.name} to ${t.planId} · ${t.taskId}`} disabled={blocked} onPress={() => select(t)} />) : null}
       </View>;
     })}
-    {selected ? <View style={{ gap: 8 }}><Text selectable style={text}>Review {selected.name} → {selected.planId}. Home {selected.homeId} · local · scope {selected.scopeId} · task {selected.taskId} · attempt {selected.attemptId}.</Text>
+    {selected && (!selectedAssignment || selectedAssignment.stage === "aborted") ? <View style={{ gap: 8 }}><Text selectable style={text}>Review {selected.name} → {selected.planId}. Home {selected.homeId} · local · scope {selected.scopeId} · task {selected.taskId} · attempt {selected.attemptId}.</Text>
       <Text style={note}>{data.owners.find(o => o.scopeId === selected.scopeId)?.profile}. Remaining: {data.owners.find(o => o.scopeId === selected.scopeId)?.remainingSessions ?? "unknown"} sessions, {data.owners.find(o => o.scopeId === selected.scopeId)?.remainingTurns ?? "unknown"} turns. One executing scope per session. New assignment holds admission until old deliveries drain; it never attaches an owner.</Text>
       <Action theme={theme} label="Prepare reviewed watch assignment" disabled={blocked || !data.targets.some(t => JSON.stringify(t) === JSON.stringify(selected))}
         onPress={() => { void onAction({ op: "prepare", requestId: workflowRequestId(), expectedGeneration: data.watches.find(w => w.name === selected.name)?.assignment?.generation ?? 0, target: selected }); }} />

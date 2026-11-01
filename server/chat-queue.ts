@@ -75,6 +75,7 @@ export class ChatQueue {
   }
   private claim(state: State, item: ChatQueueItem) {
     item.state = "claimed";
+    if (item.timing) item.timing.attemptedAt = this.now();
     state.claims[item.id] = { owner: this.owner, at: this.now() };
     return structuredClone(item);
   }
@@ -84,6 +85,7 @@ export class ChatQueue {
   }
   async submit(id: string, payload: ChatQueuePayload, now = false, replaces?: string): Promise<ChatQueueItem> {
     const target = queueTarget(payload);
+    const enqueuedAt = this.now();
     // Join serialization before any asynchronous read/check so concurrent
     // admissions retain their arrival order, including on a cold disk.
     const claimed = await this.transaction(async state => {
@@ -95,7 +97,10 @@ export class ChatQueue {
         if (!editing || !["editing", "refused"].includes(editing.state)) throw new Error("The message being edited changed. Refresh before sending.");
         editing.state = "removed"; editing.payload = null;
       }
-      const item: ChatQueueItem = { id, target, payload, hash: hash(payload), state: "queued", problem: null };
+      const inFlight = this.inFlight(state, target), earlier = state.items.some(i => i.state === "queued" && this.group(i.target) === this.group(target));
+      const item: ChatQueueItem = { id, target, payload, hash: hash(payload), state: "queued", problem: null,
+        timing: { enqueuedAt, attemptedAt: null, acceptedAt: null,
+          busyCause: now ? "explicit-now" : !enabled ? "queue-disabled" : activity === "busy" ? "receiver-busy" : inFlight ? "in-flight" : earlier ? "earlier-message" : "ready" } };
       state.items.push(item);
       const waiting = activity === "busy" || this.inFlight(state, target) || state.items.some(i => i.id !== id && i.state === "queued" && this.group(i.target) === this.group(target));
       if (enabled && !now && waiting && state.items.filter(i => i.state === "queued").length > 100) throw new Error("The queue is full. Remove a message before adding another.");
@@ -135,6 +140,7 @@ export class ChatQueue {
       // A recovery sweep or captain dismissal wins over a late transport reply.
       if (saved.state !== "claimed" || state.claims[item.id]?.owner !== this.owner) return;
       saved.state = refused ? "refused" : problem ? "held" : "sent"; saved.problem = problem;
+      if (!problem && saved.timing) saved.timing.acceptedAt = this.now();
       delete state.claims[item.id];
       if (!problem) saved.payload = null;
     });
