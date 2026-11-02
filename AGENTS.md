@@ -35,6 +35,8 @@ are adapted now, with project/maintenance origins covered by fixtures, never inv
 The single drawer filters its shared snapshot by scope/ancestry, keeps global totals and unknown
 quarantines visible, and uses the checked logical-owner answer outbox with unverified app provenance.
 Projects/Plans/Needs-you reuse scope chat and native links; compact Bearings reads storage only.
+The FirstMate chat has no conversation switcher or @-mentions: Home neither lists bound project/plan
+scopes nor polls their histories, and a scoped chat opens only from an explicit route (`ChatDestination`).
 See `docs/scoped-supervision/build-c.md` and the both-theme/width harness under `build-c-ui/`.
 Build D adds `server/maintenance-runtime.ts` behind `FIRSTMATE_MAINTENANCE=1`, sharing that
 runtime and the existing workflow clock. Its strict RPC/helper transport records S10 observe jobs,

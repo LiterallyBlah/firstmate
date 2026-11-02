@@ -1,5 +1,10 @@
 # Mention mates and switch conversations
 
+> **Later:** the Supervisor cleanup (slice 2, November 2026) removed the conversation
+> switcher, @-mentions and their unread tracking from the FirstMate chat, and with them
+> `render.mjs` and `contact-sheets.mjs`. `data.jsx`/`stubs.jsx` remain as shared fixtures
+> (`docs/chat-queue/`, `docs/supervisor-cleanup/`). This page records slice 11 as it shipped.
+
 Slice 11 builds on the smooth-update report's slices 1, 6 and 8. The captain
 accepted D1–D8; D5 keeps FirstMate's original transcript as Home's permanent
 source, with explicit named conversations and a return. Refreshes stay silent;

@@ -19,12 +19,12 @@ const scopeFixture: ScopeSnapshot = { homeId: "/home", sequence: 1, freshness: "
   lastEffectFailure: null, goals: [], activeWorkers: 0, activeEffects: 0, uncertainEffects: 0,
 }] };
 
-const state = vi.hoisted(() => ({ snapshot: null as NeedsYouSnapshot | null, plans: undefined as WorkflowSnapshot | undefined, entries: [] as TimelineEntry[], scopes: undefined as ScopeSnapshot | undefined, scopeError: null as Error | null, keyboard: 0, keepAtEnd: vi.fn(), openPlan: vi.fn(), send: vi.fn(), focus: vi.fn() }));
-vi.mock("./scope-query", () => ({ useScopeSnapshot: () => ({ data: state.scopes, error: state.scopeError, refetch: vi.fn() }) }));
+const state = vi.hoisted(() => ({ snapshot: null as NeedsYouSnapshot | null, plans: undefined as WorkflowSnapshot | undefined, entries: [] as TimelineEntry[], scopes: undefined as ScopeSnapshot | undefined, scopeError: null as Error | null, scopeReads: 0, rpcCalls: [] as string[], keyboard: 0, keepAtEnd: vi.fn(), openPlan: vi.fn(), send: vi.fn(), focus: vi.fn() }));
+vi.mock("./scope-query", () => ({ useScopeSnapshot: () => { state.scopeReads++; return { data: state.scopes, error: state.scopeError, refetch: vi.fn() }; } }));
 vi.mock("./scope-discussion", () => ({ ScopeDiscussion: (props: object) => createElement("ScopeDiscussion", props) }));
-vi.mock("./project-setup", () => ({ ProjectSetup: (props: object) => createElement("ProjectSetup", props) }));
 vi.mock("react-native", () => ({ Platform: { OS: "web" }, ...Object.fromEntries(["View", "Text", "Pressable", "ScrollView", "SafeAreaView", "Image"].map(name => [name, name])) }));
 vi.mock("@getpaseo/plugin/client", () => ({ useRpc: (contract: { name: string }) => async (input: any) => {
+  state.rpcCalls.push(contract.name);
   if (contract.name === "firstmate.chat.queue") return { enabled: true, items: [] };
   if (contract.name === "firstmate.chat.submit") { state.send(input.payload.message); return { ...input, state: "sent" }; }
   return {};
@@ -71,7 +71,7 @@ afterEach(async () => {
   await act(async () => renderer?.unmount()); client?.clear();
   drafts.set(mate.id, ""); pendingAttachments.set(mate.id, []); vi.clearAllMocks();
   state.plans = undefined; state.entries = [];
-  state.scopes = undefined; state.scopeError = null;
+  state.scopes = undefined; state.scopeError = null; state.scopeReads = 0; state.rpcCalls = [];
   state.keyboard = 0;
   drafts.set(scopeUiKey("local", "/home"), "");
   drafts.set(scopeDraftKey("local", "/home", "project-mate"), "");
@@ -172,108 +172,58 @@ it("keeps the phone composer above the keyboard and leaves Enter for a newline",
 });
 
 const button = (label: string) => renderer.root.findAll(n => n.type === ("Pressable" as never) && n.props.accessibilityLabel === label)[0]!;
-it("offers the existing mate from @, carries words into its named draft and preserves General", async () => {
-  state.scopes = structuredClone(scopeFixture);
-  await render();
-  await act(async () => renderer.root.findByType("TextInput" as never).props.onChangeText("@reader Explain this"));
-  await act(async () => renderer.root.findByType("TextInput" as never).props.onSelectionChange({ nativeEvent: { selection: { start: 7, end: 7 } } }));
-  expect(button("Send").props.disabled).toBe(false);
-  await act(async () => button("Reader mate. Project: Reader mate").props.onPress());
-  await act(async () => button("Message Reader mate").props.onPress());
-  expect(renderer.root.findByType("ScopeDiscussion" as never).props.initialScope).toBe("project-mate");
-  expect(renderer.root.findByType("ScopeDiscussion" as never).props.capturedTarget).toEqual(scopeFixture.scopes[0]!.target);
-  expect(drafts.get(scopeDraftKey("local", "/home", "project-mate"))).toBe("Explain this");
-  expect(drafts.get(mate.id)).toBe("@reader Explain this");
-  expect(state.send).not.toHaveBeenCalled();
-  await act(async () => button("Back to FirstMate").props.onPress());
-  expect(renderer.root.findByType("TextInput" as never).props.value).toBe("@reader Explain this");
-});
+function withHelper() {
+  const scopes = structuredClone(scopeFixture);
+  const helper = structuredClone(scopes.scopes[0]!);
+  helper.id = "plan-helper"; helper.kind = "plan"; helper.title = "Phone layout";
+  helper.target = { ...helper.target, scopeId: helper.id, agentId: "helper-agent" };
+  scopes.scopes.push(helper);
+  return scopes;
+}
 
-it.each(["pending", "failed", "empty"])("keeps %s conversation discovery distinct while ordinary @ text can be sent to FirstMate", async kind => {
-  state.scopes = kind === "empty" ? { ...structuredClone(scopeFixture), scopes: [] } : undefined;
-  state.scopeError = kind === "failed" ? new Error("Offline") : null;
+it.each(["@reader check chapter three please", "@sarah said the cover looks great", "@"])("lists no bound project or plan conversations on Home and sends %j to FirstMate as written", async text => {
+  // Bound project-mate and plan scopes, as the retired Ariadne/Starpath bindings are, must not surface.
+  state.scopes = withHelper();
   await render();
-  await act(async () => renderer.root.findByType("TextInput" as never).props.onChangeText("@"));
-  expect(renderer.root.findAll(n => n.type === ("Pressable" as never) && n.props.accessibilityLabel === "No project mates yet. Set one up")).toHaveLength(kind === "empty" ? 1 : 0);
-  if (kind === "empty") {
-    await act(async () => button("No project mates yet. Set one up").props.onPress());
-    expect(renderer.root.findAllByType("ProjectSetup" as never)).toHaveLength(1);
-  }
-  await act(async () => button("Send").props.onPress());
-  expect(state.send).toHaveBeenCalledOnce();
-});
-
-it("keeps a filtered picker reachable through every keystroke of a leading @ sentence", async () => {
-  state.scopes = structuredClone(scopeFixture);
-  await render();
-  const words = "@reader check chapter three please";
-  for (let length = 1; length <= words.length; length++) {
-    await act(async () => renderer.root.findByType("TextInput" as never).props.onChangeText(words.slice(0, length)));
-    expect(button("Reader mate. Project: Reader mate")).toBeDefined();
-    expect(button("Send").props.disabled).toBe(false);
-  }
-  expect(JSON.stringify(renderer.toJSON())).not.toContain("Choose a mate above");
-  await act(async () => button("Reader mate. Project: Reader mate").props.onPress());
-  await act(async () => button("Message Reader mate").props.onPress());
-  expect(drafts.get(scopeDraftKey("local", "/home", "project-mate"))).toBe("check chapter three please");
-  expect(state.send).not.toHaveBeenCalled();
-});
-
-it.each(["Escape", "Close mentions", "Cancel mention", "unmatched", "no mates"])("sends @ prose to FirstMate after %s without a scoped fallback", async dismissal => {
-  state.scopes = { ...structuredClone(scopeFixture), ...(dismissal === "no mates" ? { scopes: [], uiEnabled: false } : {}) };
-  await render();
-  const text = dismissal === "unmatched" || dismissal === "no mates" ? "@sarah said the cover looks great" : "@reader check chapter three please";
+  expect(renderer.root.findAllByProps({ testID: "conversation-switcher" })).toHaveLength(0);
+  expect(renderer.root.findAll(n => n.type === ("Pressable" as never) && /^Conversations: /.test(n.props.accessibilityLabel ?? ""))).toHaveLength(0);
   await act(async () => renderer.root.findByType("TextInput" as never).props.onChangeText(text));
-  if (dismissal === "Escape") await act(async () => renderer.root.findByType("TextInput" as never).props.onKeyPress({ nativeEvent: { key: "Escape" }, preventDefault() {} }));
-  if (dismissal === "Close mentions") await act(async () => button("Close mentions").props.onPress());
-  if (dismissal === "Cancel mention") {
-    await act(async () => button("Reader mate. Project: Reader mate").props.onPress());
-    await act(async () => button("Cancel mention").props.onPress());
-  }
-  if (["Escape", "Close mentions", "Cancel mention"].includes(dismissal)) {
-    await act(async () => renderer.root.findByType("TextInput" as never).props.onChangeText(`${text}!`));
-    expect(renderer.root.findAllByProps({ testID: "mate-mentions" })).toHaveLength(0);
-    await act(async () => renderer.root.findByType("TextInput" as never).props.onChangeText(text));
-  }
-  expect(button("Send").props.disabled).toBe(false);
+  expect(renderer.root.findAllByProps({ testID: "mate-mentions" })).toHaveLength(0);
+  expect(JSON.stringify(renderer.toJSON())).not.toMatch(/Reader mate|Phone layout|project mates|To: FirstMate/);
+  // Home neither reads the scope snapshot nor polls any bound scope's history.
+  expect(state.scopeReads).toBe(0);
+  expect(state.rpcCalls).not.toContain("firstmate.scope.conversation");
   await act(async () => button("Send").props.onPress());
   expect(state.send).toHaveBeenCalledOnce();
   expect(state.send.mock.calls[0]![0]).toMatchObject({ text });
   expect(renderer.root.findAllByType("ScopeDiscussion" as never)).toHaveLength(0);
 });
 
-it("leaves the empty never-enabled Home without conversation switcher chrome", async () => {
-  state.scopes = { ...structuredClone(scopeFixture), uiEnabled: false, scopes: [] };
-  await render();
-  expect(renderer.root.findAllByProps({ testID: "conversation-switcher" })).toHaveLength(0);
-  await act(async () => renderer.root.findByType("TextInput" as never).props.onChangeText("@"));
-  expect(button("No project mates yet. Set one up")).toBeDefined();
-});
-
-it("keeps a chosen owner pinned when its binding changes", async () => {
+it("keeps an explicitly opened owner pinned when its binding changes", async () => {
   state.scopes = structuredClone(scopeFixture);
+  const target = scopeFixture.scopes[0]!.target;
+  const tree = () => createElement(QueryClientProvider, { client }, createElement(MateChat, { ...props, scopeRequest: { homeId: "/home", scopeId: target.scopeId, target: { ...target } } }));
   await render();
-  await act(async () => button("Conversations: FirstMate").props.onPress());
-  await act(async () => renderer.root.findAll(n => n.type === ("Pressable" as never) && /^Reader mate, /.test(n.props.accessibilityLabel ?? ""))[0]!.props.onPress());
+  await act(async () => renderer.update(tree()));
+  expect(renderer.root.findByType("ScopeDiscussion" as never).props.capturedTarget).toEqual(target);
   state.scopes = structuredClone(scopeFixture);
   state.scopes.scopes[0]!.target.epoch++;
-  await act(async () => renderer.update(createElement(QueryClientProvider, { client }, createElement(MateChat, props))));
+  await act(async () => renderer.update(tree()));
   expect(renderer.root.findAllByType("ScopeDiscussion" as never)).toHaveLength(0);
   expect(JSON.stringify(renderer.toJSON())).toContain("owner changed");
   expect(state.send).not.toHaveBeenCalled();
 });
 
-it("updates the conversation switcher when the existing recipient control changes the discussion", async () => {
-  state.scopes = structuredClone(scopeFixture);
-  const helper = structuredClone(state.scopes.scopes[0]!);
-  helper.id = "plan-helper"; helper.kind = "plan"; helper.title = "Phone layout";
-  helper.target = { ...helper.target, scopeId: helper.id, agentId: "helper-agent" };
-  state.scopes.scopes.push(helper);
+it("follows the existing recipient control within an explicit discussion, and back to FirstMate", async () => {
+  state.scopes = withHelper();
+  const tree = () => createElement(QueryClientProvider, { client }, createElement(MateChat, { ...props, scopeRequest: { homeId: "/home", scopeId: "project-mate" } }));
   await render();
-  await act(async () => button("Conversations: FirstMate").props.onPress());
-  await act(async () => renderer.root.findAll(n => n.type === ("Pressable" as never) && /^Reader mate, /.test(n.props.accessibilityLabel ?? ""))[0]!.props.onPress());
+  await act(async () => renderer.update(tree()));
   await act(async () => renderer.root.findByType("ScopeDiscussion" as never).props.onSelectScope("plan-helper"));
   expect(renderer.root.findByType("ScopeDiscussion" as never).props.initialScope).toBe("plan-helper");
-  expect(renderer.root.findAll(n => n.type === ("Pressable" as never) && /^Conversations: Phone layout helper/.test(n.props.accessibilityLabel ?? ""))).toHaveLength(1);
+  expect(renderer.root.findByType("ScopeDiscussion" as never).props.capturedTarget).toEqual(state.scopes.scopes[1]!.target);
+  await act(async () => renderer.root.findByType("ScopeDiscussion" as never).props.onSelectScope("general"));
+  expect(renderer.root.findAllByType("ScopeDiscussion" as never)).toHaveLength(0);
+  expect(renderer.root.findAllByProps({ testID: "conversation-switcher" })).toHaveLength(0);
   expect(state.send).not.toHaveBeenCalled();
 });
