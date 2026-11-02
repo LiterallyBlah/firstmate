@@ -32,8 +32,7 @@ import { agentStatusLabel, modelLabel } from "./format";
 import { useModeOptions, useModelOptions, withCurrent } from "./models";
 import { OptionPicker } from "./option-picker";
 import { errorText } from "./ui";
-import { WorkflowSurface } from "./workflow-plans";
-import { WorkDetails } from "./work-details";
+import { SupervisorsEntry } from "./supervisors";
 import { HelpSettings } from "./help-settings";
 
 const CONFIG_QUERY_KEY = ["firstmate", "config"] as const;
@@ -108,10 +107,8 @@ export function SettingsScreen({ theme, layout, host, navigation }: PluginSurfac
           home={config.data.resolvedHome} hostId={host?.id ?? "local"} /> : config.isError ? <SettingsAction label="Can't read FirstMate's home" hint="Check the connection, then try reading settings again. Your existing setup stays in use."
           actionLabel="Refresh settings" disabled={config.isFetching} onPress={() => { void config.refetch({ cancelRefetch: false }); }} /> : <Text accessibilityLiveRegion="polite" style={styles.note}>Loading help settings…</Text>}
       </SettingsGroup>
-      <SettingsGroup title="Work details">
-        <WorkflowSurface theme={theme} hostId={host?.id ?? "local"}>
-          <WorkDetails theme={theme} compact={layout.compact} hostId={host?.id ?? "local"} {...(navigation ? { navigation } : {})} always />
-        </WorkflowSurface>
+      <SettingsGroup title="Supervisors">
+        <SupervisorsEntry theme={theme} compact={layout.compact} hostId={host?.id ?? "local"} {...(navigation ? { navigation } : {})} always />
       </SettingsGroup>
       <SettingsGroup title="The first mate">
         <SettingsSection title="Messages">

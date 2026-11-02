@@ -24,15 +24,16 @@ function Action({ theme, label, disabled = false, expanded, onPress }: { theme: 
     <Text style={{ color: theme.colors.foreground, flexShrink: 1 }}>{label}</Text>
   </Pressable>;
 }
-export function MaintenanceOwnershipBoard({ theme, compact, hostId = "local", navigation, advanced = false, onNavigate }: { theme: PluginTheme; compact: boolean; hostId?: string; navigation?: PluginScreenProps["navigation"]; advanced?: boolean; onNavigate?(): void }) {
+/** `listed`: the Supervisors list already shows each owner, so only an unfinished setup stays here, and new checks are added from here. */
+export function MaintenanceOwnershipBoard({ theme, compact, hostId = "local", navigation, advanced = false, listed = false, onNavigate }: { theme: PluginTheme; compact: boolean; hostId?: string; navigation?: PluginScreenProps["navigation"]; advanced?: boolean; listed?: boolean; onNavigate?(): void }) {
   const read = useRpc(readMaintenance);
   const query = useQuery({ queryKey: ["firstmate", "maintenance-ownership", hostId], queryFn: async () => MaintenanceRuntimeSnapshotSchema.parse(await read({})), refetchInterval: 5000 });
-  const [admission, selectAdmission] = useState<Owner | null>(null);
+  const [admission, selectAdmission] = useState<Owner | "new" | null>(null);
   const [technicalDetails, setTechnicalDetails] = useState(false);
   const data = query.data;
   useEffect(() => { selectAdmission(null); setTechnicalDetails(false); }, [hostId, data?.homeId]);
   if (!data) return query.isError ? <Text accessibilityRole="alert" style={{ color: theme.colors.statusWarning }}>Routine checks could not be read. Close and reopen details to check again.</Text> : null;
-  if (!maintenanceHasHistory(data) && !data.problems.length && !data.pause && data.freshness !== "held" && !query.isError && !(advanced && data.enabled)) return null;
+  if (!maintenanceHasHistory(data) && !data.problems.length && !data.pause && data.freshness !== "held" && !query.isError && !(advanced && (data.enabled || listed))) return null;
   const stale = query.isError || !data.enabled, colors = theme.colors;
   return <View testID="maintenance-ownership" style={{ gap: 8, padding: compact ? 12 : 16, borderBottomWidth: 1, borderColor: colors.border }}>
     <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "600" }}>Routine checks</Text>
@@ -41,24 +42,26 @@ export function MaintenanceOwnershipBoard({ theme, compact, hostId = "local", na
     {query.isError ? <Text accessibilityRole="alert" style={{ color: colors.statusWarning }}>Routine checks could not be refreshed. Actions are unavailable; refresh before continuing.</Text> : null}
     {data.problems.map(p => <Text key={p} accessibilityRole="alert" style={{ color: colors.statusWarning }}>{p}</Text>)}
     <View style={{ gap: 8 }}>
-      {data.owners.map(owner => <View key={owner.scopeId} style={{ gap: 4 }}>
+      {data.owners.filter(owner => !listed || owner.admission && owner.opening !== "succeeded").map(owner => <View key={owner.scopeId} style={{ gap: 4 }}>
         <Text style={{ color: colors.foreground }}>{owner.admission?.name ?? "Maintenance owner"} · {owner.state}{owner.opening ? ` · opening ${owner.opening}` : ""}</Text>
         <Text style={{ color: colors.foregroundMuted }}>{owner.sessions} session reserved · {owner.turns} turns reserved{owner.uncertain ? ` · ${owner.uncertain} uncertain` : ""}</Text>
         <Text selectable style={{ color: colors.foregroundMuted, fontSize: 12 }}>Scope {owner.scopeId} · epoch {owner.epoch} · agent {owner.agentId ?? "not recorded"}</Text>
-        {owner.agentId ? <SupervisorControlsButton theme={theme} compact={compact} homeId={data.homeId} scopeId={owner.scopeId} navigation={navigation} /> : null}
-        {owner.agentId && navigation ? <Action theme={theme} label={`Open ${owner.admission?.name ?? "maintenance owner"}`} onPress={() => { navigation.openAgent({ agentId: owner.agentId!, ...(hostId === "local" ? {} : { serverId: hostId }) }); onNavigate?.(); }} /> : null}
+        {owner.agentId && !listed ? <SupervisorControlsButton theme={theme} compact={compact} homeId={data.homeId} scopeId={owner.scopeId} navigation={navigation} /> : null}
+        {owner.agentId && navigation && !listed ? <Action theme={theme} label={`Open ${owner.admission?.name ?? "maintenance owner"}`} onPress={() => { navigation.openAgent({ agentId: owner.agentId!, ...(hostId === "local" ? {} : { serverId: hostId }) }); onNavigate?.(); }} /> : null}
         {owner.admission && owner.opening !== "succeeded" ? <Action theme={theme} label={`Resume ${owner.admission.name}`} disabled={stale} onPress={() => selectAdmission(owner)} /> : null}
       </View>)}
     </View>
     {data.incidents.map(incident => <Text key={incident.id} accessibilityRole="alert" style={{ color: colors.statusWarning }}>{incident.detail}</Text>)}
     <Action theme={theme} label="Technical details" expanded={technicalDetails} onPress={() => setTechnicalDetails(!technicalDetails)} />
     {technicalDetails ? <Text selectable style={{ color: colors.foregroundMuted, fontSize: 12 }}>Cleanup: {data.cleanup.state} · {data.cleanup.reason}{data.cleanup.conditions.map(c => ` · ${c.id}: ${c.satisfied ? "met" : c.reasons.join("; ")}`).join("")}</Text> : null}
-    <Text style={{ color: colors.foregroundMuted }}>Set up routine checks in FirstMate settings.</Text>
+    {!listed ? <Text style={{ color: colors.foregroundMuted }}>Set up routine checks in FirstMate settings.</Text>
+      : data.enabled ? <Action theme={theme} label="Add routine checks Supervisor" disabled={stale || data.freshness === "held" || !!data.problems.length} onPress={() => selectAdmission("new")} />
+      : <Text style={{ color: colors.foregroundMuted }}>Turn on routine checks in FirstMate settings to add a routine checks Supervisor.</Text>}
     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
       {maintenanceHasHistory(data) ? <Action theme={theme} label="Refresh routine checks" onPress={() => { void query.refetch(); }} /> : null}
     </View>
-    {admission ? <MaintenanceAdmissionConfirmation key={`${data.homeId}:${admission.scopeId}`} theme={theme} compact={compact} homeId={data.homeId}
-      owner={admission} stale={stale || data.freshness === "held" || !!data.problems.length} onClose={() => selectAdmission(null)} onRead={() => { void query.refetch(); }} /> : null}
+    {admission ? <MaintenanceAdmissionConfirmation key={`${data.homeId}:${admission === "new" ? "new" : admission.scopeId}`} theme={theme} compact={compact} homeId={data.homeId}
+      owner={admission === "new" ? null : admission} stale={stale || data.freshness === "held" || !!data.problems.length} onClose={() => selectAdmission(null)} onRead={() => { void query.refetch(); }} /> : null}
   </View>;
 }
 export function MaintenanceAdmissionConfirmation({ theme, compact, homeId, owner, stale, onClose, onRead }: {

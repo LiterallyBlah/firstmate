@@ -80,7 +80,7 @@ import { TaskBoard } from "./task-board";
 import { useTaskLayout } from "./task-layout";
 import { taskPresentation } from "./task-presentation";
 import { WorkflowSurface, PlansControl, useWorkflowPlans, WORKFLOW_QUERY_KEY } from "./workflow-plans";
-import { WorkDetails } from "./work-details";
+import { SupervisorsEntry } from "./supervisors";
 import { WorkflowPlansView } from "./workflow-plan-browser";
 import { workflowOwnsCard } from "../shared/workflow-identity";
 import { workflowTaskTarget } from "./workflow-task-navigation";
@@ -754,7 +754,7 @@ function FleetViewBody({
         {shell !== undefined ? (
           <HubLauncher theme={theme} navigation={navigation} shell={shell} workspaceId={homeWorkspaceId} compact phone={compact} />
         ) : null}
-        {home ? <WorkDetails theme={theme} compact={compact || narrowHeader} showCount={!narrowHeader} hostId={host?.id ?? "local"} navigation={navigation} /> : null}
+        {home ? <SupervisorsEntry theme={theme} compact={compact || narrowHeader} hostId={host?.id ?? "local"} navigation={navigation} /> : null}
         <HeaderActions
           theme={theme}
           navigation={navigation}

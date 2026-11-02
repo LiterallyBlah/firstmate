@@ -108,3 +108,24 @@ it("F1: inspecting a retained checks conversation dismisses details without star
   expect(openAgent).toHaveBeenCalledExactlyOnceWith({ agentId: "saved-checks" });
   expect(order).toEqual(["open", "dismiss"]); expect(mocks.admit).not.toHaveBeenCalled(); expect(mocks.answer).not.toHaveBeenCalled();
 });
+it("listed beside the Supervisors list: owners stay in the list, only an unfinished setup resumes here, and Add opens the existing review", async () => {
+  const admission = { homeId: "fixture-home", requestId: "00000000-0000-4000-8000-000000000004", scopeId: "00000000-0000-4000-8000-000000000005", name: "Nightly checks",
+    profile: { provider: "codex/test", modeId: "full-access" }, limits: { supervisorSessions: 1 as const, supervisorTurns: 20 } };
+  data.owners = [{ scopeId: id, state: "active", agentId: "saved-checks", epoch: 1, sessions: 1, turns: 2, uncertain: 0, admission: { ...admission, name: "Storage checks" }, opening: "succeeded" },
+    { scopeId: admission.scopeId, state: "active", agentId: null, epoch: 1, sessions: 1, turns: 0, uncertain: 0, admission, opening: "uncertain" }];
+  await mount({ listed: true });
+  const text = () => visibleText(renderer!.toJSON());
+  expect(text()).not.toContain("Storage checks"); expect(text()).toContain("Nightly checks");
+  expect(renderer!.root.findAll(n => n.type === "Pressable" as never && n.props.accessibilityLabel === "Supervisor settings")).toHaveLength(0);
+  expect(button("Resume Nightly checks")).toBeDefined();
+  expect(text()).not.toContain("Set up routine checks in FirstMate settings.");
+  await act(async () => button("Add routine checks Supervisor").props.onPress());
+  expect(text()).toContain("Create one persistent checks conversation in its own workspace.");
+  expect(mocks.admit).not.toHaveBeenCalled();
+});
+it("listed with routine checks turned off points to settings instead of adding", async () => {
+  data.enabled = false;
+  await mount({ listed: true });
+  expect(visibleText(renderer!.toJSON())).toContain("Turn on routine checks in FirstMate settings to add a routine checks Supervisor.");
+  expect(renderer!.root.findAll(n => n.type === "Pressable" as never && n.props.accessibilityLabel === "Add routine checks Supervisor")).toHaveLength(0);
+});

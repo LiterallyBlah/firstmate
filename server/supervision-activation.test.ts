@@ -390,7 +390,7 @@ it("strict RPCs accept no actor/source and no attach operation exists on migrati
   expect(MigrationCommandSchema.safeParse({ ...prepare, op: "attach" }).success).toBe(false);
   const handlers: string[] = [];
   registerSupervisionActivation({ handle: (rpc: { name: string }) => { handlers.push(rpc.name); } } as never, activation);
-  expect(handlers).toEqual(["firstmate.supervisor.controls.read", "firstmate.supervisor.controls.act-ui", "firstmate.supervision.plan-help.evidence", "firstmate.supervision.backup.read", "firstmate.supervision.backup.set", "firstmate.supervision.plan-help.read", "firstmate.supervision.activation", "firstmate.supervision.migrate", "firstmate.supervision.attach-ui"]);
+  expect(handlers).toEqual(["firstmate.supervisor.controls.read", "firstmate.supervisors.read", "firstmate.supervisor.controls.act-ui", "firstmate.supervision.plan-help.evidence", "firstmate.supervision.backup.read", "firstmate.supervision.backup.set", "firstmate.supervision.plan-help.read", "firstmate.supervision.activation", "firstmate.supervision.migrate", "firstmate.supervision.attach-ui"]);
   for (const file of await readdir("templates/tools")) {
     const source = await readFile(join("templates/tools", file), "utf8");
     expect(source).not.toMatch(/attach-ui|attachSupervisorFromUi|attachFromUnverifiedUi/);

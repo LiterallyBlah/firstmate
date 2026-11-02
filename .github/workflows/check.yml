@@ -23,7 +23,6 @@ jobs:
       - run: node docs/smooth-pr5/render.mjs
       - run: node docs/smooth-pr7/render.mjs
       - run: node docs/smooth-pr9/render.mjs
-      - run: node docs/smooth-pr9/work-details-render.mjs
       - run: node docs/smooth-pr9/production-render.mjs
       - run: node node_modules/vitest/vitest.mjs run server/plan-help-wiring.test.ts --maxWorkers=1
         env:
@@ -34,7 +33,6 @@ jobs:
       - run: node docs/smooth-pr10/render-delayed.mjs
       - run: node docs/smooth-pr10/render-drawer.mjs
       - run: node docs/smooth-pr10/render-quiet.mjs
-      - run: node docs/project-mate-context/render.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: deck-before-after
@@ -60,8 +58,6 @@ jobs:
             .local/smooth-pr9/ui/screenshots/*.png
             .local/smooth-pr9/production/*.png
             .local/smooth-pr9/production/results.json
-            .local/smooth-pr9/work-details/*.png
-            .local/smooth-pr9/work-details/results.json
             .local/smooth-pr10/ui/results.json
             .local/smooth-pr10/ui/screenshots/*.png
             .local/smooth-pr10/delayed/*.png
@@ -70,8 +66,6 @@ jobs:
             .local/smooth-pr10/drawer/results.json
             .local/smooth-pr10/quiet/*.png
             .local/smooth-pr10/quiet/results.json
-            .local/project-mate-context/*.png
-            .local/project-mate-context/results.json
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 30
@@ -112,7 +106,7 @@ jobs:
       - run: node docs/scoped-supervision/build-c-ui/render.mjs
       - run: node docs/smooth-pr8/render.mjs
       - run: node docs/smooth-pr6/render.mjs
-      - run: node docs/smooth-pr6/live-render.mjs
+      - run: node docs/supervisor-cleanup/supervisors-render.mjs
       - run: node docs/supervisor-cleanup/chat-render.mjs
       - run: node docs/chat-queue/render.mjs
       - run: node docs/smooth-rollout/render.mjs
@@ -138,8 +132,9 @@ jobs:
             .local/smooth-pr8/ui/results.json
             .local/smooth-pr6/ui/screenshots/*.png
             .local/smooth-pr6/ui/results.json
-            .local/smooth-pr6/live-ui/screenshots/*.png
-            .local/smooth-pr6/live-ui/results.json
+            .local/supervisor-cleanup/s3/*.png
+            .local/supervisor-cleanup/s3/screenshots/*.png
+            .local/supervisor-cleanup/s3/results.json
             .local/supervisor-cleanup/s2/*.png
             .local/supervisor-cleanup/s2/screenshots/*.png
             .local/supervisor-cleanup/s2/results.json

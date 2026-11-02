@@ -2,7 +2,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ProjectOwnershipView } from "../../client/project-ownership";
+import { ProjectContextView as ProjectOwnershipView } from "../../client/project-context";
 import { SupervisionActivationBoard } from "../../client/supervision-activation";
 import { MaintenanceOwnershipBoard } from "../../client/maintenance-ownership";
 import { theme as dark } from "../board-list/theme";

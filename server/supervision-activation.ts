@@ -1,6 +1,6 @@
 import { supervisorWorkspace } from "./supervisor-workspace";
-import { readSupervisorControls, actSupervisorControls, type SupervisorControlInput } from "../shared/supervisor-controls";
-import { supervisorView } from "./supervisor-configuration";
+import { readSupervisorControls, actSupervisorControls, readSupervisorList, type SupervisorControlInput, type SupervisorList } from "../shared/supervisor-controls";
+import { supervisorList, supervisorView } from "./supervisor-configuration";
 import { SupervisorControls } from "./supervisor-controls";
 import { supervisorCatalog, checkedSupervisorCatalog } from "./supervisor-catalog";
 import { supervisorWorkspaceIntent } from "./supervision-effects";
@@ -329,6 +329,11 @@ export class SupervisionActivation {
       }, true);
     });
   }
+  /** The Supervisors list: stored truth for every scope kind, with no native or catalog read. */
+  async listSupervisors(): Promise<SupervisorList> {
+    const home = resolveHome(await this.config()), status = await this.runtime.read(home);
+    return { homeId: workflowHomeIdentity(home), rows: supervisorList(status, scopeId => this.controlsLimits(status, scopeId)), problems: status.problems };
+  }
   private controlsLimits(status: SupervisionStatus, scopeId: string): GatewayLimits | null {
     const scope = status.scopes.find(s => s.id === scopeId);
     if (scope?.kind === "plan") { const c = planSupervisorLimits(status, scopeId).limits; return c ? { supervisorSessions: c.sessions, supervisorTurns: c.turns } : { supervisorSessions: 1, supervisorTurns: 1 }; }
@@ -443,6 +448,7 @@ export class SupervisionActivation {
 }
 export function registerSupervisionActivation(server: Pick<PluginServerContext, "handle">, activation: SupervisionActivation) {
   server.handle(readSupervisorControls, (input, { paseo }) => activation.readControls(input, paseo));
+  server.handle(readSupervisorList, () => activation.listSupervisors());
   server.handle(actSupervisorControls, (input, { paseo }) => activation.control(input, paseo));
   server.handle(readHandoverEvidence, input => activation.evidence(input));
   server.handle(readMigrationSettings, input => activation.readBackup(input.homeId, input.workflowHomeId));

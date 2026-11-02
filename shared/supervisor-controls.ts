@@ -22,5 +22,14 @@ export const SupervisorControlsSnapshotSchema = z.object({ homeId: z.string(), s
   limits: SupervisorConfigurationSchema.shape.limits.nullable() }).strict();
 export type SupervisorControlsSnapshot = z.infer<typeof SupervisorControlsSnapshotSchema>;
 export const readSupervisorControls = defineRpc({ name: "firstmate.supervisor.controls.read", input: z.object({ homeId: z.string(), scopeId: SupervisionUuid }).strict(), output: SupervisorControlsSnapshotSchema });
+const SupervisorListRowSchema = z.object({ scopeId: SupervisionUuid, kind: z.enum(["plan", "project", "maintenance"]), title: z.string(), planId: z.string().nullable(),
+  state: z.string(), agentId: z.string().nullable(), epoch: z.number().int().positive().nullable(),
+  profile: z.object({ provider: z.string(), modeId: z.string().nullable(), thinkingOptionId: z.string().nullable() }).strict().nullable(),
+  sessions: z.number().int().min(0), turns: z.number().int().min(0), limits: SupervisorConfigurationSchema.shape.limits.nullable(), lastFailure: z.string().nullable() }).strict();
+export type SupervisorListRow = z.infer<typeof SupervisorListRowSchema>;
+export const SupervisorListSchema = z.object({ homeId: z.string(), rows: z.array(SupervisorListRowSchema), problems: z.array(z.string()) }).strict();
+export type SupervisorList = z.infer<typeof SupervisorListSchema>;
+/** Stored truth only: no native lookup, catalog read, activation or turn. */
+export const readSupervisorList = defineRpc({ name: "firstmate.supervisors.read", input: z.object({}).strict(), output: SupervisorListSchema });
 /** App convention; input cannot assert an actor. No tool/CLI registration. */
 export const actSupervisorControls = defineRpc({ name: "firstmate.supervisor.controls.act-ui", input: SupervisorControlInputSchema, output: SupervisorControlsSnapshotSchema });

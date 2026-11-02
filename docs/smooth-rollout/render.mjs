@@ -5,6 +5,7 @@ import {mkdir,readFile,writeFile} from 'node:fs/promises';
 import {execFileSync} from 'node:child_process';
 import {createServer} from 'node:http';
 import assert from 'node:assert/strict';
+import { removedAtBaseline } from '../supervisor-cleanup/removed-at-baseline.mjs';
 const here=dirname(fileURLToPath(import.meta.url)),root=resolve(here,'../..'),out=resolve(root,'.local/smooth-rollout');
 const repo=createRequire(resolve(root,'package.json')),local=createRequire(resolve(root,'docs/board-list/package.json'));
 const {build}=local('esbuild'),{chromium}=local('playwright');
@@ -16,6 +17,7 @@ for(const version of ['before','after']) await build({entryPoints:[resolve(here,
  b.onResolve({filter:/^react-dom($|\/)/},a=>({path:local.resolve(a.path)}));
  b.onResolve({filter:/^react-native($|-web$)/},()=>({path:local.resolve('react-native-web')}));
  b.onResolve({filter:/^lucide-react$/},()=>({path:local.resolve('lucide-react')}));
+ if (version==='before') removedAtBaseline(b, root, 'd74a30c');
  if(version==='before') b.onLoad({filter:/[\\/]client[\\/].*\.(ts|tsx)$/},async args=>({contents:execFileSync('git',['show',`d74a30c:${relative(root,args.path).replaceAll('\\','/')}`],{cwd:root,encoding:'utf8'}),loader:args.path.endsWith('.tsx')?'tsx':'ts'}));
 }}]});
 const html=version=>`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body,#root{margin:0;width:100%;height:100%;overflow:hidden;font-family:system-ui}#root{display:flex;flex-direction:column}*{box-sizing:border-box}</style><div id="root"></div><script src="/${version}.js"></script>`;

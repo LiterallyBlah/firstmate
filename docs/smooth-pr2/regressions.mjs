@@ -6,6 +6,7 @@ import {mkdir,readFile,writeFile} from 'node:fs/promises';
 import {execFileSync} from 'node:child_process';
 import {createServer} from 'node:http';
 import assert from 'node:assert/strict';
+import { removedAtBaseline, SUPERVISORS_AS_WORK_DETAILS } from '../supervisor-cleanup/removed-at-baseline.mjs';
 const here=dirname(fileURLToPath(import.meta.url)),root=resolve(here,'../..'),out=resolve(root,'.local/smooth-pr2/regressions');
 const repo=createRequire(resolve(root,'package.json')),local=createRequire(resolve(root,'docs/board-list/package.json'));
 const{build}=local('esbuild'),{chromium}=local('playwright');
@@ -25,6 +26,7 @@ if(params.get('case')==='discuss')Object.assign(projects.projects[0],{name:'Read
 if(params.get('case')==='read-error')window.review.scopeFail=true;
 `}));
  b.onLoad({filter:/smooth-pr2[\\/]stubs.jsx$/},async a=>({loader:'jsx',contents:(await readFile(a.path,'utf8')).replace('window.review.calls.push({name:contract.name,input});',`window.review.calls.push({name:contract.name,input}); if(window.review.scopeFail&&contract.name==='firstmate.scope.read')throw new Error('Synthetic temporary scope read failure');`)}));
+ if (stage==='before') removedAtBaseline(b, root, baseline, SUPERVISORS_AS_WORK_DETAILS);
  if(stage==='before')b.onLoad({filter:/[\\/]client[\\/][^\\/]+\.tsx?$/},a=>{
   const path=relative(root,a.path).replaceAll('\\','/');if(!affected.has(path.slice('client/'.length)))return;
   return{contents:execFileSync('git',['show',`${baseline}:${path}`],{cwd:root,encoding:'utf8'}),loader:'tsx'};
@@ -45,9 +47,14 @@ try{
   const q=new URLSearchParams({stage,theme,home:'upgraded',features:scenario==='problem-layout'?'off':'on',case:scenario});
   if(['discuss','read-error'].includes(scenario))q.set('configured','');if(scenario==='problem-layout')q.set('problem','');
   await page.goto(origin+'/?'+q,{waitUntil:'networkidle'});await settle(page);
-  await page.getByRole('button',{name:'Work details',exact:true}).click();await settle(page);
+  // Supervisor cleanup slice 3 renamed Work details to Supervisors and removed its project board's Discuss route
+  // and plan-help re-read, so F1/F2 are reproduced on the baseline only; the after stage captures the new dialog.
+  const details=stage==='before'?'Work details':'Supervisors',projects=stage==='before'?'Project mates and plans':'Projects';
+  await page.getByRole('button',{name:details,exact:true}).click();await settle(page);
   const key=`${theme}-${device}-${scenario}-${stage}`,evidence={};
-  if(scenario==='discuss'){
+  if(stage==='after'&&['discuss','read-error'].includes(scenario)){
+   evidence.retired=true;
+  }else if(scenario==='discuss'){
    await page.getByRole('button',{name:'Project mates and plans',exact:true}).click();
    if(stage==='after')await page.getByRole('button',{name:'Show Reader details',exact:true}).first().click();
    await page.getByRole('button',{name:'Discuss Reader scope',exact:true}).click();
@@ -82,14 +89,14 @@ try{
     await page.getByText('Plan help could not be refreshed.',{exact:false}).waitFor({state:'hidden'});
    }
   }else{
-   await page.getByRole('button',{name:'Project mates and plans',exact:true}).click();
+   await page.getByRole('button',{name:projects,exact:true}).click();
    await page.evaluate(()=>{
     const nodes=[...document.querySelectorAll('*')].filter(el=>[...el.childNodes].some(n=>n.nodeType===Node.TEXT_NODE&&n.textContent.trim()));
     const sizes=nodes.map(el=>({el,size:parseFloat(getComputedStyle(el).fontSize),line:parseFloat(getComputedStyle(el).lineHeight)}));
     for(const{el,size,line}of sizes){el.style.fontSize=`${size*2}px`;if(Number.isFinite(line))el.style.lineHeight=`${line*2}px`;}
    });
    await page.getByRole('button',{name:stage==='before'?'Refresh maintenance':'Technical details',exact:true}).scrollIntoViewIfNeeded();
-   evidence.buttons=await page.getByRole('dialog',{name:'Work details',exact:true}).evaluate(dialog=>{
+   evidence.buttons=await page.getByRole('dialog',{name:details,exact:true}).evaluate(dialog=>{
     const bounds=dialog.getBoundingClientRect();return[...dialog.querySelectorAll('[role="button"],button')].map(el=>{
      const r=el.getBoundingClientRect();let clipped=r.left<bounds.left-.5||r.right>bounds.right+.5;
      for(let p=el.parentElement;p&&p!==dialog;p=p.parentElement){const c=getComputedStyle(p),b=p.getBoundingClientRect();if(['hidden','auto','scroll'].includes(c.overflowX)&& (r.left<b.left-.5||r.right>b.right+.5))clipped=true;}

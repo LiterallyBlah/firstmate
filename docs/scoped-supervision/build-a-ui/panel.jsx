@@ -1,6 +1,6 @@
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ProjectOwnershipView } from "../../../client/project-ownership";
+import { ProjectContextView as ProjectOwnershipView } from "../../../client/project-context";
 import { theme as dark } from "../../board-list/theme";
 const light = { colors: { ...dark.colors, surface0: "#f6f8f7", surface1: "#ffffff", border: "#c9d2cc", foreground: "#16241b", foregroundMuted: "#52635a", statusWarning: "#8a5813", statusDanger: "#a52c2c" } };
 const theme = new URLSearchParams(location.search).get("theme") === "light" ? light : dark;

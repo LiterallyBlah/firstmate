@@ -15,8 +15,8 @@ compile time. This file covers only what is specific to `firstmate`.
 Build A overlays the historical unwired S09 notes below: `server/supervision-runtime.ts` owns one
 coordinator per home shared with activation; `server/project-runtime.ts` exposes reviewed registry
 admission, S09 administration and explicit project provisioning only with `FIRSTMATE_PROJECT_MATES=1`.
-Its helper reuses the workflow clock and exposes no provisioning or Attach. `client/project-ownership.tsx`
-shows Home/Plans membership and context without model wakes. Provisioning retains its
+Its helper reuses the workflow clock and exposes no provisioning or Attach. `client/project-context.tsx`
+shows project membership, folders, memory and plans as context only, without model wakes or setup actions. Provisioning retains its
 original input for fresh-client resume; inspected app recovery repairs only validated metadata,
 and app stop retains identity/spend and uncertain effects. Per-project queues never hold General's conversation
 lock; only capacity reservation shares the scoped admission queue, with fresh guards before native effects.
@@ -37,6 +37,10 @@ quarantines visible, and uses the checked logical-owner answer outbox with unver
 Projects/Plans/Needs-you reuse scope chat and native links; compact Bearings reads storage only.
 The FirstMate chat has no conversation switcher or @-mentions: Home neither lists bound project/plan
 scopes nor polls their histories, and a scoped chat opens only from an explicit route (`ChatDestination`).
+Work details is now **Supervisors** (`client/supervisors.tsx`, Home's header and Settings): one row per bound
+or configured plan, project or routine-check Supervisor from `firstmate.supervisors.read` (`supervisorList`,
+a pure journal projection), with Supervisor settings, its native session, routine-check Add and project context.
+Plan Attach stays in Plans; no project-mate setup, "Mate active" label or setup-count badge remains.
 See `docs/scoped-supervision/build-c.md` and the both-theme/width harness under `build-c-ui/`.
 Build D adds `server/maintenance-runtime.ts` behind `FIRSTMATE_MAINTENANCE=1`, sharing that
 runtime and the existing workflow clock. Its strict RPC/helper transport records S10 observe jobs,

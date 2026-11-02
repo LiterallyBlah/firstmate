@@ -3,6 +3,8 @@ import type { SupervisionStatus } from "../shared/supervision";
 import { digest } from "./submissions";
 import { refuse } from "./supervision-effects";
 import type { SupervisorConfiguration } from "../shared/supervisor-profile";
+import type { GatewayLimits } from "../shared/supervision-effects";
+import type { SupervisorListRow } from "../shared/supervisor-controls";
 /** The reviewed subject is pinned through reservation and each not-yet-admitted opening effect. */
 export function checkSupervisorTarget(status: SupervisionStatus, config: SupervisorConfiguration) {
   const scope = status.scopes.find(s => s.id === config.scopeId), plan = status.plans.find(p => p.scopeId === config.scopeId)?.plan;
@@ -49,4 +51,23 @@ export function supervisorView(status: SupervisionStatus, scopeId: string) {
       sources: status.sources.bindings.filter(s => s.scopeId === scopeId).map(s => s.id),
       unlanded: status.plans.filter(p => p.scopeId === scopeId).flatMap(p => Object.entries(p.plan.nodes).filter(([, n]) => n.state === "done").map(([id]) => id)) },
     retirement: "Retirement requires disposition of retained effects, workers, decisions, sources and unlanded artifacts. No workspace or history is deleted." };
+}
+/** Every plan, project and routine-check Supervisor with a binding or a saved configuration, from stored truth only. */
+export function supervisorList(status: SupervisionStatus, limits: (scopeId: string) => GatewayLimits | null): SupervisorListRow[] {
+  return status.scopes.flatMap(scope => {
+    if (scope.kind !== "plan" && scope.kind !== "project" && scope.kind !== "maintenance") return [];
+    const view = supervisorView(status, scope.id);
+    if (!view.binding && !view.configurations.length) return [];
+    const plan = status.plans.find(p => p.scopeId === scope.id)?.plan, project = status.projects?.projects.find(p => p.scopeId === scope.id);
+    const admission = status.commands.find(c => c.result.maintenanceAdmission?.scopeId === scope.id)?.result.maintenanceAdmission;
+    // The profile the exact session runs; a staged proposal is not current until a reviewed replacement.
+    const bound = view.configurations.find(c => c.id === view.binding?.configurationId)?.resolved ?? view.binding?.profileReadback;
+    const profile = bound ?? (view.binding ? undefined : view.configurations.at(-1)?.resolved) ?? project?.owner?.profile ?? admission?.profile;
+    const failure = status.effects.filter(e => e.scopeId === scope.id && e.state === "failed").at(-1);
+    return [{ scopeId: scope.id, kind: scope.kind, title: plan?.definition.title ?? project?.name ?? admission?.name ?? `${scope.kind} ${scope.id.slice(0, 8)}`,
+      planId: plan?.definition.id ?? null, state: scope.state === "retired" ? "retired" : view.state, agentId: view.binding?.agentId ?? null, epoch: view.binding?.epoch ?? null,
+      profile: profile ? { provider: profile.provider, modeId: profile.modeId || null, thinkingOptionId: profile.thinkingOptionId || null } : null,
+      sessions: view.sessions, turns: view.turns, limits: limits(scope.id),
+      lastFailure: failure ? `${failure.operation} failed${failure.receiptRef ? ` (${failure.receiptRef})` : ""}` : null }];
+  });
 }
