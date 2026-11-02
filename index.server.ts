@@ -194,7 +194,7 @@ export default function contribute(server: PluginServerContext) {
     const workflow = await workflowSnapshot(home), base = await withWorkflowNeeds(snapshot, home, workflow);
     try {
       const status = await readSupervision(home);
-      const combined = status.scopes.length || status.problems.length ? withScopedNeedsYou(base, status) : base;
+      const combined = status.scopes.length || status.problems.length ? withScopedNeedsYou(base, status, await decisions.homeBridge(base, home)) : base;
       const policy = await features.read(home);
       return { ...(policy.effective.scopeUi ? withScopeInboxContext(combined, status, workflow.plans, (await remotes.read()).localServerId ?? "local") : combined),
         scopedAnswersEnabled: policy.effective.scopeExecution, maintenanceAnswersEnabled: policy.effective.maintenance };
@@ -212,7 +212,7 @@ export default function contribute(server: PluginServerContext) {
   registerScopeRpcs(server, { read: async () => {
     const config = await readFirstmateConfig(), home = resolveHome(config);
     return { home, generalId: config.mateAgentId || null, status: await readSupervision(home) };
-  }, readNeeds: () => readCombinedNeeds(), policy: home => features.read(home),
+  }, readNeeds: () => readCombinedNeeds(), homeBridge: (snapshot, home) => decisions.homeBridge(snapshot, home), policy: home => features.read(home),
     admittedProjectsOnly: true, execute: scopeRuntime.execute.bind(scopeRuntime) });
   server.handle(readWorkflowPlans, async (_input, { paseo }) => { plans.remember(paseo); return workflowSnapshot(resolveHome(await readFirstmateConfig())); });
   server.handle(actOnWorkflowPlan, async ({ homeId, requestId, command }, { paseo }) => {

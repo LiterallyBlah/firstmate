@@ -10,7 +10,7 @@ import { scopeSnapshot } from "./scope-projection";
 import { observeProjectSessions, withObservedProjectSessions } from "./scope-status";
 import { readThread } from "./item-threads";
 import { SupervisionError } from "./supervision-store";
-import { withScopedNeedsYou } from "./needs-you-service";
+import { withScopedNeedsYou, type DecisionHomeBridge } from "./needs-you-service";
 import type { ScopeDiscussions } from "./scope-discussion";
 import type { SupervisionCommands } from "./supervision-commands";
 import { activationSnapshot } from "./supervision-activation";
@@ -19,6 +19,7 @@ import { scopedBearings } from "./scope-bearings";
 export interface ScopeRpcDependencies {
   read(): Promise<{ home: string; generalId: string | null; status: SupervisionStatus }>;
   readNeeds(): Promise<NeedsYouSnapshot>;
+  homeBridge?(snapshot: NeedsYouSnapshot, home: string): Promise<DecisionHomeBridge | undefined>;
   policy?(home: string): Promise<FeaturePolicySnapshot>;
   uiEnabled?: boolean; executionEnabled?: boolean;
   activationEnabled?: boolean;
@@ -30,7 +31,8 @@ export function registerScopeRpcs(server: Pick<PluginServerContext, "handle">, d
   const combined = async () => {
     const [base, { status, home }] = await Promise.all([deps.readNeeds(), deps.read()]);
     const policy = await deps.policy?.(home);
-    return { ...withScopedNeedsYou(base, status), scopedAnswersEnabled: (policy?.effective.scopeExecution ?? !!deps.executionEnabled) && !!(deps.commands || deps.execute) };
+    const bridge = base.homeId !== null && base.homeId !== status.homeId ? await deps.homeBridge?.(base, home) : undefined;
+    return { ...withScopedNeedsYou(base, status, bridge), scopedAnswersEnabled: (policy?.effective.scopeExecution ?? !!deps.executionEnabled) && !!(deps.commands || deps.execute) };
   };
   server.handle(readScopes, async (_input, context) => {
     let { status, generalId, home } = await deps.read();

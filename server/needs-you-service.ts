@@ -30,10 +30,17 @@ import { scopeAnswerContext } from "./scope-answer-context";
 import { ScopedCaptainDecisionSchema } from "../shared/scoped-captain-decision";
 import { maintenanceAnswerContext, maintenanceCaptainDecision } from "./maintenance-decisions";
 import { planBudgetException } from "../shared/plan-supervisor-limits";
+import { workflowHomeIdentity } from "./workflow-ownership";
+
+/** Process-local proof from this service's durable ledger, never an RPC input or a persisted ID. */
+export interface DecisionHomeBridge { readonly legacyHomeId: string; readonly scopedHomeId: string }
+const issuedHomeBridges = new WeakSet<DecisionHomeBridge>();
 
 /** Read-only opt-in composition seam for S05/S06. No polling/wake/send or legacy mutation. */
-export function withScopedNeedsYou(snapshot: NeedsYouSnapshot, status: SupervisionStatus): NeedsYouSnapshot {
-  if (snapshot.homeId !== null && snapshot.homeId !== status.homeId) throw new Error("Scoped and legacy decision homes differ.");
+export function withScopedNeedsYou(snapshot: NeedsYouSnapshot, status: SupervisionStatus, bridge?: DecisionHomeBridge): NeedsYouSnapshot {
+  if (snapshot.homeId !== null && snapshot.homeId !== status.homeId &&
+    !(bridge && issuedHomeBridges.has(bridge) && bridge.legacyHomeId === snapshot.homeId && bridge.scopedHomeId === status.homeId))
+    throw new Error("Scoped and legacy decision homes differ.");
   const plans = status.plans.map(p => p.plan), problems = [...status.problems];
   // One inbox; each origin retains its checked transport and logical-owner outbox.
   const rows = status.decisions.filter(d => d.state !== "superseded").flatMap<NonNullable<NeedsYouSnapshot["scopedDecisions"]>[number]>(decision => {
@@ -175,6 +182,20 @@ export class NeedsYouService {
 
   private enabled() {
     return this.options.enabled?.() ?? process.env.FIRSTMATE_NEEDS_YOU !== "0";
+  }
+
+  /** Resolve both domains from the current server configuration and a ledger this service read.
+   * The UUID remains the legacy answer identity; the path remains the scoped journal identity. */
+  async homeBridge(snapshot: NeedsYouSnapshot, home: string): Promise<DecisionHomeBridge | undefined> {
+    if (snapshot.homeId === null) return undefined;
+    const canonical = await canonicalDecisionHome(home);
+    if (canonical !== await canonicalDecisionHome(await this.options.home())) throw new Error("Decision home changed.");
+    const ledger = this.states.get(canonical)?.store.lastGood;
+    if (!ledger || ledger.canonicalHome !== canonical || ledger.homeId !== snapshot.homeId)
+      throw new Error("Decision snapshot is not from the current durable home.");
+    const bridge = Object.freeze({ legacyHomeId: ledger.homeId, scopedHomeId: workflowHomeIdentity(home) });
+    issuedHomeBridges.add(bridge);
+    return bridge;
   }
 
   start() {
