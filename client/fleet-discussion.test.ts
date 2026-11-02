@@ -114,6 +114,18 @@ it("starts known-agent recovery during a pending fleet read", async () => {
   expect(JSON.stringify(renderer.toJSON())).toContain("Getting FirstMate ready…");
   expect(JSON.stringify(renderer.toJSON())).not.toContain("Mustering");
 });
+it.each([390, 1440])("shows optional report warnings with loaded fleet and independent chat at %s points", async width => {
+  await mount(width, { route: {} });
+  const warning = "Crew slow (slow) report pending; the latest status line is unknown. Any retained report is from an earlier observation.";
+  state.fleet = { ...state.fleet!, warnings: [warning] };
+  await resize(width + 1);
+  await resize(width);
+  expect(renderer.root.findAllByType("Banner" as never).some(node => node.props.text === warning)).toBe(true);
+  expect(JSON.stringify(renderer.toJSON())).not.toContain("Getting FirstMate ready");
+  if (width === 390) await press("First mate");
+  expect(renderer.root.findAllByType("MateChat" as never)).toHaveLength(1);
+  expect(state.refetch).not.toHaveBeenCalled();
+});
 it("keeps incomplete contextual routes explicit and accepts a fresh handoff after returning", async () => {
   await mount(1440, { route: { discussionScope: "missing", discussionHandoff: "1" } });
   expect(chat().scopeRequest).toEqual({ scopeId: "missing", homeId: "", navigationId: "1" });

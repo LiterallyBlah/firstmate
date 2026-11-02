@@ -1139,7 +1139,11 @@ The sidebar badge (`activeCrewCount`) counts remote workers like local ones.
 
 `ReportCache` fetches a crewmate's timeline tail only when its `updatedAt` has moved and it is not
 mid-turn, so a poll every few seconds costs one agent listing and nothing else while the crew is
-quiet. `closingText` joins the assistant messages at the very end — a streamed reply arrives in pieces
+quiet. Optional report reads use the existing five-second observation wait, reuse a pending native
+read and retry settled failures only on a later poll after a thirty-second cooldown (or changed
+subject). Fleet warnings distinguish pending/unavailable history; retained reports are not a fresh
+status claim. Late reads cannot overwrite a changed subject or repopulate removed crew.
+`closingText` joins the assistant messages at the very end — a streamed reply arrives in pieces
 that split anywhere, even mid-word — and `parseCrewReport` looks for the status line only in the last
 few lines, so "the build is done: …" earlier in a message is not a report.
 

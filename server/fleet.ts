@@ -31,6 +31,7 @@ import type { BacklogObservation, NeedsYouService } from "./needs-you-service";
 import type { AgentListOptions, PaseoAgent, PaseoApi, TimelineItem } from "./host-types";
 import { buildRemoteCards, resolveHost } from "./remote-cards";
 import { readItemTags, withItemTags } from "./item-tags";
+import { observeWithin } from "./supervision-observation";
 
 const PAGE_SIZE = 200;
 /** Enough of a timeline to reach back past a turn's last tool calls to its closing message. */
@@ -135,29 +136,59 @@ interface CachedReport {
   updatedAt: string;
   report: CrewReportSummary | null;
 }
+interface ReportRead {
+  active: boolean;
+  updatedAt: string;
+  cached?: CachedReport;
+  pending?: Promise<void>;
+  failure?: { updatedAt: string; retryAfter: number };
+}
+const REPORT_RETRY_MS = 30_000;
 
 /** Each crewmate's last status line, re-read only when the agent has moved. */
 export class ReportCache {
-  private readonly reports = new Map<string, CachedReport>();
+  private readonly reports = new Map<string, ReportRead>();
 
-  async reportFor(paseo: PaseoApi, agent: PaseoAgent): Promise<CrewReportSummary | null> {
-    const cached = this.reports.get(agent.id);
+  async reportFor(paseo: PaseoApi, agent: PaseoAgent): Promise<{ report: CrewReportSummary | null; state: "current" | "pending" | "unavailable" }> {
+    let entry = this.reports.get(agent.id);
+    if (!entry) { entry = { active: true, updatedAt: agent.updatedAt }; this.reports.set(agent.id, entry); }
+    entry.active = true; entry.updatedAt = agent.updatedAt;
+    const current = entry;
     // A running turn has not closed yet, so its timeline holds no new status
     // line; the previous one stays on the card until it does.
-    if (agent.status === "running" || agent.status === "initializing") return cached?.report ?? null;
-    if (cached !== undefined && cached.updatedAt === agent.updatedAt) return cached.report;
-    const page = await paseo.agents
-      .ref(agent.id)
-      .timeline.refetch({ direction: "tail", limit: REPORT_TAIL, projection: "projected" });
-    const report = parseCrewReport(closingText(page.entries.map((entry) => entry.item)));
-    this.reports.set(agent.id, { updatedAt: agent.updatedAt, report });
-    return report;
+    if (agent.status === "running" || agent.status === "initializing" || current.cached?.updatedAt === agent.updatedAt)
+      return { report: current.cached?.report ?? null, state: "current" };
+    if (!current.pending && !(current.failure?.updatedAt === agent.updatedAt && current.failure.retryAfter > Date.now())) {
+      const version = agent.updatedAt;
+      const work = Promise.resolve().then(() => paseo.agents.ref(agent.id).timeline.refetch({ direction: "tail", limit: REPORT_TAIL, projection: "projected" }))
+        .then(page => {
+          if (current.active && current.updatedAt === version) {
+            current.cached = { updatedAt: version, report: parseCrewReport(closingText(page.entries.map(entry => entry.item))) };
+            delete current.failure;
+          }
+        }).catch((error: unknown) => {
+          current.failure = { updatedAt: version, retryAfter: Date.now() + REPORT_RETRY_MS };
+          console.error(`[firstmate] could not read the status line of ${agent.id}:`, error);
+        }).finally(() => {
+          if (current.pending === work) delete current.pending;
+          if (!current.active && this.reports.get(agent.id) === current) this.reports.delete(agent.id);
+        });
+      current.pending = work;
+    }
+    if (current.pending) {
+      // Optional history shares the existing bounded observation wait. The native read survives
+      // the wait and subsequent polls reuse it, including across an updatedAt transition.
+      const work = current.pending;
+      try { await observeWithin(current, "crew-report", () => work); } catch { /* Unknown, never cancellation or absence. */ }
+    }
+    return { report: current.cached?.report ?? null,
+      state: current.cached?.updatedAt === agent.updatedAt ? "current" : current.pending || current.failure?.updatedAt !== agent.updatedAt ? "pending" : "unavailable" };
   }
 
   /** Drops agents no longer in the crew, so the map cannot grow for the life of the daemon. */
   retain(ids: ReadonlySet<string>): void {
-    for (const id of this.reports.keys()) {
-      if (!ids.has(id)) this.reports.delete(id);
+    for (const [id, entry] of this.reports) {
+      if (!ids.has(id)) { entry.active = false; if (!entry.pending) this.reports.delete(id); }
     }
   }
 }
@@ -395,13 +426,11 @@ export async function loadFleet(
   if (config.mateLaunch !== null) warnings.push(`Reserved first-mate launch ${config.mateLaunch.agentId}: ${config.mateLaunch.state === "prepared" ? "preparation needs a Launch retry" : "opening delivery is uncertain; inspect the session in Paseo before releasing the role"}.`);
   reports.retain(new Set(crewAgents.map((agent) => agent.id)));
   const crew = await Promise.all(
-    crewAgents.map(async (agent) => ({
-      agent: summarizeAgent(agent),
-      report: await reports.reportFor(paseo, agent).catch((error: unknown) => {
-        console.error(`[firstmate] could not read the status line of ${agent.id}:`, error);
-        return null;
-      }),
-    })),
+    crewAgents.map(async (agent) => {
+      const read = await reports.reportFor(paseo, agent);
+      if (read.state !== "current") warnings.push(`Crew ${agent.title ?? agent.id} (${agent.id}) report ${read.state}; the latest status line is unknown. Any retained report is from an earlier observation.`);
+      return { agent: summarizeAgent(agent), report: read.report };
+    }),
   );
 
   return {
