@@ -24,6 +24,8 @@ for (const stage of ['before', 'after']) await build({ entryPoints: [resolve(her
     b.onResolve({ filter: /^react-dom($|\/)/ }, a => ({ path: local.resolve(a.path) }));
     b.onResolve({ filter: /^react-native($|-web$)/ }, () => ({ path: local.resolve('react-native-web') }));
     b.onResolve({ filter: /^lucide-react$/ }, () => ({ path: local.resolve('lucide-react') }));
+    // The baseline's chat imports modules the Supervisor cleanup (slice 2) removed; load them from the baseline too.
+    if (stage === 'before') b.onResolve({ filter: /^\.\/(conversation-list|conversation-context|conversation-switcher|mate-mentions)$/ }, a => ({ path: resolve(a.resolveDir, a.path + (/switcher|mentions/.test(a.path) ? '.tsx' : '.ts')) }));
     if (stage === 'before') b.onLoad({ filter: /[\\/](client|shared)[\\/][^\\/]+\.tsx?$/ }, args => {
       const path = relative(root, args.path).replaceAll('\\', '/');
       return { contents: execFileSync('git', ['show', `${baseline}:${path}`], { cwd: root, encoding: 'utf8' }), loader: path.endsWith('tsx') ? 'tsx' : 'ts' };

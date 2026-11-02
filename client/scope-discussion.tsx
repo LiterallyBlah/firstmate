@@ -7,7 +7,7 @@ import { Pressable, ScrollView, Text, View, type TextInput } from "react-native"
 import { readScopeConversation, discussScope, type ScopeSnapshot, type ScopeSummary } from "../shared/supervision-rpc";
 import { resolveDiscussion, scopeDraftKey } from "../shared/scope-discussion";
 import type { DiscussionTarget } from "../shared/scope-discussion";
-import { sameConversationTarget } from "./conversation-list";
+import { sameConversationTarget } from "./conversation-target";
 import { drafts } from "./draft";
 import { discussionSender, discussionSendKey, discussionSendRegistry } from "./scope-send";
 import { workflowRequestId } from "./workflow-plans";
