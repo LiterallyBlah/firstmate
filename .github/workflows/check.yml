@@ -121,6 +121,9 @@ jobs:
       - run: node docs/scoped-supervision/build-b-ui/render.mjs
       - run: node docs/fmu-foundation/render.mjs
       - run: node docs/fmu-assignments/render.mjs
+      - run: node node_modules/vitest/vitest.mjs run test/fmu-integration/native-path.test.ts --maxWorkers=1 --testTimeout=120000 --reporter=default --reporter=json --outputFile=.local/fmu-integration/browser-tests.json
+        env:
+          FMU_INTEGRATION_CAPTURE: "1"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -156,6 +159,8 @@ jobs:
             .local/fmu-foundation/ui/results.json
             .local/fmu-assignments/ui/*.png
             .local/fmu-assignments/ui/results.json
+            .local/fmu-integration/browser/*
+            .local/fmu-integration/*.json
             .local/s01/ci-tests.json
             .local/ci-diagnostics/*.json
             .local/s06/*.json

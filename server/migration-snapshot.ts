@@ -8,6 +8,7 @@ import { digest, publish, publishBytes } from "./submissions";
 import { refuse } from "./supervision-effects";
 import { resolveInHome } from "./files";
 import type { SupervisionStore } from "./supervision-store";
+import { dataPath, pluginDir } from "./data-dir";
 type Reference = NonNullable<MigrationReceipt["prerequisites"]["snapshot"]>;
 const hash = z.string().regex(/^[0-9a-f]{64}$/), count = z.number().int().nonnegative();
 const Manifest = z.object({ format: z.literal("firstmate.migration-snapshot/1"), homeId: z.string(), migrationId: z.uuid(), planId: z.string(),
@@ -36,6 +37,7 @@ export class MigrationSnapshots {
     z.uuid().parse(migrationId);
     if (!isAbsolute(this.approvedRoot) || !this.retention.trim()) refuse("HELD", "Configure an approved independent snapshot destination and retention before migration.");
     const root = await this.approved(), destination = join(root, migrationId);
+    await MigrationSnapshots.validateDestination(root, [pluginDir()]);
     const sources = [await realpath(store.root), await realpath(legacyRoot), await realpath(home)];
     if (sources.some(source => contains(source, destination) || contains(destination, source))) refuse("HELD", "Migration snapshot must be independent of the journal, legacy plans and home.");
     return store.exportSnapshot(async status => {
@@ -52,6 +54,13 @@ export class MigrationSnapshots {
       await mkdir(destination, { recursive: false, mode: 0o700 });
       if (await realpath(destination) !== destination) refuse("HELD", "Snapshot destination changed during preparation.");
       const files: { name: string; bytes: number; digest: string }[] = []; let total = 0;
+      const retained = [
+        { name: "config.json", path: dataPath("config.json") },
+        { name: "watch-config.json", path: join(pluginDir(), "watch-config.json") },
+        { name: "watches.json", path: join(pluginDir(), "watches.json") },
+        { name: "inspection-runs.json", path: join(pluginDir(), "watch-inspections", "inspection-runs.json") },
+      ];
+      const inventory: { name: string; present: boolean; digest: string | null }[] = [];
       const copy = async (source: string, name: string) => {
         const before = await lstat(source);
         if (before.isSymbolicLink()) refuse("HELD", "Snapshot refuses symlinks/junctions.");
@@ -71,8 +80,30 @@ export class MigrationSnapshots {
         files.push({ name, bytes: bytes.length, digest: sha(bytes) }); total += bytes.length;
       };
       await copy(store.root, "journal"); await copy(legacyRoot, "legacy");
+      // These stores retain route generations, delivery claims and the *original* inspector
+      // spend. Copy exact bytes, never project/rewrite them into a second authoritative ledger.
+      // Existing /1 readers already verify arbitrary file inventory entries; no schema fork.
+      for (const record of retained) {
+        let present = true;
+        try { await lstat(record.path); } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e; present = false; }
+        if (present) {
+          if ((await lstat(dirname(record.path))).isSymbolicLink()) refuse("HELD", "Snapshot refuses linked Supervisor record folders.");
+          await copy(record.path, `supervisors/${record.name}`);
+        }
+        inventory.push({ name: record.name, present, digest: files.find(f => f.name === `supervisors/${record.name}`)?.digest ?? null });
+      }
+      await mkdir(join(destination, "supervisors"), { recursive: true });
+      await publish(join(destination, "supervisors", "inventory.json"), { format: "firstmate.supervisor-snapshot-records/1", records: inventory,
+        boundary: "Independent retained bytes, not an atomic native census or restore authority. Post-cutover effects require forward reconciliation." });
+      const inventoryBytes = await readFile(join(destination, "supervisors", "inventory.json"));
+      files.push({ name: "supervisors/inventory.json", bytes: inventoryBytes.length, digest: sha(inventoryBytes) }); total += inventoryBytes.length;
       for (const source of status.policySources) await copy((await resolveInHome(home, source.path)).absolute, `policy/${source.id}`);
       if (rollback) await copy((await resolveInHome(home, rollback.path)).absolute, "handover/rollback-report.txt");
+      for (const [index, record] of retained.entries()) {
+        let current: string | null = null;
+        try { current = sha(await readFile(record.path)); } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e; }
+        if (current !== inventory[index]!.digest) refuse("STALE", "Supervisor records changed during capture. Retain this incomplete snapshot and review a new migration identity.");
+      }
       const body = { format: "firstmate.migration-snapshot/1" as const, homeId: store.homeId, migrationId, planId, sequence: status.sequence,
         journalHash: status.hash, retention: this.retention, at: new Date().toISOString(),
         restore: "External effects since this sequence require explicit reconciliation; this snapshot grants no restore or budget-reset authority." as const, files };

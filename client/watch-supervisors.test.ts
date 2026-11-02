@@ -34,3 +34,13 @@ it("A1/A11: review captures exact target and stale subject cannot submit",async(
  expect(button("Prepare reviewed watch assignment").props.disabled).toBe(true);
  expect(button("Enable independent read-only observer unavailable").props.disabled).toBe(true);
 });
+it.each(["prepared", "committed", "paused"] as const)("A11: accepted %s route hides the completed prepare review while retaining exact controls", async stage => {
+ const onAction=vi.fn(), view=(d:WatchSupervisorSnapshot)=>createElement(WatchAssignmentReview,{theme,data:d,name:"checks",onAction});
+ await act(async()=>{renderer=create(view(data));});
+ await act(async()=>button(`Review checks to trial · ${id}`).props.onPress());
+ expect(button("Prepare reviewed watch assignment")).toBeDefined();
+ const assignment={requestId:id,signature:hash,generation:1,stage,target,pending:[]};
+ await act(async()=>renderer!.update(view({...data,watches:[{...data.watches[0]!,assignment,assignmentDigest:hash}]})));
+ expect(renderer!.root.findAll(n=>n.type==="Pressable" as never&&n.props.accessibilityLabel==="Prepare reviewed watch assignment")).toHaveLength(0);
+ expect(onAction).not.toHaveBeenCalled();
+});

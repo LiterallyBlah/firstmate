@@ -26,9 +26,28 @@ async function fixture() {
   const stop = registerChatQueue({ handle: (contract: { name: string }, run: Function) => handlers.set(contract.name, run), on: (name: string, run: Function) => { hooks.set(name, run); return () => hooks.delete(name); } } as unknown as PluginServerContext,
     { execute } as unknown as ScopeRuntime, { read: async () => ({ status: "ready", revision: "1", values: displaySettings.schema.parse({ queueMessagesWhileBusy: enabled }) }), subscribe: () => () => {} });
   const call = (name: string, input: unknown) => handlers.get(`firstmate.chat.${name}`)!(input, { paseo });
-  return { call, agent, refresh, execute, stop, path: dataPath(`chat-queues/${createHash("sha256").update(host.home).digest("hex")}.json`), off: () => { enabled = false; }, end: (turnId: string) => hooks.get("agent.turn_ended")!({ agent: { id: "mate" }, turnId, outcome: { kind: "completed" } }, { paseo }) };
+  return { call, agent, refresh, execute, stop, paseo, path: dataPath(`chat-queues/${createHash("sha256").update(host.home).digest("hex")}.json`), off: () => { enabled = false; }, end: (turnId: string) => hooks.get("agent.turn_ended")!({ agent: { id: "mate" }, turnId, outcome: { kind: "completed" } }, { paseo }) };
 }
 afterEach(() => vi.restoreAllMocks());
+it("A9: registered General submit reaches its checked sender while another scoped receiver's native status lookup stalls", async () => {
+  const f = await fixture(); f.agent.status = "idle";
+  let release!: () => void, entered!: () => void;
+  const stalled = new Promise<void>(r => { release = r; }), ready = new Promise<void>(r => { entered = r; });
+  const original = f.paseo.agents.ref.bind(f.paseo.agents);
+  vi.spyOn(f.paseo.agents, "ref").mockImplementation(agent => {
+    const id = typeof agent === "string" ? agent : agent.id;
+    return id === "stalled-owner" ? { refresh: async () => { entered(); await stalled; return { agent: { ...f.agent, id } }; } } as never : original(agent);
+  });
+  const scope: ChatQueuePayload = { kind: "scope", input: { id: randomUUID(), text: "Owner input", addressedText: "Owner input", defaultScope: "project",
+    route: { target: { homeId: workflowHomeIdentity(host.home), scopeId: "project", scopeVersion: 2, epoch: 1, agentId: "stalled-owner" }, recipient: "Owner", projectIds: [], conversationId: "main", replyTo: null } } };
+  const pending = f.call("submit", { id: randomUUID(), payload: scope }); await ready;
+  const captain = f.call("submit", { id: randomUUID(), payload: { kind: "mate", agentId: "mate", message: { text: "Captain input" } } });
+  try {
+    await vi.waitFor(() => expect(host.ask).toHaveBeenCalledTimes(1), { timeout: 10000 });
+    expect(host.ask.mock.calls[0]![1].text).toBe("Captain input");
+    expect(f.execute).not.toHaveBeenCalled();
+  } finally { release(); await Promise.all([pending, captain]); await f.stop(); }
+}, 30000);
 it("main queue uses the checked mate sender and preserves its message ID; off sends while busy", async () => {
   const f = await fixture(), payload: ChatQueuePayload = { kind: "mate", agentId: "mate", message: { text: "one" } }, id = randomUUID();
   await f.call("submit", { id, payload }); expect(host.ask).not.toHaveBeenCalled();

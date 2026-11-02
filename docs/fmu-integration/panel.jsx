@@ -1,0 +1,10 @@
+import React from "react";
+import {createRoot} from "react-dom/client";
+import {QueryClient,QueryClientProvider} from "@tanstack/react-query";
+import {WatchSupervisorButton} from "../../client/watch-supervisors";
+const q=new URLSearchParams(location.search),dark=q.get("theme")==="dark";
+const theme={colors:{foreground:dark?"#f4f4f5":"#18181b",foregroundMuted:dark?"#b4b4bb":"#52525b",border:dark?"#52525b":"#d4d4d8",surface1:dark?"#18181b":"#fff",accent:"#26845b"}};
+document.body.style.background=theme.colors.surface1;
+document.body.style.color=theme.colors.foreground;
+const entry=q.get("entry"),props=entry==="watch"?{name:q.get("name")}:entry==="plan"?{planId:q.get("plan")}:{};
+createRoot(document.getElementById("root")).render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}><main style={{padding:16,maxWidth:720,margin:"auto"}}><WatchSupervisorButton theme={theme} {...props}/></main></QueryClientProvider>);

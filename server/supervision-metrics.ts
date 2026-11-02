@@ -3,6 +3,8 @@
  */
 import { z } from "zod";
 import { SupervisionHash, SupervisionUuid } from "../shared/supervision";
+import type { SupervisionStatus } from "../shared/supervision";
+import type { ChatQueueItem } from "../shared/chat-queue";
 
 const count = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
 const instant = z.number().finite().nonnegative(); // milliseconds relative to the run origin
@@ -64,6 +66,49 @@ function metricDistribution(values: readonly (number | null)[]) {
   const percentile = (p: number) => measured.length ? measured[Math.ceil(p * measured.length) - 1]! : null;
   return { denominator: values.length, measured: measured.length, missing: values.length - measured.length,
     minMs: measured[0] ?? null, p50Ms: percentile(.5), p95Ms: percentile(.95), maxMs: measured.at(-1) ?? null };
+}
+
+/** Pure metadata projection of retained reservations, including failed/cancelled/uncertain work.
+ * Never sum attempts and worker effects: those describe the same worker reservation. Imported
+ * attempts remain counted even though they have no gateway create/send records. Inspector runs
+ * remain their own spending authority; attempts on those rows are *notification recipients*.
+ */
+export function summarizeSupervisorCost(status: SupervisionStatus, inspections: readonly {
+  runId: string; operations?: readonly { key: string; operation: string; state: string }[];
+}[], general: { turns: number | null; sessions: number | null }) {
+  const owner = status.effects.filter(e => e.attemptId === null);
+  const operations = [...status.effects.map(e => ({ key: e.logicalKey, operation: e.operation, state: e.state,
+    owner: e.scopeId, epoch: e.epoch, attempt: e.attemptId, configuration: e.configurationId ?? null })),
+    ...inspections.flatMap(r => (r.operations ?? []).map(e => ({ ...e, key: `inspection:${r.runId}:${e.key}`,
+      owner: r.runId, epoch: null, attempt: null, configuration: null })))];
+  const worker = { sessions: status.attempts.reduce((n, a) => n + a.spentAgents, 0), turns: status.attempts.reduce((n, a) => n + a.spentTurns, 0) };
+  const supervisor = { sessions: owner.filter(e => e.operation === "agent.create").length, turns: owner.filter(e => e.operation === "agent.send").length };
+  const inspector = { sessions: inspections.length, turns: inspections.length };
+  const unrepresentedOwners = status.bindings.filter(b => !owner.some(e => e.scopeId === b.scopeId && e.epoch === b.epoch && e.operation === "agent.create")).length;
+  const complete = status.freshness === "current" && unrepresentedOwners === 0 && general.turns !== null && general.sessions !== null;
+  return { worker, supervisor, inspector, general, unrepresentedOwners, complete,
+    totalSessions: complete ? worker.sessions + supervisor.sessions + inspector.sessions + general.sessions! : null,
+    totalTurns: complete ? worker.turns + supervisor.turns + inspector.turns + general.turns! : null,
+    operations, uniqueOperations: new Set(operations.map(e => e.key)).size,
+    uncertainOperations: status.effects.filter(e => ["dispatching", "accepted", "uncertain"].includes(e.state)).length +
+      inspections.reduce((n, r) => n + (r.operations ?? []).filter(e => e.state === "uncertain").length, 0),
+    missingInspectorOperationHistory: inspections.filter(r => r.operations === undefined).length,
+    providerTokens: null, billedMicros: null, contextTokens: null,
+    boundary: "Cumulative reserved work on supplied records; no provider billing or fleet-wide coverage inferred." };
+}
+
+/** Metadata already held by the queue. Missing/legacy/censored and clock-regressed samples stay
+ * unknown. Neither send acknowledgement nor an idle observation is a model-start timestamp. */
+export function summarizeCaptainQueue(items: readonly ChatQueueItem[]) {
+  const duration = (item: ChatQueueItem, key: "attemptedAt" | "acceptedAt") => {
+    const t = item.timing, end = t?.[key];
+    return t && end !== null && end !== undefined && end >= t.enqueuedAt ? end - t.enqueuedAt : null;
+  };
+  return { admission: metricDistribution(items.map(i => duration(i, "attemptedAt"))),
+    transportAcceptance: metricDistribution(items.map(i => duration(i, "acceptedAt"))),
+    modelStart: metricDistribution(items.map(() => null)),
+    busyCauses: items.map(i => ({ id: i.id, cause: i.timing?.busyCause ?? "unknown", state: i.state })),
+    boundary: "Queue to claimed transport and confirmed transport response only; model start and provider latency unknown." };
 }
 export function summarizePilotMetrics(raw: unknown) {
   const run = PilotMetricsSchema.parse(raw);

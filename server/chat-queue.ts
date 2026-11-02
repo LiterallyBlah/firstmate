@@ -25,6 +25,7 @@ export interface ChatQueueOptions {
 export class ChatQueueRefusal extends Error {}
 export class ChatQueue {
   private cached: { identity: string; state: State } | null = null;
+  private readonly observations = new Map<string, Promise<void>>();
   private readonly owner = randomUUID();
   constructor(readonly path: string, private options: ChatQueueOptions) {}
   private now() { return this.options.now?.() ?? Date.now(); }
@@ -75,6 +76,7 @@ export class ChatQueue {
   }
   private claim(state: State, item: ChatQueueItem) {
     item.state = "claimed";
+    if (item.timing) item.timing.attemptedAt = this.now();
     state.claims[item.id] = { owner: this.owner, at: this.now() };
     return structuredClone(item);
   }
@@ -84,22 +86,33 @@ export class ChatQueue {
   }
   async submit(id: string, payload: ChatQueuePayload, now = false, replaces?: string): Promise<ChatQueueItem> {
     const target = queueTarget(payload);
-    // Join serialization before any asynchronous read/check so concurrent
-    // admissions retain their arrival order, including on a cold disk.
-    const claimed = await this.transaction(async state => {
-      const previous = state.items.find(i => i.id === id);
-      if (previous) { if (previous.hash !== hash(payload)) throw new Error("This message ID already belongs to another message."); return { item: structuredClone(previous), dispatch: false, allowBusy: false }; }
+    const enqueuedAt = this.now();
+    // Preserve arrival order for one physical recipient, including a cold disk. Receiver
+    // reads must never hold the shared file lock or block another recipient's admission.
+    const claimed = await serialized(JSON.stringify(["chat-admission", this.path, this.group(target)]), async () => {
+      const replay = (state: State) => {
+        const previous = state.items.find(i => i.id === id);
+        if (previous && previous.hash !== hash(payload)) throw new Error("This message ID already belongs to another message.");
+        return previous ? { item: structuredClone(previous), dispatch: false, allowBusy: false } : null;
+      };
+      const prior = await this.transaction(replay); if (prior) return prior;
       const enabled = await this.options.enabled(), activity = await this.options.activity(target);
-      if (replaces) {
-        const editing = state.items.find(i => i.id === replaces && conversation(i.target, target));
-        if (!editing || !["editing", "refused"].includes(editing.state)) throw new Error("The message being edited changed. Refresh before sending.");
-        editing.state = "removed"; editing.payload = null;
-      }
-      const item: ChatQueueItem = { id, target, payload, hash: hash(payload), state: "queued", problem: null };
-      state.items.push(item);
-      const waiting = activity === "busy" || this.inFlight(state, target) || state.items.some(i => i.id !== id && i.state === "queued" && this.group(i.target) === this.group(target));
-      if (enabled && !now && waiting && state.items.filter(i => i.state === "queued").length > 100) throw new Error("The queue is full. Remove a message before adding another.");
-      return now || !enabled || !waiting ? { item: this.claim(state, item), dispatch: true, allowBusy: now || !enabled } : { item: structuredClone(item), dispatch: false, allowBusy: false };
+      return this.transaction(state => {
+        const accepted = replay(state); if (accepted) return accepted;
+        if (replaces) {
+          const editing = state.items.find(i => i.id === replaces && conversation(i.target, target));
+          if (!editing || !["editing", "refused"].includes(editing.state)) throw new Error("The message being edited changed. Refresh before sending.");
+          editing.state = "removed"; editing.payload = null;
+        }
+        const inFlight = this.inFlight(state, target), earlier = state.items.some(i => i.state === "queued" && this.group(i.target) === this.group(target));
+        const item: ChatQueueItem = { id, target, payload, hash: hash(payload), state: "queued", problem: null,
+          timing: { enqueuedAt, attemptedAt: null, acceptedAt: null,
+            busyCause: now ? "explicit-now" : !enabled ? "queue-disabled" : activity === "busy" ? "receiver-busy" : inFlight ? "in-flight" : earlier ? "earlier-message" : "ready" } };
+        state.items.push(item);
+        const waiting = activity === "busy" || this.inFlight(state, target) || state.items.some(i => i.id !== id && i.state === "queued" && this.group(i.target) === this.group(target));
+        if (enabled && !now && waiting && state.items.filter(i => i.state === "queued").length > 100) throw new Error("The queue is full. Remove a message before adding another.");
+        return now || !enabled || !waiting ? { item: this.claim(state, item), dispatch: true, allowBusy: now || !enabled } : { item: structuredClone(item), dispatch: false, allowBusy: false };
+      });
     });
     if (claimed.dispatch) await this.dispatch(claimed.item, claimed.allowBusy);
     return { ...(await this.read()).items.find(i => i.id === id)!, payload: null };
@@ -135,6 +148,7 @@ export class ChatQueue {
       // A recovery sweep or captain dismissal wins over a late transport reply.
       if (saved.state !== "claimed" || state.claims[item.id]?.owner !== this.owner) return;
       saved.state = refused ? "refused" : problem ? "held" : "sent"; saved.problem = problem;
+      if (!problem && saved.timing) saved.timing.acceptedAt = this.now();
       delete state.claims[item.id];
       if (!problem) saved.payload = null;
     });
@@ -144,25 +158,46 @@ export class ChatQueue {
    * turns (including an idle status with activeTurn) block the next admission.
    */
   async reconcile(agent?: string, waitForDelivery = true) {
-    const items = await this.transaction(async state => {
-      const checked = new Set<string>(), ready: ChatQueueItem[] = [];
+    const candidates = await this.transaction(state => {
+      const checked = new Set<string>(), candidates: ChatQueueItem[] = [];
       for (const item of state.items) {
         if (item.state !== "queued" || (agent !== undefined && queueAgent(item.target) !== agent)) continue;
         const group = this.group(item.target);
         if (checked.has(group)) continue;
         checked.add(group);
         if (this.inFlight(state, item.target)) continue;
-        try {
-          if (await this.options.activity(item.target) === "ready") ready.push(this.claim(state, item));
-        } catch (error) {
-          item.state = "held"; item.problem = error instanceof Error ? error.message : String(error);
-        }
+        candidates.push(structuredClone(item));
       }
-      return ready;
+      return candidates;
     });
-    const deliveries = Promise.all(items.map(item => this.dispatch(item)));
-    if (waitForDelivery) await deliveries;
-    else void deliveries.catch(error => console.error("[firstmate] queued chat delivery:", error));
+    const pending: Promise<void>[] = [];
+    for (const candidate of candidates) {
+      const group = this.group(candidate.target);
+      let observation = this.observations.get(group);
+      if (!observation) {
+        observation = (async () => {
+          let activity: "ready" | "busy" | undefined, problem: string | null = null;
+          try { activity = await this.options.activity(candidate.target); }
+          catch (error) { problem = error instanceof Error ? error.message : String(error); }
+          const item = await this.transaction(state => {
+            const first = state.items.find(i => i.state === "queued" && this.group(i.target) === group);
+            // A removal, edit, earlier delivery or competing poll wins over a late status read.
+            if (first?.id !== candidate.id || this.inFlight(state, first.target)) return null;
+            if (problem !== null) { first.state = "held"; first.problem = problem; return null; }
+            return activity === "ready" ? this.claim(state, first) : null;
+          });
+          if (item) await this.dispatch(item);
+        })();
+        this.observations.set(group, observation);
+        const clear = () => { if (this.observations.get(group) === observation) this.observations.delete(group); };
+        void observation.then(clear, clear);
+        // Attach once per observation. Repeated existing-clock sweeps never accumulate
+        // listeners or start more reads behind a stalled recipient.
+        void observation.catch(error => console.error("[firstmate] queued chat delivery:", error));
+      }
+      if (waitForDelivery) pending.push(observation);
+    }
+    if (waitForDelivery) await Promise.all(pending);
   }
   async started(agent: string, _turnId: string | null) { await this.reconcile(agent); }
   async ended(agent: string, turnId: string | null, completed: boolean) {
