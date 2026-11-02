@@ -26,8 +26,9 @@ function profileText(row: SupervisorListRow) {
   return row.profile ? `${row.profile.provider} · ${row.profile.modeId ?? "default mode"} · reasoning ${row.profile.thinkingOptionId ?? "not offered"}` : "Profile not recorded";
 }
 
-export function SupervisorsEntry({ theme, compact, hostId = "local", navigation, always = false }: {
-  theme: PluginTheme; compact: boolean; hostId?: string; navigation?: PluginScreenProps["navigation"]; always?: boolean;
+/** `iconOnly`: the narrow desktop header keeps one row by showing only the icon; the name stays its accessible label. */
+export function SupervisorsEntry({ theme, compact, hostId = "local", navigation, always = false, iconOnly = false }: {
+  theme: PluginTheme; compact: boolean; hostId?: string; navigation?: PluginScreenProps["navigation"]; always?: boolean; iconOnly?: boolean;
 }) {
   const readList = useRpc(readSupervisorList), readProjects = useRpc(readProjectRuntime), readChecks = useRpc(readMaintenance), readWatches = useRpc(readWatchSupervisors);
   const list = useQuery({ queryKey: ["firstmate", "supervisors", hostId], queryFn: async () => SupervisorListSchema.parse(await readList({})), refetchInterval: 5000 });
@@ -65,8 +66,8 @@ export function SupervisorsEntry({ theme, compact, hostId = "local", navigation,
     <Pressable accessibilityRole="button" accessibilityLabel="Supervisors" accessibilityState={{ expanded: open }}
       accessibilityHint="Supervisors for plans, watches, routine checks and projects" onPress={() => { setOpen(true); refresh(); }}
       style={{ minHeight: 44, minWidth: 44, paddingHorizontal: 8, flexDirection: "row", alignItems: "center", gap: 6, justifyContent: "center", borderWidth: 1, borderRadius: 7, borderColor: colors.border }}>
-      {!compact || always ? <Icon name="SlidersHorizontal" size={15} color={colors.foregroundMuted} /> : null}
-      <Text style={{ color: colors.foreground, fontSize: 13 }}>Supervisors</Text>
+      {!compact || always || iconOnly ? <Icon name="SlidersHorizontal" size={15} color={colors.foregroundMuted} /> : null}
+      {iconOnly ? null : <Text style={{ color: colors.foreground, fontSize: 13 }}>Supervisors</Text>}
     </Pressable>
     <Modal title="Supervisors" open={open} onOpenChange={setOpen}><Modal.Content>
       <View testID="supervisor-list" style={{ gap: 16 }}>

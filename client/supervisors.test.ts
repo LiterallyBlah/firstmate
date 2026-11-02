@@ -118,3 +118,11 @@ it("first recovered metadata keeps the list open; a changed known home closes it
   await act(async () => { await cache.refetchQueries(); }); await settle();
   expect(renderer!.root.findAllByProps({ testID: "supervisor-list" })).toHaveLength(0);
 });
+
+it("the narrow desktop header shows only the icon, keeping Supervisors as the accessible name", async () => {
+  state.list.rows = [row(plan, "plan", "Reader pass")];
+  await act(async () => { renderer = create(createElement(QueryClientProvider, { client: cache }, createElement(SupervisorsEntry, { theme, compact: true, iconOnly: true }))); });
+  await settle();
+  expect(text()).not.toContain("Supervisors");
+  expect(renderer!.root.find(n => n.type === "Pressable" as never && n.props.accessibilityLabel === "Supervisors")).toBeDefined();
+});
