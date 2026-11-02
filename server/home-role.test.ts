@@ -120,9 +120,9 @@ it("lists other home sessions as guests, including a released mate with a stale 
   expect(fleet.cards).toEqual([]);
 });
 
-it("keeps advisers and inspectors out of the adoption list", async () => {
-  const agents = ["topic-adviser", "watch-inspector", "crew", "first-mate", "guest"].map(role => ({
-    id: role, cwd: home, archivedAt: null, provider: "claude", model: null, title: role, status: "idle",
+it("keeps advisers, inspectors and every Supervisor role out of the adoption list", async () => {
+  const agents = ["topic-adviser", "watch-inspector", "crew", "plan-supervisor", "project-mate", "maintenance-mate", "first-mate", "guest"].map(role => ({
+    id: role, cwd: home, archivedAt: null, provider: "claude", model: null, title: role, status: role.endsWith("-mate") && role !== "first-mate" ? "closed" : "idle",
     pendingPermissions: [], updatedAt: "2026-10-13", labels: { "firstmate.role": role },
   }));
   const paseo = { agents: { list: async () => ({ entries: agents.map(agent => ({ agent })), pageInfo: {} }) } } as unknown as PaseoApi;

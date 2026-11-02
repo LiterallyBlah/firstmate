@@ -73,6 +73,8 @@ export interface GatewayReceiver {
 }
 
 export const SUPERVISOR_ROLE = "plan-supervisor";
+/** Every role a Supervisor session carries, by scope kind; none of them can take the first-mate role. */
+export const SUPERVISOR_ROLES: readonly string[] = [SUPERVISOR_ROLE, "project-mate", "maintenance-mate"];
 export const SCOPE_LABELS = { scope: "firstmate.scope", attempt: "firstmate.attempt", epoch: "firstmate.epoch" } as const;
 
 /** Effects derive identity from the next step, never from a request ID (A01-C04). */

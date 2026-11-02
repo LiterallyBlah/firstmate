@@ -1,5 +1,4 @@
 import { FeaturePolicyRuntime, installFeaturePolicy } from "./server/feature-policy-runtime";
-import { registerUpdateIntroduction, UpdateIntroductionService } from "./server/update-introduction";
 import { legacyFeatureSettings } from "./server/feature-settings";
 import { FeatureSettingsService, registerFeatureSettingsRpc } from "./server/feature-settings-rpc";
 import { syncFeatureHelpers } from "./server/home";
@@ -134,7 +133,6 @@ export default function contribute(server: PluginServerContext) {
   const features = new FeaturePolicyRuntime(pluginDir(), readFirstmateConfig().then(c => legacyFeatureSettings(resolveHome(c), legacyEnvironment)));
   const uninstallFeatures = installFeaturePolicy(features);
   const supervisionRuntime = new SupervisionRuntime(pluginDir(), undefined, features);
-  registerUpdateIntroduction(server, new UpdateIntroductionService(pluginDir(), async () => resolveHome(await readFirstmateConfig())));
   registerFeatureSettingsRpc(server, new FeatureSettingsService(pluginDir(), {
     home: async () => resolveHome(await readFirstmateConfig()), runtime: features,
     readInventory: home => supervisionRuntime.read(home), changed: syncFeatureHelpers,

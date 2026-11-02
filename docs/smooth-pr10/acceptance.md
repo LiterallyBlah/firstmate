@@ -19,6 +19,8 @@ Advanced work details retains existing owners, incidents and resume controls. Ne
 
 The introduction component requires a real FirstMate conversation, ready fleet/project/policy reads, projects still needing setup and a usable setup callback. Its dismissal uses a separate immutable per-home/version preference, outside feature policy and the supervision journal. Reads create no files; corrupt preferences suppress the card and cannot be overwritten by dismissal. Cross-home calls refuse.
 
+> **Later:** the Supervisor cleanup (slice 1, November 2026) deleted the never-mounted introduction, its dismissal RPCs and their tests. `render.mjs` no longer renders it, so it now records 56 pinned captures; the rows below describe this PR as it shipped.
+
 **Integration gate:** the introduction is deliberately not mounted in production yet. The first mate confirmed on 29 October that this PR should ship its component/readiness/dismissal dark, then wire the shared Home/settings project-setup destination after slice 6 merges. The screenshot labeled introduction is a component preview of that closed gate, not a claim that a project setup destination has shipped. No plugin update enables capabilities or changes chat.
 
 | Acceptance | Evidence / remaining gate |

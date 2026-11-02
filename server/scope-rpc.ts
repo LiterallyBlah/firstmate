@@ -4,7 +4,7 @@ import { featurePause, type FeaturePolicySnapshot } from "../shared/feature-sett
 import type { PluginServerContext } from "@getpaseo/plugin/server";
 import type { SupervisionStatus } from "../shared/supervision";
 import type { NeedsYouSnapshot } from "../shared/needs-you";
-import { readScopes, readScopeConversation, discussScope, activateScope, readScopeNeeds, answerScopeDecision } from "../shared/supervision-rpc";
+import { readScopes, readScopeConversation, discussScope, readScopeNeeds, answerScopeDecision } from "../shared/supervision-rpc";
 import { scopeConversationKey } from "../shared/scope-discussion";
 import { scopeSnapshot } from "./scope-projection";
 import { observeProjectSessions, withObservedProjectSessions } from "./scope-status";
@@ -54,7 +54,6 @@ export function registerScopeRpcs(server: Pick<PluginServerContext, "handle">, d
     if (input.scopeId !== "general" && !status.scopes.some(s => s.id === input.scopeId)) throw new SupervisionError("UNKNOWN_OWNER", "Scope unavailable; no conversation substitution.");
     return readThread(home, scopeConversationKey(input.homeId, input.scopeId, input.conversationId));
   });
-  server.handle(activateScope, () => ({ state: "unsupported" as const, reason: "Use explicit Send to create a discussion session. Reading and standalone activation never create resources." }));
   server.handle(discussScope, async (input, context) => {
     if (!(deps.policy ? (await deps.policy((await deps.read()).home)).effective.scopeExecution : deps.executionEnabled)) return { outcome: "refused" as const, code: "UNSUPPORTED", message: "Discussion execution is disabled. No fallback to General." };
     if (deps.execute) {

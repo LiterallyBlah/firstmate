@@ -10,7 +10,7 @@ import { threadReplyPath } from "./item-threads";
 import { withScopedNeedsYou } from "./needs-you-service";
 import { needsYouSnapshot } from "./needs-you-ledger";
 import { registerScopeRpcs } from "./scope-rpc";
-import { readScopes, readScopeConversation, discussScope, readScopeNeeds, answerScopeDecision, activateScope } from "../shared/supervision-rpc";
+import { readScopes, readScopeConversation, discussScope, readScopeNeeds, answerScopeDecision } from "../shared/supervision-rpc";
 import { continuationInputVersion } from "./supervision-continuation";
 import { SupervisionLifecycle } from "./supervision-lifecycle";
 import { SupervisionEvents } from "./supervision-events";
@@ -139,7 +139,7 @@ describe("S05 actual S01/S03/S04 composition, isolated receivers", { timeout: 60
     const before = await f.files();
     const snapshot = readScopes.output.parse(await handlers.get(readScopes.name)!({} as never)); expect(snapshot.uiEnabled).toBe(true); expect(snapshot.executionEnabled).toBe(false);
     await handlers.get(readScopeConversation.name)!({ homeId: f.store.homeId, scopeId: "general", conversationId: "main" } as never);
-    expect(await handlers.get(activateScope.name)!({} as never)).toMatchObject({ state: "unsupported" });
+    expect(handlers.has("firstmate.scope.activate")).toBe(false);
     expect(await handlers.get(discussScope.name)!({} as never)).toMatchObject({ outcome: "refused", code: "UNSUPPORTED" });
     await handlers.get(readScopeNeeds.name)!({} as never);
     await expect(handlers.get(answerScopeDecision.name)!({} as never)).rejects.toMatchObject({ code: "UNSUPPORTED" });

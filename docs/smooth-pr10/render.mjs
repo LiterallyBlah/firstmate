@@ -29,12 +29,12 @@ const browser = await chromium.launch({ ...(process.platform === 'win32' ? { cha
 const base = `http://127.0.0.1:${server.address().port}`;
 async function state(page) { return page.evaluate(() => ({ text: document.body.innerText, overflow: document.documentElement.scrollWidth > innerWidth, calls: window.review.calls })); }
 try {
-  for (const stage of ['before','after']) for (const theme of ['light','dark']) for (const [device,width,height] of [['desktop',1440,1000],['phone',390,844]]) for (const name of ['settings','opt-in','routine','profile','saved','inventory','advanced','introduction']) {
+  for (const stage of ['before','after']) for (const theme of ['light','dark']) for (const [device,width,height] of [['desktop',1440,1000],['phone',390,844]]) for (const name of ['settings','opt-in','routine','profile','saved','inventory','advanced']) {
     const page = await browser.newPage({ viewport: { width, height } }), errors = []; page.on('pageerror', e => errors.push(e.message));
     const scenario = ['routine','profile','inventory','advanced'].includes(name) ? 'pilot' : name === 'saved' ? 'saved' : 'default';
-    const surface = ['advanced','introduction'].includes(name) ? name : 'settings';
+    const surface = name === 'advanced' ? name : 'settings';
     await page.goto(base + '/?' + new URLSearchParams({ stage, theme, case: scenario, surface, home: 'upgraded', features: 'on' }), { waitUntil: 'networkidle' });
-    if (!['settings','advanced','introduction'].includes(name)) {
+    if (!['settings','advanced'].includes(name)) {
       await page.getByRole('button', { name: stage === 'before' ? 'Review routine checks' : 'Set up routine checks', exact: true }).click();
       if (stage === 'after' && name === 'opt-in') await page.getByRole('button', { name: 'Review routine-check opt-in', exact: true }).click();
       if (stage === 'after' && name === 'profile') await page.getByRole('button', { name: 'Review checks profile', exact: true }).click();
@@ -54,12 +54,7 @@ try {
     if (stage === 'after' && name === 'inventory') assert.match(next.text, /Storage probe · disabled/);
     if (stage === 'after' && name === 'profile') assert.match(next.text, /Automatic cleanup is unavailable/);
     await page.screenshot({ path: resolve(out, 'screenshots', key + '.png') }); results.push({ key, ...next });
-    if (stage === 'after' && name === 'introduction') {
-      await page.getByRole('button', { name: 'Not now', exact: true }).click();
-      await page.getByTestId('project-introduction').waitFor({ state: 'detached' });
-      assert.equal((await state(page)).calls.filter(c => c.name === 'firstmate.introduction.dismiss').length, 1);
-    }
-    if (stage === 'after' && device === 'phone' && ['routine','profile','inventory','introduction'].includes(name)) {
+    if (stage === 'after' && device === 'phone' && ['routine','profile','inventory'].includes(name)) {
       await page.evaluate(() => { const nodes = [...document.querySelectorAll('*')].filter(el => [...el.childNodes].some(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim())); const sizes = nodes.map(el => ({ el, size: parseFloat(getComputedStyle(el).fontSize), line: parseFloat(getComputedStyle(el).lineHeight) })); for (const { el,size,line } of sizes) { el.style.fontSize = `${size*2}px`; if (Number.isFinite(line)) el.style.lineHeight = `${line*2}px`; } });
       assert.equal((await state(page)).overflow, false, key + ': text200');
       await page.screenshot({ path: resolve(out, 'screenshots', key + '-text200.png') });
@@ -75,6 +70,6 @@ try {
     assert.equal(next.calls.filter(c => /admit-ui|attach|provision|\.set$|\.admin$/.test(c.name)).length, 0, key + ': navigation effects');
     results.push({ key, ...next }); await page.close();
   }
-  await writeFile(resolve(out, 'results.json'), JSON.stringify({ passed: true, baseline, captures: 64, checks: results.length, results }, null, 2));
-  console.log(JSON.stringify({ passed: true, captures: 64, checks: results.length, out }));
+  await writeFile(resolve(out, 'results.json'), JSON.stringify({ passed: true, baseline, captures: 56, checks: results.length, results }, null, 2));
+  console.log(JSON.stringify({ passed: true, captures: 56, checks: results.length, out }));
 } finally { await browser.close(); await new Promise(done => server.close(done)); }
