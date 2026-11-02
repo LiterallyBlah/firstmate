@@ -175,8 +175,8 @@ describe("changing the first mate", () => {
     await expect(adoptMate(paseo, "other")).resolves.toMatchObject({ mateAgentId: "other" });
   });
 
-  it("a scoped supervisor remains a guest and cannot be adopted as the global mate", async () => {
-    const { paseo, sent } = fakePaseo({ supervisor: { ...other, id: "supervisor", labels: { "firstmate.role": "plan-supervisor" } } });
+  it.each(["plan-supervisor", "project-mate", "maintenance-mate"])("a scoped %s remains a guest and cannot be adopted as the global mate", async role => {
+    const { paseo, sent } = fakePaseo({ supervisor: { ...other, id: "supervisor", labels: { "firstmate.role": role } } });
     await expect(adoptMate(paseo, "supervisor")).rejects.toThrow(/scoped supervisors/);
     expect((await readFirstmateConfig()).mateAgentId).toBe(""); expect(sent).toEqual([]);
   });

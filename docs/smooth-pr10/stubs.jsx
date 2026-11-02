@@ -50,8 +50,6 @@ export function useRpc(contract) {
     if (contract.name === 'firstmate.maintenance.timers') return { homeId, capturedAt: '2026-10-29T12:00:00Z', fingerprint: 'a'.repeat(64), complete: false, problems: ['Fixture: native timer coverage is incomplete.'],
       hashes: { config: 'a'.repeat(64), timers: 'a'.repeat(64), coverage: 'a'.repeat(64) }, initiative: { managed: [], nativeReminders: [], disposition: 'held-reconciliation' },
       rows: [{ id: 'storage-probe', kind: 'script-watch', name: 'Storage probe', schedule: '15 3 * * *', zone: 'Europe/London', enabled: false, owner: 'unknown', disposition: 'needs review', jobId: null }] };
-    if (contract.name === 'firstmate.introduction.read') return { homeId: input.homeId, version: 1, state: window.review.dismissed ? 'dismissed' : 'available' };
-    if (contract.name === 'firstmate.introduction.dismiss') { window.review.dismissed = true; return { homeId: input.homeId, version: 1, state: 'dismissed' }; }
     throw Error('Unexpected routine mutation in preview: ' + contract.name);
   });
   return methods.get(contract.name);

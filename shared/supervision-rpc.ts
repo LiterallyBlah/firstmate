@@ -55,8 +55,6 @@ export type DiscussionResult = z.infer<typeof DiscussionResultSchema>;
 export const discussScope = defineRpc({ name: "firstmate.scope.discuss", input: z.object({ id: SupervisionUuid, route: DiscussionRouteSchema, text: z.string().trim().min(1).max(16000),
   /** The unmodified composer input is re-resolved against current addresses before delivery. */
   addressedText: z.string().max(17000), defaultScope: z.string(), }).strict(), output: DiscussionResultSchema });
-export const activateScope = defineRpc({ name: "firstmate.scope.activate", input: z.object({ requestId: SupervisionUuid, target: DiscussionTargetSchema,
-  purpose: z.literal("discussion") }).strict(), output: z.object({ state: z.literal("unsupported"), reason: z.string() }).strict() });
 /** Same shared Needs-you projection, including the existing scoped decision identities; never a new ledger. */
 export const readScopeNeeds = defineRpc({ name: "firstmate.scope.needs", input: z.object({}).strict(), output: NeedsYouSnapshotSchema });
 /** A thrown/uncertain response is never evidence of non-acceptance. Only a checked refusal releases retry. */
