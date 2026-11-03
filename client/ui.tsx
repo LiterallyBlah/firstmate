@@ -175,7 +175,8 @@ export function IconButton({
         flexDirection: "row" as const,
         alignItems: "center" as const,
         justifyContent: compact ? "center" as const : undefined,
-        minHeight: compact ? 44 : undefined,
+        // One explicit height: a label's line height differs between platforms' fonts (28 on Linux, 30 on Windows).
+        minHeight: compact ? 44 : CONTROL_HEIGHT,
         minWidth: compact ? 44 : undefined,
         gap: 6,
         paddingHorizontal: showLabel ? 10 : 7,
