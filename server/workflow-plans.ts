@@ -27,6 +27,13 @@ type Event = WorkflowEvent;
 const RecoverySchema = z.object({ version: z.literal(1), home: z.string(), plan: PlanId, sequence: z.number().int().nonnegative(),
   orphanHash: z.string().length(64), previous: z.string().length(64).nullable(), revision: z.number().int().positive(), at: z.iso.datetime(), hash: z.string().length(64) }).strict();
 const checksum = ({ hash: _hash, ...event }: Event) => digest(event);
+/** How many events of one plan log are read ahead of the in-order checks. */
+const EVENT_READ_AHEAD = 32;
+type Settled<T> = { value: T } | { error: unknown };
+interface PlanEventFiles { size: Settled<number>; event: Settled<string | null>; tip: Settled<string>; marker: Settled<string | null> }
+const settled = <T,>(work: Promise<T>): Promise<Settled<T>> => work.then(value => ({ value }), (error: unknown) => ({ error }));
+/** A read's value, or its original error, thrown where the sequential reader would have thrown it. */
+const taken = <T,>(read: Settled<T>): T => { if ("error" in read) throw read.error; return read.value; };
 const terminal = (state: string) => ["done", "landed", "failed", "cancelled"].includes(state);
 export const planSubjectHash = (plan: WorkflowPlan) => digest({ definition: plan.definition, revision: plan.revision, status: plan.status, nodes: plan.nodes, owner: planOwner(plan), ownerEvents: plan.ownerEvents, captainActions: plan.captainEvents?.map(e => e.id) ?? [] });
 export const backlogSection = (node: PlanNode, state: string, closedWithoutLanding = false) => terminal(state) && !(node.kind === "run" && node.launch.kind === "ship" && state === "done" && !closedWithoutLanding) ? "done" : state === "planned" ? "queued" : "in-flight";
@@ -135,9 +142,11 @@ function answerDecision(plan: WorkflowPlan, nodeId: string | undefined, option: 
   state.answer = option!; state.state = "done"; state.evidence = evidence || node.options.find(o => o.id === option)!.label;
   state.readyAt = { done: at, answered: at };
 }
-function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
-  const c = event.command;
-  let next = previous ? structuredClone(previous) : null;
+/** `owned`: the caller folds a whole log and keeps no intermediate plan, so `previous` may be updated in place
+ * instead of copied per event (the copy made a long log's cold read quadratic). Every other caller copies. */
+function reduce(previous: WorkflowPlan | null, event: Event, owned = false): WorkflowPlan {
+  const c = event.command, previousHash = previous?.hash;
+  let next = previous ? owned ? previous : structuredClone(previous) : null;
   if (c.op === "draft" || c.op === "implicit") {
     if (previous) throw new Error("Duplicate plan creation.");
     const definition: PlanDefinition = c.op === "draft" ? c.definition : {
@@ -197,7 +206,7 @@ function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
     next.history.push({ revision: next.revision, at: event.at, by: event.by, reason: `Delegated ${c.action}: ${c.evidence}` });
   }
   if (c.op === "revise") {
-    if (c.expected !== previous?.hash || c.definition.id !== next.definition.id) throw new Error("Stale plan revision.");
+    if (c.expected !== previousHash || c.definition.id !== next.definition.id) throw new Error("Stale plan revision.");
     if (digest(c.definition.ownership ?? null) !== digest(next.definition.ownership ?? null)) throw new Error("Transfer ownership through a recorded captain action, not a revision.");
     for (const old of next.definition.nodes) {
       if (next.nodes[old.id]?.state !== "planned" && digest(c.definition.nodes.find(n => n.id === old.id)) !== digest(old)) throw new Error(`Started node ${old.id} is pinned; preserve it and replan separately.`);
@@ -222,7 +231,7 @@ function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
     next.history.push({ revision: next.revision, at: event.at, by: event.by, reason: c.reason });
   }
   if (c.op === "approve") {
-    if (c.expected !== previous?.hash || next.status === "abandoned") throw new Error("Stale plan approval.");
+    if (c.expected !== previousHash || next.status === "abandoned") throw new Error("Stale plan approval.");
     next.status = "active"; next.approvedBudget = planWorstCase(next.definition, next.nodes, next.removed);
     next.history.push({ revision: next.revision, at: event.at, by: event.by, reason: `Recorded from chat: ${c.quote}` });
     next.captainEvents ??= []; next.captainEvents.push({ id: event.requestId, action: "approve", text: c.quote, at: event.at, by: event.by });
@@ -251,11 +260,11 @@ function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
     } else if (c.op === "invalidate") {
       next.nodes[c.node] = { ...state, invalidated: c.evidence, evidence: c.evidence };
     } else if (c.op === "validate") {
-      if (!state.invalidated || !terminal(state.state) || c.expected !== previous?.hash) throw new Error("Renewal requires current invalidated completed evidence.");
+      if (!state.invalidated || !terminal(state.state) || c.expected !== previousHash) throw new Error("Renewal requires current invalidated completed evidence.");
       const { invalidated: _invalidated, ...valid } = state;
       next.nodes[c.node] = { ...valid, evidence: c.evidence, availableAt: event.at };
     } else {
-      if (c.expected !== previous?.hash || !state.agentId || !state.workspaceId || state.invalidated || (c.kind === "promote" && (node.launch.kind !== "scout" || state.state !== "done"))) throw new Error("Replacement requires the current accounted worker and verified promotion/relaunch evidence.");
+      if (c.expected !== previousHash || !state.agentId || !state.workspaceId || state.invalidated || (c.kind === "promote" && (node.launch.kind !== "scout" || state.state !== "done"))) throw new Error("Replacement requires the current accounted worker and verified promotion/relaunch evidence.");
       const spent = planSpent(next.nodes, next.removed);
       if (c.budget.agents < spent + 1 || c.budget.turns < spent + 1) throw new Error("Replacement needs additional cumulative budget.");
       next.definition.budget = c.budget;
@@ -281,7 +290,7 @@ function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
   }
   if (c.op === "close") {
     const node = next.definition.nodes.find(n => n.id === c.node), state = next.nodes[c.node];
-    if (node?.kind !== "run" || node.launch.kind !== "ship" || !state?.attempt || state.attempt !== c.attempt || c.expected !== previous?.hash ||
+    if (node?.kind !== "run" || node.launch.kind !== "ship" || !state?.attempt || state.attempt !== c.attempt || c.expected !== previousHash ||
       state.state !== "done" || state.invalidated || state.held || state.closedWithoutLanding) throw new Error("Closing without landing requires the current verified done ship attempt and fresh plan hash.");
     state.closedWithoutLanding = { at: event.at, by: event.by, evidence: c.evidence };
     next.history.push({ revision: next.revision, at: event.at, by: event.by, reason: `Closed ${node.title} without landing: ${c.evidence}` });
@@ -290,12 +299,14 @@ function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
   if (c.op === "notified") { const action = next.captainEvents?.find(a => a.id === c.eventId); if (!action) throw new Error("Unknown captain event."); action.notified = true; }
   return { ...next, hash: event.hash, sequence: event.sequence };
 }
-export { reduce as replayWorkflowEvent };
+/** Replays one event onto a copy of `previous`; never the in-place fold. */
+export const replayWorkflowEvent = (previous: WorkflowPlan | null, event: Event): WorkflowPlan => reduce(previous, event);
 
 /** The legacy writer refuses a plan whose S07 cutover has frozen or committed. */
 export class LegacyCutoverError extends Error {}
 export class WorkflowPlanStore {
   private static cache = new Map<string, { identity: string; plan: WorkflowPlan | null }>();
+  private static reading = new Map<string, Promise<WorkflowPlan | null>>();
   constructor(readonly root: string, readonly home: string, private readonly route?: (command: WorkflowCommand) => Promise<void>) {}
   private directory(id: string) { return join(this.root, PlanId.parse(id)); }
   private tips(id: string) { return join(this.root, ".tips", PlanId.parse(id)); }
@@ -403,18 +414,24 @@ export class WorkflowPlanStore {
     if (names.length && !tips.length) throw new Error(`Plan log ${id} has no expected tip; explicit legacy reconciliation is required.`);
     if (files.some(f => !/^\d{8}\.json(?:\.[\w-]+\.tmp)?$/.test(f))) throw new Error(`Unknown file in plan log ${id}.`);
     const events: Event[] = []; let previous: string | null = null;
-    for (const name of files.filter(f => /^\d{8}\.json$/.test(f)).sort()) {
+    const ordered = files.filter(f => /^\d{8}\.json$/.test(f)).sort();
+    // A cold read of a long log was one file at a time, three reads per event (the decisions read timed out
+    // behind ~12k of them on a fresh start). Read ahead a bounded window in parallel; every check below still
+    // runs in order on the same bytes, so a failure surfaces exactly where it did.
+    const window = new Map<string, Promise<PlanEventFiles>>();
+    const ahead = (n: number) => { for (const name of ordered.slice(n, n + EVENT_READ_AHEAD)) if (!window.has(name)) window.set(name, this.eventFiles(id, name, published.includes(name))); };
+    for (const [n, name] of ordered.entries()) {
       if (name !== `${String(events.length).padStart(8, "0")}.json`) throw new Error(`Plan log ${id} has a gap.`);
-      const path = join(this.directory(id), name);
-      if ((await stat(path)).size > 512000) throw new Error("Plan event too large.");
+      ahead(n); const read = await window.get(name)!; window.delete(name);
+      if (taken(read.size) > 512000) throw new Error("Plan event too large.");
       // Hash the committed bytes' object before schema defaults/transforms are applied.
-      const raw = JSON.parse(await readFile(path, "utf8"));
+      const raw = JSON.parse(taken(read.event)!);
       if (checksum(raw) !== raw.hash || raw.requestHash !== digest(raw.command)) throw new Error(`Plan log ${id} failed its home identity or hash chain.`);
       const event = EventSchema.parse(raw);
-      const tip = JSON.parse(await readFile(join(this.tips(id), name), "utf8"));
+      const tip = JSON.parse(taken(read.tip));
       if (tip.publication === 1 && !published.includes(name) && !allowUnpublished) throw new Error(`Plan log ${id} publication is incomplete; retry its original mutation.`);
       if (published.includes(name)) {
-        const marker = JSON.parse(await readFile(join(this.published(id), name), "utf8"));
+        const marker = JSON.parse(taken(read.marker)!);
         if (marker.hash !== event.hash || marker.sequence !== event.sequence) throw new Error(`Plan log ${id} failed its publication marker.`);
         if (marker.ownership) readOwnershipCapsule(marker.ownership, this.home, id, event.hash);
       }
@@ -423,6 +440,14 @@ export class WorkflowPlanStore {
       previous = event.hash; events.push(event);
     }
     return events;
+  }
+  /** One event's files, each read or its error kept for the in-order checks. An oversized event is not read. */
+  private async eventFiles(id: string, name: string, marker: boolean): Promise<PlanEventFiles> {
+    const size = await settled(stat(join(this.directory(id), name)).then(s => s.size));
+    const event = "value" in size && size.value <= 512000 ? settled(readFile(join(this.directory(id), name), "utf8")) : { value: null };
+    const [eventText, tip, publication] = await Promise.all([event, settled(readFile(join(this.tips(id), name), "utf8")),
+      marker ? settled(readFile(join(this.published(id), name), "utf8")) : { value: null }]);
+    return { size, event: eventText, tip, marker: publication };
   }
   /** Only mutations repair crash windows, under the same serialization boundary as append. */
   private async recoverUnpublishedTip(id: string): Promise<void> {
@@ -438,7 +463,7 @@ export class WorkflowPlanStore {
         const tip = JSON.parse(await readFile(join(this.tips(id), name), "utf8"));
         if (tip.publication === 1 && !published.includes(name)) {
           await mkdir(this.published(id), { recursive: true });
-          const plan = events.slice(0, event.sequence + 1).reduce<WorkflowPlan | null>(reduce, null)!;
+          const plan = events.slice(0, event.sequence + 1).reduce<WorkflowPlan | null>((plan, event) => reduce(plan, event), null)!;
           await publish(join(this.published(id), name), { sequence: event.sequence, hash: event.hash, ownership: ownershipCapsule(this.home, plan) });
         }
       }
@@ -449,7 +474,7 @@ export class WorkflowPlanStore {
     const tip = JSON.parse(await readFile(join(this.tips(id), orphan), "utf8"));
     // Older anchors cannot prove whether a missing event was exposed. Never roll those back.
     if (tip.publication !== 1 || tip.sequence !== names.length || !/^[a-f0-9]{64}$/.test(tip.hash)) return;
-    const events = await this.events(id, orphan), previous = events.reduce<WorkflowPlan | null>(reduce, null);
+    const events = await this.events(id, orphan), previous = events.reduce<WorkflowPlan | null>((plan, event) => reduce(plan, event), null);
     const attempts = new Set(events.map(e => e.attempt).filter(Boolean));
     const data = (await resolveInHome(this.home, "data")).absolute;
     let tasks: Dirent[];
@@ -493,14 +518,27 @@ export class WorkflowPlanStore {
     const key = `${resolve(this.root)}:${resolve(this.home)}:${id}`, identities: unknown[] = [];
     for (const directory of [this.directory(id), this.tips(id), this.published(id)]) {
       let names: string[]; try { names = (await readdir(directory)).sort(); } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e; names = []; }
-      for (const name of names) { const s = await stat(join(directory, name)); identities.push([directory, name, s.ino, s.size, s.mtimeMs, s.ctimeMs]); }
+      // Same identities in the same order; the stats of one directory are only issued together.
+      for (const [n, s] of (await Promise.all(names.map(name => stat(join(directory, name))))).entries())
+        identities.push([directory, names[n], s.ino, s.size, s.mtimeMs, s.ctimeMs]);
     }
     const identity = digest(identities), cached = WorkflowPlanStore.cache.get(key);
     if (cached?.identity === identity) return structuredClone(cached.plan);
-    let plan = (await this.events(id)).reduce<WorkflowPlan | null>(reduce, null);
-    if (plan) plan = await this.recoveryHistory(plan);
-    if (WorkflowPlanStore.cache.size > 2000) WorkflowPlanStore.cache.clear();
-    WorkflowPlanStore.cache.set(key, { identity, plan }); return structuredClone(plan);
+    // Concurrent readers of the same files share one reduction: at startup the workflow clock, the decisions
+    // read and the Plans read all arrive cold, and each repeating every event slowed all of them.
+    const flight = `${key}\0${identity}`;
+    let pending = WorkflowPlanStore.reading.get(flight);
+    if (!pending) {
+      pending = (async () => {
+        let plan = (await this.events(id)).reduce<WorkflowPlan | null>((plan, event) => reduce(plan, event, true), null);
+        if (plan) plan = await this.recoveryHistory(plan);
+        if (WorkflowPlanStore.cache.size > 2000) WorkflowPlanStore.cache.clear();
+        WorkflowPlanStore.cache.set(key, { identity, plan }); return plan;
+      })();
+      const done = () => { if (WorkflowPlanStore.reading.get(flight) === pending) WorkflowPlanStore.reading.delete(flight); };
+      WorkflowPlanStore.reading.set(flight, pending); pending.then(done, done);
+    }
+    return structuredClone(await pending);
   }
   async read(): Promise<{ plans: WorkflowPlan[]; problems: string[]; warnings: string[]; quarantined: QuarantinedWorkflow[]; unavailable?: boolean }> {
     let entries;
@@ -566,7 +604,7 @@ export class WorkflowPlanStore {
       const id = command.op === "draft" || command.op === "revise" ? command.definition.id : command.op === "implicit" ? command.launch.id : command.plan;
       if (await this.retirement(id)) throw new Error(`Plan ${id} is retired; its history, budget and task reservations remain retained.`);
       await this.recoverUnpublishedTip(id);
-      const events = await this.events(id), previous = events.reduce<WorkflowPlan | null>(reduce, null);
+      const events = await this.events(id), previous = events.reduce<WorkflowPlan | null>((plan, event) => reduce(plan, event), null);
       const replay = events.find(e => e.requestId === requestId);
       if (replay) { if (replay.requestHash !== digest(command)) throw new Error("Request ID has different content."); return this.renderedResult(previous!, replay); }
       if (command.op === "approve" && previous && planOwner(previous) !== "captain" && !captainReviewRequired(previous)) throw new Error("Routine review belongs to FirstMate; use delegated progression.");

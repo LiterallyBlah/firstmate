@@ -31,6 +31,19 @@ function decisionDueAt(plan: WorkflowPlan, node: WorkflowPlan["definition"]["nod
 }
 
 export const workflowHomeId = (home: string) => digest(process.platform === "win32" ? resolve(home).toLowerCase() : resolve(home));
+/** How long the decisions read waits for plans before answering without them. The host gives an RPC 30 s. */
+export const PLAN_READ_BUDGET_MS = 10_000;
+/** The plan snapshot, or null once `budgetMs` has passed. A fresh process verifies every plan log once (about
+ * 12,000 events on a large home), which can outlast the host's RPC limit while startup work competes; the
+ * snapshot then carries on and warms the cache, so the next read is quick. Each call starts its own snapshot,
+ * so a read after an answer never reuses one that began before it. */
+export async function workflowSnapshotWithin(home: string, budgetMs = PLAN_READ_BUDGET_MS,
+  read: (home: string) => Promise<WorkflowSnapshot> = workflowSnapshot): Promise<WorkflowSnapshot | null> {
+  const pending = read(home); pending.catch(() => undefined);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try { return await Promise.race([pending, new Promise<null>(done => { timer = setTimeout(() => done(null), budgetMs); })]); }
+  finally { clearTimeout(timer); }
+}
 export async function workflowSnapshot(home: string, scoped?: import("../shared/supervision").SupervisionStatus): Promise<WorkflowSnapshot> {
   let read: { plans: WorkflowPlan[]; problems: string[]; warnings?: string[]; quarantined?: QuarantinedWorkflow[] };
   const store = workflowStore(home);
