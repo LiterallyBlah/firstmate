@@ -49,3 +49,24 @@ describe("deliverToMate", () => {
     expect(await deliverToMate(null, config, "note")).toBe("wait");
   });
 });
+
+describe("watchPolicyEnv", () => {
+  it("follows the saved Supervisors setting over the daemon's plan switch, and is off when policy can't be read", async () => {
+    const { randomUUID } = await import("node:crypto"), { join } = await import("node:path");
+    const { FeaturePolicyRuntime, installFeaturePolicy } = await import("./feature-policy-runtime");
+    const { legacyFeatureSettings } = await import("./feature-settings");
+    const { DEFAULT_FEATURE_CAPACITY } = await import("../shared/feature-settings");
+    const { watchPolicyEnv } = await import("./watch-service");
+    const root = join(process.env.PASEO_HOME!, randomUUID()), home = join(root, "home");
+    const policy = new FeaturePolicyRuntime(root, legacyFeatureSettings(home, { FIRSTMATE_PLAN_SUPERVISORS: "1" }));
+    const uninstall = installFeaturePolicy(policy);
+    try {
+      expect(await watchPolicyEnv(home)).toEqual({ FIRSTMATE_SUPERVISORS: "1" });
+      await policy.set({ home, expectedRevision: 0, requestId: randomUUID(), change: { supervisors: false, capacity: { ...DEFAULT_FEATURE_CAPACITY } } });
+      expect(await watchPolicyEnv(home)).toEqual({ FIRSTMATE_SUPERVISORS: "0" });
+      await policy.set({ home, expectedRevision: 1, requestId: randomUUID(), change: { supervisors: true, capacity: { ...DEFAULT_FEATURE_CAPACITY } } });
+      expect(await watchPolicyEnv(home)).toEqual({ FIRSTMATE_SUPERVISORS: "1" });
+      expect(await watchPolicyEnv("relative-home")).toEqual({ FIRSTMATE_SUPERVISORS: "0" });
+    } finally { uninstall(); }
+  });
+});

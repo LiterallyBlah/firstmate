@@ -100,7 +100,7 @@ export class ProjectRuntime {
   withRegistry<T>(homeId: string, run: () => Promise<T>) { return serialized(`project-registry:${homeId}`, run); }
   private config() { return (this.options.config ?? readFirstmateConfig)(); }
   private async checkedConfig(homeId: string, generalId?: string, settlement = false) {
-    if (!this.options.enabled && !this.runtime.features) refuse("UNSUPPORTED", "Project mates are disabled; no store or session was created.");
+    if (!this.options.enabled && !this.runtime.features) refuse("UNSUPPORTED", "Supervisors are off; no store or session was created.");
     const config = await this.config(); requireNoMigration(config); const home = resolveHome(config);
     if (homeId !== workflowHomeIdentity(home) || generalId !== undefined && generalId !== config.mateAgentId)
       refuse("STALE", "Home or General ownership changed; refresh before acting.");

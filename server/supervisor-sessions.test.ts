@@ -23,6 +23,24 @@ async function activate(fx: S04Fixture, scope: ScopeHandle) {
 }
 
 describe("S04 supervisor lifecycle (synthetic receiver)", { timeout: 60000 }, () => {
+  it("a session created under its kind's old role keeps its identity: it verifies, is sent to, and a wrong old role is held", async () => {
+    // Paseo cannot take a label off, so a session made before the Supervisor labels carries only the old role.
+    const fx = await s04Fixture(), scope = await dormant(fx), { binding, effects } = await reserve(fx, scope);
+    fx.receiver.tamper = agent => { agent.labels = { "firstmate.role": "plan-supervisor", "firstmate.scope": scope.id, "firstmate.epoch": "1" }; };
+    await fx.gateway.dispatch(effects.workspace!.id); await fx.gateway.dispatch(effects.create!.id);
+    expect(await fx.sessions.verify(scope.id, 1)).toMatchObject({ state: "active", agentId: binding.agentId });
+    await fx.gateway.dispatch(effects.send!.id);
+    expect(fx.receiver.sends.map(s => s.agentId)).toEqual([binding.agentId]);
+    // Another kind's old role, or the new role without its kind, is not this scope's Supervisor.
+    const wrong: Record<string, string>[] = [{ "firstmate.role": "project-mate" }, { "firstmate.role": "supervisor" }, { "firstmate.role": "plan-supervisor", "firstmate.scope-kind": "project" }];
+    for (const [n, labels] of wrong.entries()) {
+      const other = await dormant(fx, n + 2), held = await reserve(fx, other);
+      fx.receiver.tamper = agent => { agent.labels = { ...labels, "firstmate.scope": other.id, "firstmate.epoch": "1" }; };
+      await fx.gateway.dispatch(held.effects.workspace!.id); await fx.gateway.dispatch(held.effects.create!.id);
+      await expect(fx.sessions.verify(other.id, 1)).rejects.toMatchObject({ code: "HELD" });
+    }
+    expect(fx.receiver.sends).toHaveLength(1);
+  });
   it("reserved/unprompted -> verified -> active -> send, with the opening last", async () => {
     const fx = await s04Fixture(), scope = await dormant(fx), { binding, effects } = await reserve(fx, scope);
     let s = await fx.store.read();
@@ -31,7 +49,8 @@ describe("S04 supervisor lifecycle (synthetic receiver)", { timeout: 60000 }, ()
     await fx.gateway.dispatch(effects.workspace!.id); await fx.gateway.dispatch(effects.create!.id);
     await expect(fx.gateway.dispatch(effects.send!.id)).rejects.toMatchObject({ code: "HELD" }); // No opening before activation.
     const created = fx.receiver.agents.get(binding.agentId)!;
-    expect(created.labels).toMatchObject({ "firstmate.role": "plan-supervisor", "firstmate.scope": scope.id, "firstmate.epoch": "1" });
+    expect(created.labels).toMatchObject({ "firstmate.role": "supervisor", "firstmate.scope-kind": "plan", "firstmate.scope": scope.id, "firstmate.epoch": "1" });
+    expect(fx.receiver.titles.get(binding.agentId)).toBe(`Supervisor · plan ${scope.id.slice(0, 8)}`);
     expect(created.labels["paseo.parent-agent-id"]).toBeUndefined();
     expect(await fx.sessions.verify(scope.id, 1)).toMatchObject({ state: "active", agentId: binding.agentId, workspaceId: created.workspaceId, workspaceIntent: binding.workspaceIntent });
     s = await fx.store.read();

@@ -42,7 +42,8 @@ try {
     page.setDefaultTimeout(10000); page.on('pageerror', e => errors.push(e.message));
     const settings = scenario === 'settings' || stage === 'before' && scenario === 'setup';
     await page.goto(`${origin}/?stage=${stage}&theme=${theme}&home=upgraded&features=on${settings ? '&surface=settings' : ''}`, { waitUntil: 'networkidle' });
-    const help = stage === 'before' ? 'Set up project mates' : 'Review project help';
+    // Slice 5 replaced Help's "Review project help" with the one Supervisors switch (on in this census).
+    const help = stage === 'before' ? 'Set up project mates' : 'Turn off Supervisors';
     if (settings) {
       const action = page.getByRole('button', { name: help, exact: true }); await action.waitFor();
       if (scenario === 'setup') await action.click(); // before: the retired wizard

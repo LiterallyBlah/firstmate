@@ -2,7 +2,7 @@
  * interrupt, takeover or strong receiver. Unknown create/send outcomes stay in S04's effect ledger. */
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import type { GatewayReceiver, AgentCreateIntent, AgentObservation, WorkspaceIntent, WorkspaceReceipt } from "../shared/supervision-effects";
+import { supervisorRoleKind, type GatewayReceiver, type AgentCreateIntent, type AgentObservation, type WorkspaceIntent, type WorkspaceReceipt } from "../shared/supervision-effects";
 import type { PaseoApi } from "./host-types";
 import { refuse } from "./supervision-effects";
 import { sendWithoutInterrupting } from "./send";
@@ -27,8 +27,9 @@ export class SupervisionUiReceiver implements GatewayReceiver {
   }
   async findWorkspace(_intent: WorkspaceIntent): Promise<WorkspaceReceipt | null> { return null; } // No negative lookup or automatic replay.
   async createAgent(intent: AgentCreateIntent) {
-    if (!(intent.labels["firstmate.role"] === "plan-supervisor" || this.options.projectMates && intent.labels["firstmate.role"] === "project-mate" ||
-      this.options.maintenanceMates && intent.labels["firstmate.role"] === "maintenance-mate") || intent.labels["paseo.parent-agent-id"])
+    const kind = supervisorRoleKind(intent.labels);
+    if (!(kind === "plan" || kind === "project" && this.options.projectMates || kind === "maintenance" && this.options.maintenanceMates) ||
+      intent.labels["paseo.parent-agent-id"])
       refuse("UNSUPPORTED", "This adapter creates only explicitly enabled independent scope owners.");
     const agent = await this.paseo.workspaces.ref(intent.workspaceId).agents.create({ agentId: intent.agentId,
       idempotencyKey: intent.agentId, config: { provider: intent.profile.provider,

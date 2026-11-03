@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Plugin-owned scope transport for a project mate or plan supervisor bound to one scope epoch.
-// Seeded when project or plan help is enabled; retained for read/receipt reconciliation while paused. tools/role.mjs remains the only
+// Plugin-owned scope transport for a plan or project Supervisor bound to one scope epoch (data/supervisors.md).
+// Seeded while Supervisors are on; retained for read/receipt reconciliation while paused. tools/role.mjs remains the only
 // global first-mate check; this helper never grants or borrows that role. Request files are
 // cooperative same-user transport, not authenticated identity. Never repeat a create.
 import { execFile } from "node:child_process";

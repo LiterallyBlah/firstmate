@@ -42,6 +42,7 @@ import { checkPlanAllocation } from "./plan-allocation";
 import type { WatchFact } from "../shared/watch-routing";
 import { WatchConfigStore } from "./watch-config";
 import { cutoverGate } from "./supervision-gate";
+import { TEMPLATES } from "./templates";
 
 const Import = z.object({ sources: z.array(PolicySourceSchema).max(64), rules: z.array(PolicyRuleSchema).max(64),
   reviewedHolds: z.array(z.object({ id: z.uuid(), version: z.number().int().positive() }).strict()).max(64).optional() }).strict();
@@ -186,7 +187,7 @@ export class PlanRuntime {
       }, reserveCheck: admissionCheck, globalMateId: async () => { await this.guard(home, generalId, false); return generalId; } });
     const ingress = new SupervisionEvents(store), inbox = new SupervisionInbox(store, { offers: true });
     const lifecycle = new SupervisionLifecycle(store, ingress, inbox, sessions, gateway, { enabled: true, context: (s, scopeId) => ({
-      helper: join(home, "tools", "scope.mjs"), guide: join(home, "data", s.scopes.find(scope => scope.id === scopeId)?.kind === "project" ? "project-mates.md" : "plan-supervisors.md"), scopeId, epoch: s.bindings.find(b => b.scopeId === scopeId)?.epoch,
+      helper: join(home, "tools", "scope.mjs"), guide: join(home, TEMPLATES.scopeGuide), scopeId, epoch: s.bindings.find(b => b.scopeId === scopeId)?.epoch,
       rules: s.planRules?.filter(r => r.scopeId === scopeId && s.plans.some(p => p.scopeId === scopeId && p.plan.revision === r.revision)).map(r => ({ ...ruleRef(r), revision: r.revision, nodes: r.nodes.map(n => n.nodeId) })),
       supervisorBudget: planSupervisorLimits(s, scopeId),
       ruleViolations: s.ruleViolations?.filter(r => r.scopeId === scopeId).slice(-4),

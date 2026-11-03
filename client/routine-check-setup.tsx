@@ -40,7 +40,7 @@ export function RoutineCheckSetup({ theme, compact, homeId, hostId, online, canE
     <Modal title="Set up routine checks" open={!admission} onOpenChange={open => { if (!open) onClose(); }}><Modal.Content>
       <View testID="routine-check-setup" style={{ gap: 16 }}>
         <Text style={text}>Checks report problems for review. Automatic cleanup is unavailable.</Text>
-        <Text style={note}>Project mates and plan help work without routine checks. Creating a checks conversation does not create jobs, change timers or repair projects.</Text>
+        <Text style={note}>Plan and project Supervisors work without routine checks. Creating a checks Supervisor does not create jobs, change timers or repair projects.</Text>
         <Text accessibilityRole="header" style={{ ...text, fontSize: 16, fontWeight: "600" }}>Review before anything starts</Text>
         <Text style={note}>Choose a name, model, permissions and total turn limit. Jobs, computers and schedules need a separate checked setup.</Text>
         <ReadProgress theme={theme} pending={query.isPending} pendingSince={source && query.isPending ? initialReadWaits.get(source) : undefined}

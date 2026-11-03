@@ -44,7 +44,7 @@ import { renderCharter } from "./charter";
 import { syncCharter } from "./charter-file";
 import { FileChangedError, readTextFile, replaceTextIfUnchanged, type WriteHooks } from "./files";
 import { parseSuggestions, withoutSuggestion } from "./suggestions";
-import { TEMPLATES, fill, readTemplate, withoutNotes, type TemplatePath } from "./templates";
+import { LEGACY_GUIDE_PATHS, TEMPLATES, fill, readTemplate, withoutNotes, type TemplatePath } from "./templates";
 import { seedWatches } from "./watch-files";
 import { remoteQueue } from "./remotes";
 import { paseoHome } from "./data-dir";
@@ -240,13 +240,18 @@ export async function readProjects(home: string): Promise<Project[]> {
 export async function syncFeatureHelpers(home: string, origin: RecordOrigin = newAction("feature-helpers")): Promise<void> {
   if (!(await isHomeReady(home))) return;
   const policy = await currentFeaturePolicy(home);
-  if (policy.effective.planSupervisors || policy.effective.projectMates)
-    await homeWrite(home, TEMPLATES.scopeHelper, origin, await readTemplate(TEMPLATES.scopeHelper));
-  if (policy.effective.planSupervisors)
-    await homeWrite(home, TEMPLATES.scopeGuide, origin, await readTemplate(TEMPLATES.scopeGuide));
+  const write = async (path: TemplatePath) => {
+    const content = await readTemplate(path), legacy = LEGACY_GUIDE_PATHS[path];
+    await homeWrite(home, path, origin, content);
+    if (legacy) await homeWrite(home, legacy, origin, content);
+  };
+  if (policy.effective.planSupervisors || policy.effective.projectMates) {
+    await write(TEMPLATES.scopeHelper);
+    await write(TEMPLATES.scopeGuide);
+  }
   if (policy.effective.projectMates) {
-    await homeWrite(home, TEMPLATES.projectHelper, origin, await readTemplate(TEMPLATES.projectHelper));
-    await homeWrite(home, TEMPLATES.projectGuide, origin, await readTemplate(TEMPLATES.projectGuide));
+    await write(TEMPLATES.projectHelper);
+    await write(TEMPLATES.projectGuide);
   }
   if (policy.effective.maintenance) {
     await homeWrite(home, TEMPLATES.maintenanceHelper, origin, await readTemplate(TEMPLATES.maintenanceHelper));

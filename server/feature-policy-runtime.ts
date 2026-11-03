@@ -1,6 +1,6 @@
 /** Live policy resolution. No timers, cached authority, writers or model effects. */
 import type { SupervisionEffect, SupervisionStatus } from "../shared/supervision";
-import type { FeatureCapability, FeaturePolicySnapshot, FeatureSetInput } from "../shared/feature-settings";
+import type { FeatureCapability, FeaturePolicySnapshot, FeatureSaveInput } from "../shared/feature-settings";
 import { FeatureSettingsStore, legacyFeatureSettings, type LegacyFeatureSettings } from "./feature-settings";
 import { serialized } from "./serialize";
 import { digest } from "./submissions";
@@ -35,7 +35,7 @@ export class FeaturePolicyRuntime {
   /** Settings save and final claim/native-call initiation share this short queue. The returned
    * network promise is boxed, so it never holds the queue or delays an off transition. */
   boundary<T>(home: string, run: () => Promise<T>) { return serialized(this.key(home), run); }
-  async set(input: FeatureSetInput, guard?: () => Promise<unknown>) { return this.boundary(input.home, async () => { await guard?.(); return (await this.store(input.home)).set(input); }); }
+  async set(input: FeatureSaveInput, guard?: () => Promise<unknown>) { return this.boundary(input.home, async () => { await guard?.(); return (await this.store(input.home)).set(input); }); }
   async reservation(home: string, capability: FeatureCapability) {
     return { capability, revision: (await this.check(home, capability)).revision! };
   }

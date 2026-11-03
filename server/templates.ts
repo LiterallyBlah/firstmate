@@ -80,10 +80,10 @@ export const TEMPLATES = {
   projectHelper: "tools/projects.mjs",
   maintenanceHelper: "tools/maintenance.mjs",
   maintenanceGuide: "data/maintenance.md",
-  projectGuide: "data/project-mates.md",
-  /** Build B: both remain unseeded unless plan supervision is explicitly enabled. */
+  projectGuide: "data/project-context.md",
+  /** Both remain unseeded unless Supervisors are on. */
   scopeHelper: "tools/scope.mjs",
-  scopeGuide: "data/plan-supervisors.md",
+  scopeGuide: "data/supervisors.md",
   backlogLint: "data/backlog-lint.js",
   workflowGuide: "data/workflows.md",
   workflowPlan: "parts/workflow-plan.md",
@@ -108,6 +108,12 @@ export const TEMPLATES = {
 } as const;
 
 export type TemplatePath = (typeof TEMPLATES)[keyof typeof TEMPLATES];
+/** The guides' old home paths, still written with the same text for sessions told them (slice 5 of the Supervisor
+ * cleanup). The home never deletes a helper, so these stop being refreshed only when this list loses them. */
+export const LEGACY_GUIDE_PATHS: Partial<Record<TemplatePath, string>> = {
+  [TEMPLATES.scopeGuide]: "data/plan-supervisors.md",
+  [TEMPLATES.projectGuide]: "data/project-mates.md",
+};
 
 async function isDirectory(path: string): Promise<boolean> {
   try {

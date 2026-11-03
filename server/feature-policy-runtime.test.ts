@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { expect, it, vi } from "vitest";
-import { DEFAULT_FEATURE_CAPACITY, FEATURES_OFF, type FeatureCapabilities } from "../shared/feature-settings";
+import { DEFAULT_FEATURE_CAPACITY, FEATURES_OFF, supervisorCapabilities } from "../shared/feature-settings";
 import { FirstmateConfigSchema } from "../shared/fleet";
 import { s04Fixture, captain } from "../test/supervision-s04-fixture";
 import { FeaturePolicyRuntime, installFeaturePolicy } from "./feature-policy-runtime";
@@ -23,24 +23,32 @@ import { readScopes } from "../shared/supervision-rpc";
 import { SupervisionStore } from "./supervision-store";
 import { SyntheticReceiver } from "../test/synthetic-receiver";
 import { syncFeatureHelpers } from "./home";
+import { publishFormat1 } from "../test/feature-policy-format1";
 
-const change = (home: string, expectedRevision: number, requested: Partial<FeatureCapabilities>) => ({ home, expectedRevision, requestId: randomUUID(),
-  change: { requested: { ...FEATURES_OFF, ...requested }, capacity: { ...DEFAULT_FEATURE_CAPACITY } } });
+/** One saved Supervisors setting. Single-fence states come only from the daemon's environment (a legacy pilot). */
+const change = (home: string, expectedRevision: number, supervisors: boolean) => ({ home, expectedRevision, requestId: randomUUID(),
+  change: { supervisors, capacity: { ...DEFAULT_FEATURE_CAPACITY } } });
 const deferred = () => { let resolve!: () => void; const promise = new Promise<void>(r => { resolve = r; }); return { promise, resolve }; };
 
-it("project-only help supplies its checked reply transport without advertising plan execution, and pause retains it", async () => {
-  const root = join(process.env.PASEO_HOME!, randomUUID()), home = join(root, "home"), policy = new FeaturePolicyRuntime(root);
+it("a project-only pilot supplies the Supervisor transport and guides, old paths too, and saving Supervisors off retains them", async () => {
+  const root = join(process.env.PASEO_HOME!, randomUUID()), home = join(root, "home");
+  const policy = new FeaturePolicyRuntime(root, legacyFeatureSettings(home, { FIRSTMATE_PROJECT_MATES: "1" }));
   await mkdir(join(home, "tools"), { recursive: true }); await mkdir(join(home, "data"));
   await writeFile(join(home, "AGENTS.md"), "Existing reviewed home.");
   const uninstall = installFeaturePolicy(policy);
   try {
-    await policy.set(change(home, 0, { projectMates: true })); await syncFeatureHelpers(home);
+    await syncFeatureHelpers(home);
     const transport = await readFile(join(home, "tools/scope.mjs"), "utf8");
     expect(transport).toContain("scope commands belong to their bound owners");
-    expect(await readFile(join(home, "data/project-mates.md"), "utf8")).toContain("grant no plan execution or Attach");
-    await expect(readFile(join(home, "data/plan-supervisors.md"))).rejects.toMatchObject({ code: "ENOENT" });
+    const guide = await readFile(join(home, "data/supervisors.md"), "utf8"), projects = await readFile(join(home, "data/project-context.md"), "utf8");
+    expect(guide).toContain("grant no plan execution or Attach");
+    expect(projects).toContain("A project needs no session of its own");
+    // Sessions told the old paths keep reading the same current text.
+    expect(await readFile(join(home, "data/plan-supervisors.md"), "utf8")).toBe(guide);
+    expect(await readFile(join(home, "data/project-mates.md"), "utf8")).toBe(projects);
+    for (const text of [guide, projects]) expect(text).not.toMatch(/project mate|plan help/i);
     await expect(readFile(join(home, "tools/maintenance.mjs"))).rejects.toMatchObject({ code: "ENOENT" });
-    await policy.set(change(home, 1, {})); await syncFeatureHelpers(home);
+    await policy.set(change(home, 0, false)); await syncFeatureHelpers(home);
     expect(await readFile(join(home, "tools/scope.mjs"), "utf8")).toBe(transport);
     expect((await policy.read(home)).effective).toEqual(FEATURES_OFF);
     expect((await readdir(root)).sort()).toEqual(["feature-settings", "home"]);
@@ -63,14 +71,15 @@ it("two app clients hot-apply independent settings with CAS, no model/writer/clo
   const a = client(), b = client();
   expect((await a.read({ home })).effective).toEqual({ ...FEATURES_OFF, scopeUi: true });
   await expect(readdir(root)).rejects.toMatchObject({ code: "ENOENT" });
-  await a.set(change(home, 0, { projectMates: true }));
+  await a.set(change(home, 0, true));
   expect((await projects.read()).enabled).toBe(true);
-  expect((await maintenance.read()).enabled).toBe(false);
-  expect((await b.read({ home })).effective).toEqual({ ...FEATURES_OFF, projectMates: true });
-  await expect(b.set(change(home, 0, {}))).rejects.toMatchObject({ code: "STALE" });
-  const off = change(home, 1, {}); const receipt = await b.set(off);
+  expect((await maintenance.read()).enabled).toBe(true);
+  expect((await b.read({ home })).effective).toEqual(supervisorCapabilities(true));
+  await expect(b.set(change(home, 0, false))).rejects.toMatchObject({ code: "STALE" });
+  const off = change(home, 1, false); const receipt = await b.set(off);
   expect((await projects.read()).enabled).toBe(false);
-  await a.set(change(home, 2, { projectMates: true }));
+  expect((await maintenance.read()).enabled).toBe(false);
+  await a.set(change(home, 2, true));
   expect(await a.set(off)).toEqual(receipt);
   expect((await projects.read()).enabled).toBe(true);
   expect((await policy.read(join(root, "other"))).effective).toEqual(FEATURES_OFF);
@@ -79,31 +88,33 @@ it("two app clients hot-apply independent settings with CAS, no model/writer/clo
   maintenance.stop(); await runtime.stop();
 });
 
-it("presentation/execution dependency is explicit, leaves requested pilot values intact and never enables plan or maintenance", async () => {
-  const root = join(process.env.PASEO_HOME!, randomUUID()), home = join(root, "home"), policy = new FeaturePolicyRuntime(root);
-  await policy.set(change(home, 0, { scopeExecution: true }));
+it("presentation/execution dependency is explicit for a pilot, leaves requested pilot values intact and never enables plan or maintenance", async () => {
+  const root = join(process.env.PASEO_HOME!, randomUUID()), home = join(root, "home");
+  const policy = new FeaturePolicyRuntime(root, legacyFeatureSettings(home, { FIRSTMATE_SCOPE_EXECUTION: "1" }));
   expect(await policy.read(home)).toMatchObject({ requested: { scopeExecution: true }, effective: FEATURES_OFF,
     dependencyRefusals: [{ capability: "scopeExecution", code: "DEPENDENCY_DISABLED" }] });
   const runtime = new SupervisionRuntime(root, undefined, policy), config = async () => FirstmateConfigSchema.parse({ home });
   const scope = new ScopeRuntime(runtime, { config });
   await expect(scope.execute((await policy.read(home)).homeId, "general", {} as PaseoApi, async () => {})).rejects.toMatchObject({ code: "UNSUPPORTED" });
-  await policy.set(change(home, 1, { scopeUi: true, scopeExecution: true, projectMates: true }));
-  expect((await policy.read(home)).effective).toEqual({ ...FEATURES_OFF, scopeUi: true, scopeExecution: true, projectMates: true });
+  await policy.set(change(home, 0, true));
+  expect((await policy.read(home)).effective).toEqual(supervisorCapabilities(true));
   const handlers = new Map();
   registerScopeRpcs({ handle: (rpc: any, handler: any) => handlers.set(rpc.name, handler) } as any, {
     read: async () => ({ home, generalId: null, status: await runtime.read(home) }), readNeeds: vi.fn(), policy: h => policy.read(h),
   });
   expect(await handlers.get(readScopes.name)()).toMatchObject({ uiEnabled: true, executionEnabled: true });
-  await policy.set(change(home, 2, {}));
+  await policy.set(change(home, 1, false));
   expect(await handlers.get(readScopes.name)()).toMatchObject({ uiEnabled: false, executionEnabled: false });
   await runtime.stop();
 });
 
-async function effectsFixture() {
+/** `format1` starts from an older install's saved chain, the only saved source of a single-fence state. */
+async function effectsFixture(format1 = false) {
   const f = await s04Fixture(), scope = await f.addScope(1, "hot-policy", ["probe"]);
   await f.draft(scope, [{ id: "probe" }]);
   const policy = new FeaturePolicyRuntime(join(f.home, "store"));
-  await policy.set(change(f.home, 0, { planSupervisors: true }));
+  if (format1) await publishFormat1(join(f.home, "store"), f.home, { planSupervisors: true });
+  else await policy.set(change(f.home, 0, true));
   const gateway = new SupervisionGateway(f.store, f.commands, f.home, f.receiver, { enabled: true, policyFence: policy.gateway(f.home, "planSupervisors") });
   const started = await f.start(scope, "probe");
   return { ...f, scope, policy, liveGateway: gateway, started };
@@ -114,12 +125,12 @@ it("disable during dispatch preflight refuses the unclaimed effect; re-enable pe
   const capabilities = f.receiver.capabilities.bind(f.receiver);
   vi.spyOn(f.receiver, "capabilities").mockImplementationOnce(async () => { entered.resolve(); await release.promise; return capabilities(); });
   const dispatch = f.liveGateway.dispatch(f.started.effects!.workspace); void dispatch.catch(() => {});
-  await entered.promise; await f.policy.set(change(f.home, 1, {})); release.resolve();
+  await entered.promise; await f.policy.set(change(f.home, 1, false)); release.resolve();
   await expect(dispatch).rejects.toMatchObject({ code: "UNSUPPORTED" });
   const before = await f.store.read();
   expect(before.effects.find(e => e.id === f.started.effects!.workspace)?.state).toBe("reserved");
   expect(f.receiver.calls).toEqual([]);
-  await f.policy.set(change(f.home, 2, { planSupervisors: true }));
+  await f.policy.set(change(f.home, 2, true));
   await f.liveGateway.dispatch(f.started.effects!.workspace);
   const after = await f.store.read();
   expect(after.attempts).toEqual(before.attempts);
@@ -136,7 +147,7 @@ it.each([false, true])("an in-flight send settles once after disable; lost=%s re
   const dispatch = f.liveGateway.dispatch(f.started.effects!.send);
   await entered.promise;
   // This save must finish while the network reply is still blocked.
-  await f.policy.set(change(f.home, 1, {}));
+  await f.policy.set(change(f.home, 1, false));
   const during = await f.store.read(), attempt = during.attempts[0]!;
   expect(during.effects.find(e => e.id === f.started.effects!.send)?.state).toBe("dispatching");
   release.resolve(); await dispatch;
@@ -159,7 +170,7 @@ it.each([false, true])("an in-flight send settles once after disable; lost=%s re
 it("a saved-policy revision fences preflight even after off/on, and damaged settings fail closed", async () => {
   const f = await effectsFixture(), fence = f.policy.gateway(f.home, "planSupervisors");
   const effect = (await f.store.read()).effects[0]!, captured = await fence.capture(effect);
-  await f.policy.set(change(f.home, 1, {})); await f.policy.set(change(f.home, 2, { planSupervisors: true }));
+  await f.policy.set(change(f.home, 1, false)); await f.policy.set(change(f.home, 2, true));
   const run = vi.fn(async () => {});
   await expect(fence.run(captured, run)).rejects.toMatchObject({ code: "STALE" }); expect(run).not.toHaveBeenCalled();
   const store = new FeatureSettingsStore(join(f.home, "store"), f.home);
@@ -170,15 +181,15 @@ it("a saved-policy revision fences preflight even after off/on, and damaged sett
 });
 
 it("a different runtime cannot dispatch a disabled discussion capability's reserved effect", async () => {
-  const f = await effectsFixture(), discussion = await f.addScope(2, "discussion-origin", [], false);
-  await f.policy.set(change(f.home, 1, { planSupervisors: true, scopeUi: true, scopeExecution: true }));
+  const f = await effectsFixture(true), discussion = await f.addScope(2, "discussion-origin", [], false);
+  await publishFormat1(join(f.home, "store"), f.home, { planSupervisors: true, scopeUi: true, scopeExecution: true });
   const sessions = new SupervisorSessions(f.store, f.liveGateway, f.receiver, { enabled: true, limits: { supervisorSessions: 1, supervisorTurns: 1 },
     globalMateId: async () => f.state.globalMate, featurePolicy: () => f.policy.reservation(f.home, "scopeExecution") });
   await sessions.prepare({ requestId: randomUUID(), scopeId: discussion.id, scopeVersion: 1, purpose: "discussion",
     profile: { provider: "codex/test", modeId: "full-access" }, opening: "Discuss this plan only." }, captain);
   const effect = (await f.store.read()).effects.find(e => e.scopeId === discussion.id && e.operation === "workspace.open")!;
   expect(effect.featurePolicy).toEqual({ capability: "scopeExecution", revision: 2 });
-  await f.policy.set(change(f.home, 2, { planSupervisors: true }));
+  await publishFormat1(join(f.home, "store"), f.home, { planSupervisors: true });
   await expect(f.liveGateway.dispatch(effect.id)).rejects.toMatchObject({ code: "UNSUPPORTED" });
   expect(f.receiver.calls).toEqual([]);
   const handlers = new Map<string, () => Promise<unknown>>();
@@ -195,7 +206,7 @@ it("a different runtime cannot dispatch a disabled discussion capability's reser
 });
 
 it("a reviewed capacity reduction takes effect before a reserved native creation", async () => {
-  const f = await effectsFixture(), input = change(f.home, 1, { planSupervisors: true });
+  const f = await effectsFixture(), input = change(f.home, 1, true);
   input.change.capacity = { slots: 2, generalHeadroom: 1 };
   await f.policy.set(input);
   const { checkGeneralHeadroom } = await import("./supervision-headroom");
@@ -216,7 +227,7 @@ it("disabled reservation guard creates no new turn; prior receipts/spend and Gen
     limits: { supervisorSessions: 1, supervisorTurns: 5 }, globalMateId: async () => f.state.globalMate,
     reserveBoundary: run => f.policy.boundary(f.home, run), reserveCheck: async () => { await f.policy.check(f.home, "planSupervisors"); } });
   const before = await f.files(), spend = supervisorSpend(await f.store.read(), f.scope.id);
-  await f.policy.set(change(f.home, 1, {}));
+  await f.policy.set(change(f.home, 1, false));
   await expect(sessions.reserveTurnWith({ requestId: randomUUID(), scopeId: f.scope.id, epoch: 1, causation: "new-input", text: "new turn" }, captain)).rejects.toMatchObject({ code: "UNSUPPORTED" });
   expect(await f.files()).toEqual(before); expect(supervisorSpend(await f.store.read(), f.scope.id)).toEqual(spend);
   const config = FirstmateConfigSchema.parse({ home: f.home, mateAgentId: f.state.globalMate });
@@ -241,7 +252,7 @@ it.each(["project", "maintenance"] as const)("%s provisioning hot-pauses after w
   const project = new ProjectRuntime(runtime, { config, receiver: () => receiver, legacy: async () => ({ plans: [], problems: [] }) });
   const maintenance = new MaintenanceRuntime(runtime, { config, receiver: () => receiver, inventory: vi.fn() });
   const service = new FeatureSettingsService(root, { home: async () => home, runtime: policy, readInventory: h => runtime.read(h) });
-  await service.set(change(home, 0, kind === "project" ? { projectMates: true } : { maintenance: true }));
+  await service.set(change(home, 0, true));
   const profile = { provider: "codex/test", modeId: "full-access" }, limits = { supervisorSessions: 1 as const, supervisorTurns: 4 };
   let provision: () => Promise<unknown>;
   if (kind === "project") {
@@ -259,14 +270,14 @@ it.each(["project", "maintenance"] as const)("%s provisioning hot-pauses after w
   }
   const entered = deferred(), release = deferred(); receiver.afterAdmission = entered.resolve; receiver.gate = release.promise;
   const pending = provision(); void pending.catch(() => {});
-  await entered.promise; await service.set(change(home, 1, {})); release.resolve();
+  await entered.promise; await service.set(change(home, 1, false)); release.resolve();
   await expect(pending).rejects.toMatchObject({ code: "UNSUPPORTED" });
   const paused = await runtime.read(home), binding = paused.bindings[0]!;
   expect(receiver.calls.map(c => c.op)).toEqual(["openWorkspace"]);
   expect(binding.state).toBe("prepared"); expect(supervisorSpend(paused, binding.scopeId)).toMatchObject({ sessions: 1, turns: 1 });
   expect((await service.read({ home })).pause).toBe("Paused for new work; checking 2 saved operations");
   expect((await project.read()).enabled).toBe(false); expect((await maintenance.read()).enabled).toBe(false);
-  await service.set(change(home, 2, kind === "project" ? { projectMates: true } : { maintenance: true }));
+  await service.set(change(home, 2, true));
   receiver.afterAdmission = null; receiver.gate = null;
   await provision(); await provision();
   const resumed = await runtime.read(home);

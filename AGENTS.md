@@ -12,6 +12,22 @@ compile time. This file covers only what is specific to `firstmate`.
 
 ## Orientation
 
+**One Supervisors setting.** The six capability fences the builds below name by their old `FIRSTMATE_*=1`
+environment switches (`projectMates`, `planSupervisors`, `scopedActivation`, `scopeUi`, `scopeExecution`,
+`maintenance`) are now set together by one saved Supervisors setting: feature policy format 2
+(`shared/feature-settings.ts`, `{ supervisors, capacity }`), Settings' single **Turn on/off Supervisors**.
+The environment switches are read only until one is saved (`legacy-environment`, revision 0), and format 1
+revisions, which saved the fences one by one, still replay exactly; partial fences come only from those two.
+A format 1 request still passes the app contract, but only as the exact retry of one in history (finishing
+an interrupted publication or replaying its receipt); the store refuses it as a new save.
+Every guarded path still checks its own fence. Watches get the effective setting as `FIRSTMATE_SUPERVISORS`
+from the runner (`watchPolicyEnv`), never the daemon's raw switch. New Supervisor sessions carry
+`firstmate.role=supervisor` and `firstmate.scope-kind`, titled "Supervisor · ‹purpose›"; the old
+`plan-supervisor`/`project-mate`/`maintenance-mate` roles are read beside it indefinitely
+(`supervisorRoleKind`, `labelsMatch` in verification), since Paseo cannot take a label off. Guides are
+`data/supervisors.md` and `data/project-context.md`, also written to their old paths
+(`LEGACY_GUIDE_PATHS`). See `docs/supervisor-cleanup/README.md`.
+
 Build A overlays the historical unwired S09 notes below: `server/supervision-runtime.ts` owns one
 coordinator per home shared with activation; `server/project-runtime.ts` exposes reviewed registry
 admission, S09 administration and explicit project provisioning only with `FIRSTMATE_PROJECT_MATES=1`.

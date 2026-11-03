@@ -137,6 +137,8 @@ export interface WatchRunnerOptions {
   run?: typeof runWatchScript;
   timeoutMs?: number;
   env?: NodeJS.ProcessEnv;
+  /** Variables the runner derives for each run, such as `FIRSTMATE_SUPERVISORS` from the saved setting. */
+  runEnv?: (home: string) => Promise<Record<string, string>>;
 }
 
 const BLANK: WatchRecord = {
@@ -325,10 +327,12 @@ export class WatchRunner {
       if (!(await (producerGate ? producerGate.run(reserve) : reserve()))) return;
       const stateDirectory = join(this.options.scriptStateRoot, watch.name);
       await mkdir(stateDirectory, { recursive: true });
+      const derived = await this.options.runEnv?.(home);
       const result = await this.run(watch.path, {
         cwd: home,
         env: {
           ...(this.options.env ?? process.env),
+          ...derived,
           FIRSTMATE_HOME: home,
           FIRSTMATE_BACKLOG: join(home, "data", "backlog.md"),
           FIRSTMATE_WATCH_NAME: watch.name,

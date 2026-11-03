@@ -104,6 +104,7 @@ jobs:
       - run: node docs/smooth-pr8/render.mjs
       - run: node docs/supervisor-cleanup/supervisors-render.mjs
       - run: node docs/supervisor-cleanup/project-supervisor-render.mjs
+      - run: node docs/supervisor-cleanup/settings-render.mjs
       - run: node docs/supervisor-cleanup/chat-render.mjs
       - run: node docs/chat-queue/render.mjs
       - run: node docs/smooth-rollout/render.mjs
@@ -133,6 +134,9 @@ jobs:
             .local/supervisor-cleanup/s4/*.png
             .local/supervisor-cleanup/s4/screenshots/*.png
             .local/supervisor-cleanup/s4/results.json
+            .local/supervisor-cleanup/s5/*.png
+            .local/supervisor-cleanup/s5/screenshots/*.png
+            .local/supervisor-cleanup/s5/results.json
             .local/supervisor-cleanup/s2/*.png
             .local/supervisor-cleanup/s2/screenshots/*.png
             .local/supervisor-cleanup/s2/results.json

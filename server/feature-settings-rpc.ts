@@ -2,8 +2,8 @@
 import { FeaturePolicyRuntime } from "./feature-policy-runtime";
 import type { PluginServerContext } from "@getpaseo/plugin/server";
 import { isAbsolute } from "node:path";
-import { featurePause, FeatureReadResultSchema, FeatureSetInputSchema, readFeatureSettings, setFeatureSettings,
-  type FeatureInventory, type FeatureSetInput } from "../shared/feature-settings";
+import { featurePause, FeatureReadResultSchema, FeatureSaveInputSchema, readFeatureSettings, setFeatureSettings,
+  type FeatureInventory, type FeatureSaveInput } from "../shared/feature-settings";
 import type { SupervisionStatus } from "../shared/supervision";
 import { FeatureSettingsError, FeatureSettingsStore, type LegacyFeatureSettings } from "./feature-settings";
 import { SupervisionStatusReader } from "./supervision-status-reader";
@@ -56,8 +56,8 @@ export class FeatureSettingsService {
     await this.guard(current);
     return FeatureReadResultSchema.parse({ ...policy, inventory, pause });
   }
-  async set(input: FeatureSetInput) {
-    const request = FeatureSetInputSchema.parse(input);
+  async set(input: FeatureSaveInput) {
+    const request = FeatureSaveInputSchema.parse(input);
     await this.guard(request.home);
     if (this.deps.runtime) {
       const result = await this.deps.runtime.set(request, () => this.guard(request.home));

@@ -457,7 +457,8 @@ it("admits from an exact reviewed census, provisions one independent project mat
   const input = { homeId: admitted.homeId, requestId: randomUUID(), projectId: project.projectId!, projectVersion: project.version };
   const provisioned = await service.provision(input, api), owner = provisioned.projects.find(p => p.name === "scheduler")!;
   expect(receiver.calls.map(c => c.op)).toEqual(["openWorkspace", "createAgent", "send"]);
-  expect(receiver.agents.get(owner.agentId!)?.labels["firstmate.role"]).toBe("project-mate");
+  expect(receiver.agents.get(owner.agentId!)?.labels).toMatchObject({ "firstmate.role": "supervisor", "firstmate.scope-kind": "project" });
+  expect(receiver.titles.get(owner.agentId!)).toBe("Supervisor · scheduler");
   expect(receiver.agents.get(owner.agentId!)?.labels["paseo.parent-agent-id"]).toBeUndefined();
   expect(receiver.sends[0]?.text).toContain("Use isolated tests."); expect(owner).toMatchObject({ sessions: 1, turns: 1, uncertain: 0 });
   expect(receiver.sends[0]?.text).toContain("Project conventions: isolated fixtures.");

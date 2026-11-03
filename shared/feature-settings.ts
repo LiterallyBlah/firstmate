@@ -6,6 +6,8 @@ import { z } from "zod";
 
 const count = z.number().int().min(0).max(Number.MAX_SAFE_INTEGER);
 const home = z.string().min(1).max(32768);
+/** The internal fences each guarded path checks. A saved Supervisors setting turns all of them on or off
+ * together; they differ only under a legacy environment pilot or a format 1 saved revision. */
 export const FeatureCapabilitiesSchema = z.object({
   projectMates: z.boolean(), planSupervisors: z.boolean(), scopedActivation: z.boolean(),
   scopeUi: z.boolean(), scopeExecution: z.boolean(), maintenance: z.boolean(),
@@ -15,20 +17,44 @@ export type FeatureCapability = keyof FeatureCapabilities;
 export const FEATURE_CAPABILITIES = Object.keys(FeatureCapabilitiesSchema.shape) as FeatureCapability[];
 export const FEATURES_OFF: Readonly<FeatureCapabilities> = Object.freeze({ projectMates: false,
   planSupervisors: false, scopedActivation: false, scopeUi: false, scopeExecution: false, maintenance: false });
+/** Every fence the one Supervisors setting stands for. */
+export function supervisorCapabilities(on: boolean): FeatureCapabilities {
+  return Object.fromEntries(FEATURE_CAPABILITIES.map(k => [k, on])) as FeatureCapabilities;
+}
+/** "partial" only for a legacy pilot or format 1 revision that chose some fences and not others. */
+export function supervisorsSetting(requested: FeatureCapabilities): "on" | "off" | "partial" {
+  const on = FEATURE_CAPABILITIES.filter(k => requested[k]).length;
+  return on === FEATURE_CAPABILITIES.length ? "on" : on === 0 ? "off" : "partial";
+}
 export const FeatureCapacitySchema = z.object({ slots: count.min(2), generalHeadroom: count.min(1) }).strict()
   .refine(c => c.generalHeadroom < c.slots, "Keep at least one slot beyond FirstMate's reserved capacity.");
 export type FeatureCapacity = z.infer<typeof FeatureCapacitySchema>;
 /** Same supported limits as ProjectRuntime; a suggestion until explicitly saved. */
 export const DEFAULT_FEATURE_CAPACITY: Readonly<FeatureCapacity> = Object.freeze({ slots: 4, generalHeadroom: 1 });
-export const FeatureChangeSchema = z.object({ requested: FeatureCapabilitiesSchema, capacity: FeatureCapacitySchema }).strict();
+/** One saved Supervisors setting and capacity. It replaces the daemon's FIRSTMATE_* environment switches. */
+export const FeatureChangeSchema = z.object({ supervisors: z.boolean(), capacity: FeatureCapacitySchema }).strict();
+export type FeatureChange = z.infer<typeof FeatureChangeSchema>;
 export const FeatureSetInputSchema = z.object({ home, expectedRevision: count, requestId: z.uuid(), change: FeatureChangeSchema }).strict();
 export type FeatureSetInput = z.infer<typeof FeatureSetInputSchema>;
-export const FeaturePolicySchema = z.object({ format: z.literal("firstmate.feature-policy/1"), homeId: home,
-  revision: count.min(1), requested: FeatureCapabilitiesSchema, capacity: FeatureCapacitySchema,
-  updated: z.object({ kind: z.literal("plugin-ui-unverified"), source: z.literal("firstmate.features.set"),
-    requestId: z.uuid(), at: z.iso.datetime() }).strict(),
-}).strict();
+/** Format 1 saved the six fences one by one. Its revisions still replay; new saves use format 2. */
+export const LegacyFeatureChangeSchema = z.object({ requested: FeatureCapabilitiesSchema, capacity: FeatureCapacitySchema }).strict();
+export const LegacyFeatureSetInputSchema = FeatureSetInputSchema.extend({ change: LegacyFeatureChangeSchema }).strict();
+/** What a save may carry. A format 1 request is accepted only as the exact retry of one already in history
+ * (finishing an interrupted publication or replaying its receipt); the store refuses it as a new save. */
+export const FeatureSaveInputSchema = z.union([FeatureSetInputSchema, LegacyFeatureSetInputSchema]);
+export type FeatureSaveInput = z.infer<typeof FeatureSaveInputSchema>;
+const updated = z.object({ kind: z.literal("plugin-ui-unverified"), source: z.literal("firstmate.features.set"),
+  requestId: z.uuid(), at: z.iso.datetime() }).strict();
+export const LegacyFeaturePolicySchema = z.object({ format: z.literal("firstmate.feature-policy/1"), homeId: home,
+  revision: count.min(1), requested: FeatureCapabilitiesSchema, capacity: FeatureCapacitySchema, updated }).strict();
+export const SupervisorsPolicySchema = z.object({ format: z.literal("firstmate.feature-policy/2"), homeId: home,
+  revision: count.min(1), supervisors: z.boolean(), capacity: FeatureCapacitySchema, updated }).strict();
+export const FeaturePolicySchema = z.discriminatedUnion("format", [LegacyFeaturePolicySchema, SupervisorsPolicySchema]);
 export type FeaturePolicy = z.infer<typeof FeaturePolicySchema>;
+/** The fences a saved revision requests: format 2's one setting stands for all of them. */
+export function policyRequested(policy: FeaturePolicy): FeatureCapabilities {
+  return policy.format === "firstmate.feature-policy/2" ? supervisorCapabilities(policy.supervisors) : { ...policy.requested };
+}
 export const FeatureSetResultSchema = z.object({ homeId: home, requestId: z.uuid(), policy: FeaturePolicySchema }).strict();
 export type FeatureSetResult = z.infer<typeof FeatureSetResultSchema>;
 export const FeaturePolicySnapshotSchema = z.object({ homeId: home, revision: count.nullable(),
@@ -53,7 +79,7 @@ export type FeatureReadResult = z.infer<typeof FeatureReadResultSchema>;
 export const readFeatureSettings = defineRpc({ name: "firstmate.features.read",
   input: z.object({ home }).strict(), output: FeatureReadResultSchema });
 export const setFeatureSettings = defineRpc({ name: "firstmate.features.set",
-  input: FeatureSetInputSchema, output: FeatureSetResultSchema });
+  input: FeatureSaveInputSchema, output: FeatureSetResultSchema });
 
 /** A bounded count of retained scoped operations, never a complete fleet inventory. */
 export function featurePause(status: SupervisionStatus, effective: FeatureCapabilities, kind?: string): string | null {

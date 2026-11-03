@@ -76,3 +76,32 @@ retired from CI with notes in their docs.
 `node docs/supervisor-cleanup/project-supervisor-render.mjs` builds `686f497` (before) and the working tree (after) on the
 same live-shaped census: Supervisors' Add section, the old wizard versus the Add project Supervisor review, and Settings'
 Help group, in both themes at 1440 and 390 pixels, checking that browsing and opening a review make no write.
+
+## Slice 5: one Supervisors setting, Supervisor labels and guides
+
+- **D3, one saved setting.** Settings' Help group had three switches ("Project mates", "Plan help", "Routine
+  checks") over six capability fences, and the owner's daemon ran on `FIRSTMATE_*=1` environment switches. It
+  now has one **Supervisors** section: **Turn on/off Supervisors**, and **Save Supervisors setting** while the
+  environment switches are in use. A save is feature policy format 2, `{ supervisors, capacity }`; every fence
+  follows it. The environment switches are still read until something is saved (revision 0, "Using the daemon's
+  environment switches"), and format 1 revisions replay exactly, so a partial pilot or older saved choice reads
+  as before ("Partly on · review setup", each fence's change listed in the review). A save interrupted between a
+  format 1 revision and its receipt still finishes through its original exact retry (RPC, service and store accept
+  it only as that retry); a new old-format save is refused. Reads stay read-time only;
+  nothing is rewritten. `pr-watch` reads `FIRSTMATE_SUPERVISORS`, which the runner derives from the effective
+  setting on every run, instead of the raw `FIRSTMATE_PLAN_SUPERVISORS`.
+- **D4, labels.** New Supervisor sessions get `firstmate.role=supervisor` and `firstmate.scope-kind`
+  (`plan`/`project`/`maintenance`), titled "Supervisor · ‹project name›" or "Supervisor · plan ‹id›". Every
+  reader accepts the old per-kind role beside it: creation and verification (an existing session with only its
+  kind's old role still verifies and is sent to; another kind's role is held), the adoption filters and the
+  receiver allowlist.
+- **Guides.** `data/plan-supervisors.md` is `data/supervisors.md`, one guide for plan and project Supervisors;
+  `data/project-mates.md` is the `data/project-context.md` projects guide. `syncFeatureHelpers` writes both under
+  their old paths too, with the same text, for sessions told those paths; wakes and openings now name the new
+  one. `tools/scope.mjs`, `tools/projects.mjs` and `data/maintenance.md` are reworded.
+
+`node docs/supervisor-cleanup/settings-render.mjs` builds `b619103` (before) and the working tree (after) and
+captures Settings' Help group with the owner's environment switches on, the turn-on review on a fresh home, and
+Help details, in both themes at 1440 and 390 pixels, checking that browsing and opening a review make no write.
+`docs/smooth-pr5/render.mjs` keeps driving every save path (pilot, partial, off, failure, lost reply, capacity,
+stale, held) against the one setting.

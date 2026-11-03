@@ -1,6 +1,6 @@
 /** Isolated host RPCs. Every write is synthetic and recorded. No live home is accessed. */
 import { useRpc as original } from '../smooth-pr2/stubs';
-import { FEATURES_OFF, FeatureReadResultSchema } from '../../shared/feature-settings';
+import { FEATURES_OFF, FeatureReadResultSchema, supervisorCapabilities } from '../../shared/feature-settings';
 import { params, homeId, clone } from '../smooth-pr2/data';
 export * from '../smooth-pr2/stubs';
 const scenario = params.get('case') || 'default';
@@ -37,10 +37,10 @@ export function useRpc(contract) {
       return clone(previous.result);
     }
     if (input.expectedRevision !== state.revision) throw new Error('Feature settings changed. Refresh and review them before saving.');
-    const policy = { format: 'firstmate.feature-policy/1', homeId, revision: input.expectedRevision + 1, ...clone(input.change),
+    const policy = { format: 'firstmate.feature-policy/2', homeId, revision: input.expectedRevision + 1, ...clone(input.change),
       updated: { kind: 'plugin-ui-unverified', source: 'firstmate.features.set', requestId: input.requestId, at: '2026-10-29T14:00:00.000Z' } };
-    const result = { homeId, requestId: input.requestId, policy };
-    Object.assign(state, { policy, revision: policy.revision, source: 'saved', requested: policy.requested, effective: { ...policy.requested }, capacity: policy.capacity, dependencyRefusals: [] });
+    const result = { homeId, requestId: input.requestId, policy }, fences = supervisorCapabilities(policy.supervisors);
+    Object.assign(state, { policy, revision: policy.revision, source: 'saved', requested: fences, effective: { ...fences }, capacity: policy.capacity, dependencyRefusals: [] });
     receipts.set(input.requestId, { input: clone(input), result });
     if (scenario === 'lost-reply' && !window.review.failed) { window.review.failed = true; throw new Error('Synthetic lost response after saving'); }
     return clone(result);

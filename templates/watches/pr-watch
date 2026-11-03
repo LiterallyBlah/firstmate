@@ -30,8 +30,9 @@
 // With $FIRSTMATE_PR_OBSERVATIONS=1 (off by default) it also asks for each pull request's head commit
 // and writes one typed observation per pull request it read into $FIRSTMATE_WATCH_STATE/pr-observations/,
 // flushed to disk BEFORE prs.json moves on, for FirstMate's scoped supervision to ingest. What it prints
-// does not change unless the separately enabled operating supervisor runtime supplies checked
-// scoped routes: those PRs are actionable only through their durable scoped observations.
+// does not change unless Supervisors are on ($FIRSTMATE_SUPERVISORS=1, which FirstMate sets on each run
+// from the saved Supervisors setting) and plan Supervisors have checked scoped routes: those PRs are
+// actionable only through their durable scoped observations.
 // Without the switches it asks gh for exactly what it always has.
 //
 // Edit it freely: once you have, the plugin keeps your copy (see README.md).
@@ -64,7 +65,7 @@ async function main() {
   if (!backlogPath || !stateDir) throw new Error("run me from FirstMate: FIRSTMATE_BACKLOG and FIRSTMATE_WATCH_STATE are not set");
   const statePath = join(stateDir, "prs.json");
   const scoped = new Set();
-  if (OBSERVE && process.env.FIRSTMATE_PLAN_SUPERVISORS === "1") {
+  if (OBSERVE && process.env.FIRSTMATE_SUPERVISORS === "1") {
     const path = join(stateDir, "scoped-routes.json");
     if ((await stat(path)).size > 512 * 1024) throw new Error("Scoped PR routes exceed their bounded snapshot; the baseline did not move.");
     const routes = JSON.parse(await readFile(path, "utf8"));
