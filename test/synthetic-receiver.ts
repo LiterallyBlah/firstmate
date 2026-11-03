@@ -20,6 +20,8 @@ export class SyntheticReceiver implements GatewayReceiver {
   calls: { op: Operation; target: string }[] = [];
   workspaces = new Map<string, WorkspaceReceipt>();
   agents = new Map<string, AgentObservation>();
+  /** The title each created agent was given; titles are not part of the observation. */
+  titles = new Map<string, string>();
   hidden = new Set<string>();
   sends: { agentId: string; text: string; messageId: string }[] = [];
   children = new Map<string, InventoryChild[]>();
@@ -65,7 +67,7 @@ export class SyntheticReceiver implements GatewayReceiver {
         provider: intent.profile.provider, modeId: intent.profile.modeId || null, thinkingOptionId: intent.profile.thinkingOptionId ?? null,
         status: "idle", pendingPermissions: 0, archivedAt: null };
       this.tamper?.(agent);
-      this.agents.set(intent.agentId, agent); return { agentId: intent.agentId };
+      this.agents.set(intent.agentId, agent); this.titles.set(intent.agentId, intent.title); return { agentId: intent.agentId };
     });
   }
   async findAgent(agentId: string) { return this.hidden.has(agentId) ? null : structuredClone(this.agents.get(agentId) ?? null); }

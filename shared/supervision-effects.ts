@@ -72,9 +72,26 @@ export interface GatewayReceiver {
   inventory(parentId: string): Promise<InventoryChild[]>;
 }
 
-export const SUPERVISOR_ROLE = "plan-supervisor";
-/** Every role a Supervisor session carries, by scope kind; none of them can take the first-mate role. */
-export const SUPERVISOR_ROLES: readonly string[] = [SUPERVISOR_ROLE, "project-mate", "maintenance-mate"];
+/** New Supervisor sessions carry `firstmate.role=supervisor` and their scope kind in `firstmate.scope-kind`. */
+export const SUPERVISOR_ROLE = "supervisor";
+export const SCOPE_KIND_LABEL = "firstmate.scope-kind";
+/** The roles sessions created before the Supervisor labels carry. Paseo cannot take a label off, so they are
+ * read beside the new role indefinitely: a running session keeps its identity. */
+export const LEGACY_SUPERVISOR_ROLES = { plan: "plan-supervisor", project: "project-mate", maintenance: "maintenance-mate" } as const;
+/** Every role a Supervisor session carries, new and old; none of them can take the first-mate role. */
+export const SUPERVISOR_ROLES: readonly string[] = [SUPERVISOR_ROLE, ...Object.values(LEGACY_SUPERVISOR_ROLES)];
+export type SupervisorKind = keyof typeof LEGACY_SUPERVISOR_ROLES;
+export const supervisorKind = (kind: string | undefined): SupervisorKind => kind === "project" || kind === "maintenance" ? kind : "plan";
+/** A Supervisor session's scope kind from its labels, old or new; null for any other session. */
+export function supervisorRoleKind(labels: Record<string, string>): SupervisorKind | null {
+  const role = labels["firstmate.role"];
+  if (role === SUPERVISOR_ROLE) {
+    const kind = labels[SCOPE_KIND_LABEL];
+    return kind === "plan" || kind === "project" || kind === "maintenance" ? kind : null;
+  }
+  const legacy = (Object.entries(LEGACY_SUPERVISOR_ROLES) as [SupervisorKind, string][]).find(([, r]) => r === role);
+  return legacy && labels[SCOPE_KIND_LABEL] === undefined ? legacy[0] : null;
+}
 export const SCOPE_LABELS = { scope: "firstmate.scope", attempt: "firstmate.attempt", epoch: "firstmate.epoch" } as const;
 
 /** Effects derive identity from the next step, never from a request ID (A01-C04). */

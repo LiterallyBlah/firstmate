@@ -4,13 +4,14 @@ import { mkdir, readFile, readdir } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 import { z } from "zod";
 import { DEFAULT_FEATURE_CAPACITY, FEATURE_CAPABILITIES, FEATURES_OFF, FeatureCapacitySchema,
-  FeaturePolicySchema, FeaturePolicySnapshotSchema, FeatureSetInputSchema, FeatureSetResultSchema,
+  FeaturePolicySchema, FeaturePolicySnapshotSchema, FeatureSetInputSchema, FeatureSetResultSchema, LegacyFeatureSetInputSchema, policyRequested,
   type FeatureCapabilities, type FeatureCapacity, type FeaturePolicySnapshot, type FeatureSetInput,
   type FeatureSetResult } from "../shared/feature-settings";
 import { canonical, digest, publish } from "./submissions";
 import { serialized } from "./serialize";
 import { workflowHomeIdentity } from "./workflow-ownership";
 
+/** The daemon's old environment switches. They are read only until a Supervisors setting is saved. */
 const ENV_KEYS = { projectMates: "FIRSTMATE_PROJECT_MATES", planSupervisors: "FIRSTMATE_PLAN_SUPERVISORS",
   scopedActivation: "FIRSTMATE_SCOPED_ACTIVATION", scopeUi: "FIRSTMATE_SCOPE_UI",
   scopeExecution: "FIRSTMATE_SCOPE_EXECUTION", maintenance: "FIRSTMATE_MAINTENANCE" } as const;
@@ -31,7 +32,7 @@ export function legacyFeatureSettings(home: string, env: NodeJS.ProcessEnv): Leg
 const Hash = z.string().regex(/^[0-9a-f]{64}$/);
 const Identity = z.object({ format: z.literal("firstmate.feature-policy-home/1"), homeId: z.string() }).strict();
 const Revision = z.object({ format: z.literal("firstmate.feature-policy-revision/1"), previous: Hash.nullable(),
-  request: FeatureSetInputSchema, requestHash: Hash, result: FeatureSetResultSchema, hash: Hash }).strict();
+  request: z.union([FeatureSetInputSchema, LegacyFeatureSetInputSchema]), requestHash: Hash, result: FeatureSetResultSchema, hash: Hash }).strict();
 type Revision = z.infer<typeof Revision>;
 export class FeatureSettingsError extends Error {
   constructor(readonly code: "HELD" | "STALE" | "CONFLICT", message: string) { super(message); }
@@ -70,7 +71,8 @@ export class FeatureSettingsStore {
           request.home !== this.homeId || request.expectedRevision !== index || revision.requestHash !== digest(request) ||
           requests.has(request.requestId) || result.homeId !== this.homeId || result.requestId !== request.requestId ||
           policy.homeId !== this.homeId || policy.revision !== index + 1 || policy.updated.requestId !== request.requestId ||
-          canonical({ requested: policy.requested, capacity: policy.capacity }) !== canonical(request.change)) throw held();
+          canonical(policy.format === "firstmate.feature-policy/2" ? { supervisors: policy.supervisors, capacity: policy.capacity } :
+            { requested: policy.requested, capacity: policy.capacity }) !== canonical(request.change)) throw held();
         // Retain an independent publication receipt: losing a published final revision cannot
         // silently resurrect an older opt-in. Coordinated loss of both copies is not detectable.
         const receipt = join(this.directory, name.replace(".json", ".receipt.json"));
@@ -93,7 +95,7 @@ export class FeatureSettingsStore {
     try {
       const revisions = await this.revisions(), policy = revisions?.at(-1)?.result.policy ?? null;
       const legacy = this.legacy?.homeId === this.homeId ? this.legacy : undefined;
-      const requested = policy?.requested ?? legacy?.requested ?? { ...FEATURES_OFF };
+      const requested = policy ? policyRequested(policy) : legacy?.requested ?? { ...FEATURES_OFF };
       const capacity = policy?.capacity ?? legacy?.capacity ?? (legacy?.problems.length ? null : { ...DEFAULT_FEATURE_CAPACITY });
       const problems = policy ? [] : legacy?.problems ?? [];
       return FeaturePolicySnapshotSchema.parse({ homeId: this.homeId, revision: policy?.revision ?? 0,
@@ -127,7 +129,7 @@ export class FeatureSettingsStore {
       const previous = revisions?.at(-1) ?? null, currentRevision = previous?.result.policy.revision ?? 0;
       if (request.expectedRevision !== currentRevision) throw new FeatureSettingsError("STALE", "Feature settings changed. Refresh and review them before saving.");
       if (currentRevision === Number.MAX_SAFE_INTEGER) throw held();
-      const policy = FeaturePolicySchema.parse({ format: "firstmate.feature-policy/1", homeId: this.homeId,
+      const policy = FeaturePolicySchema.parse({ format: "firstmate.feature-policy/2", homeId: this.homeId,
         revision: currentRevision + 1, ...request.change, updated: { kind: "plugin-ui-unverified",
           source: "firstmate.features.set", requestId: request.requestId, at: new Date().toISOString() } });
       const result = FeatureSetResultSchema.parse({ homeId: this.homeId, requestId: request.requestId, policy });

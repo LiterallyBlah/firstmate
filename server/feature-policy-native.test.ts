@@ -60,22 +60,22 @@ it('production contribution hot-applies two-client RPC policy without re-registe
   const generalSend = vi.fn(async () => {});
   const api = { agents: { ref: (id: string) => ({ refresh: async () => ({ agent: { id, status: 'idle', archivedAt: null } }), send: generalSend }) } };
   const call = (name: string, input: any = {}) => handlers.get(name)!(input, { paseo: api });
-  const save = (revision: number, requested: any) => call('firstmate.features.set', { home, expectedRevision: revision,
-    requestId: randomUUID(), change: { requested: { ...FEATURES_OFF, ...requested }, capacity: DEFAULT_FEATURE_CAPACITY } });
+  const save = (revision: number, supervisors: boolean) => call('firstmate.features.set', { home, expectedRevision: revision,
+    requestId: randomUUID(), change: { supervisors, capacity: DEFAULT_FEATURE_CAPACITY } });
   try {
     expect((await call('firstmate.features.read', { home })).effective).toEqual(FEATURES_OFF);
-    await save(0, { projectMates: true });
+    await save(0, true);
     expect((await call('firstmate.projects.read')).enabled).toBe(true);
-    expect((await call('firstmate.maintenance.read')).enabled).toBe(false);
+    expect((await call('firstmate.maintenance.read')).enabled).toBe(true);
     const secondClient = await call('firstmate.features.read', { home });
-    await save(secondClient.revision, {});
+    await save(secondClient.revision, false);
     expect((await call('firstmate.projects.read')).enabled).toBe(false);
-    await expect(save(secondClient.revision, { maintenance: true })).rejects.toMatchObject({ code: 'STALE' });
-    await save(2, { scopeUi: true, scopeExecution: true, maintenance: true });
+    await expect(save(secondClient.revision, true)).rejects.toMatchObject({ code: 'STALE' });
+    await save(2, true);
     expect((await call('firstmate.scope.read')).executionEnabled).toBe(true);
     expect((await call('firstmate.maintenance.read')).enabled).toBe(true);
-    expect((await call('firstmate.projects.read')).enabled).toBe(false);
-    await save(3, {});
+    expect((await call('firstmate.projects.read')).enabled).toBe(true);
+    await save(3, false);
     expect((await call('firstmate.scope.read')).executionEnabled).toBe(false);
     const homeId = (await call('firstmate.features.read', { home })).homeId;
     await expect(call('firstmate.projects.provision-ui', { homeId, requestId: randomUUID(), projectId: randomUUID(), projectVersion: 1 })).rejects.toMatchObject({ code: 'UNSUPPORTED' });
@@ -103,7 +103,7 @@ it('off completed before native workspace creation must refuse that still-undisp
   const stop = registerMaintenanceRuntime(server, maintenance);
   const set = (revision: number, maintenance: boolean) => handlers.get('firstmate.features.set')!({
     home, expectedRevision: revision, requestId: randomUUID(),
-    change: { requested: { ...FEATURES_OFF, maintenance }, capacity: DEFAULT_FEATURE_CAPACITY },
+    change: { supervisors: maintenance, capacity: DEFAULT_FEATURE_CAPACITY },
   });
   const nativeOpen = vi.fn(async () => ({ id: 'native-workspace' }));
   const api = { providers, workspaces: { open: nativeOpen } };
@@ -140,7 +140,7 @@ it.each(['project lookup', 'realpath'])('off completed during worker %s refuses 
   const root = join(f.home, 'store'), project = join(f.home, 'project'), policy = new FeaturePolicyRuntime(root);
   await mkdir(project);
   const set = (revision: number, enabled: boolean) => policy.set({ home: f.home, expectedRevision: revision, requestId: randomUUID(),
-    change: { requested: { ...FEATURES_OFF, planSupervisors: enabled }, capacity: DEFAULT_FEATURE_CAPACITY } });
+    change: { supervisors: enabled, capacity: DEFAULT_FEATURE_CAPACITY } });
   await set(0, true);
   let release!: () => void, enter!: () => void;
   const wait = new Promise<void>(r => { release = r; }), entered = new Promise<void>(r => { enter = r; });
@@ -208,7 +208,7 @@ it.each([false, true])('production RPC in-flight maintenance opening settles acr
   let cleanup = contribute(server);
   try {
     const save = (revision: number, maintenance: boolean) => call('firstmate.features.set', { home, expectedRevision: revision,
-      requestId: randomUUID(), change: { requested: { ...FEATURES_OFF, maintenance }, capacity: DEFAULT_FEATURE_CAPACITY } });
+      requestId: randomUUID(), change: { supervisors: maintenance, capacity: DEFAULT_FEATURE_CAPACITY } });
     await save(0, true);
     const input = { homeId: (await call('firstmate.features.read', { home })).homeId, requestId: randomUUID(), scopeId: randomUUID(),
       name: 'Routine checks', profile: { provider: 'codex/test', modeId: 'full-access' },

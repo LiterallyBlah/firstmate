@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Default-off Build A project administration. Same-user role convention, not authenticated IPC.
+// Project context administration (data/project-context.md). Same-user role convention, not authenticated IPC.
 // No provisioning or Attach command is accepted. The captain uses explicit app buttons.
 import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
@@ -39,7 +39,7 @@ export async function submit(command, id = randomUUID()) {
 }
 export async function main(argv) {
   if (argv[0] === "read" && argv.length === 1) return submit({ op: "read" });
-  if (argv[0] !== "command" || argv[1] !== "--file" || !argv[2] || ![3, 5].includes(argv.length) || argv.length === 5 && argv[3] !== "--request-id") throw new Error("Usage: projects.mjs read | command --file <home-json> [--request-id <uuid>]. See data/project-mates.md.");
+  if (argv[0] !== "command" || argv[1] !== "--file" || !argv[2] || ![3, 5].includes(argv.length) || argv.length === 5 && argv[3] !== "--request-id") throw new Error("Usage: projects.mjs read | command --file <home-json> [--request-id <uuid>]. See data/project-context.md.");
   return submit(JSON.parse((await readFile(await inside(argv[2]), "utf8")).replace(/^\uFEFF/, "")), argv[4]);
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

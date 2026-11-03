@@ -12,7 +12,7 @@ import { effectLogicalKey } from "./supervision-effects";
 const fixture = () => {
   const root = join(process.env.PASEO_HOME!, randomUUID()), home = join(root, "home");
   return { root, home, input: { home, expectedRevision: 0, requestId: randomUUID(),
-    change: { requested: { ...FEATURES_OFF, projectMates: true }, capacity: { ...DEFAULT_FEATURE_CAPACITY } } } };
+    change: { supervisors: true, capacity: { ...DEFAULT_FEATURE_CAPACITY } } } };
 };
 const snapshot = async (root: string) => Promise.all((await readdir(root, { recursive: true })).sort().map(async path => {
   const absolute = join(root, path), info = await stat(absolute);

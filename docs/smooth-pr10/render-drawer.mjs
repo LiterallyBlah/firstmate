@@ -19,7 +19,7 @@ for (const stage of ['before','after']) await build({ entryPoints: [resolve(here
   b.onResolve({ filter: /^react-native($|-web$)/ }, () => ({ path: local.resolve('react-native-web') }));
   b.onResolve({ filter: /^lucide-react$/ }, () => ({ path: local.resolve('lucide-react') }));
   if (stage === 'before') removedAtBaseline(b, root, baseline, SUPERVISORS_AS_WORK_DETAILS);
-  if (stage === 'before') b.onLoad({ filter: /(maintenance-ownership|feature-settings-model)[.]tsx?$/ }, a => ({ contents: execFileSync('git', ['show', `${baseline}:client/${a.path.replaceAll('\\','/').split('/').at(-1)}`], { cwd: root, encoding: 'utf8' }), loader: 'tsx' }));
+  if (stage === 'before') b.onLoad({ filter: /(maintenance-ownership|feature-settings-model|help-settings)[.]tsx?$/ }, a => ({ contents: execFileSync('git', ['show', `${baseline}:client/${a.path.replaceAll('\\','/').split('/').at(-1)}`], { cwd: root, encoding: 'utf8' }), loader: 'tsx' }));
 } }] });
 const server = createServer(async (req,res) => { const stage = req.url.includes('before') ? 'before' : 'after';
   res.setHeader('Content-Type', req.url.endsWith('.js') ? 'application/javascript' : 'text/html');

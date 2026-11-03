@@ -39,7 +39,7 @@ it.skipIf(!!process.env.FIRSTMATE_TEST_FEATURE_POLICY_CHILD)("serializes concurr
   const root = join(process.env.PASEO_HOME!, `policy-race-${randomUUID()}`), home = join(root, "home");
   await mkdir(root, { recursive: true });
   const inputs = ["a", "b"].map((): FeatureSetInput => ({ home, expectedRevision: 0, requestId: randomUUID(),
-    change: { requested: { ...FEATURES_OFF }, capacity: { ...DEFAULT_FEATURE_CAPACITY } } }));
+    change: { supervisors: false, capacity: { ...DEFAULT_FEATURE_CAPACITY } } }));
   await Promise.all(inputs.map((input, n) => writeFile(join(root, `${["a", "b"][n]}.request.json`), JSON.stringify(input))));
   const vitest = join(dirname(fileURLToPath(import.meta.resolve("vitest/package.json"))), "vitest.mjs");
   const children = ["a", "b"].map(child => promisify(execFile)(process.execPath,

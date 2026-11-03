@@ -131,6 +131,19 @@ describe("WatchRunner", () => {
     });
   });
 
+  it("adds the variables it derives per run, such as the effective Supervisors setting, over the daemon's own", async () => {
+    const paths = await setup();
+    await script(paths.home, "env", "true");
+    const homes: string[] = [];
+    const { instance, runs } = runner(paths, { env: () => ok("") }, {
+      env: { PATH: process.env.PATH, FIRSTMATE_PLAN_SUPERVISORS: "1", FIRSTMATE_SUPERVISORS: "1" },
+      runEnv: async (home) => { homes.push(home); return { FIRSTMATE_SUPERVISORS: "0" }; },
+    });
+    await instance.tick(MINUTE);
+    expect(homes).toEqual([paths.home]);
+    expect(runs[0]?.env).toMatchObject({ FIRSTMATE_SUPERVISORS: "0", FIRSTMATE_HOME: paths.home });
+  });
+
   it("runs only what is due, enabled and valid", async () => {
     const paths = await setup();
     await script(paths.home, "hourly", "true", "0 * * * *");

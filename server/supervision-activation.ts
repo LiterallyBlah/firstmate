@@ -44,6 +44,7 @@ import { planBudgetUsed } from "../shared/workflow-plan-summary";
 import { PlanHelpPreparations } from "./plan-help-preparations";
 import { handoverEvidence } from "./plan-help-evidence";
 import { workflowHomeId } from "./workflow-board";
+import { TEMPLATES } from "./templates";
 const UI_CALL: SupervisionActor = { kind: "plugin-ui-unverified", id: "unauthenticated-plugin-call", source: "client UI (unverified)" };
 
 export function proposedSupervisor(scopeId: string) {
@@ -283,7 +284,7 @@ export class SupervisionActivation {
         reserveBoundary: run => this.runtime.features ? this.runtime.features.boundary(home, run) : run(), unverifiedUiAttach: true,
           limits: { supervisorSessions: 1, supervisorTurns: 1 }, reserveCheck: checkOwner,
           ...((await this.snapshotRequired(home)) ? { openingContext: (s: SupervisionStatus, scopeId: string) => ({
-            guide: join(home, "data", "plan-supervisors.md"), helper: join(home, "tools", "scope.mjs"),
+            guide: join(home, TEMPLATES.scopeGuide), helper: join(home, "tools", "scope.mjs"),
             rules: s.planRules?.filter(r => r.scopeId === scopeId && s.plans.some(p => p.scopeId === scopeId && p.plan.revision === r.revision)),
             instruction: "Read the guide. Retain current rules/evidence; routine repairs stay delegated. Missing report evidence alone does not justify rerunning. Opening counts against the durable continuing-turn cap. Attach provenance is unverified." }) } : {}),
           globalMateId: async () => (await this.checkedConfig(input.homeId, config.mateAgentId)).config.mateAgentId || null });

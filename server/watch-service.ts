@@ -25,6 +25,7 @@ import { z } from "zod";
 import { resolveHome, updateFirstmateConfig } from "./config";
 import { pluginDir } from "./data-dir";
 import { resolveMate } from "./fleet";
+import { currentFeaturePolicy } from "./feature-policy-runtime";
 import { isHomeReady } from "./home";
 import type { PaseoApi } from "./host-types";
 import { isMidTurn, oneAtATime, flushMateNotes, recordNoteQueued } from "./mate";
@@ -124,6 +125,13 @@ export interface WatchService {
   stop: () => void;
 }
 
+/** What a watch is told about the feature policy: the effective setting, never the daemon's raw
+ * FIRSTMATE_PLAN_SUPERVISORS, which a saved Supervisors setting replaces. Unreadable policy is off. */
+export async function watchPolicyEnv(home: string): Promise<Record<string, string>> {
+  const policy = await currentFeaturePolicy(home).catch(() => null);
+  return { FIRSTMATE_SUPERVISORS: policy?.effective.planSupervisors ? "1" : "0" };
+}
+
 export function startWatches(
   server: PluginLifecycleRegistration,
   readConfig: () => Promise<FirstmateConfig>,
@@ -194,6 +202,7 @@ export function startWatches(
     },
     stateFile: join(pluginDir(), "watches.json"),
     scriptStateRoot: join(pluginDir(), "watch-state"),
+    runEnv: watchPolicyEnv,
   });
 
   const offStarted = server.on("agent.turn_started", (_event, context) => remember(context.paseo));

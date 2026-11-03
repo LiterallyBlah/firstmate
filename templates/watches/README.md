@@ -36,6 +36,7 @@ It runs in the first mate's home with these in its environment:
 | `FIRSTMATE_BACKLOG` | The backlog, `data/backlog.md`. |
 | `FIRSTMATE_WATCH_NAME` | The script's file name. |
 | `FIRSTMATE_WATCH_STATE` | A directory of its own, kept between runs, to remember what it last saw. |
+| `FIRSTMATE_SUPERVISORS` | `1` while Supervisors are on (the saved Supervisors setting, or the daemon's old switches until one is saved), else `0`. |
 
 ## What it prints
 

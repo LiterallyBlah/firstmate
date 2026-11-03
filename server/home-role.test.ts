@@ -121,7 +121,7 @@ it("lists other home sessions as guests, including a released mate with a stale 
 });
 
 it("keeps advisers, inspectors and every Supervisor role out of the adoption list", async () => {
-  const agents = ["topic-adviser", "watch-inspector", "crew", "plan-supervisor", "project-mate", "maintenance-mate", "first-mate", "guest"].map(role => ({
+  const agents = ["topic-adviser", "watch-inspector", "crew", "supervisor", "plan-supervisor", "project-mate", "maintenance-mate", "first-mate", "guest"].map(role => ({
     id: role, cwd: home, archivedAt: null, provider: "claude", model: null, title: role, status: role.endsWith("-mate") && role !== "first-mate" ? "closed" : "idle",
     pendingPermissions: [], updatedAt: "2026-10-13", labels: { "firstmate.role": role },
   }));

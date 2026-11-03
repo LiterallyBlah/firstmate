@@ -331,7 +331,7 @@ describe("pr-watch S08 opt-in observation spool", () => {
   const HEAD = "a".repeat(40);
   const observed = (extra: Pull = {}) => ({ ...pull(extra), headRefOid: HEAD, author: { login: "builder" } }) as Pull;
   it("Build B routes a bound PR only to its typed owner while retaining unbound General output", async () => {
-    const f = await setup(), on = { FIRSTMATE_PR_OBSERVATIONS: "1", FIRSTMATE_PLAN_SUPERVISORS: "1" };
+    const f = await setup(), on = { FIRSTMATE_PR_OBSERVATIONS: "1", FIRSTMATE_SUPERVISORS: "1" };
     const homeId = process.platform === "win32" ? f.home.toLowerCase() : f.home;
     await writeFile(join(f.state, "scoped-routes.json"), JSON.stringify({ format: "firstmate.scoped-pr-routes/1", homeId, bindings: [{ repository: "me/web", pr: 42 }] }));
     await f.answer({ [A]: observed({ statusCheckRollup: pending }), [B]: observed({ statusCheckRollup: pending }) });
@@ -341,6 +341,17 @@ describe("pr-watch S08 opt-in observation spool", () => {
     expect(await readdir(join(f.state, "pr-observations"))).toHaveLength(4);
     const baseline = await readFile(join(f.state, "prs.json"), "utf8"); await rm(join(f.state, "scoped-routes.json"));
     expect((await f.run(undefined, on)).code).not.toBe(0); expect(await readFile(join(f.state, "prs.json"), "utf8")).toBe(baseline);
+  });
+
+  it("reads scoped routes only from the runner's effective FIRSTMATE_SUPERVISORS, never the daemon's raw plan switch", async () => {
+    const f = await setup(), homeId = process.platform === "win32" ? f.home.toLowerCase() : f.home;
+    await writeFile(join(f.state, "scoped-routes.json"), JSON.stringify({ format: "firstmate.scoped-pr-routes/1", homeId, bindings: [{ repository: "me/web", pr: 42 }] }));
+    // A saved Supervisors setting turned off: the runner supplies 0 although the daemon still has the old switch.
+    const off = { FIRSTMATE_PR_OBSERVATIONS: "1", FIRSTMATE_PLAN_SUPERVISORS: "1", FIRSTMATE_SUPERVISORS: "0" };
+    await f.answer({ [A]: observed({ statusCheckRollup: pending }), [B]: observed({ statusCheckRollup: pending }) });
+    expect(await f.run(undefined, off)).toMatchObject({ code: 0, stdout: "" });
+    await f.answer({ [A]: observed({ statusCheckRollup: failing }), [B]: observed({ statusCheckRollup: failing }) });
+    const changed = await f.run(undefined, off); expect(changed.code).toBe(0); expect(changed.stdout).toContain(A); expect(changed.stdout).toContain(B);
   });
 
   it("is off by default: the same gh fields, the same output and no spool", async () => {

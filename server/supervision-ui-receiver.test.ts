@@ -49,3 +49,22 @@ it("maintenance creation requires its own explicit receiver switch and never acc
   expect(create).not.toHaveBeenCalled(); await receiver.createAgent(intent);
   expect(create).toHaveBeenCalledTimes(1); expect(create.mock.calls[0]![0]).not.toHaveProperty("prompt"); expect(create.mock.calls[0]![0]).not.toHaveProperty("parent");
 });
+
+it("reads the new Supervisor role with its scope kind beside each kind's old role, under the same switches", async () => {
+  const create = vi.fn(async (input: { agentId: string }) => ({ id: input.agentId })), api = { workspaces: { ref: () => ({ agents: { create } }) } } as unknown as PaseoApi;
+  const intent = (labels: Record<string, string>) => ({ agentId: randomUUID(), workspaceId: "independent", cwd: "C:/supervisor",
+    profile: { provider: "codex/test", modeId: "full-access" }, title: "Supervisor · Ariadne", labels });
+  const plain = new SupervisionUiReceiver(api, process.env.PASEO_HOME!), all = new SupervisionUiReceiver(api, process.env.PASEO_HOME!, { projectMates: true, maintenanceMates: true });
+  for (const labels of [{ "firstmate.role": "supervisor", "firstmate.scope-kind": "plan" }, { "firstmate.role": "plan-supervisor" }])
+    await plain.createAgent(intent(labels));
+  for (const labels of [{ "firstmate.role": "supervisor", "firstmate.scope-kind": "project" }, { "firstmate.role": "project-mate" },
+    { "firstmate.role": "supervisor", "firstmate.scope-kind": "maintenance" }, { "firstmate.role": "maintenance-mate" }]) {
+    await expect(plain.createAgent(intent(labels))).rejects.toMatchObject({ code: "UNSUPPORTED" });
+    await all.createAgent(intent(labels));
+  }
+  // A Supervisor role without a known kind, an old role claiming another kind, or crew is never a Supervisor here.
+  for (const labels of [{ "firstmate.role": "supervisor" }, { "firstmate.role": "supervisor", "firstmate.scope-kind": "general" },
+    { "firstmate.role": "project-mate", "firstmate.scope-kind": "plan" }, { "firstmate.role": "crew" }])
+    await expect(all.createAgent(intent(labels))).rejects.toMatchObject({ code: "UNSUPPORTED" });
+  expect(create).toHaveBeenCalledTimes(6);
+});

@@ -48,7 +48,7 @@ it("R1: real workflow and supervision identities compose in Plans; switching hom
   const cache = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   let tree: ReturnType<typeof create> | undefined;
   try {
-    await call("firstmate.features.set", { home, expectedRevision: 0, requestId: randomUUID(), change: { requested: { ...FEATURES_OFF, planSupervisors: true, scopedActivation: true, scopeUi: true, scopeExecution: true }, capacity: DEFAULT_FEATURE_CAPACITY } });
+    await call("firstmate.features.set", { home, expectedRevision: 0, requestId: randomUUID(), change: { supervisors: true, capacity: DEFAULT_FEATURE_CAPACITY } });
     const snapshot = await call("firstmate.workflow.read"), activation = await call("firstmate.supervision.activation");
     expect(snapshot.homeId).not.toBe(activation.homeId);
     // During a home switch these two caches may temporarily belong to different homes.
@@ -115,7 +115,7 @@ it.runIf(process.env.PR175_CAPTURE === "1")("real registered RPC before/after ev
   await runtime.stop(); vi.stubEnv("FIRSTMATE_NEEDS_YOU", "1");
   const { call, cleanup } = production();
   try {
-    await call("firstmate.features.set", { home, expectedRevision: 0, requestId: randomUUID(), change: { requested: { ...FEATURES_OFF, planSupervisors: true, scopedActivation: true, scopeUi: true, scopeExecution: true }, capacity: DEFAULT_FEATURE_CAPACITY } });
+    await call("firstmate.features.set", { home, expectedRevision: 0, requestId: randomUUID(), change: { supervisors: true, capacity: DEFAULT_FEATURE_CAPACITY } });
     await call("firstmate.supervision.backup.set", { homeId: workflowHomeIdentity(home), expectedRevision: 0, requestId: randomUUID(), backup: { destination, retention: "Keep indefinitely; reviewed manually." } });
     await call("firstmate.needs-you.read"); await new Promise(done => setTimeout(done, 2100)); await call("firstmate.needs-you.read");
     expect((await call("firstmate.supervision.plan-help.read", { homeId: workflowHomeIdentity(home), plan: "scheduler" })).problems).toEqual([]);

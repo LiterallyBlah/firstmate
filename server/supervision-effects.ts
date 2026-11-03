@@ -17,7 +17,7 @@ import type { SupervisionActor, SupervisionAttempt, SupervisionEffect, Supervisi
 import type { PlanLaunch, WorkflowPlan } from "../shared/workflow-plans";
 import type { VersionRef } from "../shared/supervision-policy";
 import {
-  AgentProfileSchema, EffectCauseSchema, GatewayOperation, RELEASE_OPERATIONS, ReceiverCapabilitiesSchema, SCOPE_LABELS, SUPERVISOR_ROLE,
+  AgentProfileSchema, EffectCauseSchema, GatewayOperation, RELEASE_OPERATIONS, ReceiverCapabilitiesSchema, SCOPE_KIND_LABEL, SCOPE_LABELS, SUPERVISOR_ROLE, supervisorKind, supervisorRoleKind,
   WorkspaceReceiptSchema, type AgentObservation, type AgentProfile, type EffectCause, type GatewayReceiver,
   type ReceiverCapabilities, type WorkspaceIntent, type WorkspaceReceipt,
 } from "../shared/supervision-effects";
@@ -75,6 +75,13 @@ export function workspaceReceipt(effect: SupervisionEffect | undefined): Workspa
   return WorkspaceReceiptSchema.parse(JSON.parse(effect.receiptRef));
 }
 export const sameDirectory = (a: string, b: string) => process.platform === "win32" ? resolve(a).toLowerCase() === resolve(b).toLowerCase() : resolve(a) === resolve(b);
+/** Exact labels, except that a Supervisor session created under its kind's old role (and no scope-kind label)
+ * still matches the new `supervisor` role: existing sessions keep their identity (D4). */
+function labelsMatch(observed: Record<string, string>, expected: Record<string, string>): boolean {
+  const kind = expected[CREW_LABELS.role] === SUPERVISOR_ROLE ? expected[SCOPE_KIND_LABEL] : undefined;
+  const legacy = !!kind && supervisorRoleKind(observed) === kind && observed[CREW_LABELS.role] !== SUPERVISOR_ROLE;
+  return Object.entries(expected).every(([k, v]) => legacy && (k === CREW_LABELS.role || k === SCOPE_KIND_LABEL) || observed[k] === v);
+}
 /** Settings, identity and independent ancestry of a just-created, still unprompted session. */
 export function verifyObservation(observed: AgentObservation | null, expected: { agentId: string; workspace: WorkspaceReceipt; profile: AgentProfile; labels: Record<string, string> }): string | null {
   if (!observed) return "The reserved session is not visible; it stays uncertain, not missing.";
@@ -82,7 +89,7 @@ export function verifyObservation(observed: AgentObservation | null, expected: {
   if (observed.archivedAt) return "The reserved session is archived.";
   if (observed.workspaceId !== expected.workspace.workspaceId || !sameDirectory(observed.cwd, expected.workspace.directory)) return "The session is outside its independent workspace.";
   if (observed.labels["paseo.parent-agent-id"]) return "The session has a native parent; independent ancestry is required.";
-  if (Object.entries(expected.labels).some(([k, v]) => observed.labels[k] !== v)) return "The session labels do not match the reservation.";
+  if (!labelsMatch(observed.labels, expected.labels)) return "The session labels do not match the reservation.";
   if (observed.provider !== expected.profile.provider || (observed.modeId ?? "") !== expected.profile.modeId ||
     (observed.thinkingOptionId ?? "") !== (expected.profile.thinkingOptionId ?? "")) return "The session settings differ from the reserved profile.";
   if (observed.status !== "idle" || observed.pendingPermissions > 0) return "The session is not idle and unprompted.";
@@ -380,7 +387,7 @@ export class SupervisionGateway {
         if (!workspace) refuse("HELD", "The workspace effect has not succeeded; creation waits for it.");
         if (supervisor && configuration?.workspace && !sameDirectory(workspace.directory, configuration.workspace.directory))
           refuse("STALE", "The created workspace differs from the qualified session directory; no agent is created.");
-        const create = supervisor ? supervisorCreate(effect, workspace, await this.profile(binding.profileDigest), scope.kind) : workerCreate(status, effect, workspace);
+        const create = supervisor ? supervisorCreate(status, effect, workspace, await this.profile(binding.profileDigest), scope.kind) : workerCreate(status, effect, workspace);
         return { run: async () => {
           const created = await this.receiver.createAgent(create);
           if (created.agentId !== create.agentId) throw new Error("Receiver returned a different identity; treated as uncertain.");
@@ -684,12 +691,18 @@ function workerCreate(status: SupervisionStatus, effect: SupervisionEffect, work
   return { agentId: effect.receiverKey!, workspaceId: workspace.workspaceId, cwd: workspace.directory, profile: launch.agent,
     title: (launch.agentTitle || launch.title).slice(0, 120), labels: workerLabels(effect.scopeId, task, attempt.id, launch) };
 }
-function supervisorCreate(effect: SupervisionEffect, workspace: WorkspaceReceipt, profile: AgentProfile, kind: string) {
+/** "Supervisor · ‹purpose›": the project's name where it has one, else the kind and the scope's short id. */
+export function supervisorTitle(status: SupervisionStatus, scopeId: string): string {
+  const kind = supervisorKind(status.scopes.find(s => s.id === scopeId)?.kind);
+  const project = kind === "project" ? status.projects?.projects.find(p => p.scopeId === scopeId)?.name : undefined;
+  return `Supervisor · ${project ?? `${kind === "maintenance" ? "routine checks" : kind} ${scopeId.slice(0, 8)}`}`.slice(0, 120);
+}
+function supervisorCreate(status: SupervisionStatus, effect: SupervisionEffect, workspace: WorkspaceReceipt, profile: AgentProfile, kind: string) {
   return { agentId: effect.receiverKey!, workspaceId: workspace.workspaceId, cwd: workspace.directory, profile,
-    title: `${kind === "project" ? "Project mate" : kind === "maintenance" ? "Maintenance mate" : "Plan supervisor"} ${effect.scopeId.slice(0, 8)}`, labels: supervisorLabels(effect.scopeId, effect.epoch, kind) };
+    title: supervisorTitle(status, effect.scopeId), labels: supervisorLabels(effect.scopeId, effect.epoch, kind) };
 }
 export function supervisorLabels(scopeId: string, epoch: number, kind?: string): Record<string, string> {
-  return { [CREW_LABELS.role]: kind === "project" ? "project-mate" : kind === "maintenance" ? "maintenance-mate" : SUPERVISOR_ROLE, [SCOPE_LABELS.scope]: scopeId, [SCOPE_LABELS.epoch]: String(epoch) };
+  return { [CREW_LABELS.role]: SUPERVISOR_ROLE, [SCOPE_KIND_LABEL]: supervisorKind(kind), [SCOPE_LABELS.scope]: scopeId, [SCOPE_LABELS.epoch]: String(epoch) };
 }
 function promoteAttempt(status: SupervisionStatus, attemptId: string, state: string): SupervisionMutation[] {
   const attempt = status.attempts.find(a => a.id === attemptId)!;

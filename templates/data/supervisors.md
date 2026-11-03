@@ -1,9 +1,19 @@
-# Operating a scoped plan
+# Supervisors
 
-This helper is supplied when the captain enables plan help in the home's saved feature policy. Changes apply while services are running. Existing environment-only pilots keep their exact original-home selection until saved. The helper remains available for reads and receipts while new work is paused. It uses cooperative
+A Supervisor looks after one plan, one project or routine checks, bound to one scope epoch, with the
+model, permissions and cumulative session/turn limits the captain reviewed. This guide is for a bound
+Supervisor of a plan or a project; a routine-check Supervisor reads `data/maintenance.md`, and project
+context (registry, allocations, memory) is in `data/project-context.md`. The same text is also written to
+`data/plan-supervisors.md`, its old name, for sessions that were told that path.
+
+This helper is supplied while the captain's saved Supervisors setting is on (until one is saved, the
+daemon's old environment switches stand in). Changes apply while services are running. The helper
+remains available for reads and receipts while new work is paused. It uses cooperative
 same-user request files, not authenticated IPC. Never impersonate another agent.
 Attach remains the captain's app button, labelled unverified. No helper attaches,
 provisions, takes over, archives, lands or mutates remote work.
+
+## Operating a scoped plan
 
 Submit one complete JSON input from a file inside this home:
 `node tools/scope.mjs <kind> --file data/request.json --request-id <uuid>`.
@@ -91,6 +101,12 @@ no retained dependents and no unsettled effects. Imported live callbacks remain
 held until the known original owner is explicitly drained/reconciled. Migration
 controls use an approved independent verified snapshot and retention; restoration
 still requires external-effect reconciliation and never refunds spend.
+
+## A project Supervisor
+
+A project's Supervisor reads and acknowledges its own checked inputs through the same
+`read|inbox|outbox|project-result` transports. They retain the exact scope/epoch and request
+bytes, and grant no plan execution or Attach.
 
 For an exceptional project judgment that needs the captain's authority, `project-result`
 may include `captain: {title, question, reason, options: [{id, label}, ...], recommendation}`.
