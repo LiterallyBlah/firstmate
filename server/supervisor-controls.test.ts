@@ -224,3 +224,15 @@ describe("Retiring a project's Supervisor (D1)", { timeout: 60000 }, () => {
     expect(stale.bindingDigest).toBe(digest((await fx.store.read()).bindings.find(b => b.scopeId === fx.projectScope)));
   });
 });
+describe("Retirement review regressions", { timeout: 60000 }, () => {
+  it("a paused Supervisor that is then retired reads as retired, not paused, and offers no Resume; the pause stays in history", async () => {
+    const fx = await projectFixture();
+    await fx.controls.pauseFromUnverifiedUi(await fx.retire());
+    expect(fx.controls.read(await fx.store.read(), fx.projectScope).state).toBe("paused");
+    await fx.controls.retireFromUnverifiedUi(await fx.retire());
+    const status = await fx.store.read(), view = fx.controls.read(status, fx.projectScope);
+    expect(view.state).toBe("retired"); expect(view.controlId).not.toBeNull();
+    expect(status.commands.some(c => c.result.supervisorControl?.scopeId === fx.projectScope && c.result.supervisorControl.action === "pause")).toBe(true);
+    await expect(fx.controls.resumeFromUnverifiedUi({ ...await fx.retire(), expectedControlId: view.controlId! })).rejects.toMatchObject({ code: "HELD" });
+  });
+});

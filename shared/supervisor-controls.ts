@@ -18,7 +18,8 @@ export const SupervisorViewSchema = z.object({ scopeId: SupervisionUuid, binding
   replacementResume: SupervisorReplacementInputSchema.nullable(), state: z.string(), configurations: z.array(SupervisorConfigurationSchema), pending: SupervisorConfigurationSchema.nullable(), sessions: z.number(), turns: z.number(),
   pendingDigest: SupervisionHash.nullable().default(null),
   reservedOwnerInputs: z.array(z.object({ id: SupervisionUuid, version: z.number().int().positive(), payloadDigest: SupervisionHash, preview: z.string().max(16000).nullable().optional(), truncated: z.boolean().optional() }).strict()).default([]),
-  obligations: z.object({ uncertain: z.array(z.string()), reserved: z.array(z.string()), workers: z.array(z.string()), decisions: z.array(z.string()), sources: z.array(z.string()), unlanded: z.array(z.string()) }).strict(), retirement: z.string() }).strict();
+  obligations: z.object({ uncertain: z.array(z.string()), reserved: z.array(z.string()), workers: z.array(z.string()), decisions: z.array(z.string()),
+    outbox: z.array(z.string()).default([]), sources: z.array(z.string()), unlanded: z.array(z.string()) }).strict(), retirement: z.string() }).strict();
 export const SupervisorControlsSnapshotSchema = z.object({ homeId: z.string(), scopeId: SupervisionUuid, planHash: SupervisionHash.nullable(), title: z.string(),
   kind: z.enum(["plan", "project", "maintenance"]).optional(),
   view: SupervisorViewSchema, catalog: SupervisorCatalogSchema, problems: z.array(z.string()), policyDigest: SupervisionHash,

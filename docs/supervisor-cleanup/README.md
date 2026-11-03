@@ -114,7 +114,9 @@ uses it in the app: nothing retires a binding on install or start.
 - **`retire`**, a new `firstmate.supervisor.controls.act-ui` op (`retireFromUnverifiedUi`), is for a project's
   Supervisor only; a plan keeps its checked plan retirement. Supervisor settings offers **Review retiring this
   Supervisor**, then **Retire project Supervisor** or **Keep this Supervisor**. It is refused while a pending change or
-  saved replacement, a reserved or uncertain effect, a worker, a decision or a source is outstanding.
+  saved replacement, a reserved or uncertain effect, a worker, a decision, a pending owner input (an unhandled project
+  input or an answered captain decision awaiting handling, both pending outboxes) or a source is outstanding; the
+  review names pending owner inputs. A retired binding reads as retired even over a retained pause, so no Resume is offered.
 - Retiring sets the binding `retired` with its epoch, agent, workspace, profile and spend unchanged, and the scope
   `dormant`. It makes no native call: the session is not stopped or archived, so its conversation stays readable in
   Paseo. The exact request replays; a second one is refused, and no turn, send, discussion or re-provisioning reaches it.

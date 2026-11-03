@@ -111,8 +111,8 @@ export class SupervisorControls {
       const view = supervisorView(status, scope.id), o = view.obligations;
       if (view.pending || view.replacementResume) refuse("HELD", "A pending change or saved replacement holds this Supervisor. Withdraw or finish it first.");
       if (o.uncertain.length) refuse("UNCERTAIN", "Reconcile uncertain effects under their original identities before retirement.");
-      if (o.reserved.length || o.workers.length || o.decisions.length || o.sources.length)
-        refuse("HELD", "Retirement needs disposition of reserved effects, workers, decisions and sources first.");
+      if (o.reserved.length || o.workers.length || o.decisions.length || o.outbox.length || o.sources.length)
+        refuse("HELD", "Retirement needs disposition of reserved effects, workers, decisions, pending owner inputs (project inputs and answered decisions) and sources first.");
       const mutations: SupervisionMutation[] = [{ kind: "binding", value: { ...binding, state: "retired" } },
         ...(scope.state === "active" || scope.state === "transferring" ? [{ kind: "scope" as const, value: { ...scope, state: "dormant" as const, version: scope.version + 1 } }] : [])];
       return { expectedVersions: expectedFor(status, mutations), mutations, result: empty };

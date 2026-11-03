@@ -22,7 +22,7 @@ beforeEach(() => {
     catalog: [{ provider: profile.provider, label: "Sol", modes: [{ id: profile.modeId, label: "Full access" }], thinking: [{ id: "high", label: "High" }] }],
     view: { pendingDigest: null, reservedOwnerInputs: [], scopeId: id, binding: { scopeId: id, epoch: 1, hostId: "local", agentId: "native-id", workspaceId: "workspace", profileDigest: hash, checkpointHash: hash, acknowledgedSeq: 0, heartbeatDue: null, state: "active", configurationId: id },
       replacementResume: null, bindingDigest: hash, controlId: null, state: "active", configurations: [configuration], pending: null, sessions: 1, turns: 1,
-      obligations: { uncertain: [], reserved: [], workers: [], sources: [], decisions: [], unlanded: [] }, retirement: "Retain all history and obligations." } };
+      obligations: { uncertain: [], reserved: [], workers: [], sources: [], decisions: [], outbox: [], unlanded: [] }, retirement: "Retain all history and obligations." } };
   mocks.read.mockImplementation(async () => structuredClone(data));
 });
 afterEach(async () => { await act(async () => renderer?.unmount()); renderer = undefined; cache.clear(); });
@@ -87,4 +87,15 @@ it("a project's Supervisor can be retired after an explicit review; a plan's off
   await act(async () => renderer!.update(createElement(QueryClientProvider, { client: cache }, view())));
   expect(() => button("Retire project Supervisor")).toThrow();
   expect(JSON.stringify(renderer!.toJSON())).toContain("Its conversation stays readable in Paseo");
+});
+it("the retire review names pending owner inputs and holds confirmation; a retired paused Supervisor offers no Resume", async () => {
+  const onAction = vi.fn();
+  data = { ...data, kind: "project", title: "Ariadne", planHash: null, view: { ...data.view, obligations: { ...data.view.obligations, outbox: ["answered-decision"] } } };
+  const view = () => createElement(SupervisorDetailView, { theme, compact: true, data, onAction });
+  await mount(view()); await act(async () => button("Review retiring this Supervisor").props.onPress());
+  expect(JSON.stringify(renderer!.toJSON())).toContain("1 pending owner input awaits this Supervisor's handling");
+  expect(button("Retire project Supervisor").props.disabled).toBe(true);
+  data = { ...data, view: { ...data.view, controlId: id, state: "retired", binding: { ...data.view.binding!, state: "retired" } } };
+  await act(async () => renderer!.update(createElement(QueryClientProvider, { client: cache }, view())));
+  expect(() => button("Resume this pause")).toThrow(); expect(() => button("Pause new admissions")).toThrow(); expect(onAction).not.toHaveBeenCalled();
 });

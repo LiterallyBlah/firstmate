@@ -37,7 +37,8 @@ export function supervisorView(status: SupervisionStatus, scopeId: string) {
   const lifecycle = binding?.state === "active" ? effects.some(e => ["uncertain", "accepted"].includes(e.state)) ? "uncertain"
     : opening?.state === "reserved" ? "waiting" : opening?.state === "failed" ? "unavailable" : "active" : binding?.state ?? "unavailable";
   return { scopeId, binding: binding ?? null, bindingDigest: binding ? digest(binding) : null, controlId: control?.id ?? null,
-    state: pending ? "change-pending" : control?.action === "pause" ? "paused" : lifecycle,
+    // Retirement is terminal: it outranks a retained pause or proposal, whose history stays in the journal.
+    state: binding?.state === "retired" ? "retired" : pending ? "change-pending" : control?.action === "pause" ? "paused" : lifecycle,
     replacementResume, configurations, pendingDigest: pending ? digest(pending) : null,
     reservedOwnerInputs: effects.filter(e => e.epoch === binding?.epoch && e.attemptId === null && e.operation === "agent.send" && e.state === "reserved")
       .map(e => ({ id: e.id, version: e.version, payloadDigest: e.payloadDigest! })),
@@ -48,9 +49,11 @@ export function supervisorView(status: SupervisionStatus, scopeId: string) {
       reserved: effects.filter(e => e.state === "reserved").map(e => e.id),
       workers: status.attempts.filter(a => status.tasks.some(t => t.id === a.taskId && t.ownerScopeId === scopeId) && !["done", "landed", "failed", "cancelled", "released-uncreated", "abandoned"].includes(a.state)).map(a => a.id),
       decisions: status.decisions.filter(d => d.ownerScopeId === scopeId && d.state === "pending").map(d => d.id),
+      // Pending logical-owner outboxes: project inputs and answered captain decisions still awaiting this owner's handling.
+      outbox: status.outbox.filter(o => o.ownerScopeId === scopeId && o.state === "pending").map(o => o.id),
       sources: status.sources.bindings.filter(s => s.scopeId === scopeId).map(s => s.id),
       unlanded: status.plans.filter(p => p.scopeId === scopeId).flatMap(p => Object.entries(p.plan.nodes).filter(([, n]) => n.state === "done").map(([id]) => id)) },
-    retirement: "Retirement requires disposition of retained effects, workers, decisions, sources and unlanded artifacts. No workspace or history is deleted." };
+    retirement: "Retirement requires disposition of retained effects, workers, decisions, pending owner inputs, sources and unlanded artifacts. No workspace or history is deleted." };
 }
 /** Every plan, project and routine-check Supervisor with a binding or a saved configuration, from stored truth only. */
 export function supervisorList(status: SupervisionStatus, limits: (scopeId: string) => GatewayLimits | null): SupervisorListRow[] {

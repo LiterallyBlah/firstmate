@@ -92,12 +92,13 @@ export function SupervisorDetailView({ theme, compact, data, disabled = false, o
     {v.binding && onOpen ? <Action theme={theme} label="Open exact native Supervisor" onPress={onOpen} /> : v.binding ? <Text selectable style={note}>Native session: {v.binding.agentId}. Open this exact session in Paseo before stopping it.</Text> : null}
     {data.kind === "project" && v.binding?.state === "retired" ? <Text style={text}>This project's Supervisor is retired. Its conversation stays readable in Paseo, and its identity, spending and history are kept. The project stays as context.</Text> : null}
     {data.kind === "project" && v.binding && v.binding.state !== "retired" && !v.pending && !v.replacementResume ? retiring ? <>
+      {v.obligations.outbox.length ? <Text accessibilityRole="alert" style={text}>{`${v.obligations.outbox.length} pending owner ${v.obligations.outbox.length === 1 ? "input awaits" : "inputs await"} this Supervisor's handling (a project input or an answered decision). Retirement waits until it is handled.`}</Text> : null}
       <Text style={text}>Retire this project's Supervisor for good? It gets no more turns or messages, and the project stays as context for plans. Its conversation stays readable in Paseo; its identity, spending and history are kept. Only the captain should confirm. App provenance is unverified.</Text>
       <Action theme={theme} label="Retire project Supervisor" disabled={disabled || !!data.problems.length || !!v.obligations.uncertain.length || !!v.obligations.reserved.length ||
-        !!v.obligations.workers.length || !!v.obligations.decisions.length || !!v.obligations.sources.length} onPress={() => onAction({ ...base, op: "retire" })} />
+        !!v.obligations.workers.length || !!v.obligations.decisions.length || !!v.obligations.outbox.length || !!v.obligations.sources.length} onPress={() => onAction({ ...base, op: "retire" })} />
       <Action theme={theme} label="Keep this Supervisor" disabled={disabled} onPress={() => showRetire(false)} />
     </> : <Action theme={theme} label="Review retiring this Supervisor" disabled={disabled} onPress={() => showRetire(true)} /> : null}
-    <Text style={note}>Retained obligations: {v.obligations.reserved.length} reserved effects, {v.obligations.workers.length} workers, {v.obligations.decisions.length} decisions, {v.obligations.sources.length} sources, {v.obligations.unlanded.length} unlanded steps.</Text>
+    <Text style={note}>Retained obligations: {v.obligations.reserved.length} reserved effects, {v.obligations.workers.length} workers, {v.obligations.decisions.length} decisions, {v.obligations.outbox.length} pending owner inputs, {v.obligations.sources.length} sources, {v.obligations.unlanded.length} unlanded steps.</Text>
     <Text style={note}>{v.retirement}</Text>
   </View>;
 }
