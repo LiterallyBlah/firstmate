@@ -114,7 +114,9 @@ holds only conflicting scopes; non-plan names are reported warnings. `workflow.m
 the current mate and inspected-file fingerprint, appends evidence without changing damaged files,
 and permanently retains the plan id, attempts, budget and scoped reservations. Legacy missing
 ownership metadata cannot identify unknown lost tasks; restore a backup rather than guessing.
-Reads cache event-file identity; finished implicit plans leave the agenda. Removal tombstones reconcile scoped backlog
+Reads cache event-file identity; finished implicit plans leave the agenda. A cold read (a fresh process) folds
+each plan once however many callers race it, in place and with bounded read-ahead, and the decisions read waits at
+most `PLAN_READ_BUDGET_MS` for plans before answering with them marked still loading (`workflowSnapshotWithin`). Removal tombstones reconcile scoped backlog
 rows. Explicit release, invalidate/validate and replace transitions preserve history and cumulative
 budget; manual replacement/promotion keeps the workspace and task identity. Legacy unscoped logs
 and missing anchors require deliberate reconciliation, never an automatic budget reset.

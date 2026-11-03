@@ -7,7 +7,7 @@ import { planSupervisorGatewayLimits } from "./shared/plan-supervisor-limits";
 import { WatchSupervisors } from "./server/watch-supervisors";
 import type { PluginServerContext } from "@getpaseo/plugin/server";
 import { startWorkflowService, workflowStore, queuePlanNotes } from "./server/workflow-service";
-import { workflowHomeId, workflowSnapshot, withWorkflowNeeds, withWorkflowFleet } from "./server/workflow-board";
+import { workflowHomeId, workflowSnapshot, workflowSnapshotWithin, withWorkflowNeeds, withWorkflowFleet } from "./server/workflow-board";
 import { readWorkflowPlans, actOnWorkflowPlan } from "./shared/workflow-rpc";
 import { ensureSharedTerminal as ensureSharedTerminalRpc } from "./shared/native-tools";
 import { ensureSharedTerminal } from "./server/native-tools";
@@ -189,7 +189,11 @@ export default function contribute(server: PluginServerContext) {
   const readCombinedNeeds = async (given?: Awaited<ReturnType<typeof decisions.read>>) => {
     const snapshot = given ?? await decisions.read();
     const config = await readFirstmateConfig(), home = resolveHome(config);
-    const workflow = await workflowSnapshot(home), base = await withWorkflowNeeds(snapshot, home, workflow);
+    // Bounded: a cold start must not hold the decisions read past the host's RPC limit (see workflowSnapshotWithin).
+    const workflow = await workflowSnapshotWithin(home);
+    if (!workflow) return { ...snapshot, planProblems: ["Plans are still loading after a restart. Existing captain decisions remain available; the total is incomplete."],
+      scopedComplete: false, scopedProblems: ["Scoped decisions are still loading after a restart. Existing decisions remain available; the total is incomplete."] };
+    const base = await withWorkflowNeeds(snapshot, home, workflow);
     try {
       const status = await readSupervision(home);
       const combined = status.scopes.length || status.problems.length ? withScopedNeedsYou(base, status, await decisions.homeBridge(base, home)) : base;
