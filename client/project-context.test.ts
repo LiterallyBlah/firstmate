@@ -80,6 +80,7 @@ it("states what the stored record says, never a setup action", () => {
   expect(projectStatus({ ...alpha, directory: null, state: "held", registryLocation: "https://example.test/repository" })).toBe("Repository URL; no local folder recorded");
   expect(projectStatus({ ...alpha, state: "held", reason: "Project directory is unavailable." })).toBe("Folder not found");
   expect(projectStatus({ ...alpha, state: "stopped", reason: null })).toBe("Stopped");
+  expect(projectStatus({ ...alpha, reason: "Supervisor retired; identity, spend and history retained. The project stays as context." })).toBe("Admitted · Supervisor retired");
 });
 
 it("legacy handoff context is not a failed read, while unknown records remain problems", () => {
@@ -100,4 +101,19 @@ it("offers Add project on this computer only, including before any project is li
   await act(async () => { await new Promise(done => setTimeout(done, 10)); });
   expect(renderer!.root.findAllByType("AddProjectFolder" as never)).toHaveLength(0);
   expect(state.calls.every(name => name === "firstmate.projects.read")).toBe(true);
+});
+
+it("keeps a retired Supervisor's conversation one press away, only when the host can open it", async () => {
+  state.data!.projects = [{ ...alpha, name: "Ariadne", reason: "Supervisor retired; identity, spend and history retained. The project stays as context." }, { ...alpha, name: "Starpath", projectId: "00000000-0000-4000-8000-000000000009" }];
+  const opened: string[] = [];
+  await act(async () => { renderer = create(createElement(QueryClientProvider, { client: cache }, createElement(ProjectContextBoard, { theme, compact: true, onOpenAgent: (agentId: string) => opened.push(agentId) }))); });
+  await vi.waitFor(async () => { await act(async () => { await new Promise(done => setTimeout(done, 0)); }); expect(button("Projects")).toBeDefined(); }, { timeout: 20000 });
+  await act(async () => button("Projects").props.onPress());
+  expect(text()).toContain("Admitted · Supervisor retired");
+  await act(async () => button("Open Ariadne's retired Supervisor conversation").props.onPress());
+  expect(opened).toEqual(["alpha-supervisor"]);
+  expect(() => button("Open Starpath's retired Supervisor conversation")).toThrow();
+  expect(state.recover).not.toHaveBeenCalled();
+  await act(async () => renderer!.unmount()); renderer = undefined; await mount(); await act(async () => button("Projects").props.onPress());
+  expect(() => button("Open Ariadne's retired Supervisor conversation")).toThrow();
 });

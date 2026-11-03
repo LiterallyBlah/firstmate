@@ -26,9 +26,13 @@ export function projectStatus(project: Project): string {
   if (location && /^[a-z][\w+.-]*:\/\//i.test(location)) return "Repository URL; no local folder recorded";
   if (/Project (directory is unavailable|location is not a directory)/.test(project.reason ?? "")) return project.reason?.includes("not a directory") ? "Not a folder" : "Folder not found";
   if (project.reason?.includes("ambiguous")) return "Duplicate project entry";
-  if (project.state === "admitted") return "Admitted";
+  if (project.state === "admitted") return projectSupervisorRetired(project) ? "Admitted · Supervisor retired" : "Admitted";
   if (project.state === "unadmitted") return "In the project list";
   return project.reason ? `${project.state[0]!.toUpperCase()}${project.state.slice(1)}: ${project.reason}` : `${project.state[0]!.toUpperCase()}${project.state.slice(1)}`;
+}
+/** A retired Supervisor leaves the Supervisors list; its project stays here, with its conversation still readable in Paseo. */
+export function projectSupervisorRetired(project: Project): boolean {
+  return !!project.agentId && !!project.reason?.startsWith("Supervisor retired");
 }
 function Action({ theme, label, onPress, disabled = false }: { theme: PluginTheme; label: string; onPress(): void; disabled?: boolean }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress}
@@ -36,7 +40,7 @@ function Action({ theme, label, onPress, disabled = false }: { theme: PluginThem
     <Text style={{ color: theme.colors.foreground, fontSize: 13, flexShrink: 1 }}>{label}</Text>
   </Pressable>;
 }
-export function ProjectContextBoard({ theme, compact, hostId = "local" }: { theme: PluginTheme; compact: boolean; hostId?: string }) {
+export function ProjectContextBoard({ theme, compact, hostId = "local", onOpenAgent }: { theme: PluginTheme; compact: boolean; hostId?: string; onOpenAgent?: (agentId: string) => void }) {
   const read = useRpc(readProjectRuntime), recover = useRpc(recoverProjectRuntimeFromUi);
   const query = useQuery({ queryKey: ["firstmate", "project-ownership", hostId], queryFn: async () => ProjectRuntimeSnapshotSchema.parse(await read({})), refetchInterval: 5000 });
   const [busy, setBusy] = useState(false), [error, setError] = useState<string | null>(null), gate = useRef(false);
@@ -53,14 +57,15 @@ export function ProjectContextBoard({ theme, compact, hostId = "local" }: { them
     finally { gate.current = false; setBusy(false); }
   }
   return <>
-    <ProjectContextView theme={theme} compact={compact} data={data} readError={query.isError} onRefresh={() => { void query.refetch(); }} onRecover={() => { void repair(); }} recoveryBusy={busy} />
+    <ProjectContextView theme={theme} compact={compact} data={data} readError={query.isError} onRefresh={() => { void query.refetch(); }} onRecover={() => { void repair(); }} recoveryBusy={busy}
+      {...(onOpenAgent ? { onOpenAgent } : {})} />
     {error ? <Text accessibilityRole="alert" style={{ color: theme.colors.statusDanger }}>{error}</Text> : null}
     {addFolder}
   </>;
 }
-export function ProjectContextView({ theme, compact, data, readError = false, onRefresh, onRecover, recoveryBusy = false, initiallyExpanded = false }: {
+export function ProjectContextView({ theme, compact, data, readError = false, onRefresh, onRecover, recoveryBusy = false, initiallyExpanded = false, onOpenAgent }: {
   theme: PluginTheme; compact: boolean; data: ProjectRuntimeSnapshot; readError?: boolean; onRefresh(): void;
-  onRecover?: () => void; recoveryBusy?: boolean; initiallyExpanded?: boolean;
+  onRecover?: () => void; recoveryBusy?: boolean; initiallyExpanded?: boolean; onOpenAgent?: (agentId: string) => void;
 }) {
   const [expanded, expand] = useState(initiallyExpanded), [memoryProject, setMemory] = useState<Project | null>(null), [technical, showTechnical] = useState<string | null>(null), colors = theme.colors;
   const [globalDetails, showGlobalDetails] = useState(false), [planList, showPlanList] = useState<string | null>(null);
@@ -94,6 +99,7 @@ export function ProjectContextView({ theme, compact, data, readError = false, on
             <Pressable accessibilityRole="button" accessibilityLabel={`${technical === key ? "Hide" : "Show"} ${p.name} details`} accessibilityState={{ expanded: technical === key }} aria-expanded={technical === key} onPress={() => showTechnical(technical === key ? null : key)} style={{ minHeight: 44, minWidth: 44, paddingHorizontal: 6, flexDirection: "row", alignItems: "center", gap: 4 }}>
               <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>Details</Text><Icon name={technical === key ? "ChevronDown" : "ChevronRight"} size={14} color={colors.foregroundMuted} /></Pressable>
           </View>
+          {projectSupervisorRetired(p) && onOpenAgent ? <Action theme={theme} label={`Open ${p.name}'s retired Supervisor conversation`} onPress={() => onOpenAgent(p.agentId!)} /> : null}
           {technical === key ? <View style={{ gap: 6 }}>
           <Text selectable style={{ color: colors.foregroundMuted, fontSize: 12 }}>Stored state: {p.state} · version {p.version} · project {p.projectId ?? "not recorded"} · scope {p.scopeId ?? "not recorded"}{p.reason ? ` · ${p.reason}` : ""}</Text>
           <Text selectable style={{ color: colors.foregroundMuted, fontSize: 12 }}>{p.hostId ?? "Host not recorded"} · {p.directory ?? p.registryLocation ?? "Folder not recorded"}</Text>

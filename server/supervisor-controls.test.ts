@@ -168,3 +168,59 @@ describe("Supervisor foundation checked app lifecycle", { timeout: 60000 }, () =
     await expect(fx.controls.resumeFromUnverifiedUi({ ...base, requestId: randomUUID(), expectedControlId: body.requestId })).rejects.toMatchObject({ code: "HELD" });
   });
 });
+
+/** A project's Supervisor, bound and opened through the same checked lifecycle as a plan's. */
+async function projectFixture() {
+  const fx = await fixture(), projectScope = randomUUID(), status = await fx.store.read();
+  const mutations = [{ kind: "scope" as const, value: { id: projectScope, homeId: status.homeId, kind: "project" as const, projectIds: [randomUUID()], sponsorId: null,
+    version: 1, mode: "scoped" as const, state: "dormant" as const } }];
+  await fx.store.transact(expected(mutations), randomUUID(), mutations);
+  await fx.sessions.prepare({ requestId: randomUUID(), scopeId: projectScope, scopeVersion: 1, profile, opening: "Ariadne context" }, captain);
+  const effects = activationEffects(await fx.store.read(), projectScope, 1);
+  await fx.gateway.dispatch(effects.workspace!.id); await fx.gateway.dispatch(effects.create!.id); await fx.sessions.verify(projectScope, 1); await fx.gateway.dispatch(effects.send!.id);
+  const retire = async () => { const s = await fx.store.read(), b = s.bindings.find(b => b.scopeId === projectScope)!;
+    return { requestId: randomUUID(), homeId: s.homeId, scopeId: projectScope, expectedEpoch: b.epoch, bindingDigest: digest(b) }; };
+  return { ...fx, projectScope, retire };
+}
+describe("Retiring a project's Supervisor (D1)", { timeout: 60000 }, () => {
+  it("is terminal and keeps epoch, identity, spend and the native session; the scope goes dormant and leaves every list", async () => {
+    const fx = await projectFixture(), { scopeSnapshot } = await import("./scope-projection");
+    const before = await fx.store.read(), binding = before.bindings.find(b => b.scopeId === fx.projectScope)!, spend = supervisorSpend(before, fx.projectScope);
+    expect(supervisorList(before, () => null).map(r => r.scopeId)).toContain(fx.projectScope);
+    expect(scopeSnapshot(before, "general").scopes.find(s => s.id === fx.projectScope)?.target.agentId).toBe(binding.agentId);
+    const calls = fx.receiver.calls.length, input = await fx.retire();
+    await fx.controls.retireFromUnverifiedUi(input);
+    const after = await fx.store.read(), retired = after.bindings.find(b => b.scopeId === fx.projectScope)!;
+    expect(retired).toEqual({ ...binding, state: "retired" });
+    const version = before.scopes.find(s => s.id === fx.projectScope)!.version;
+    expect(after.scopes.find(s => s.id === fx.projectScope)).toMatchObject({ state: "dormant", version: version + 1 });
+    expect(supervisorSpend(after, fx.projectScope)).toEqual(spend);
+    expect(after.effects.filter(e => e.scopeId === fx.projectScope)).toEqual(before.effects.filter(e => e.scopeId === fx.projectScope));
+    // No native call: the session is neither stopped nor archived, so its transcript stays readable in Paseo.
+    expect(fx.receiver.calls.length).toBe(calls); expect(fx.receiver.agents.get(binding.agentId)?.archivedAt).toBeNull();
+    expect(supervisorList(after, () => null).map(r => r.scopeId)).not.toContain(fx.projectScope);
+    expect(supervisorList(after, () => null).map(r => r.scopeId)).toContain(fx.scope.id);
+    expect(scopeSnapshot(after, "general").scopes.find(s => s.id === fx.projectScope)?.target).toMatchObject({ agentId: null, epoch: 0 });
+    // The exact request replays; nothing else retires, wakes, sends to or re-creates it.
+    await fx.controls.retireFromUnverifiedUi(input);
+    expect((await fx.store.read()).sequence).toBe(after.sequence);
+    await expect(fx.controls.retireFromUnverifiedUi(await fx.retire())).rejects.toMatchObject({ code: "HELD" });
+    await expect(fx.sessions.reserveTurn({ requestId: randomUUID(), scopeId: fx.projectScope, epoch: 1, causation: "wake", text: "More" }, captain)).rejects.toThrow();
+    await expect(fx.sessions.prepare({ requestId: randomUUID(), scopeId: fx.projectScope, scopeVersion: version + 1, profile, opening: "Again" }, captain)).rejects.toMatchObject({ code: "HELD" });
+    expect(fx.receiver.calls.length).toBe(calls);
+  });
+  it("refuses a plan's Supervisor, a stale review, a pending change and outstanding owner input, recording nothing", async () => {
+    const fx = await projectFixture();
+    await expect(fx.controls.retireFromUnverifiedUi(await fx.base())).rejects.toMatchObject({ code: "UNSUPPORTED" });
+    const stale = await fx.retire();
+    await fx.controls.stageFromUnverifiedUi({ ...await fx.retire(), profile: { ...profile, thinkingOptionId: "xhigh" }, limits: { supervisorSessions: 3, supervisorTurns: 10 }, policyDigest: fx.state.policy });
+    await expect(fx.controls.retireFromUnverifiedUi(await fx.retire())).rejects.toMatchObject({ code: "HELD" });
+    const fresh = await projectFixture();
+    await fresh.sessions.reserveTurn({ requestId: randomUUID(), scopeId: fresh.projectScope, epoch: 1, causation: "wake", text: "Pending input" }, captain);
+    const pending = await fresh.store.read();
+    await expect(fresh.controls.retireFromUnverifiedUi(await fresh.retire())).rejects.toMatchObject({ code: "HELD" });
+    expect((await fresh.store.read()).sequence).toBe(pending.sequence);
+    expect((await fresh.store.read()).bindings.find(b => b.scopeId === fresh.projectScope)?.state).toBe("active");
+    expect(stale.bindingDigest).toBe(digest((await fx.store.read()).bindings.find(b => b.scopeId === fx.projectScope)));
+  });
+});

@@ -57,7 +57,8 @@ export function supervisorList(status: SupervisionStatus, limits: (scopeId: stri
   return status.scopes.flatMap(scope => {
     if (scope.kind !== "plan" && scope.kind !== "project" && scope.kind !== "maintenance") return [];
     const view = supervisorView(status, scope.id);
-    if (!view.binding && !view.configurations.length) return [];
+    // A retired Supervisor keeps its history and spend in the journal and its transcript in Paseo, but leaves the list.
+    if (!view.binding && !view.configurations.length || view.binding?.state === "retired") return [];
     const plan = status.plans.find(p => p.scopeId === scope.id)?.plan, project = status.projects?.projects.find(p => p.scopeId === scope.id);
     const admission = status.commands.find(c => c.result.maintenanceAdmission?.scopeId === scope.id)?.result.maintenanceAdmission;
     // The profile and caps the exact session runs under; a staged proposal is not current until a reviewed replacement.

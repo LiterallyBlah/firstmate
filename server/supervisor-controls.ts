@@ -7,6 +7,7 @@ import { expectedFor, refuse, stableId, type SupervisionGateway } from "./superv
 import { activationEffects, type SupervisorSessions } from "./supervisor-sessions";
 import type { SupervisionStore } from "./supervision-store";
 import { supervisorControl, supervisorConfigurations, supervisorView } from "./supervisor-configuration";
+import type { SupervisionMutation } from "./supervision-store";
 export const SUPERVISOR_UI = { kind: "plugin-ui-unverified" as const, id: "unauthenticated-plugin-call", source: "Supervisor controls (unverified)" };
 type Target = { requestId: string; homeId: string; scopeId: string; expectedEpoch: number; bindingDigest: string | null; planHash?: string | null | undefined };
 type Stage = Target & { profile: SupervisorProfile; limits: GatewayLimits; policyDigest: string };
@@ -95,6 +96,25 @@ export class SupervisorControls {
         refuse("HELD", "Only a never-dispatched owner input can be withdrawn. Worker and uncertain effects retain their own disposition.");
       const mutations = [{ kind: "effect" as const, value: { ...effect, state: "cancelled" as const,
         receiptRef: `withdrawn-undelivered:${input.requestId}`, version: effect.version + 1 } }];
+      return { expectedVersions: expectedFor(status, mutations), mutations, result: empty };
+    });
+  }
+  /** Retire a project's Supervisor for good (D1). Only with nothing outstanding: no pending change or replacement, no
+   * reserved or uncertain effect, worker, decision or source. Epoch, identity, spend, history and the native
+   * transcript are kept; the scope goes dormant, so nothing wakes or sends to it, and the project stays as context. */
+  retireFromUnverifiedUi(input: Target) {
+    return this.store.transactCommand(input.requestId, digest({ retire: input }), SUPERVISOR_UI, async status => {
+      const { scope, binding } = this.check(status, input);
+      if (scope.kind !== "project") refuse("UNSUPPORTED", "Only a project's Supervisor is retired here. A plan retires through its checked plan retirement.");
+      if (binding.state === "retired") refuse("HELD", "This Supervisor is already retired.");
+      await this.options.validate(status, input.scopeId);
+      const view = supervisorView(status, scope.id), o = view.obligations;
+      if (view.pending || view.replacementResume) refuse("HELD", "A pending change or saved replacement holds this Supervisor. Withdraw or finish it first.");
+      if (o.uncertain.length) refuse("UNCERTAIN", "Reconcile uncertain effects under their original identities before retirement.");
+      if (o.reserved.length || o.workers.length || o.decisions.length || o.sources.length)
+        refuse("HELD", "Retirement needs disposition of reserved effects, workers, decisions and sources first.");
+      const mutations: SupervisionMutation[] = [{ kind: "binding", value: { ...binding, state: "retired" } },
+        ...(scope.state === "active" || scope.state === "transferring" ? [{ kind: "scope" as const, value: { ...scope, state: "dormant" as const, version: scope.version + 1 } }] : [])];
       return { expectedVersions: expectedFor(status, mutations), mutations, result: empty };
     });
   }

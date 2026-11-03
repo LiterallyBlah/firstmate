@@ -370,7 +370,8 @@ export class SupervisionActivation {
       } catch { return { ...input, preview: null, truncated: false }; }
     }));
     const plan = c.status.plans.find(p => p.scopeId === input.scopeId)?.plan;
-    return { homeId: input.homeId, scopeId: input.scopeId, title: plan?.definition.title ?? c.scope.kind, planHash: plan?.hash ?? null,
+    return { homeId: input.homeId, scopeId: input.scopeId, title: plan?.definition.title ?? c.status.projects?.projects.find(p => p.scopeId === input.scopeId)?.name ?? c.scope.kind,
+      kind: c.scope.kind as "plan" | "project" | "maintenance", planHash: plan?.hash ?? null,
       view: { ...view, reservedOwnerInputs }, catalog, problems, policyDigest: c.policyDigest, limits: this.controlsLimits(c.status, input.scopeId) };
   }
   async control(input: SupervisorControlInput, paseo: PaseoApi) {
@@ -434,6 +435,7 @@ export class SupervisionActivation {
           case "withdraw-proposal": await controls.withdrawProposalFromUnverifiedUi(input); break;
           case "withdraw-input": await controls.withdrawInputFromUnverifiedUi(input); break;
           case "replace": await controls.replaceFromUnverifiedUi(input); break;
+          case "retire": await controls.retireFromUnverifiedUi(input); break;
         }
       }, true);
     });

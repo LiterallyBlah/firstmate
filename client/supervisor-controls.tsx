@@ -47,6 +47,7 @@ function SupervisorControlsDialog({ theme, compact, homeId, scopeId, navigation,
 export function SupervisorDetailView({ theme, compact, data, disabled = false, onAction, onOpen }: { theme: PluginTheme; compact: boolean; data: SupervisorControlsSnapshot; disabled?: boolean; onAction(input: SupervisorControlInput): void; onOpen?: (() => void) | undefined }) {
   const v = data.view, current = v.configurations.find(c => c.id === v.binding?.configurationId), [profile, choose] = useState<SupervisorProfile | null>(v.pending?.resolved ?? current?.resolved ?? null);
   const [reviewInput, setReviewInput] = useState<Extract<SupervisorControlInput, { op: "stage" }> | null>(null), [review, showReview] = useState(false), [opening, setOpening] = useState(""), [replacement, showReplacement] = useState(false);
+  const [retiring, showRetire] = useState(false);
   const [sessions, setSessions] = useState(String(data.limits?.supervisorSessions ?? "")), [turns, setTurns] = useState(String(data.limits?.supervisorTurns ?? ""));
   const text = { color: theme.colors.foreground, fontSize: 14, lineHeight: 21 }, note = { ...text, color: theme.colors.foregroundMuted };
   const base = { requestId: workflowRequestId(), homeId: data.homeId, scopeId: data.scopeId, expectedEpoch: v.binding?.epoch ?? 1, bindingDigest: v.bindingDigest, planHash: data.planHash };
@@ -89,6 +90,13 @@ export function SupervisorDetailView({ theme, compact, data, disabled = false, o
       <Action theme={theme} label="Pause new admissions" disabled={unavailable} onPress={() => onAction({ ...base, op: "pause" })} />
     </> : v.state === "paused" ? <Action theme={theme} label="Resume this pause" disabled={unavailable} onPress={() => onAction({ ...base, op: "resume", expectedControlId: v.controlId! })} /> : null}
     {v.binding && onOpen ? <Action theme={theme} label="Open exact native Supervisor" onPress={onOpen} /> : v.binding ? <Text selectable style={note}>Native session: {v.binding.agentId}. Open this exact session in Paseo before stopping it.</Text> : null}
+    {data.kind === "project" && v.binding?.state === "retired" ? <Text style={text}>This project's Supervisor is retired. Its conversation stays readable in Paseo, and its identity, spending and history are kept. The project stays as context.</Text> : null}
+    {data.kind === "project" && v.binding && v.binding.state !== "retired" && !v.pending && !v.replacementResume ? retiring ? <>
+      <Text style={text}>Retire this project's Supervisor for good? It gets no more turns or messages, and the project stays as context for plans. Its conversation stays readable in Paseo; its identity, spending and history are kept. Only the captain should confirm. App provenance is unverified.</Text>
+      <Action theme={theme} label="Retire project Supervisor" disabled={disabled || !!data.problems.length || !!v.obligations.uncertain.length || !!v.obligations.reserved.length ||
+        !!v.obligations.workers.length || !!v.obligations.decisions.length || !!v.obligations.sources.length} onPress={() => onAction({ ...base, op: "retire" })} />
+      <Action theme={theme} label="Keep this Supervisor" disabled={disabled} onPress={() => showRetire(false)} />
+    </> : <Action theme={theme} label="Review retiring this Supervisor" disabled={disabled} onPress={() => showRetire(true)} /> : null}
     <Text style={note}>Retained obligations: {v.obligations.reserved.length} reserved effects, {v.obligations.workers.length} workers, {v.obligations.decisions.length} decisions, {v.obligations.sources.length} sources, {v.obligations.unlanded.length} unlanded steps.</Text>
     <Text style={note}>{v.retirement}</Text>
   </View>;

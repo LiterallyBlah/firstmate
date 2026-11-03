@@ -26,7 +26,9 @@ from the runner (`watchPolicyEnv`), never the daemon's raw switch. New Superviso
 `plan-supervisor`/`project-mate`/`maintenance-mate` roles are read beside it indefinitely
 (`supervisorRoleKind`, `labelsMatch` in verification), since Paseo cannot take a label off. Guides are
 `data/supervisors.md` and `data/project-context.md`, also written to their old paths
-(`LEGACY_GUIDE_PATHS`). See `docs/supervisor-cleanup/README.md`.
+(`LEGACY_GUIDE_PATHS`). A project's Supervisor is retired only by the captain's app `retire` control: the
+binding goes `retired` (epoch, identity, spend kept, no native call), its scope `dormant`; projections and the
+Supervisors list skip it, and the project stays context. See `docs/supervisor-cleanup/README.md`.
 
 Build A overlays the historical unwired S09 notes below: `server/supervision-runtime.ts` owns one
 coordinator per home shared with activation; `server/project-runtime.ts` exposes reviewed registry

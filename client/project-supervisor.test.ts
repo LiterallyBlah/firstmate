@@ -18,7 +18,7 @@ vi.mock("@getpaseo/plugin/client", () => ({ useRpc: (rpc: { name: string }) => a
 vi.mock("@getpaseo/plugin/client/react-native", () => ({ TextInput: "TextInput", Modal: Object.assign(({ open, children }: { open: boolean; children: ReactNode }) => open ? children : null, { Content: "Content" }) }));
 vi.mock("./supervisor-profile", () => ({ SupervisorProfileFields: "SupervisorProfileFields" }));
 vi.mock("./workflow-plans", () => ({ workflowRequestId: () => `00000000-0000-4000-8000-${String(++state.ids).padStart(12, "0")}` }));
-import { AddProjectFolder, ProjectSupervisorAdd } from "./project-supervisor";
+import { AddProjectFolder, ProjectSupervisorAdd, projectSupervisorAvailable, projectSupervisorResumable, projectSupervisorStopped } from "./project-supervisor";
 type Project = ProjectRuntimeSnapshot["projects"][number];
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const project = (name: string, n: number, extra: Partial<Project> = {}): Project => ({ name, projectId: id(100 + n), scopeId: id(200 + n), hostId: "local", directory: `C:/${name}`, state: "admitted", reason: null, version: 2, aliases: [],
@@ -116,4 +116,9 @@ it("a stopped request is terminal: no Resume, no second Supervisor, and the reas
   expect(button("Add project Supervisor").props.disabled).toBe(true);
   expect(text()).toContain("Starpath's Supervisor setup was stopped");
   expect(effects()).toEqual([]);
+});
+
+it("a retired project Supervisor is neither offered again nor resumable", () => {
+  const retired = project("Ariadne", 1, { agentId: "ariadne-supervisor", sessions: 1, turns: 1, provisionRequestId: id(300), reason: "Supervisor retired; identity, spend and history retained. The project stays as context." });
+  expect(projectSupervisorAvailable(retired)).toBe(false); expect(projectSupervisorResumable(retired)).toBe(false); expect(projectSupervisorStopped(retired)).toBe(false);
 });
