@@ -6,6 +6,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import { createServer } from 'node:http';
 import assert from 'node:assert/strict';
+import { removedAtBaseline } from '../supervisor-cleanup/removed-at-baseline.mjs';
 const here = dirname(fileURLToPath(import.meta.url)), root = resolve(here, '../..'), out = resolve(root, '.local/smooth-pr5/ui');
 const repo = createRequire(resolve(root, 'package.json')), local = createRequire(resolve(root, 'docs/board-list/package.json'));
 const { build } = local('esbuild'), { chromium } = local('playwright');
@@ -19,6 +20,7 @@ for (const stage of ['before', 'after']) await build({ entryPoints: [resolve(her
     b.onResolve({ filter: /^react-dom($|\/)/ }, a => ({ path: local.resolve(a.path) }));
     b.onResolve({ filter: /^react-native($|-web$)/ }, () => ({ path: local.resolve('react-native-web') }));
     b.onResolve({ filter: /^lucide-react$/ }, () => ({ path: local.resolve('lucide-react') }));
+    if (stage === 'before') removedAtBaseline(b, root, baseline);
     if (stage === 'before') b.onLoad({ filter: /[\\/]client[\\/]settings-screen\.tsx$/ }, a => ({
       contents: execFileSync('git', ['show', `${baseline}:${relative(root, a.path).replaceAll('\\', '/')}`], { cwd: root, encoding: 'utf8' }), loader: 'tsx',
     }));

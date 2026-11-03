@@ -126,7 +126,7 @@ export function PlanHelpReview({ theme, homeId, workflowHomeId, planId, onClose 
       }); }} /> : null}
     </View> : <View style={{ gap: 8 }}>
       <Text style={foreground}>{migration.state === "committed" ? "Handover is complete. The captain can now review Attach below." : migration.state === "aborted" ? "Handover was canceled. Its history and spending are retained." : "Handover is saved. Check pending deliveries before changing ownership."}</Text>
-      {holds.map(h => <Text key={h.id} style={foreground}>Held for review: {h.reason} {h.source === "decision-submission" ? "This answer requires the original captain-authorized resolution; this app cannot clear it." : "Inspect the evidence in Advanced work details before continuing."}</Text>)}
+      {holds.map(h => <Text key={h.id} style={foreground}>Held for review: {h.reason} {h.source === "decision-submission" ? "This answer requires the original captain-authorized resolution; this app cannot clear it." : "Inspect the evidence in Supervisors before continuing."}</Text>)}
       {migration.state === "prepared" || migration.state === "barrier" ? <>
         {activation?.resumeMigrations?.find(m => m.migrationId === migration.id) ? <HelpButton theme={theme} label="Review resuming saved handover" disabled={busy || !!activationError} onPress={() => choose({ ...activation.resumeMigrations!.find(m => m.migrationId === migration.id)!, homeId, op: "resume" })} /> : null}
         <HelpButton theme={theme} label="Check handover deliveries" disabled={busy || !!activationError} onPress={() => choose({ op: "reconcile", homeId, migrationId: migration.id })} />
@@ -145,7 +145,7 @@ export function PlanHelpReview({ theme, homeId, workflowHomeId, planId, onClose 
     </View> : null}
     {error ? <Text accessibilityRole="alert" style={foreground}>{error}</Text> : null}
     <HelpButton theme={theme} label="Refresh plan help" disabled={busy} onPress={() => { void refresh(); }} />
-    <Text style={muted}>For specialist recovery, open Advanced work details in FirstMate settings.</Text>
+    <Text style={muted}>For specialist recovery, open Supervisors from Home or FirstMate settings.</Text>
     <HelpButton theme={theme} label="Back to plan" disabled={busy} onPress={onClose} />
   </ScrollView>;
 }

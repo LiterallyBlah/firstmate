@@ -19,7 +19,7 @@ vi.mock("./deck-setting-query", () => ({ useDeckSettings: () => ({}) }));
 vi.mock("./models", () => ({ useModeOptions: () => [], useModelOptions: () => ({ options: [] }), withCurrent: () => [] }));
 vi.mock("./option-picker", () => ({ OptionPicker: "OptionPicker" }));
 vi.mock("./workflow-plans", () => ({ WorkflowSurface: ({ children }: { children: unknown }) => children }));
-vi.mock("./work-details", () => ({ WorkDetails: "WorkDetails" }));
+vi.mock("./supervisors", () => ({ SupervisorsEntry: "SupervisorsEntry" }));
 vi.mock("./ui", () => ({ errorText: (error: unknown) => String(error) }));
 import { SettingsScreen } from "./settings-screen";
 

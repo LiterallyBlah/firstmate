@@ -17,7 +17,7 @@ export class PlanHelpPreparations {
       if ((input.op !== "prepare" && input.op !== "resume") || input.homeId !== workflowHomeIdentity(home) || input.plan !== plan || digest(input) !== raw.hash ||
         Object.keys(raw).sort().join() !== (previous ? "hash,input,previous" : "hash,input") ||
         previous && (raw.previous !== digest(previous) || input.replacesReview !== previous.reviewHash))
-        refuse("HELD", "Saved handover review couldn't be checked. Inspect Advanced work details before continuing.");
+        refuse("HELD", "Saved handover review couldn't be checked. Inspect Supervisors before continuing.");
       inputs.push(input);
     };
     try { await read(path); } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e; }
@@ -38,7 +38,7 @@ export class PlanHelpPreparations {
     if (previous && digest({ ...previous, op: "prepare" }) === digest({ ...input, op: "prepare" })) return;
     if (previous && input.replacesReview !== previous.reviewHash) refuse("CONFLICT", "Check the saved handover, then explicitly review its correction before continuing.");
     if (!previous && input.replacesReview) refuse("STALE", "The previous handover review couldn't be found. Refresh before continuing.");
-    if (records.length > 64) refuse("HELD", "This handover has reached its review limit. Inspect Advanced work details.");
+    if (records.length > 64) refuse("HELD", "This handover has reached its review limit. Inspect Supervisors.");
     const target = previous ? join(`${path}.reviews`, `${String(records.length).padStart(8, "0")}.json`) : path;
     await mkdir(dirname(target), { recursive: true });
     await publish(target, { input, hash: digest(input), ...(previous ? { previous: digest(previous) } : {}) });

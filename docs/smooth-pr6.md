@@ -1,5 +1,7 @@
 # Individual project setup
 
+> **Later:** the Supervisor cleanup (slice 3, November 2026) replaced Work details and its "Project mates" board with Supervisors and a read-only Projects context, and removed `live-render.mjs`, whose assertions pinned the old Work details board; `live-stubs.jsx` remains as a shared fixture. `docs/supervisor-cleanup/supervisors-render.mjs` is the current before/after harness. This page records the earlier change as it shipped.
+
 Slice 6 of the smooth-update report: choose one project, review its checked source,
 profile, limits and effects, create its mate, and inspect the saved result.
 

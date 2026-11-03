@@ -6,6 +6,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import { createServer } from 'node:http';
 import assert from 'node:assert/strict';
+import { removedAtBaseline, SUPERVISORS_AS_WORK_DETAILS } from '../supervisor-cleanup/removed-at-baseline.mjs';
 const here = dirname(fileURLToPath(import.meta.url)), root = resolve(here, '../..'), out = resolve(root, '.local/smooth-pr10/drawer'), baseline = 'fbdf3ae0';
 const repo = createRequire(resolve(root, 'package.json')), local = createRequire(resolve(root, 'docs/board-list/package.json'));
 const { build } = local('esbuild'), { chromium } = local('playwright');
@@ -17,6 +18,7 @@ for (const stage of ['before','after']) await build({ entryPoints: [resolve(here
   b.onResolve({ filter: /^react-dom($|\/)/ }, a => ({ path: local.resolve(a.path) }));
   b.onResolve({ filter: /^react-native($|-web$)/ }, () => ({ path: local.resolve('react-native-web') }));
   b.onResolve({ filter: /^lucide-react$/ }, () => ({ path: local.resolve('lucide-react') }));
+  if (stage === 'before') removedAtBaseline(b, root, baseline, SUPERVISORS_AS_WORK_DETAILS);
   if (stage === 'before') b.onLoad({ filter: /(maintenance-ownership|feature-settings-model)[.]tsx?$/ }, a => ({ contents: execFileSync('git', ['show', `${baseline}:client/${a.path.replaceAll('\\','/').split('/').at(-1)}`], { cwd: root, encoding: 'utf8' }), loader: 'tsx' }));
 } }] });
 const server = createServer(async (req,res) => { const stage = req.url.includes('before') ? 'before' : 'after';
@@ -31,8 +33,9 @@ try {
     await page.goto(`http://127.0.0.1:${server.address().port}/?` + new URLSearchParams({ stage,theme,case:inventory === 'retained' ? 'saved' : 'default',home:'upgraded',features:'off',empty:'','drawer-diagnostics':'' }), { waitUntil: 'networkidle' });
     await page.getByRole('button', { name:stage === 'before' ? 'Review routine checks' : 'Set up routine checks',exact:true }).waitFor();
     if (inventory === 'empty') { const key = `${stage}-${theme}-${device}-setup`; await page.screenshot({ path:resolve(out,key+'.png') }); results.push({key}); }
-    await page.getByRole('button', { name:'Advanced work details',exact:true }).click();
-    const dialog = page.getByRole('dialog', { name:'Work details',exact:true }), board = dialog.getByTestId('maintenance-ownership');
+    // Supervisor cleanup slice 3 renamed Settings' Advanced work details to Supervisors; the routine-check board is inside it.
+    await page.getByRole('button', { name:stage === 'before' ? 'Advanced work details' : 'Supervisors',exact:true }).click();
+    const dialog = page.getByRole('dialog', { name:stage === 'before' ? 'Work details' : 'Supervisors',exact:true }), board = dialog.getByTestId('maintenance-ownership');
     await board.waitFor(); await board.scrollIntoViewIfNeeded();
     if (stage === 'before') { assert.match(await board.innerText(),/G8: automatic cleanup is held/); assert.equal(await board.getByRole('button', { name:'Refresh maintenance',exact:true }).count(),1); }
     else {

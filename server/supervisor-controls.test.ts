@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { s04Fixture, captain } from "../test/supervision-s04-fixture";
 import { activationEffects, SupervisorSessions, supervisorSpend } from "./supervisor-sessions";
 import { SupervisorControls } from "./supervisor-controls";
+import { supervisorList } from "./supervisor-configuration";
 import { SupervisionStore } from "./supervision-store";
 import { digest } from "./submissions";
 import { expected } from "../test/supervision-fixture";
@@ -26,6 +27,29 @@ async function fixture(cap = 3) {
   return { ...fx, sessions, controls, scope, state, base, stage, replacement };
 }
 describe("Supervisor foundation checked app lifecycle", { timeout: 60000 }, () => {
+  it("lists each bound Supervisor from stored truth alone: no native call, no write, no unbound scope", async () => {
+    const fx = await fixture(), unbound = await fx.addScope(2, "other", ["build"], false);
+    const before = await fx.store.read(), calls = fx.receiver.calls.length, binding = before.bindings[0]!;
+    const rows = supervisorList(before, () => ({ supervisorSessions: 3, supervisorTurns: 10 }));
+    expect(rows).toEqual([{ scopeId: fx.scope.id, kind: "plan", title: expect.any(String), planId: null, state: "active", agentId: binding.agentId, epoch: 1,
+      profile: { provider: profile.provider, modeId: profile.modeId, thinkingOptionId: profile.thinkingOptionId }, sessions: 1, turns: 1,
+      limits: { supervisorSessions: 3, supervisorTurns: 10 }, lastFailure: null }]);
+    expect(rows.some(r => r.scopeId === unbound.id)).toBe(false);
+    await fx.stage();
+    expect(supervisorList(await fx.store.read(), () => null)).toEqual([expect.objectContaining({ state: "change-pending", limits: null,
+      profile: { provider: profile.provider, modeId: profile.modeId, thinkingOptionId: "high" } })]);
+    expect(fx.receiver.calls.length).toBe(calls);
+  });
+  it("lists a reviewed replacement's own cap, not the allocation ceiling, where the runtime refuses the next turn", async () => {
+    const fx = await fixture();
+    await fx.controls.stageFromUnverifiedUi({ ...await fx.base(), profile, limits: { supervisorSessions: 3, supervisorTurns: 2 }, policyDigest: fx.state.policy });
+    const old = (await fx.store.read()).bindings[0]!; fx.receiver.agents.get(old.agentId)!.status = "closed";
+    await fx.controls.replaceFromUnverifiedUi(await fx.replacement());
+    const status = await fx.store.read();
+    expect(supervisorList(status, () => ({ supervisorSessions: 3, supervisorTurns: 10 }))[0]).toMatchObject({ epoch: 2, sessions: 2, turns: 2, limits: { supervisorSessions: 3, supervisorTurns: 2 } });
+    expect(supervisorList(status, () => ({ supervisorSessions: 1, supervisorTurns: 10 }))[0]!.limits).toEqual({ supervisorSessions: 1, supervisorTurns: 2 });
+    await expect(fx.sessions.reserveTurn({ requestId: randomUUID(), scopeId: fx.scope.id, epoch: 2, causation: "next", text: "One more turn" }, captain)).rejects.toMatchObject({ code: "HELD" });
+  });
   it("a claimed send finishes under its original generation after a proposal; no interruption or reinterpretation", async () => {
     const fx = await fixture(), old = (await fx.store.read()).bindings[0]!;
     const turn = await fx.sessions.reserveTurn({ requestId: randomUUID(), scopeId: fx.scope.id, epoch: 1, causation: "claimed", text: "Original profile input" }, captain);

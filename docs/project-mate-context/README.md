@@ -1,5 +1,7 @@
 # Project mate context and setup recovery
 
+> **Later:** the Supervisor cleanup (slice 3, November 2026) replaced Work details and its "Project mates" board with Supervisors and a read-only Projects context, and removed this harness (`render.mjs`, `panel.jsx`, `stubs.jsx`), which drove the project-mate setup dialog. `docs/supervisor-cleanup/supervisors-render.mjs` is the current before/after harness. This page records the earlier change as it shipped.
+
 The old reader treated README as a convention and refused any file over 64 KiB. A 24 KiB AGENTS.md with a 76 KiB README therefore stopped setup after the exact request input had already been saved.
 
 The reader now carries complete AGENTS.md and CLAUDE.md files, separates README documentation with explicit excerpt coverage, and counts escaped JSON against the opening budget. The existing provenance, context-only authority, digest verification, confined paths, project/memory stability checks, selected session identity and cumulative spending remain in force. Create and resume still require an explicit captain app action. No live Create or Attach was invoked for this change.

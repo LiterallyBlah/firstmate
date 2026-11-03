@@ -6,6 +6,7 @@ import {mkdir,readFile,writeFile} from 'node:fs/promises';
 import {execFileSync} from 'node:child_process';
 import {createServer} from 'node:http';
 import assert from 'node:assert/strict';
+import { removedAtBaseline } from '../supervisor-cleanup/removed-at-baseline.mjs';
 const here=dirname(fileURLToPath(import.meta.url)),root=resolve(here,'../..'),out=resolve(root,'.local/smooth-pr2/ui');
 const repo=createRequire(resolve(root,'package.json')),local=createRequire(resolve(root,'docs/board-list/package.json'));
 const {build}=local('esbuild'),{chromium}=local('playwright');
@@ -19,6 +20,7 @@ for(const stage of ['before','after']) await build({entryPoints:[resolve(here,'p
  b.onResolve({filter:/^react-dom($|\/)/},a=>({path:local.resolve(a.path)}));
  b.onResolve({filter:/^react-native($|-web$)/},()=>({path:local.resolve('react-native-web')}));
  b.onResolve({filter:/^lucide-react$/},()=>({path:local.resolve('lucide-react')}));
+ if (stage==='before') removedAtBaseline(b, root, baseline);
  if(stage==='before') b.onLoad({filter:/[\\/]client[\\/][^\\/]+\.tsx?$/},args=>{
   const path=relative(root,args.path).replaceAll('\\','/');
   if(!changed.has(path.slice('client/'.length)))return;
@@ -50,14 +52,15 @@ try {
   const q=new URLSearchParams({stage,theme,home,features,surface});if(extra)q.set(extra,'');
   await page.goto(origin+'/?'+q,{waitUntil:'networkidle'});
   if(name==='details'||name==='problem-details'){
-   if(stage==='after')await page.getByRole('button',{name:'Work details',exact:true}).click();
-   const projectDetails=page.getByRole('button',{name:'Project mates and plans',exact:true});
+   // Supervisor cleanup slice 3: Work details is Supervisors, and its project board is the read-only Projects context.
+   if(stage==='after')await page.getByRole('button',{name:'Supervisors',exact:true}).click();
+   const projectDetails=page.getByRole('button',{name:stage==='after'?'Projects':'Project mates and plans',exact:true});
    if(stage==='after'||await projectDetails.count())await projectDetails.click();
    if(stage==='after'&&name==='problem-details')await page.getByRole('button',{name:'Show Starpath details',exact:true}).click();
   }
   if(name==='discussion-details')await page.getByRole('button',{name:stage==='after'?'Details':'Show stored status',exact:true}).click();
   if(name==='fresh-details'&&stage==='after')await page.getByRole('button',{name:'FirstMate setup details',exact:true}).click();
-  if(name==='settings-details'&&stage==='after')await page.getByRole('button',{name:'Advanced work details',exact:true}).click();
+  if(name==='settings-details'&&stage==='after')await page.getByRole('button',{name:'Supervisors',exact:true}).click();
   assert.deepEqual(errors,[],`${stage}/${theme}/${device}/${name}`);
   const state=await page.evaluate(()=>({text:document.body.innerText,overflow:document.documentElement.scrollWidth>innerWidth,calls:window.review.calls}));
   assert.equal(state.overflow,false,`${stage}/${theme}/${device}/${name} overflows`);
@@ -65,8 +68,9 @@ try {
   if(stage==='after'){
    if(name.startsWith('fresh-')){assert.match(state.text,/Welcome to FirstMate/);assert.equal(await page.getByRole('button',{name:'Set up FirstMate',exact:true}).count(),1);assert.doesNotMatch(state.text,/Unavailable recipient|To FirstMate|Project mates · 0/);}
    if(['home','board','plans','empty-home'].includes(name))assert.doesNotMatch(state.text,/Plan supervisors|Maintenance owners|Migration controls|Project mates · 0/);
-   if(name==='details'){assert.match(state.text,/6 ready to set up/);assert.doesNotMatch(state.text,/6 awaiting attention/);}
-   if(name==='problem-details')for(const text of ['Journal hash mismatch','retired · opening failed','client UI (unverified)','epoch 2','Provisioning stopped; identity and spend retained'])assert.ok(state.text.includes(text),text);
+   if(name==='details'){assert.match(state.text,/projects · context for plans and Supervisors/);assert.doesNotMatch(state.text,/ready to set up|awaiting attention|Project mates/);}
+   // Plan-help problems and audits moved to Plans and routine-check owners to the Supervisor rows; project records keep theirs.
+   if(name==='problem-details')for(const text of ['Provisioning stopped; identity and spend retained'])assert.ok(state.text.includes(text),text);
    if(name==='all-empty')assert.match(state.text,/No decisions right now/);
    if(name==='all-pending'||name==='all-partial')assert.doesNotMatch(state.text,/No decisions right now/);
    if(name==='discussion')assert.doesNotMatch(state.text,/uninitialized · sequence 0|Reading starts no model turn|Show stored status/);
@@ -86,8 +90,8 @@ try {
    results.push({key:key+'-text200',stage,theme,device,name,textScale:2,errors});
   }
   if(name==='details'&&stage==='after'){
-   await page.keyboard.press('Escape');assert.equal(await page.getByRole('dialog',{name:'Work details',exact:true}).count(),0);
-   assert.equal(await page.getByRole('button',{name:'Work details',exact:true}).evaluate(el=>el===document.activeElement),true,'focus returns to details trigger');
+   await page.keyboard.press('Escape');assert.equal(await page.getByRole('dialog',{name:'Supervisors',exact:true}).count(),0);
+   assert.equal(await page.getByRole('button',{name:'Supervisors',exact:true}).evaluate(el=>el===document.activeElement),true,'focus returns to details trigger');
   }
   if(name==='all-empty'&&stage==='after'){await page.getByRole('button',{name:'Back to FirstMate',exact:true}).click();assert.ok(await page.evaluate(()=>window.review.navigation.includes('FirstMate')));}
   console.log(key);await page.close();

@@ -1,5 +1,7 @@
 # Optional plan help (smooth rollout, slice 9)
 
+> **Later:** the Supervisor cleanup (slice 3, November 2026) replaced Work details and its "Project mates" board with Supervisors and a read-only Projects context, and removed `work-details-render.mjs`, whose assertions pinned the old Work details board. `docs/supervisor-cleanup/supervisors-render.mjs` is the current before/after harness. This page records the earlier change as it shipped.
+
 ## Acceptance checks recorded before implementation
 
 - [x] An updating legacy plan keeps its current owner/history until an explicit reviewed handover completes. Selecting or viewing Plan help neither migrates nor attaches.

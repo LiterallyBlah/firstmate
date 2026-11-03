@@ -1,6 +1,6 @@
 import { supervisorWorkspace } from "./supervisor-workspace";
-import { readSupervisorControls, actSupervisorControls, type SupervisorControlInput } from "../shared/supervisor-controls";
-import { supervisorView } from "./supervisor-configuration";
+import { readSupervisorControls, actSupervisorControls, readSupervisorList, type SupervisorControlInput, type SupervisorList } from "../shared/supervisor-controls";
+import { supervisorList, supervisorView } from "./supervisor-configuration";
 import { SupervisorControls } from "./supervisor-controls";
 import { supervisorCatalog, checkedSupervisorCatalog } from "./supervisor-catalog";
 import { supervisorWorkspaceIntent } from "./supervision-effects";
@@ -129,7 +129,7 @@ export class SupervisionActivation {
     const policy = await this.runtime.features?.read(home);
     if (!(policy?.effective.scopedActivation ?? this.options.enabled)) problems.push("Plan handover is off. Open FirstMate settings, review Plan help, and save your choice.");
     if (policy && !policy.effective.planSupervisors) problems.push("Ongoing plan help is off. Review Plan help in FirstMate settings before handing over a plan.");
-    if (legacy.problems.length || status.problems.length) problems.push("Some saved work couldn't be checked. Review Advanced work details before handing over this plan.");
+    if (legacy.problems.length || status.problems.length) problems.push("Some saved work couldn't be checked. Review Supervisors before handing over this plan.");
     if (planFinished(plan) || plan.status === "abandoned") problems.push("This plan has finished. Its history stays with its recorded owner.");
     const names = [...new Set(plan.definition.nodes.flatMap(n => n.kind === "run" ? [n.launch.project.trim().toLowerCase()] : []))];
     const projects = status.projects?.projects.filter(p => p.state === "admitted" && [p.name, ...p.aliases].some(n => names.includes(n.trim().toLowerCase()))) ?? [];
@@ -146,7 +146,7 @@ export class SupervisionActivation {
     const migration = status.migrations?.find(m => m.planId === planId), scopeId = migration?.scopeId ?? migrationUuid(homeId, planId, "plan-help-scope");
     const preparation = await this.preparations().read(home, planId);
     const freeze = await workflowStore(home).cutover(planId).catch(() => "damaged");
-    if (freeze && !migration && !preparation) problems.push("A saved handover needs recovery. Use its original preparation in Advanced work details; don't start a second handover.");
+    if (freeze && !migration && !preparation) problems.push("A saved handover needs recovery. Use its original preparation in Supervisors; don't start a second handover.");
     const backup = this.options.backupSettings ? await this.options.backupSettings.read(home) : null;
     if (!backup?.backup || backup.problems.length) problems.push(...(backup?.problems.length ? backup.problems : ["Choose a separate backup folder and how long to keep its files below."]));
     const binding = status.bindings.find(b => b.scopeId === scopeId);
@@ -329,6 +329,11 @@ export class SupervisionActivation {
       }, true);
     });
   }
+  /** The Supervisors list: stored truth for every scope kind, with no native or catalog read. */
+  async listSupervisors(): Promise<SupervisorList> {
+    const home = resolveHome(await this.config()), status = await this.runtime.read(home);
+    return { homeId: workflowHomeIdentity(home), rows: supervisorList(status, scopeId => this.controlsLimits(status, scopeId)), problems: status.problems };
+  }
   private controlsLimits(status: SupervisionStatus, scopeId: string): GatewayLimits | null {
     const scope = status.scopes.find(s => s.id === scopeId);
     if (scope?.kind === "plan") { const c = planSupervisorLimits(status, scopeId).limits; return c ? { supervisorSessions: c.sessions, supervisorTurns: c.turns } : { supervisorSessions: 1, supervisorTurns: 1 }; }
@@ -443,6 +448,7 @@ export class SupervisionActivation {
 }
 export function registerSupervisionActivation(server: Pick<PluginServerContext, "handle">, activation: SupervisionActivation) {
   server.handle(readSupervisorControls, (input, { paseo }) => activation.readControls(input, paseo));
+  server.handle(readSupervisorList, () => activation.listSupervisors());
   server.handle(actSupervisorControls, (input, { paseo }) => activation.control(input, paseo));
   server.handle(readHandoverEvidence, input => activation.evidence(input));
   server.handle(readMigrationSettings, input => activation.readBackup(input.homeId, input.workflowHomeId));

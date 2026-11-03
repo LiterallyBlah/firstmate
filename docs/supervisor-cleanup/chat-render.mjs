@@ -10,7 +10,7 @@ const here = dirname(fileURLToPath(import.meta.url)), root = resolve(here, '../.
 const repo = createRequire(resolve(root, 'package.json')), local = createRequire(resolve(root, 'docs/board-list/package.json'));
 const { build } = local('esbuild'), { chromium } = local('playwright');
 // Modules this slice deleted exist only at the baseline.
-const removed = { 'conversation-list': 'ts', 'conversation-context': 'ts', 'conversation-switcher': 'tsx', 'mate-mentions': 'tsx' };
+const removed = { 'conversation-list': 'ts', 'conversation-context': 'ts', 'conversation-switcher': 'tsx', 'mate-mentions': 'tsx', 'work-details': 'tsx', 'project-ownership': 'tsx', 'project-readiness': 'ts' };
 await mkdir(resolve(out, 'screenshots'), { recursive: true });
 for (const stage of ['before', 'after']) await build({ entryPoints: [resolve(here, 'panel.jsx')], outfile: resolve(out, stage + '.js'), bundle: true, jsx: 'automatic', logLevel: 'warning',
   define: { 'process.env.NODE_ENV': '"development"' }, plugins: [{ name: 'isolated-host', setup(b) {
@@ -21,7 +21,7 @@ for (const stage of ['before', 'after']) await build({ entryPoints: [resolve(her
     b.onResolve({ filter: /^react-native($|-web$)/ }, () => ({ path: local.resolve('react-native-web') }));
     b.onResolve({ filter: /^lucide-react$/ }, () => ({ path: local.resolve('lucide-react') }));
     if (stage === 'before') {
-      b.onResolve({ filter: /^\.\/(conversation-list|conversation-context|conversation-switcher|mate-mentions)$/ }, a => ({ path: resolve(a.resolveDir, `${a.path}.${removed[a.path.slice(2)]}`) }));
+      b.onResolve({ filter: new RegExp(`^\\./(${Object.keys(removed).join('|')})$`) }, a => ({ path: resolve(a.resolveDir, `${a.path}.${removed[a.path.slice(2)]}`) }));
       b.onLoad({ filter: /[\\/](client|shared)[\\/][^\\/]+\.tsx?$/ }, args => {
         const path = relative(root, args.path).replaceAll('\\', '/');
         return { contents: execFileSync('git', ['show', `${baseline}:${path}`], { cwd: root, encoding: 'utf8' }), loader: path.endsWith('tsx') ? 'tsx' : 'ts' };

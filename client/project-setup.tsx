@@ -164,8 +164,8 @@ function ProjectSetupSession({ theme, compact, home, hostId, onClose, navigation
                 await folder({ homeId: home, registryDigest: data.snapshot.registryDigest!, name: project.name, replace: { location: issue.location, rowDigest: issue.rowDigest } });
                 await refresh(); choose(null); setReview(null); setRequest(null);
               }); }} /> : null}
-              {project.provisionInput && !savedRequest ? <Text style={note}>Continue this project's original setup in Advanced work details. Its identity and spending are kept.</Text> : null}
-              {project.state === "stopped" || project.reason?.startsWith("Provisioning stopped") ? <Text style={text}>Setup was stopped. Review the retained operation in Advanced work details; no replacement mate is created.</Text> : null}
+              {project.provisionInput && !savedRequest ? <Text style={note}>This project's original setup is saved; its identity and spending are kept, and no second setup is started.</Text> : null}
+              {project.state === "stopped" || project.reason?.startsWith("Provisioning stopped") ? <Text style={text}>Setup was stopped. Its retained record is in Supervisors › Projects; no replacement mate is created.</Text> : null}
             </View>
           </View>;
         }) : null}

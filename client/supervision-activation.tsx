@@ -24,7 +24,8 @@ function Action({ theme, label, onPress, disabled = false }: { theme: PluginThem
     <Text style={{ color: theme.colors.foreground, flexShrink: 1 }}>{label}</Text>
   </Pressable>;
 }
-export function SupervisionActivationBoard({ theme, compact, advanced = false, planId, navigation }: { theme: PluginTheme; compact: boolean; advanced?: boolean; planId?: string; navigation?: PluginSurfaceProps["navigation"] | undefined }) {
+/** `assignWatches`: off where the surrounding view already offers watch-input assignment (Supervisors). */
+export function SupervisionActivationBoard({ theme, compact, advanced = false, planId, navigation, assignWatches = true }: { theme: PluginTheme; compact: boolean; advanced?: boolean; planId?: string; navigation?: PluginSurfaceProps["navigation"] | undefined; assignWatches?: boolean }) {
   const { activation, activationError: readError, updateActivation } = useWorkflowPlans();
   const data = activation && planId ? { ...activation, plans: activation.plans.filter(p => p.plan === planId),
     migrations: activation.migrations.filter(m => m.planId === planId), dispositions: activation.dispositions.filter(d => d.planId === planId),
@@ -35,7 +36,7 @@ export function SupervisionActivationBoard({ theme, compact, advanced = false, p
   if (!data || !activationHasHistory(data) && !data.problems.length && !data.pause && !readError && !(advanced && data.enabled && data.operatorEnabled)) return null;
   return <View testID="supervision-activation-board" style={{ gap: 8, padding: compact ? 12 : 16 }}>
     <Text style={{ color: theme.colors.foreground, fontWeight: "600" }}>Plan help</Text>
-    <WatchSupervisorButton theme={theme} {...(planId ? { planId } : {})} />
+    {assignWatches ? <WatchSupervisorButton theme={theme} {...(planId ? { planId } : {})} /> : null}
     {data.pause ? <Text accessibilityLiveRegion="polite" style={{ color: theme.colors.foregroundMuted }}>{data.pause}</Text> : null}
     {data.problems.map(p => <Text key={p} accessibilityRole="alert" style={{ color: theme.colors.foreground }}>{p}</Text>)}
     {readError ? <Text accessibilityRole="alert" style={{ color: theme.colors.foreground }}>Supervisor status could not be refreshed. Attach is unavailable.</Text> : null}

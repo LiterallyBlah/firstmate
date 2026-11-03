@@ -169,7 +169,7 @@ it("requires a separate capacity review; never raises capacity while enabling he
 
 it("holds damaged policy and read/permission failures without inventing applied state", async () => {
   snapshot.state = "held"; snapshot.revision = null; snapshot.writesAvailable = false; snapshot.capacity = null;
-  await mount(); expect(button("Set up project mates").props.disabled).toBe(true); expect(text()).toContain("Advanced work details");
+  await mount(); expect(button("Set up project mates").props.disabled).toBe(true); expect(text()).toContain("review Supervisors");
   state.read.mockRejectedValue(new Error("permission denied")); await update();
   expect(text()).toContain("Can't read help settings right now"); expect(state.set).not.toHaveBeenCalled();
 });
