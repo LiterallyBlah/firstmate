@@ -32,7 +32,7 @@ import { SupervisionUiReceiver } from "./supervision-ui-receiver";
 import { checkGeneralHeadroom, withScopeAdmission } from "./supervision-headroom";
 import { message, TEMPLATES } from "./templates";
 import { supervisorWorkspace } from "./supervisor-workspace";
-import { checkedSupervisorCatalog } from "./supervisor-catalog";
+import { checkedSupervisorCatalog, supervisorCatalog } from "./supervisor-catalog";
 import type { PaseoApi } from "./host-types";
 import { SupervisionStore } from "./supervision-store";
 
@@ -357,8 +357,11 @@ export class ProjectRuntime {
       if (accepted && project.version !== input.projectVersion) refuse("HELD", "The retained provisioning's project version changed; reconcile its existing effects before proceeding.");
       if (!accepted && project.version !== input.projectVersion) refuse("STALE", "Project allocation or ownership changed; refresh before provisioning.");
       // Checked before the request is recorded, so an unavailable profile never pins this project to a dead request.
-      const workspace = input.profile && supervisorWorkspace(this.runtime.root, project.scopeId, 1);
-      const reviewedCatalog = input.profile && !binding ? await checkedSupervisorCatalog(paseo, workspace!.directory, input.profile) : null;
+      // Requested caps alone still bind a configuration: the admitted profile is reviewed with them, so they hold for every later turn.
+      const reviewedProfile = input.profile ?? (input.limits ? project.owner.profile : undefined);
+      const workspace = reviewedProfile && supervisorWorkspace(this.runtime.root, project.scopeId, 1);
+      // A captain-chosen profile must be in the host catalog; the admitted one was reviewed at admission and is recorded against what is seen now.
+      const reviewedCatalog = !reviewedProfile || binding ? null : input.profile ? await checkedSupervisorCatalog(paseo, workspace!.directory, input.profile) : await supervisorCatalog(paseo, workspace!.directory);
       await store.transactCommand(stableId("project-provision-input", input.requestId), digest(input), UI,
         async current => {
           const owner = current.projects?.projects.find(p => p.id === project.id);
@@ -386,7 +389,7 @@ export class ProjectRuntime {
       // A reviewed profile is pinned to the exact host catalog and policy, as plan Attach pins its own.
       // Older requests replay the retired project-setup review's configuration, when one was recorded.
       const reviewed = status.commands.find(c => c.result.projectSetup?.review.projectId === project.id)?.result.projectSetup?.review;
-      const configuration = input.profile && reviewedCatalog ? { id: input.requestId, scopeId: project.scopeId, generation: 1, workspace: workspace!, requested: input.profile, resolved: input.profile,
+      const configuration = reviewedProfile && reviewedCatalog ? { id: input.requestId, scopeId: project.scopeId, generation: 1, workspace: workspace!, requested: reviewedProfile, resolved: reviewedProfile,
         catalogDigest: digest(reviewedCatalog), policyDigest: digest(await this.runtime.features?.read(home) ?? { enabled: true }),
         target: { homeId: input.homeId, hostId: "local" as const, scopeId: project.scopeId, kind: "project" as const, planId: null, planHash: null },
         limits: input.limits ?? project.owner.limits, effectiveEpoch: 1, provenance: "client UI (unverified)" as const } : reviewed?.catalogDigest ? { id: input.requestId, scopeId: project.scopeId, generation: 1,
@@ -404,9 +407,9 @@ export class ProjectRuntime {
             refuse("HELD", "Project provisioning admission changed before reservation.");
         } });
       if (!binding) {
-        const context = await readProjectContext(store, project.id);
-        const opening = input.opening ?? await message(TEMPLATES.projectSupervisorOpening, { project: project.name, scopeId: project.scopeId,
-          context: JSON.stringify({ ...context, directory: project.owner.directory, limits: input.limits ?? project.owner.limits }).replace(/</g, "\\u003c") });
+        // An older request resumes with its retired setup review's exact opening, never newly generated text.
+        const opening = input.opening ?? reviewed?.opening ?? await message(TEMPLATES.projectSupervisorOpening, { project: project.name, scopeId: project.scopeId,
+          context: JSON.stringify({ ...await readProjectContext(store, project.id), directory: project.owner.directory, limits: input.limits ?? project.owner.limits }).replace(/</g, "\\u003c") });
         await withScopeAdmission(input.homeId, async () => {
           await this.checkedConfig(input.homeId, config.mateAgentId);
           status = await store.read();
@@ -414,7 +417,7 @@ export class ProjectRuntime {
           const capacity = await this.capacity(home);
           await checkGeneralHeadroom(status, receiver, capacity.slots, capacity.generalHeadroom);
           await sessions.prepare({ requestId: input.requestId, scopeId: project.scopeId, scopeVersion: status.scopes.find(s => s.id === project.scopeId)!.version,
-            profile: input.profile ?? project.owner!.profile, opening, purpose: "work" }, UI);
+            profile: reviewedProfile ?? project.owner!.profile, opening, purpose: "work" }, UI);
         });
       } else if (!accepted || activationEffects(status, project.scopeId, binding.epoch).create?.requestId !== input.requestId) {
         // Another explicit press cannot allocate another identity, even if it uses a different request ID.

@@ -23,17 +23,22 @@ export function projectSupervisorAvailable(project: Project): boolean {
   return project.state === "admitted" && !project.reason && !!project.profile && !!project.limits && !!project.projectId &&
     !project.agentId && !project.provisionInput && !project.provisionRequestId && !project.sessions && !project.turns && !project.uncertain;
 }
+/** Stopped is terminal: the server refuses to resume it, and it keeps its identity and spending. */
+export function projectSupervisorStopped(project: Project): boolean {
+  return !!project.provisionInput && (project.state === "stopped" || !!project.reason?.startsWith("Provisioning stopped"));
+}
 /** A saved request whose Supervisor isn't confirmed yet resumes exactly; it never becomes a second identity. */
 export function projectSupervisorResumable(project: Project): boolean {
-  return !!project.provisionInput && (!project.agentId || !!project.reason?.startsWith("Provisioning incomplete")) && project.state === "admitted";
+  return !!project.provisionInput && !projectSupervisorStopped(project) && (!project.agentId || !!project.reason?.startsWith("Provisioning incomplete")) && project.state === "admitted";
 }
 
 export function ProjectSupervisorAdd({ theme, compact, data, stale, onRead }: { theme: PluginTheme; compact: boolean; data: ProjectRuntimeSnapshot; stale: boolean; onRead(): void }) {
   const [adding, setAdding] = useState(false), [resuming, setResuming] = useState<Project | null>(null);
-  const available = data.projects.filter(projectSupervisorAvailable), resumable = data.projects.filter(projectSupervisorResumable);
+  const available = data.projects.filter(projectSupervisorAvailable), resumable = data.projects.filter(projectSupervisorResumable), stopped = data.projects.filter(projectSupervisorStopped);
   const note = { color: theme.colors.foregroundMuted, fontSize: 13, lineHeight: 20 };
   if (!data.enabled) return <Text style={note}>Turn on project help in FirstMate settings to add a project Supervisor.</Text>;
   return <View style={{ gap: 8 }}>
+    {stopped.map(p => <Text key={`stopped:${p.projectId ?? p.name}`} style={note}>{p.name}'s Supervisor setup was stopped. Its saved identity and spending are kept; it can't be resumed.</Text>)}
     {resumable.map(p => <SetupButton key={p.projectId ?? p.name} theme={theme} label={`Resume ${p.name} Supervisor setup`} disabled={stale} onPress={() => setResuming(p)} />)}
     <SetupButton theme={theme} label="Add project Supervisor" disabled={stale || !available.length} onPress={() => setAdding(true)} />
     {!available.length ? <Text style={note}>Only an admitted project without a Supervisor can have one added. FirstMate admits projects and records their allocation.</Text> : null}

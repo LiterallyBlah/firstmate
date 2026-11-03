@@ -61,7 +61,9 @@ Under D2 a Supervisor stays assignable to a project, and the old project-mate se
   admitted allocation, and an optional opening (otherwise `project-supervisor-opening.md` with the quoted project
   context). The request records them; the profile is checked against the catalog before the request is recorded,
   and it becomes the binding's configuration exactly as plan Attach does, so Supervisor settings and the list show
-  it. A saved request resumes or stops exactly from **Resume ‹project› Supervisor setup**.
+  it. Requested caps without a profile still bind a configuration (the admitted profile, recorded against the catalog), so
+  they hold for every later turn. An older saved request resumes with its retired setup review's exact opening. A saved
+  request resumes or stops exactly from **Resume ‹project› Supervisor setup**; a stopped one is terminal and is shown as such.
 - Kept: admission, registry, memory, recovery and folder mapping, now **Add project** in the Projects section
   (`firstmate.projects.folder`). Admission stays with the first mate's `tools/projects.mjs`.
 - A scoped discussion to an unbound project is refused ("Add one from Supervisors first") before anything is

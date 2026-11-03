@@ -587,3 +587,47 @@ it("without a reviewed opening, the standard project Supervisor opening carries 
   expect(receiver.sends[0]?.text).toContain("You are the Supervisor for project scheduler");
   expect(receiver.sends[0]?.text).not.toMatch(/project mate/i);
 });
+it.each([false, true])("requested caps hold for every later turn, also without an explicit profile (%s)", async explicit => {
+  const { ScopeRuntime } = await import("./scope-runtime");
+  const { resolveDiscussion } = await import("../shared/scope-discussion");
+  const { supervisorList } = await import("./supervisor-configuration");
+  const read = await admit(), p = read.projects.find(p => p.name === "scheduler")!;
+  const input = { homeId: read.homeId, requestId: randomUUID(), projectId: p.projectId!, projectVersion: p.version,
+    ...(explicit ? { profile: { provider: "codex/test", modeId: "full-access" } } : {}), limits: { supervisorSessions: 1, supervisorTurns: 2 } };
+  const current = (await service.provision(input, api)).projects.find(p => p.name === "scheduler")!;
+  expect(supervisorList(await runtime.read(home), () => p.limits)[0]?.limits).toEqual({ supervisorSessions: 1, supervisorTurns: 2 });
+  const scopes = new ScopeRuntime(runtime, { enabled: true, uiEnabled: true, receiver: () => receiver });
+  async function send(text: string) {
+    receiver.finish(current.agentId!);
+    return scopes.execute(read.homeId, p.scopeId!, api, async ({ discussions }) => {
+      const snapshot = await discussions.read(), resolved = resolveDiscussion(text, snapshot.scopes, snapshot.projects, p.scopeId!);
+      return discussions.result({ id: randomUUID(), text: resolved.text, addressedText: text, defaultScope: p.scopeId!, route: { target: resolved.scope.target,
+        recipient: resolved.scope.title, projectIds: resolved.projectIds, conversationId: "main", replyTo: null } });
+    });
+  }
+  expect((await send("Second turn")).outcome).toBe("recorded");
+  expect((await send("Third turn must refuse")).outcome).toBe("refused");
+  expect(receiver.sends).toHaveLength(2);
+});
+it("an older saved request from the retired setup review resumes with that review's exact opening", async () => {
+  const read = await admit(), p = read.projects.find(p => p.name === "scheduler")!;
+  const status = await runtime.read(home), project = status.projects!.projects.find(r => r.id === p.projectId)!;
+  const opening = "Reviewed opening saved before the upgrade; send exactly this.";
+  const review = { homeId: read.homeId, registryDigest: read.registryDigest!, generalAgentId: "general", projectId: p.projectId!, name: "scheduler", projectVersion: p.version,
+    aliases: [], source: { ...source, id: randomUUID() }, profile: project.owner!.profile, budget: { agents: 4, turns: 12 }, limits: { supervisorSessions: 1 as const, supervisorTurns: 5 },
+    policyHash: "c".repeat(64), sourceVector: project.sourceVector, opening, capacity: { slots: 4, generalHeadroom: 1 }, spent: { sessions: 0, turns: 0 } };
+  const setup = { homeId: read.homeId, requestId: randomUUID(), reviewDigest: "d".repeat(64), review };
+  const ui = { kind: "plugin-ui-unverified" as const, id: "unauthenticated-plugin-call", source: "project setup review (unverified)" };
+  const empty = { planId: null, planHash: null, decisionId: null, outboxId: null };
+  await runtime.mutate(home, store => store.transactCommand(stableId("project-setup-input", setup.requestId), digest(setup), ui,
+    async () => ({ mutations: [], expectedVersions: [], result: { ...empty, projectSetup: setup } })));
+  // The base version recorded this request, then stopped before any binding.
+  const input = { homeId: read.homeId, requestId: randomUUID(), projectId: p.projectId!, projectVersion: p.version };
+  await runtime.mutate(home, store => store.transactCommand(stableId("project-provision-input", input.requestId), digest(input),
+    { kind: "plugin-ui-unverified", id: "unauthenticated-plugin-call", source: "project provision button (unverified)" },
+    async () => ({ mutations: [], expectedVersions: [], result: { ...empty, projectProvision: input } })));
+  await runtime.stop(); runtime = projectRuntimeFixture(data); service = make();
+  const saved = (await service.read()).projects.find(row => row.projectId === p.projectId)!.provisionInput!;
+  await service.provision(saved, api);
+  expect(receiver.sends).toHaveLength(1); expect(receiver.sends[0]?.text).toBe(opening);
+});

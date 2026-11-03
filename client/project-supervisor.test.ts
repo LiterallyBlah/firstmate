@@ -107,3 +107,13 @@ it("Add project validates the name and records only a folder mapping", async () 
   await press("Choose folder and add project");
   expect(effects()).toEqual([{ name: "firstmate.projects.folder", input: { homeId: "fixture", registryDigest: "a".repeat(64), name: "orion" } }]);
 });
+
+it("a stopped request is terminal: no Resume, no second Supervisor, and the reason is shown", async () => {
+  const saved = { homeId: "fixture", requestId: id(78), projectId: id(102), projectVersion: 2, profile: { provider: "codex/test", modeId: "full-access" } };
+  data.projects[1] = { ...data.projects[1]!, provisionInput: saved, provisionRequestId: id(78), reason: "Provisioning stopped; identity and spend retained. Inspect any uncertain operation." };
+  await mount();
+  expect(renderer!.root.findAll(n => n.type === "Pressable" as never && /^Resume /.test(n.props.accessibilityLabel ?? ""))).toHaveLength(0);
+  expect(button("Add project Supervisor").props.disabled).toBe(true);
+  expect(text()).toContain("Starpath's Supervisor setup was stopped");
+  expect(effects()).toEqual([]);
+});
