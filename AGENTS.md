@@ -40,7 +40,9 @@ scopes nor polls their histories, and a scoped chat opens only from an explicit 
 Work details is now **Supervisors** (`client/supervisors.tsx`, Home's header and Settings): one row per bound
 or configured plan, project or routine-check Supervisor from `firstmate.supervisors.read` (`supervisorList`,
 a pure journal projection), with Supervisor settings, its native session, routine-check Add and project context.
-Plan Attach stays in Plans; no project-mate setup, "Mate active" label or setup-count badge remains.
+Plan Attach stays in Plans; the plan-help board (handover inspection and original-command recovery at every stage)
+stays reachable from Supervisors. List caps are the bound configuration's within the allocation, as reservation
+applies them. No project-mate setup, "Mate active" label or setup-count badge remains.
 See `docs/scoped-supervision/build-c.md` and the both-theme/width harness under `build-c-ui/`.
 Build D adds `server/maintenance-runtime.ts` behind `FIRSTMATE_MAINTENANCE=1`, sharing that
 runtime and the existing workflow clock. Its strict RPC/helper transport records S10 observe jobs,

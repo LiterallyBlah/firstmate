@@ -73,6 +73,9 @@ try {
         assert.match(state.text, /Ariadne\s+Project · Active/, key); assert.match(state.text, /Used 1 of 1 session · 1 of 8 turns/, key);
         assert.equal(await page.getByRole('button', { name: 'Supervisor settings', exact: true }).count(), 2, key);
         assert.ok(state.calls.some(c => c.name === 'firstmate.supervisors.read'), key);
+        // Plan help and handover recovery stay reachable here at every stage; watch inputs are offered once.
+        assert.equal(await page.getByTestId('supervision-activation-board').count(), 1, key);
+        assert.equal(await page.getByRole('button', { name: 'Assign watch inputs', exact: true }).count(), 1, key);
       }
       if (scenario === 'projects') assert.match(state.text, /Starpath\s+Admitted/, key);
     }

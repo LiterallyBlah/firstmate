@@ -40,6 +40,16 @@ describe("Supervisor foundation checked app lifecycle", { timeout: 60000 }, () =
       profile: { provider: profile.provider, modeId: profile.modeId, thinkingOptionId: "high" } })]);
     expect(fx.receiver.calls.length).toBe(calls);
   });
+  it("lists a reviewed replacement's own cap, not the allocation ceiling, where the runtime refuses the next turn", async () => {
+    const fx = await fixture();
+    await fx.controls.stageFromUnverifiedUi({ ...await fx.base(), profile, limits: { supervisorSessions: 3, supervisorTurns: 2 }, policyDigest: fx.state.policy });
+    const old = (await fx.store.read()).bindings[0]!; fx.receiver.agents.get(old.agentId)!.status = "closed";
+    await fx.controls.replaceFromUnverifiedUi(await fx.replacement());
+    const status = await fx.store.read();
+    expect(supervisorList(status, () => ({ supervisorSessions: 3, supervisorTurns: 10 }))[0]).toMatchObject({ epoch: 2, sessions: 2, turns: 2, limits: { supervisorSessions: 3, supervisorTurns: 2 } });
+    expect(supervisorList(status, () => ({ supervisorSessions: 1, supervisorTurns: 10 }))[0]!.limits).toEqual({ supervisorSessions: 1, supervisorTurns: 2 });
+    await expect(fx.sessions.reserveTurn({ requestId: randomUUID(), scopeId: fx.scope.id, epoch: 2, causation: "next", text: "One more turn" }, captain)).rejects.toMatchObject({ code: "HELD" });
+  });
   it("a claimed send finishes under its original generation after a proposal; no interruption or reinterpretation", async () => {
     const fx = await fixture(), old = (await fx.store.read()).bindings[0]!;
     const turn = await fx.sessions.reserveTurn({ requestId: randomUUID(), scopeId: fx.scope.id, epoch: 1, causation: "claimed", text: "Original profile input" }, captain);

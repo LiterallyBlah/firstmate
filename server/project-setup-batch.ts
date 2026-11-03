@@ -32,7 +32,7 @@ export class ProjectBatchService {
     const input = ProjectBatchCommitSchema.parse(JSON.parse(bytes));
     if (input.manifest.homeId !== homeId || input.manifest.batchId !== batchId || digest(input.manifest) !== input.reviewDigest ||
       input.manifest.children.some(c => digest(c.review) !== c.reviewDigest || c.requestId !== stableId("project-batch-child", batchId, c.review.projectId)))
-      refuse("HELD", "Saved project setup is inconsistent. Review Advanced work details before continuing; nothing will be recreated.");
+      refuse("HELD", "Saved project setup is inconsistent. Review Supervisors before continuing; nothing will be recreated.");
     return input;
   }
   private async cancelled(input: ProjectBatchCommit) {
@@ -103,7 +103,7 @@ export class ProjectBatchService {
     try { names = await readdir(this.directory(homeId)); }
     catch (e) { if ((e as NodeJS.ErrnoException).code === "ENOENT") return []; throw e; }
     const manifests = names.filter(n => /^[\da-f-]{36}\.json$/i.test(n)).sort();
-    if (manifests.length > 256) refuse("HELD", "Saved batch history exceeds this view's limit. Inspect Advanced work details.");
+    if (manifests.length > 256) refuse("HELD", "Saved batch history exceeds this view's limit. Inspect Supervisors.");
     const result = [];
     for (const name of manifests) result.push(await this.projectStatus((await this.load(homeId, name.slice(0, -5)))!));
     return result;

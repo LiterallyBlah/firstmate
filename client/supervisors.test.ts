@@ -5,7 +5,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { attentionTheme as theme } from "../test/attention-deck-fixture";
 import { visibleText } from "../test/visible-text";
 const plan = "00000000-0000-4000-8000-000000000011", project = "00000000-0000-4000-8000-000000000012", checks = "00000000-0000-4000-8000-000000000013";
-const state = vi.hoisted(() => ({ list: {} as any, projects: {} as any, checks: {} as any, watches: {} as any, calls: [] as string[], hold: null as Promise<void> | null, fail: false }));
+const state = vi.hoisted(() => ({ activation: undefined as any, refreshActivation: vi.fn(), list: {} as any, projects: {} as any, checks: {} as any, watches: {} as any, calls: [] as string[], hold: null as Promise<void> | null, fail: false }));
 vi.mock("react-native", () => ({ Pressable: "Pressable", Text: "Text", View: "View" }));
 vi.mock("@getpaseo/plugin/client", () => ({ useRpc: (rpc: { name: string }) => async () => {
   state.calls.push(rpc.name);
@@ -22,6 +22,8 @@ vi.mock("./project-context", async importOriginal => ({ ...await importOriginal<
 // The assignment's own strict shape is pinned by watch-supervisors tests; here only its target scope matters.
 vi.mock("../shared/watch-routing", async importOriginal => ({ ...await importOriginal<typeof import("../shared/watch-routing")>(), WatchSupervisorSnapshotSchema: { parse: (value: unknown) => value } }));
 vi.mock("./maintenance-ownership", () => ({ MaintenanceOwnershipBoard: "MaintenanceOwnershipBoard" }));
+vi.mock("./supervision-activation", () => ({ SupervisionActivationBoard: "SupervisionActivationBoard" }));
+vi.mock("./workflow-plans", () => ({ useWorkflowPlans: () => ({ activation: state.activation, activationError: null, refreshActivation: state.refreshActivation }) }));
 vi.mock("./supervisor-controls", () => ({ SupervisorControlsButton: "SupervisorControlsButton" }));
 vi.mock("./watch-supervisors", () => ({ WatchSupervisorButton: "WatchSupervisorButton" }));
 import { SupervisorsEntry } from "./supervisors";
@@ -30,7 +32,8 @@ const row = (scopeId: string, kind: string, title: string, extra = {}) => ({ sco
   profile: { provider: "codex/gpt-6.1-sol", modeId: "full-access", thinkingOptionId: "high" }, sessions: 1, turns: 4, limits: { supervisorSessions: 2, supervisorTurns: 20 }, lastFailure: null, ...extra });
 beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-  state.calls = []; state.hold = null; state.fail = false;
+  state.calls = []; state.hold = null; state.fail = false; state.refreshActivation.mockReset();
+  state.activation = { enabled: true, homeId: "fixture", problems: [], plans: [], audits: [], migrations: [], dispositions: [] };
   state.list = { homeId: "fixture", rows: [], problems: [] };
   state.projects = { enabled: true, homeId: "fixture", registryDigest: null, sequence: 0, hash: null, freshness: "uninitialized", problems: [],
     general: { agentId: null, scopeId: null, slots: 4, headroom: 1, providerAvailability: "unknown" }, projects: [] };
@@ -125,4 +128,15 @@ it("the narrow desktop header shows only the icon, keeping Supervisors as the ac
   await settle();
   expect(text()).not.toContain("Supervisors");
   expect(renderer!.root.find(n => n.type === "Pressable" as never && n.props.accessibilityLabel === "Supervisors")).toBeDefined();
+});
+
+it("a prepared plan handover keeps its recovery reachable: the entry shows, opening refreshes plan help, and the board mounts", async () => {
+  state.activation.migrations = [{ id: "00000000-0000-4000-8000-000000000021", planId: "reader", state: "prepared" }];
+  await mount();
+  expect(renderer!.root.findByProps({ testID: "supervisors-entry" })).toBeDefined();
+  await press("Supervisors"); await settle();
+  expect(state.refreshActivation).toHaveBeenCalled();
+  const board = renderer!.root.findByType("SupervisionActivationBoard" as never);
+  expect(board.props.advanced).toBe(true); expect(board.props.assignWatches).toBe(false);
+  expect(state.calls.every(name => name.endsWith(".read"))).toBe(true);
 });

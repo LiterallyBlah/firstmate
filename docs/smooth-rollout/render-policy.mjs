@@ -6,6 +6,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import { createServer } from "node:http";
 import assert from "node:assert/strict";
+import { removedAtBaseline } from "../supervisor-cleanup/removed-at-baseline.mjs";
 const here = dirname(fileURLToPath(import.meta.url)), root = resolve(here, "../.."), local = createRequire(resolve(root, "docs/board-list/package.json")), repo = createRequire(resolve(root, "package.json"));
 const { build } = local("esbuild"), { chromium } = local("playwright"), out = resolve(root, ".local/pr4/screenshots");
 await mkdir(out, { recursive: true });
@@ -18,6 +19,12 @@ for (const variant of ["before", "after"]) await build({ entryPoints: [resolve(h
     b.onResolve({ filter: /^react($|\/)/ }, a => ({ path: repo.resolve(a.path) }));
     b.onResolve({ filter: /^react-dom($|\/)/ }, a => ({ path: local.resolve(a.path) }));
     b.onResolve({ filter: /^react-native($|-web$)/ }, () => ({ path: local.resolve("react-native-web") }));
+    if (variant === "before") {
+      // Supervisor cleanup slice 3 renamed the project board; the historical panel keeps the baseline's.
+      b.onResolve({ filter: /client[\\/]project-context$/ }, () => ({ path: resolve(root, "client/project-context.baseline.ts"), namespace: "policy-baseline" }));
+      b.onLoad({ filter: /.*/, namespace: "policy-baseline" }, () => ({ contents: 'export { ProjectOwnershipView as ProjectContextView } from "./project-ownership";', loader: "ts", resolveDir: resolve(root, "client") }));
+      removedAtBaseline(b, root, "ef92ef55");
+    }
     if (variant === "before") b.onLoad({ filter: /client[\\/](project-ownership|maintenance-ownership|supervision-activation)\.tsx$/ }, args => ({
       contents: execFileSync("git", ["show", `ef92ef55:${args.path.slice(root.length + 1).replaceAll("\\", "/")}`], { cwd: root, encoding: "utf8" }), loader: "tsx", resolveDir: dirname(args.path),
     }));

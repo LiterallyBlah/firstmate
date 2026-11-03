@@ -33,6 +33,7 @@ import { useModeOptions, useModelOptions, withCurrent } from "./models";
 import { OptionPicker } from "./option-picker";
 import { errorText } from "./ui";
 import { SupervisorsEntry } from "./supervisors";
+import { WorkflowSurface } from "./workflow-plans";
 import { HelpSettings } from "./help-settings";
 
 const CONFIG_QUERY_KEY = ["firstmate", "config"] as const;
@@ -108,7 +109,9 @@ export function SettingsScreen({ theme, layout, host, navigation }: PluginSurfac
           actionLabel="Refresh settings" disabled={config.isFetching} onPress={() => { void config.refetch({ cancelRefetch: false }); }} /> : <Text accessibilityLiveRegion="polite" style={styles.note}>Loading help settings…</Text>}
       </SettingsGroup>
       <SettingsGroup title="Supervisors">
-        <SupervisorsEntry theme={theme} compact={layout.compact} hostId={host?.id ?? "local"} {...(navigation ? { navigation } : {})} always />
+        <WorkflowSurface theme={theme} hostId={host?.id ?? "local"}>
+          <SupervisorsEntry theme={theme} compact={layout.compact} hostId={host?.id ?? "local"} {...(navigation ? { navigation } : {})} always />
+        </WorkflowSurface>
       </SettingsGroup>
       <SettingsGroup title="The first mate">
         <SettingsSection title="Messages">

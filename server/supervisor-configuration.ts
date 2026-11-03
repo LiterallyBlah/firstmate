@@ -60,14 +60,18 @@ export function supervisorList(status: SupervisionStatus, limits: (scopeId: stri
     if (!view.binding && !view.configurations.length) return [];
     const plan = status.plans.find(p => p.scopeId === scope.id)?.plan, project = status.projects?.projects.find(p => p.scopeId === scope.id);
     const admission = status.commands.find(c => c.result.maintenanceAdmission?.scopeId === scope.id)?.result.maintenanceAdmission;
-    // The profile the exact session runs; a staged proposal is not current until a reviewed replacement.
-    const bound = view.configurations.find(c => c.id === view.binding?.configurationId)?.resolved ?? view.binding?.profileReadback;
+    // The profile and caps the exact session runs under; a staged proposal is not current until a reviewed replacement.
+    const configured = view.configurations.find(c => c.id === view.binding?.configurationId), ceiling = limits(scope.id);
+    const bound = configured?.resolved ?? view.binding?.profileReadback;
     const profile = bound ?? (view.binding ? undefined : view.configurations.at(-1)?.resolved) ?? project?.owner?.profile ?? admission?.profile;
+    // As reservation does: a bound configuration's limits apply within the allocation, never above it.
+    const effective = configured && ceiling ? { supervisorSessions: Math.min(ceiling.supervisorSessions, configured.limits.supervisorSessions),
+      supervisorTurns: Math.min(ceiling.supervisorTurns, configured.limits.supervisorTurns) } : configured?.limits ?? ceiling;
     const failure = status.effects.filter(e => e.scopeId === scope.id && e.state === "failed").at(-1);
     return [{ scopeId: scope.id, kind: scope.kind, title: plan?.definition.title ?? project?.name ?? admission?.name ?? `${scope.kind} ${scope.id.slice(0, 8)}`,
       planId: plan?.definition.id ?? null, state: scope.state === "retired" ? "retired" : view.state, agentId: view.binding?.agentId ?? null, epoch: view.binding?.epoch ?? null,
       profile: profile ? { provider: profile.provider, modeId: profile.modeId || null, thinkingOptionId: profile.thinkingOptionId || null } : null,
-      sessions: view.sessions, turns: view.turns, limits: limits(scope.id),
+      sessions: view.sessions, turns: view.turns, limits: effective,
       lastFailure: failure ? `${failure.operation} failed${failure.receiptRef ? ` (${failure.receiptRef})` : ""}` : null }];
   });
 }

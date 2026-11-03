@@ -53,6 +53,12 @@ it("Work details retains available specialist controls even without recorded pla
   await render(createElement(SupervisionActivationBoard, { theme, compact: true, advanced: true }));
   expect(visibleText(renderer!.toJSON())).toContain("Migration controls"); expect(mocks.attach).not.toHaveBeenCalled();
 });
+it("inside Supervisors it keeps migration recovery but leaves watch-input assignment to the list", async () => {
+  mocks.snapshot = { ...snapshot(), plans: [], operatorEnabled: true };
+  await render(createElement(SupervisionActivationBoard, { theme, compact: true, advanced: true, assignWatches: false }));
+  const words = visibleText(renderer!.toJSON());
+  expect(words).toContain("Migration controls"); expect(words).not.toContain("Assign watch inputs"); expect(mocks.attach).not.toHaveBeenCalled();
+});
 it("disabled controls retain corrupt status and failed owners even without an audit", async () => {
   mocks.snapshot = { ...snapshot(), enabled: false, problems: ["Journal hash mismatch"],
     plans: [{ ...plan, canAttach: false, binding: "retired", opening: "failed" }] };

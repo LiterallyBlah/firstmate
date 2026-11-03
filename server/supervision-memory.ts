@@ -178,7 +178,7 @@ export function projectMemory(status: SupervisionStatus, projectId: string) {
 /** Full conventions, explicit documentation excerpts, accepted memory. All carry authority=none. */
 export async function readProjectContext(store: SupervisionStore, projectId: string) {
   const status = await store.read();
-  if (status.freshness !== "current") refuse("HELD", "Project records need checking. Close setup, recover project records in Work details, then resume setup.");
+  if (status.freshness !== "current") refuse("HELD", "Project records need checking. Close setup, recover project records in Supervisors › Projects, then resume setup.");
   const project = rowsOf(status).projects.find(p => p.id === projectId);
   if (!project) refuse("UNKNOWN_OWNER", "The project is not admitted.");
   const entries = projectMemory(status, projectId).entries;

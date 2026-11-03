@@ -128,7 +128,7 @@ export function HelpSettings({ theme, home, hostId, online = true, compact = fal
       <Text style={note}>Your previous choices stay in use until you save here. Saving keeps the exact choices shown or a change you review.</Text>
       <HelpButton theme={theme} label="Keep existing setup" disabled={!mutable || busy || !!review?.request} onPress={() => begin("keep")} />
     </View> : null}
-    {snapshot?.state === "held" ? <Text accessibilityRole="alert" style={text}>Help settings couldn't be checked. Refresh settings; if this continues, review Advanced work details before changing anything.</Text> : null}
+    {snapshot?.state === "held" ? <Text accessibilityRole="alert" style={text}>Help settings couldn't be checked. Refresh settings; if this continues, review Supervisors before changing anything.</Text> : null}
     {snapshot && !snapshot.runtimeEnforced ? <Text style={text}>This host can't apply help changes yet. Update FirstMate on this host, then refresh settings.</Text> : null}
     {capacityRepair ? <HelpButton theme={theme} label="Review capacity" disabled={busy || !!review?.request} onPress={() => begin("capacity")} /> : null}
     {snapshot?.state === "ready" && snapshot.runtimeEnforced && !snapshot.writesAvailable ? <Text style={text}>This host can't save help changes right now. Refresh settings before continuing.</Text> : null}
@@ -139,7 +139,7 @@ export function HelpSettings({ theme, home, hostId, online = true, compact = fal
       <Text style={note}>{HELP[kind].description}</Text>
       <Text style={text}>{snapshot ? `${helpState(snapshot, kind)}${query.isError || !online ? " · last checked state" : ""}` : "Checking setup…"}</Text>
       {snapshot?.dependencyRefusals.filter(r => HELP[kind].capabilities.some(k => k === r.capability)).map(r => <Text key={r.capability} style={note}>
-        {r.code === "DEPENDENCY_DISABLED" ? "Contextual sending is paused. Review this setup to enable its conversation controls together." : "This help is unavailable. Refresh settings and review Advanced work details."}
+        {r.code === "DEPENDENCY_DISABLED" ? "Contextual sending is paused. Review this setup to enable its conversation controls together." : "This help is unavailable. Refresh settings and review Supervisors."}
       </Text>)}
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
         <HelpButton theme={theme} label={HELP[kind].action} primary={kind === "projects"} disabled={!mutable || busy || !!review?.request} onPress={() => kind === "checks" ? setRoutineOpen(true) : begin(kind)} />

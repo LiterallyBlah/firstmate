@@ -87,10 +87,10 @@ export class ProjectSetupService {
     const snapshot = await this.projects.read(), p = snapshot.projects.find(p => p.name === choices.name);
     const row = c.catalog.rows.find(r => r.name === choices.name), saved = c.status.projects?.projects.find(p => p.id === row?.projectId);
     if (!c.config.mateAgentId) reasons.push("Set up FirstMate first, then return to project setup.");
-    if (c.status.problems.length || c.problems.length || !["current", "uninitialized"].includes(c.status.freshness)) reasons.push("Some saved work couldn't be checked. Open Advanced work details and resolve it before setup.");
+    if (c.status.problems.length || c.problems.length || !["current", "uninitialized"].includes(c.status.freshness)) reasons.push("Some saved work couldn't be checked. Open Supervisors and resolve it before setup.");
     if (!row || row.reason || !row.projectId || !row.directory || !c.catalog.digest) reasons.push(row?.reason ?? "This project is no longer listed. Refresh projects or choose its folder again.");
     if (saved && ![saved.name, ...saved.aliases].some(n => normalizedName(n) === normalizedName(choices.name))) reasons.push("This project's name changed. Restore its reviewed name or record the alias in Advanced work details.");
-    if (saved?.state === "stopped") reasons.push("This project's help was stopped. Review its saved allocation in Advanced work details before resuming.");
+    if (saved?.state === "stopped") reasons.push("This project's help was stopped. Review its saved allocation in Supervisors › Projects before resuming.");
     if (p?.agentId || p?.provisionInput) reasons.push("This project already has a saved setup. Check saved setup or open its conversation; no new mate will be created.");
     const profile = saved?.owner?.profile ?? choices.profile, limits = saved?.owner?.limits ?? choices.limits, budget = saved?.budget ?? choices.budget;
     const models = await this.models(paseo, row?.scopeId ? supervisorWorkspace(this.projects.runtime.root, row.scopeId, 1).directory : undefined).catch(() => []);

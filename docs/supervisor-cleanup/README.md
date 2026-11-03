@@ -26,10 +26,12 @@ Work details was still the pre-pivot "Saved project mates, plan help and routine
 details was (Home's header and Settings). `firstmate.supervisors.read` (`supervisorList` in
 `server/supervisor-configuration.ts`) lists every plan, project and routine-check scope with a binding or a
 saved configuration, from the journal alone: title, kind, state, the profile the exact session runs, usage
-against its limits and the last failed effect. Each row reuses Supervisor settings and opens its native
+against its effective limits (a bound configuration's caps within the allocation, as reservation applies them)
+and the last failed effect. Each row reuses Supervisor settings and opens its native
 session. Plan rows name the watches assigned to them. Add points plan help to Plans, keeps watch-input
 assignment, and adds a routine checks Supervisor through the existing admission review (the routine-check
-board's `listed` mode, which leaves owners to the list). Projects are a read-only context section
+board's `listed` mode, which leaves owners to the list). The plan-help board stays mounted there too, so a
+prepared or barrier handover keeps its inspection and original-command recovery before Plans shows it on commit. Projects are a read-only context section
 (`client/project-context.tsx`): name, folder, status, memory, associated plans and record recovery. No
 project-mate setup, provisioning, "Mate active" label or setup-count badge remains in this surface.
 

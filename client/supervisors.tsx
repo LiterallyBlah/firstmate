@@ -9,9 +9,11 @@ import { readSupervisorList, SupervisorListSchema, type SupervisorListRow } from
 import { ProjectRuntimeSnapshotSchema, readProjectRuntime } from "../shared/project-runtime";
 import { MaintenanceRuntimeSnapshotSchema, readMaintenance } from "../shared/maintenance-runtime";
 import { readWatchSupervisors, WatchSupervisorSnapshotSchema } from "../shared/watch-routing";
-import { maintenanceHasHistory } from "./ownership-state";
+import { activationHasHistory, maintenanceHasHistory } from "./ownership-state";
 import { projectReadProblems, ProjectContextBoard } from "./project-context";
 import { MaintenanceOwnershipBoard } from "./maintenance-ownership";
+import { SupervisionActivationBoard } from "./supervision-activation";
+import { useWorkflowPlans } from "./workflow-plans";
 import { SupervisorControlsButton } from "./supervisor-controls";
 import { WatchSupervisorButton } from "./watch-supervisors";
 
@@ -30,6 +32,8 @@ function profileText(row: SupervisorListRow) {
 export function SupervisorsEntry({ theme, compact, hostId = "local", navigation, always = false, iconOnly = false }: {
   theme: PluginTheme; compact: boolean; hostId?: string; navigation?: PluginScreenProps["navigation"]; always?: boolean; iconOnly?: boolean;
 }) {
+  // Plan handovers keep their inspection and original-command recovery here at every stage, not only once committed in Plans.
+  const { activation, activationError, refreshActivation } = useWorkflowPlans();
   const readList = useRpc(readSupervisorList), readProjects = useRpc(readProjectRuntime), readChecks = useRpc(readMaintenance), readWatches = useRpc(readWatchSupervisors);
   const list = useQuery({ queryKey: ["firstmate", "supervisors", hostId], queryFn: async () => SupervisorListSchema.parse(await readList({})), refetchInterval: 5000 });
   const projects = useQuery({ queryKey: ["firstmate", "project-ownership", hostId],
@@ -39,16 +43,17 @@ export function SupervisorsEntry({ theme, compact, hostId = "local", navigation,
   const [open, setOpen] = useState(false);
   // Which watches feed each plan Supervisor; read only while the list is open.
   const watches = useQuery({ queryKey: ["firstmate", "watch-supervisors"], queryFn: async () => WatchSupervisorSnapshotSchema.parse(await readWatches({})), enabled: open, retry: false });
-  const identity = useRef({ hostId, list: list.data?.homeId, project: projects.data?.homeId, checks: checks.data?.homeId });
+  const identity = useRef({ hostId, list: list.data?.homeId, project: projects.data?.homeId, checks: checks.data?.homeId, activation: activation?.homeId });
   useEffect(() => {
-    const next = { hostId, list: list.data?.homeId, project: projects.data?.homeId, checks: checks.data?.homeId };
+    const next = { hostId, list: list.data?.homeId, project: projects.data?.homeId, checks: checks.data?.homeId, activation: activation?.homeId };
     // First successful metadata after a cold read error is recovery, not a home switch.
-    const keys = ["list", "project", "checks"] as const;
+    const keys = ["list", "project", "checks", "activation"] as const;
     const knownHomes = keys.map(key => identity.current[key]).filter(Boolean);
     if (identity.current.hostId !== hostId || keys.some(key => next[key] && knownHomes.some(home => home !== next[key]))) setOpen(false);
     identity.current = next;
-  }, [hostId, list.data?.homeId, projects.data?.homeId, checks.data?.homeId]);
+  }, [hostId, list.data?.homeId, projects.data?.homeId, checks.data?.homeId, activation?.homeId]);
   function refresh() {
+    refreshActivation?.();
     void list.refetch({ cancelRefetch: false });
     void projects.refetch({ cancelRefetch: false });
     void checks.refetch({ cancelRefetch: false });
@@ -57,9 +62,10 @@ export function SupervisorsEntry({ theme, compact, hostId = "local", navigation,
   const problem = list.isError || projects.isError || checks.isError || !!list.data?.problems.length ||
     !!projects.data && !!projectReadProblems(projects.data).length || projects.data?.freshness === "held" ||
     !!checks.data?.problems.length || checks.data?.freshness === "held" || !!checks.data?.incidents.length ||
-    rows.some(r => !["active", "retired"].includes(r.state) || !!r.lastFailure);
+    rows.some(r => !["active", "retired"].includes(r.state) || !!r.lastFailure) || !!activationError || !!activation?.problems.length ||
+    !!activation?.plans.some(p => !!p.resumeRequestId || !!p.opening && p.opening !== "succeeded" || !!p.binding && p.binding !== "active");
   // Project records stay reachable as context, even before any is admitted or supervised.
-  const retained = !!rows.length || !!projects.data?.projects.length || checks.data && maintenanceHasHistory(checks.data);
+  const retained = !!rows.length || !!projects.data?.projects.length || checks.data && maintenanceHasHistory(checks.data) || activation && activationHasHistory(activation);
   if (!always && !retained && !problem) return null;
   const colors = theme.colors, note = { color: colors.foregroundMuted, fontSize: 13 };
   return <View testID="supervisors-entry" style={{ alignSelf: "flex-start", flexShrink: 0 }}>
@@ -102,6 +108,7 @@ export function SupervisorsEntry({ theme, compact, hostId = "local", navigation,
           <Text style={note}>Assign plan help from the plan in Plans. Watch inputs go to the Supervisor of the plan they feed.</Text>
           <WatchSupervisorButton theme={theme} />
         </View>
+        <SupervisionActivationBoard theme={theme} compact={compact} advanced navigation={navigation} assignWatches={false} />
         <MaintenanceOwnershipBoard theme={theme} compact={compact} hostId={hostId} {...(navigation ? { navigation } : {})} onNavigate={() => setOpen(false)} advanced listed />
         <ProjectContextBoard theme={theme} compact={compact} hostId={hostId} />
       </View>

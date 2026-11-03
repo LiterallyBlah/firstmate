@@ -129,7 +129,7 @@ export class SupervisionActivation {
     const policy = await this.runtime.features?.read(home);
     if (!(policy?.effective.scopedActivation ?? this.options.enabled)) problems.push("Plan handover is off. Open FirstMate settings, review Plan help, and save your choice.");
     if (policy && !policy.effective.planSupervisors) problems.push("Ongoing plan help is off. Review Plan help in FirstMate settings before handing over a plan.");
-    if (legacy.problems.length || status.problems.length) problems.push("Some saved work couldn't be checked. Review Advanced work details before handing over this plan.");
+    if (legacy.problems.length || status.problems.length) problems.push("Some saved work couldn't be checked. Review Supervisors before handing over this plan.");
     if (planFinished(plan) || plan.status === "abandoned") problems.push("This plan has finished. Its history stays with its recorded owner.");
     const names = [...new Set(plan.definition.nodes.flatMap(n => n.kind === "run" ? [n.launch.project.trim().toLowerCase()] : []))];
     const projects = status.projects?.projects.filter(p => p.state === "admitted" && [p.name, ...p.aliases].some(n => names.includes(n.trim().toLowerCase()))) ?? [];
@@ -146,7 +146,7 @@ export class SupervisionActivation {
     const migration = status.migrations?.find(m => m.planId === planId), scopeId = migration?.scopeId ?? migrationUuid(homeId, planId, "plan-help-scope");
     const preparation = await this.preparations().read(home, planId);
     const freeze = await workflowStore(home).cutover(planId).catch(() => "damaged");
-    if (freeze && !migration && !preparation) problems.push("A saved handover needs recovery. Use its original preparation in Advanced work details; don't start a second handover.");
+    if (freeze && !migration && !preparation) problems.push("A saved handover needs recovery. Use its original preparation in Supervisors; don't start a second handover.");
     const backup = this.options.backupSettings ? await this.options.backupSettings.read(home) : null;
     if (!backup?.backup || backup.problems.length) problems.push(...(backup?.problems.length ? backup.problems : ["Choose a separate backup folder and how long to keep its files below."]));
     const binding = status.bindings.find(b => b.scopeId === scopeId);
