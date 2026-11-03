@@ -17,6 +17,7 @@ import {
 import { ActivityIndicator, Platform, Pressable, Text, View, useWindowDimensions } from "react-native";
 import { bindWebKeys, fromHiddenTooltip, hasWebFocus, tooltipPlacement, webAttributes } from "./web";
 import { contrastRatio } from "./contrast";
+import { CONTROL_HEIGHT } from "./control-size";
 
 /** A fixed-width font on every platform; iOS has no font named "monospace". */
 export const MONOSPACE = Platform.select({ ios: "Menlo", default: "monospace" });
@@ -174,7 +175,8 @@ export function IconButton({
         flexDirection: "row" as const,
         alignItems: "center" as const,
         justifyContent: compact ? "center" as const : undefined,
-        minHeight: compact ? 44 : undefined,
+        // One explicit height: a label's line height differs between platforms' fonts (28 on Linux, 30 on Windows).
+        minHeight: compact ? 44 : CONTROL_HEIGHT,
         minWidth: compact ? 44 : undefined,
         gap: 6,
         paddingHorizontal: showLabel ? 10 : 7,
@@ -242,14 +244,14 @@ export function Segmented<Value extends string>({
     () => ({
       frame: {
         flexDirection: "row" as const,
-        height: compact ? 46 : 28,
+        height: compact ? 46 : CONTROL_HEIGHT,
         borderRadius: 8,
         borderWidth: 1,
         borderColor: colors.border,
         backgroundColor: colors.surface1,
       },
       segment: {
-        height: compact ? 44 : 26,
+        height: compact ? 44 : CONTROL_HEIGHT - 2,
         minWidth: compact ? 44 : undefined,
         alignItems: "center" as const,
         justifyContent: "center" as const,

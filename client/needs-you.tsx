@@ -10,6 +10,7 @@ import { useOpenDecision, type OpenDecision } from "./decision-action";
 import { decisionSignalInk } from "./decision-copy";
 import { useDecisionReadState } from "./decision-read-context";
 import type { DecisionReadState } from "./decision-read-state";
+import { CONTROL_HEIGHT } from "./control-size";
 
 /** Keep visible decision surfaces quiet even when they have no header indicator. */
 export function useDecisionVisibility(enabled = true) {
@@ -46,8 +47,9 @@ export function NeedsYouIndicator({
   const id = `needs-you-${useId()}`;
   const read = useDecisionReadState();
   const state = indicatorState(snapshot, offline, readState ?? read);
-  // Drawn like the header's buttons (`IconButton`): 8-point corners, a 12-point label. The
-  // signal is the outline, the fill and the icon; the words keep the foreground colour.
+  // Drawn like the header's buttons (`IconButton`): its height and padding, 8-point corners, a
+  // 12-point label, and the 44-point target only on phones. The signal is the outline, the fill
+  // and the icon; the words keep the foreground colour.
   const signal = state.unavailable
     ? theme.colors.statusDanger
     : state.amber
@@ -79,9 +81,9 @@ export function NeedsYouIndicator({
         alignItems: "center",
         gap: 6,
         flexShrink: 0,
-        minHeight: 44,
-        paddingHorizontal: compact ? 12 : 10,
-        paddingVertical: 5,
+        minHeight: compact ? 44 : CONTROL_HEIGHT,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
         borderWidth: 1,
         borderColor: signal ?? theme.colors.border,
         borderRadius: 8,
@@ -104,7 +106,7 @@ export function NeedsYouIndicator({
         style={{
           flexShrink: 1,
           color: ink,
-          fontSize: compact ? 13 : 12,
+          fontSize: 12,
           fontWeight: signal === null ? "500" : "600",
         }}
       >

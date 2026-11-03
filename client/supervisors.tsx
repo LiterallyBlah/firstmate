@@ -17,6 +17,7 @@ import { useWorkflowPlans } from "./workflow-plans";
 import { SupervisorControlsButton } from "./supervisor-controls";
 import { WatchSupervisorButton } from "./watch-supervisors";
 import { ProjectSupervisorAdd } from "./project-supervisor";
+import { CONTROL_HEIGHT } from "./control-size";
 
 const KIND: Record<SupervisorListRow["kind"], string> = { plan: "Plan", project: "Project", maintenance: "Routine checks" };
 const STATE: Record<string, string> = { active: "Active", paused: "Paused", "change-pending": "Change pending after current work", uncertain: "Needs checking",
@@ -69,12 +70,17 @@ export function SupervisorsEntry({ theme, compact, hostId = "local", navigation,
   const retained = !!rows.length || !!projects.data?.projects.length || checks.data && maintenanceHasHistory(checks.data) || activation && activationHasHistory(activation);
   if (!always && !retained && !problem) return null;
   const colors = theme.colors, note = { color: colors.foregroundMuted, fontSize: 13 };
+  // Drawn like the header's other buttons (`IconButton`): its height, padding, corners and label, with the
+  // 44-point target only in a compact (phone) layout. The narrow desktop header passes `compact` with
+  // `iconOnly`, and keeps the desktop size.
   return <View testID="supervisors-entry" style={{ alignSelf: "flex-start", flexShrink: 0 }}>
     <Pressable accessibilityRole="button" accessibilityLabel="Supervisors" accessibilityState={{ expanded: open }}
       accessibilityHint="Supervisors for plans, watches, routine checks and projects" onPress={() => { setOpen(true); refresh(); }}
-      style={{ minHeight: 44, minWidth: 44, paddingHorizontal: 8, flexDirection: "row", alignItems: "center", gap: 6, justifyContent: "center", borderWidth: 1, borderRadius: 7, borderColor: colors.border }}>
-      {!compact || always || iconOnly ? <Icon name="SlidersHorizontal" size={15} color={colors.foregroundMuted} /> : null}
-      {iconOnly ? null : <Text style={{ color: colors.foreground, fontSize: 13 }}>Supervisors</Text>}
+      style={{ minHeight: compact && !iconOnly ? 44 : CONTROL_HEIGHT, minWidth: compact && !iconOnly ? 44 : CONTROL_HEIGHT, paddingHorizontal: iconOnly ? 7 : 10,
+        paddingVertical: 6, flexDirection: "row", alignItems: "center", gap: 6, justifyContent: "center", borderWidth: 1, borderRadius: 8,
+        borderColor: colors.border, backgroundColor: colors.surface1 }}>
+      {!compact || always || iconOnly ? <Icon name="SlidersHorizontal" size={14} color={colors.foreground} /> : null}
+      {iconOnly ? null : <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "500" }}>Supervisors</Text>}
     </Pressable>
     <Modal title="Supervisors" open={open} onOpenChange={setOpen}><Modal.Content>
       <View testID="supervisor-list" style={{ gap: 16 }}>
