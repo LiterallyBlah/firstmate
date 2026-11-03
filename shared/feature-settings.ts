@@ -39,6 +39,10 @@ export type FeatureSetInput = z.infer<typeof FeatureSetInputSchema>;
 /** Format 1 saved the six fences one by one. Its revisions still replay; new saves use format 2. */
 export const LegacyFeatureChangeSchema = z.object({ requested: FeatureCapabilitiesSchema, capacity: FeatureCapacitySchema }).strict();
 export const LegacyFeatureSetInputSchema = FeatureSetInputSchema.extend({ change: LegacyFeatureChangeSchema }).strict();
+/** What a save may carry. A format 1 request is accepted only as the exact retry of one already in history
+ * (finishing an interrupted publication or replaying its receipt); the store refuses it as a new save. */
+export const FeatureSaveInputSchema = z.union([FeatureSetInputSchema, LegacyFeatureSetInputSchema]);
+export type FeatureSaveInput = z.infer<typeof FeatureSaveInputSchema>;
 const updated = z.object({ kind: z.literal("plugin-ui-unverified"), source: z.literal("firstmate.features.set"),
   requestId: z.uuid(), at: z.iso.datetime() }).strict();
 export const LegacyFeaturePolicySchema = z.object({ format: z.literal("firstmate.feature-policy/1"), homeId: home,
@@ -75,7 +79,7 @@ export type FeatureReadResult = z.infer<typeof FeatureReadResultSchema>;
 export const readFeatureSettings = defineRpc({ name: "firstmate.features.read",
   input: z.object({ home }).strict(), output: FeatureReadResultSchema });
 export const setFeatureSettings = defineRpc({ name: "firstmate.features.set",
-  input: FeatureSetInputSchema, output: FeatureSetResultSchema });
+  input: FeatureSaveInputSchema, output: FeatureSetResultSchema });
 
 /** A bounded count of retained scoped operations, never a complete fleet inventory. */
 export function featurePause(status: SupervisionStatus, effective: FeatureCapabilities, kind?: string): string | null {

@@ -85,7 +85,9 @@ Help group, in both themes at 1440 and 390 pixels, checking that browsing and op
   environment switches are in use. A save is feature policy format 2, `{ supervisors, capacity }`; every fence
   follows it. The environment switches are still read until something is saved (revision 0, "Using the daemon's
   environment switches"), and format 1 revisions replay exactly, so a partial pilot or older saved choice reads
-  as before ("Partly on · review setup", each fence's change listed in the review). Reads stay read-time only;
+  as before ("Partly on · review setup", each fence's change listed in the review). A save interrupted between a
+  format 1 revision and its receipt still finishes through its original exact retry (RPC, service and store accept
+  it only as that retry); a new old-format save is refused. Reads stay read-time only;
   nothing is rewritten. `pr-watch` reads `FIRSTMATE_SUPERVISORS`, which the runner derives from the effective
   setting on every run, instead of the raw `FIRSTMATE_PLAN_SUPERVISORS`.
 - **D4, labels.** New Supervisor sessions get `firstmate.role=supervisor` and `firstmate.scope-kind`

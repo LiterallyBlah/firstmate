@@ -138,8 +138,10 @@ it("replays format 1 revisions exactly, partial fences included, and continues t
   const first = await publishFormat1(data, home, partial);
   expect(await store.read()).toMatchObject({ source: "saved", revision: 1, state: "ready", requested: partial, effective: partial,
     policy: { format: "firstmate.feature-policy/1", requested: partial } });
-  // A format 1 request is not a Supervisors save; it can't be resubmitted, only replayed from history.
-  await expect(store.set(first.request as never)).rejects.toThrow();
+  // A format 1 request is no longer a new save, but its exact retry still replays its receipt.
+  expect((await store.set(first.request)).policy).toMatchObject({ format: "firstmate.feature-policy/1", revision: 1, requested: partial });
+  await expect(store.set({ ...first.request, requestId: randomUUID(), expectedRevision: 1 })).rejects.toMatchObject({ code: "CONFLICT" });
+  expect(await revisions(store)).toHaveLength(1);
   const next = request(home, 1, true), saved = await store.set(next);
   expect(saved.policy).toMatchObject({ format: "firstmate.feature-policy/2", revision: 2, supervisors: true });
   const restarted = new FeatureSettingsStore(data, home);
@@ -159,4 +161,21 @@ it("refuses a format 2 revision whose saved setting differs from its request", a
   const { hash: _, ...body } = row; await writeFile(path, JSON.stringify({ ...body, hash: digest(body) }));
   await writeFile(path.replace(".json", ".receipt.json"), JSON.stringify({ ...body, hash: digest(body) }));
   expect(await store.read()).toMatchObject({ state: "held", effective: FEATURES_OFF });
+});
+
+it("finishes a format 1 save interrupted before its receipt only through the original exact retry", async () => {
+  const data = root(), home = join(data, "home"), store = new FeatureSettingsStore(data, home), partial = { ...FEATURES_OFF, maintenance: true };
+  const interrupted = await publishFormat1(data, home, partial, { receipt: false });
+  expect(await store.read()).toMatchObject({ state: "held", effective: FEATURES_OFF });
+  // Until the original request finishes it, neither a new-format save nor a different old one gets past the hold.
+  await expect(store.set(request(home, 1, true))).rejects.toMatchObject({ code: "HELD" });
+  await expect(store.set({ ...interrupted.request, requestId: randomUUID() })).rejects.toMatchObject({ code: "HELD" });
+  await expect(store.set({ ...interrupted.request, change: { ...interrupted.request.change, requested: ALL_ON } })).rejects.toMatchObject({ code: "HELD" });
+  await expect(readFile(interrupted.receipt)).rejects.toMatchObject({ code: "ENOENT" });
+  const finished = await store.set(interrupted.request);
+  expect(finished.policy).toMatchObject({ format: "firstmate.feature-policy/1", revision: 1, requested: partial });
+  expect(await new FeatureSettingsStore(data, home).read()).toMatchObject({ state: "ready", source: "saved", revision: 1, requested: partial, effective: partial });
+  expect(await store.set(interrupted.request)).toEqual(finished);
+  // The chain continues with the one Supervisors setting.
+  expect((await store.set(request(home, 1, true))).policy).toMatchObject({ format: "firstmate.feature-policy/2", revision: 2 });
 });

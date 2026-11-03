@@ -18,6 +18,8 @@ environment switches (`projectMates`, `planSupervisors`, `scopedActivation`, `sc
 (`shared/feature-settings.ts`, `{ supervisors, capacity }`), Settings' single **Turn on/off Supervisors**.
 The environment switches are read only until one is saved (`legacy-environment`, revision 0), and format 1
 revisions, which saved the fences one by one, still replay exactly; partial fences come only from those two.
+A format 1 request still passes the app contract, but only as the exact retry of one in history (finishing
+an interrupted publication or replaying its receipt); the store refuses it as a new save.
 Every guarded path still checks its own fence. Watches get the effective setting as `FIRSTMATE_SUPERVISORS`
 from the runner (`watchPolicyEnv`), never the daemon's raw switch. New Supervisor sessions carry
 `firstmate.role=supervisor` and `firstmate.scope-kind`, titled "Supervisor · ‹purpose›"; the old

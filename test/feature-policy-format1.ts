@@ -7,7 +7,8 @@ import { DEFAULT_FEATURE_CAPACITY, FEATURES_OFF, type FeatureCapabilities } from
 import { FeatureSettingsStore } from "../server/feature-settings";
 import { digest, publish } from "../server/submissions";
 
-export async function publishFormat1(root: string, home: string, requested: Partial<FeatureCapabilities>) {
+/** `receipt: false` stops between the revision and its receipt, as an interrupted format 1 save did. */
+export async function publishFormat1(root: string, home: string, requested: Partial<FeatureCapabilities>, { receipt = true } = {}) {
   const store = new FeatureSettingsStore(root, home), names = await readdir(store.directory).catch(() => [] as string[]);
   const revisions = names.filter(n => /^\d{16}\.json$/.test(n)).sort(), revision = revisions.length + 1;
   const previous = revisions.length ? JSON.parse(await readFile(join(store.directory, revisions.at(-1)!), "utf8")).hash as string : null;
@@ -21,6 +22,6 @@ export async function publishFormat1(root: string, home: string, requested: Part
   if (revision === 1) await publish(join(store.directory, "identity.json"), { format: "firstmate.feature-policy-home/1", homeId: store.homeId });
   const name = String(revision).padStart(16, "0"), row = { ...body, hash: digest(body) };
   await publish(join(store.directory, `${name}.json`), row);
-  await publish(join(store.directory, `${name}.receipt.json`), row);
-  return { request, revision };
+  if (receipt) await publish(join(store.directory, `${name}.receipt.json`), row);
+  return { request, revision, receipt: join(store.directory, `${name}.receipt.json`) };
 }

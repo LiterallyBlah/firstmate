@@ -102,3 +102,25 @@ it("policy saves and inventory reads preserve real ownership, cumulative spend, 
     expect(before.attempts[0]).toMatchObject({ spentAgents: 1, spentTurns: 1 });
   } finally { await writer.releaseCoordinator(); }
 });
+
+it("finishes an interrupted format 1 save through the app transport by exact retry, and refuses a new old-format save", async () => {
+  const { FeaturePolicyRuntime } = await import("./feature-policy-runtime");
+  const { publishFormat1 } = await import("../test/feature-policy-format1");
+  const { setFeatureSettings } = await import("../shared/feature-settings");
+  const root = join(process.env.PASEO_HOME!, randomUUID()), home = join(root, "home"), partial = { ...FEATURES_OFF, planSupervisors: true };
+  const interrupted = await publishFormat1(root, home, partial, { receipt: false });
+  const service = new FeatureSettingsService(root, { home: async () => home, runtime: new FeaturePolicyRuntime(root) });
+  const handlers = new Map<string, (input: any) => Promise<any>>();
+  registerFeatureSettingsRpc({ handle: (rpc: any, handler: any) => { handlers.set(rpc.name, handler); } } as any, service);
+  // The app contract still carries the original six-switch request, so a client retry reaches the store.
+  expect(setFeatureSettings.input.safeParse(interrupted.request).success).toBe(true);
+  expect(await handlers.get("firstmate.features.read")!({ home })).toMatchObject({ state: "held" });
+  await expect(handlers.get("firstmate.features.set")!({ home, expectedRevision: 1, requestId: randomUUID(),
+    change: { supervisors: true, capacity: { ...DEFAULT_FEATURE_CAPACITY } } })).rejects.toMatchObject({ code: "HELD" });
+  const finished = await handlers.get("firstmate.features.set")!(interrupted.request);
+  expect(finished.policy).toMatchObject({ format: "firstmate.feature-policy/1", revision: 1, requested: partial });
+  expect(await handlers.get("firstmate.features.read")!({ home })).toMatchObject({ state: "ready", revision: 1, requested: partial });
+  await expect(handlers.get("firstmate.features.set")!({ ...interrupted.request, requestId: randomUUID(), expectedRevision: 1 })).rejects.toMatchObject({ code: "CONFLICT" });
+  expect((await handlers.get("firstmate.features.set")!({ home, expectedRevision: 1, requestId: randomUUID(),
+    change: { supervisors: false, capacity: { ...DEFAULT_FEATURE_CAPACITY } } })).policy).toMatchObject({ format: "firstmate.feature-policy/2", revision: 2 });
+});

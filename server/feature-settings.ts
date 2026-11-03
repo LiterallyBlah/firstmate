@@ -4,8 +4,8 @@ import { mkdir, readFile, readdir } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 import { z } from "zod";
 import { DEFAULT_FEATURE_CAPACITY, FEATURE_CAPABILITIES, FEATURES_OFF, FeatureCapacitySchema,
-  FeaturePolicySchema, FeaturePolicySnapshotSchema, FeatureSetInputSchema, FeatureSetResultSchema, LegacyFeatureSetInputSchema, policyRequested,
-  type FeatureCapabilities, type FeatureCapacity, type FeaturePolicySnapshot, type FeatureSetInput,
+  FeaturePolicySchema, FeaturePolicySnapshotSchema, FeatureSaveInputSchema, FeatureSetResultSchema, policyRequested,
+  type FeatureCapabilities, type FeatureCapacity, type FeaturePolicySnapshot, type FeatureSaveInput,
   type FeatureSetResult } from "../shared/feature-settings";
 import { canonical, digest, publish } from "./submissions";
 import { serialized } from "./serialize";
@@ -32,12 +32,13 @@ export function legacyFeatureSettings(home: string, env: NodeJS.ProcessEnv): Leg
 const Hash = z.string().regex(/^[0-9a-f]{64}$/);
 const Identity = z.object({ format: z.literal("firstmate.feature-policy-home/1"), homeId: z.string() }).strict();
 const Revision = z.object({ format: z.literal("firstmate.feature-policy-revision/1"), previous: Hash.nullable(),
-  request: z.union([FeatureSetInputSchema, LegacyFeatureSetInputSchema]), requestHash: Hash, result: FeatureSetResultSchema, hash: Hash }).strict();
+  request: FeatureSaveInputSchema, requestHash: Hash, result: FeatureSetResultSchema, hash: Hash }).strict();
 type Revision = z.infer<typeof Revision>;
 export class FeatureSettingsError extends Error {
   constructor(readonly code: "HELD" | "STALE" | "CONFLICT", message: string) { super(message); }
 }
 const held = () => new FeatureSettingsError("HELD", "Saved feature settings couldn't be checked. Review the saved records before changing them.");
+const legacyOnlyRetry = () => new FeatureSettingsError("CONFLICT", "This older settings request can only finish a save it already started. Review the Supervisors setting to save a change.");
 const revisionName = (revision: number) => `${String(revision).padStart(16, "0")}.json`;
 
 export class FeatureSettingsStore {
@@ -114,8 +115,8 @@ export class FeatureSettingsStore {
   }
   /** Immutable persistence seam; the app transport serializes saves with final effect claims. It writes no
    * source authority, session/owner identity, spend, strong qualification or supervision record. */
-  async set(input: FeatureSetInput): Promise<FeatureSetResult> {
-    const parsed = FeatureSetInputSchema.parse(input);
+  async set(input: FeatureSaveInput): Promise<FeatureSetResult> {
+    const parsed = FeatureSaveInputSchema.parse(input);
     if (!isAbsolute(parsed.home) || workflowHomeIdentity(parsed.home) !== this.homeId)
       throw new FeatureSettingsError("STALE", "FirstMate's home changed. Refresh before saving settings.");
     const request = { ...parsed, home: this.homeId }, requestHash = digest(request);
@@ -126,6 +127,7 @@ export class FeatureSettingsStore {
         if (retry.requestHash !== requestHash) throw new FeatureSettingsError("CONFLICT", "This saved request has different settings. Keep the original request or review a new change.");
         return retry.result;
       }
+      if ("requested" in request.change) throw legacyOnlyRetry();
       const previous = revisions?.at(-1) ?? null, currentRevision = previous?.result.policy.revision ?? 0;
       if (request.expectedRevision !== currentRevision) throw new FeatureSettingsError("STALE", "Feature settings changed. Refresh and review them before saving.");
       if (currentRevision === Number.MAX_SAFE_INTEGER) throw held();
@@ -152,7 +154,7 @@ export class FeatureSettingsStore {
       return result;
     });
   }
-  private async setAfterRace(request: FeatureSetInput, requestHash: string): Promise<FeatureSetResult> {
+  private async setAfterRace(request: FeatureSaveInput, requestHash: string): Promise<FeatureSetResult> {
     const revisions = await this.revisions(), retry = revisions?.find(r => r.request.requestId === request.requestId);
     if (retry?.requestHash === requestHash) return retry.result;
     throw new FeatureSettingsError(retry ? "CONFLICT" : "STALE", "Feature settings changed in another process. Check the saved request before continuing.");
