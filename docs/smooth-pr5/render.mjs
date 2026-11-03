@@ -85,11 +85,11 @@ try {
           await capture(page, `${theme}-${device}-${name}`); await checkControls(page); assert.deepEqual(await mutations(page), []);
           await page.getByRole('button', { name: action === 'Set up routine checks' ? 'Back to settings' : 'Cancel', exact: true }).click();
         }
-        await page.getByRole('button', { name: 'Set up project mates', exact: true }).click();
+        await page.getByRole('button', { name: 'Review project help', exact: true }).click();
         await capture(page, `${theme}-${device}-project-review`); await checkControls(page); assert.deepEqual(await mutations(page), []);
         await page.keyboard.press('Escape');
-        assert.equal(await page.getByRole('button', { name: 'Set up project mates', exact: true }).evaluate(el => el === document.activeElement), true, 'focus returns');
-        await page.getByRole('button', { name: 'Set up project mates', exact: true }).click();
+        assert.equal(await page.getByRole('button', { name: 'Review project help', exact: true }).evaluate(el => el === document.activeElement), true, 'focus returns');
+        await page.getByRole('button', { name: 'Review project help', exact: true }).click();
         await page.getByRole('button', { name: 'Save help settings', exact: true }).click();
         await savedSettings(page);
         const writes = await mutations(page); assert.equal(writes.length, 1); assert.equal(writes[0].name, 'firstmate.features.set');
@@ -123,7 +123,7 @@ try {
         assert.equal((await mutations(page))[0].input.change.requested.projectMates, false);
         assert.equal((await mutations(page))[0].input.change.requested.planSupervisors, true);
       } else if (['save-failure', 'lost-reply'].includes(scenario)) {
-        await page.getByRole('button', { name: 'Set up project mates', exact: true }).click();
+        await page.getByRole('button', { name: 'Review project help', exact: true }).click();
         await page.getByRole('button', { name: 'Save help settings', exact: true }).click();
         await page.getByText(/Couldn't confirm this settings save/).waitFor();
         await capture(page, `${theme}-${device}-${scenario}`);
@@ -148,14 +148,14 @@ try {
         assert.deepEqual((await mutations(page))[0].input.change.capacity, { slots: 6, generalHeadroom: 1 });
         assert.ok(Object.values((await mutations(page))[0].input.change.requested).every(v => !v));
       } else if (scenario === 'stale') {
-        await page.getByRole('button', { name: 'Set up project mates', exact: true }).click();
+        await page.getByRole('button', { name: 'Review project help', exact: true }).click();
         await page.evaluate(async () => { window.review.features.revision++; await window.review.cache.invalidateQueries({ queryKey: ['firstmate', 'feature-settings'] }); });
         await page.getByText(/Settings changed while this review was open/).waitFor();
         assert.equal(await page.getByRole('button', { name: 'Save help settings', exact: true }).isDisabled(), true);
         await capture(page, `${theme}-${device}-stale`); assert.deepEqual(await mutations(page), []);
       } else {
         await capture(page, `${theme}-${device}-${scenario}`);
-        assert.equal(await page.getByRole('button', { name: 'Set up project mates', exact: true }).isDisabled(), true);
+        assert.equal(await page.getByRole('button', { name: 'Review project help', exact: true }).isDisabled(), true);
         assert.deepEqual(await mutations(page), []);
       }
       assert.deepEqual(errors, []); await page.close();
@@ -166,7 +166,7 @@ try {
       if (scenario === 'capacity') {
         await page.getByRole('button', { name: 'Help details', exact: true }).click();
         await page.getByRole('button', { name: 'Review capacity', exact: true }).click();
-      } else await page.getByRole('button', { name: scenario === 'project' ? 'Set up project mates' : 'Turn off project mates', exact: true }).click();
+      } else await page.getByRole('button', { name: scenario === 'project' ? 'Review project help' : 'Turn off project mates', exact: true }).click();
       await checkControls(page, true); await capture(page, `${theme}-${device}-${scenario}-text200`);
       assert.deepEqual(await mutations(page), []); await page.close();
     }

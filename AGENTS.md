@@ -16,7 +16,11 @@ Build A overlays the historical unwired S09 notes below: `server/supervision-run
 coordinator per home shared with activation; `server/project-runtime.ts` exposes reviewed registry
 admission, S09 administration and explicit project provisioning only with `FIRSTMATE_PROJECT_MATES=1`.
 Its helper reuses the workflow clock and exposes no provisioning or Attach. `client/project-context.tsx`
-shows project membership, folders, memory and plans as context only, without model wakes or setup actions. Provisioning retains its
+shows project membership, folders, memory and plans as context only, without model wakes or setup actions, and offers
+"Add project" (`server/project-folders.ts`, folder mapping only). A project's Supervisor is added from Supervisors' Add
+(`client/project-supervisor.tsx`): the generic profile picker, caps within the admitted allocation and an optional opening
+(else `templates/messages/project-supervisor-opening.md`), recorded with the request; no setup wizard, batch setup or
+project-mate opening remains, and a discussion never creates a project session. Provisioning retains its
 original input for fresh-client resume; inspected app recovery repairs only validated metadata,
 and app stop retains identity/spend and uncertain effects. Per-project queues never hold General's conversation
 lock; only capacity reservation shares the scoped admission queue, with fresh guards before native effects.

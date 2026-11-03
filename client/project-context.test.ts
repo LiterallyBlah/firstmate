@@ -12,6 +12,7 @@ vi.mock("@getpaseo/plugin/client", () => ({ useRpc: (rpc: { name: string }) => a
   throw new Error(`Unexpected effect: ${rpc.name}`);
 } }));
 vi.mock("react-native", () => ({ Pressable: "Pressable", ScrollView: "ScrollView", Text: "Text", View: "View" }));
+vi.mock("./project-supervisor", () => ({ AddProjectFolder: "AddProjectFolder" }));
 vi.mock("@getpaseo/plugin/client/react-native", () => ({ Icon: () => null, Modal: Object.assign(({ open, children }: { open: boolean; children: ReactNode }) => open ? children : null, { Content: "Content" }) }));
 import { ProjectContextBoard, projectReadProblems, projectStatus } from "./project-context";
 import { visibleText } from "../test/visible-text";
@@ -88,4 +89,15 @@ it("legacy handoff context is not a failed read, while unknown records remain pr
   expect(projectReadProblems({ ...snapshot, freshness: "current", sequence: 5 })).toEqual([warning]);
   expect(projectReadProblems({ ...snapshot, freshness: "current", sequence: 5, associationWarnings: [warning] })).toEqual([]);
   expect(projectReadProblems({ ...snapshot, problems: [warning, "Journal hash mismatch"] })).toEqual(["Journal hash mismatch"]);
+});
+
+it("offers Add project on this computer only, including before any project is listed", async () => {
+  state.data!.projects = [];
+  await act(async () => { renderer = create(createElement(QueryClientProvider, { client: cache }, createElement(ProjectContextBoard, { theme, compact: true }))); });
+  await vi.waitFor(async () => { await act(async () => { await new Promise(done => setTimeout(done, 0)); }); expect(renderer!.root.findAllByType("AddProjectFolder" as never)).toHaveLength(1); });
+  await act(async () => renderer!.unmount());
+  await act(async () => { renderer = create(createElement(QueryClientProvider, { client: cache }, createElement(ProjectContextBoard, { theme, compact: true, hostId: "remote-host" }))); });
+  await act(async () => { await new Promise(done => setTimeout(done, 10)); });
+  expect(renderer!.root.findAllByType("AddProjectFolder" as never)).toHaveLength(0);
+  expect(state.calls.every(name => name === "firstmate.projects.read")).toBe(true);
 });

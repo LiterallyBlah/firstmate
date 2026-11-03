@@ -21,6 +21,7 @@ vi.mock("@getpaseo/plugin/client/react-native", () => ({ Icon: () => null, Modal
 vi.mock("./project-context", async importOriginal => ({ ...await importOriginal<typeof import("./project-context")>(), ProjectContextBoard: "ProjectContextBoard" }));
 // The assignment's own strict shape is pinned by watch-supervisors tests; here only its target scope matters.
 vi.mock("../shared/watch-routing", async importOriginal => ({ ...await importOriginal<typeof import("../shared/watch-routing")>(), WatchSupervisorSnapshotSchema: { parse: (value: unknown) => value } }));
+vi.mock("./project-supervisor", () => ({ ProjectSupervisorAdd: "ProjectSupervisorAdd", AddProjectFolder: "AddProjectFolder" }));
 vi.mock("./maintenance-ownership", () => ({ MaintenanceOwnershipBoard: "MaintenanceOwnershipBoard" }));
 vi.mock("./supervision-activation", () => ({ SupervisionActivationBoard: "SupervisionActivationBoard" }));
 vi.mock("./workflow-plans", () => ({ useWorkflowPlans: () => ({ activation: state.activation, activationError: null, refreshActivation: state.refreshActivation }) }));
@@ -82,6 +83,8 @@ it("lists plan, project and routine-check Supervisors with their kind, state, pr
   expect(renderer!.root.findAllByType("SupervisorControlsButton" as never).map(b => b.props.scopeId)).toEqual([plan, project, checks]);
   expect(renderer!.root.findByType("MaintenanceOwnershipBoard" as never).props.listed).toBe(true);
   expect(renderer!.root.findAllByType("ProjectContextBoard" as never)).toHaveLength(1);
+  // A project Supervisor is added here, from the project records, like routine checks.
+  expect(renderer!.root.findByType("ProjectSupervisorAdd" as never).props.data.homeId).toBe("fixture");
   expect(state.calls.every(name => name.endsWith(".read"))).toBe(true);
 });
 

@@ -21,7 +21,6 @@ jobs:
       - run: node docs/smooth-pr2/regressions.mjs
       - run: node docs/smooth-pr2/contact-sheets.mjs
       - run: node docs/smooth-pr5/render.mjs
-      - run: node docs/smooth-pr7/render.mjs
       - run: node docs/smooth-pr9/render.mjs
       - run: node docs/smooth-pr9/production-render.mjs
       - run: node node_modules/vitest/vitest.mjs run server/plan-help-wiring.test.ts --maxWorkers=1
@@ -52,8 +51,6 @@ jobs:
             .local/smooth-pr2/regressions/screenshots/*.png
             .local/smooth-pr5/ui/results.json
             .local/smooth-pr5/ui/screenshots/*.png
-            .local/smooth-pr7/ui/results.json
-            .local/smooth-pr7/ui/screenshots/*.png
             .local/smooth-pr9/ui/results.json
             .local/smooth-pr9/ui/screenshots/*.png
             .local/smooth-pr9/production/*.png
@@ -105,8 +102,8 @@ jobs:
       - run: node docs/scoped-supervision/s05-ui/render.mjs
       - run: node docs/scoped-supervision/build-c-ui/render.mjs
       - run: node docs/smooth-pr8/render.mjs
-      - run: node docs/smooth-pr6/render.mjs
       - run: node docs/supervisor-cleanup/supervisors-render.mjs
+      - run: node docs/supervisor-cleanup/project-supervisor-render.mjs
       - run: node docs/supervisor-cleanup/chat-render.mjs
       - run: node docs/chat-queue/render.mjs
       - run: node docs/smooth-rollout/render.mjs
@@ -130,11 +127,12 @@ jobs:
             .local/build-c/ui/results.json
             .local/smooth-pr8/ui/screenshots/*.png
             .local/smooth-pr8/ui/results.json
-            .local/smooth-pr6/ui/screenshots/*.png
-            .local/smooth-pr6/ui/results.json
             .local/supervisor-cleanup/s3/*.png
             .local/supervisor-cleanup/s3/screenshots/*.png
             .local/supervisor-cleanup/s3/results.json
+            .local/supervisor-cleanup/s4/*.png
+            .local/supervisor-cleanup/s4/screenshots/*.png
+            .local/supervisor-cleanup/s4/results.json
             .local/supervisor-cleanup/s2/*.png
             .local/supervisor-cleanup/s2/screenshots/*.png
             .local/supervisor-cleanup/s2/results.json

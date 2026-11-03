@@ -16,6 +16,7 @@ import { SupervisionActivationBoard } from "./supervision-activation";
 import { useWorkflowPlans } from "./workflow-plans";
 import { SupervisorControlsButton } from "./supervisor-controls";
 import { WatchSupervisorButton } from "./watch-supervisors";
+import { ProjectSupervisorAdd } from "./project-supervisor";
 
 const KIND: Record<SupervisorListRow["kind"], string> = { plan: "Plan", project: "Project", maintenance: "Routine checks" };
 const STATE: Record<string, string> = { active: "Active", paused: "Paused", "change-pending": "Change pending after current work", uncertain: "Needs checking",
@@ -107,6 +108,8 @@ export function SupervisorsEntry({ theme, compact, hostId = "local", navigation,
           <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "600" }}>Add</Text>
           <Text style={note}>Assign plan help from the plan in Plans. Watch inputs go to the Supervisor of the plan they feed.</Text>
           <WatchSupervisorButton theme={theme} />
+          {projects.data ? <ProjectSupervisorAdd theme={theme} compact={compact} data={projects.data} stale={projects.isError || projects.data.freshness === "held" || !!projectReadProblems(projects.data).length}
+            onRead={() => { void projects.refetch(); void list.refetch(); }} /> : null}
         </View>
         <SupervisionActivationBoard theme={theme} compact={compact} advanced navigation={navigation} assignWatches={false} />
         <MaintenanceOwnershipBoard theme={theme} compact={compact} hostId={hostId} {...(navigation ? { navigation } : {})} onNavigate={() => setOpen(false)} advanced listed />

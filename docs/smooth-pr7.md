@@ -1,5 +1,7 @@
 # Reviewed project batch setup
 
+> **Later:** the Supervisor cleanup (slice 4, November 2026) removed batch project setup and the setup wizard, and with them `render.mjs` and `stubs.jsx`; a project Supervisor is now added one at a time from Supervisors (`docs/supervisor-cleanup/README.md`). This page records the earlier change as it shipped.
+
 Slice 7 extends the existing individual project setup. It keeps the captain's
 explicit selection, original General conversation and all existing safety checks.
 

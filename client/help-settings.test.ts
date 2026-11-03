@@ -13,7 +13,6 @@ vi.mock("./option-picker", () => ({ OptionPicker: "OptionPicker" }));
 vi.mock("@getpaseo/plugin/client/react-native", () => ({ TextInput: "TextInput",
   Modal: Object.assign(({ open, children }: { open: boolean; children: unknown }) => open ? children : null, { Content: ({ children }: { children: unknown }) => children }) }));
 vi.mock("./workflow-plans", () => ({ workflowRequestId: () => state.id() }));
-vi.mock("./project-setup", () => ({ ProjectSetup: ({ open }: { open: boolean }) => open ? "Shared project setup" : null }));
 import { FEATURE_SETTINGS_QUERY_KEY, HelpSettings } from "./help-settings";
 
 const home = "C:/fixture/home", id = "00000000-0000-4000-8000-000000000001";
@@ -57,11 +56,12 @@ it("keeps first-update help off; opening, canceling and details only read", asyn
 });
 
 it("applies only the reviewed project dependencies, immediately, without a session or restart", async () => {
-  await mount(); await press("Set up project mates"); await press("Save help settings");
+  await mount(); await press("Review project help"); await press("Save help settings");
   expect(state.set).toHaveBeenCalledExactlyOnceWith({ home, expectedRevision: 0, requestId: id, change: {
     requested: { ...FEATURES_OFF, projectMates: true, scopeUi: true, scopeExecution: true }, capacity: { slots: 4, generalHeadroom: 1 } } });
   expect(text()).toContain("Your settings are saved and applied here."); expect(text()).toContain("Turn off project mates");
-  expect(text()).toContain("Shared project setup");
+  // Saving no longer opens a project-mate setup; a project Supervisor is added from Supervisors.
+  expect(text()).not.toMatch(/project setup|create a mate/i);
 });
 
 it.each(["plans", "checks"] as const)("enables only %s and its reviewed dependencies", async kind => {
@@ -94,27 +94,27 @@ it("shows partial pilot state and saves the exact choices without broadening", a
 
 it("keeps a failed save's draft and old state, and retries only the original request", async () => {
   state.set.mockRejectedValueOnce(new Error("permission denied"));
-  await mount(); await press("Set up project mates"); await press("Save help settings");
+  await mount(); await press("Review project help"); await press("Save help settings");
   expect(text()).toContain("permission denied"); expect(text()).toContain("Your review is kept"); expect(snapshot.effective).toEqual(FEATURES_OFF);
   const original = copy(state.set.mock.calls[0]![0]);
-  await press("Close review"); expect(button("Set up project mates").props.disabled).toBe(true);
+  await press("Close review"); expect(button("Review project help").props.disabled).toBe(true);
   await press("Review saved settings request"); await press("Retry exact settings save");
   expect(state.set.mock.calls[1]![0]).toEqual(original); expect(state.id).toHaveBeenCalledTimes(1);
 });
 
 it("can replace a refused request with a fresh read-only review of current settings", async () => {
   state.set.mockRejectedValueOnce(new Error("Feature settings changed in another client"));
-  await mount(); await press("Set up project mates"); await press("Save help settings");
+  await mount(); await press("Review project help"); await press("Save help settings");
   snapshot.revision = 1; snapshot.requested.maintenance = true; snapshot.effective.maintenance = true;
   await press("Review current setup"); expect(state.set).toHaveBeenCalledTimes(1);
-  await press("Set up project mates"); expect(button("Save help settings").props.disabled).toBe(false);
+  await press("Review project help"); expect(button("Save help settings").props.disabled).toBe(false);
   await press("Cancel"); expect(state.set).toHaveBeenCalledTimes(1);
 });
 
 it("holds duplicate confirm while a save is in flight", async () => {
   let reject!: (e: Error) => void;
   state.set.mockImplementation(() => new Promise((_resolve, fail) => { reject = fail; }));
-  await mount(); await press("Set up project mates");
+  await mount(); await press("Review project help");
   const save = button("Save help settings").props.onPress;
   await act(async () => { save(); save(); });
   expect(state.set).toHaveBeenCalledTimes(1);
@@ -132,14 +132,14 @@ it("checks a lost reply through a read without issuing another save", async () =
 });
 
 it("refuses a stale two-client review and retains it for comparison", async () => {
-  await mount(); await press("Set up project mates"); snapshot.revision = 1; snapshot.requested.maintenance = true; snapshot.effective.maintenance = true;
+  await mount(); await press("Review project help"); snapshot.revision = 1; snapshot.requested.maintenance = true; snapshot.effective.maintenance = true;
   await update(); expect(text()).toContain("Settings changed while this review was open"); expect(button("Save help settings").props.disabled).toBe(true);
-  await press("Cancel"); await press("Set up project mates"); await press("Save help settings");
+  await press("Cancel"); await press("Review project help"); await press("Save help settings");
   expect(state.set.mock.calls[0]![0].expectedRevision).toBe(1); expect(state.set.mock.calls[0]![0].change.requested.maintenance).toBe(true);
 });
 
 it("rereads after save rather than accepting a background read begun before it", async () => {
-  await mount(); await press("Set up project mates");
+  await mount(); await press("Review project help");
   let finishOld!: (s: FeatureReadResult) => void;
   const old = copy(snapshot);
   state.read.mockImplementationOnce(() => new Promise(resolve => { finishOld = resolve; }));
@@ -169,7 +169,7 @@ it("requires a separate capacity review; never raises capacity while enabling he
 
 it("holds damaged policy and read/permission failures without inventing applied state", async () => {
   snapshot.state = "held"; snapshot.revision = null; snapshot.writesAvailable = false; snapshot.capacity = null;
-  await mount(); expect(button("Set up project mates").props.disabled).toBe(true); expect(text()).toContain("review Supervisors");
+  await mount(); expect(button("Review project help").props.disabled).toBe(true); expect(text()).toContain("review Supervisors");
   state.read.mockRejectedValue(new Error("permission denied")); await update();
   expect(text()).toContain("Can't read help settings right now"); expect(state.set).not.toHaveBeenCalled();
 });
@@ -187,7 +187,7 @@ it("can explicitly repair invalid legacy capacity without normalizing pilot flag
 it("unmounts an old host/home review and ignores its delayed result", async () => {
   let resolve!: (v: unknown) => void;
   state.set.mockImplementation(() => new Promise(done => { resolve = done; }));
-  await mount(); await press("Set up project mates"); await press("Save help settings");
+  await mount(); await press("Review project help"); await press("Save help settings");
   const request = state.set.mock.calls[0]![0];
   await act(async () => { renderer!.unmount(); }); snapshot = { ...snapshot, homeId: "C:/fixture/other" };
   await mount("remote", "C:/fixture/other"); expect(text()).not.toContain("off → on");

@@ -267,8 +267,9 @@ it.each(["project", "Attach"] as const)("a stalled %s capacity lookup times out 
 }, 60000);
 it("production RPCs are registered; off and enabled reads create nothing, account every registry entry, and never provision", async () => {
   const handles: string[] = []; registerProjectRuntime({ handle: ((rpc: { name: string }) => { handles.push(rpc.name); }) as never }, make(false));
-  expect(handles).toHaveLength(18); expect(handles).toContain("firstmate.projects.recover-ui"); expect(handles).toContain("firstmate.projects.abort-ui");
-  expect(handles).toEqual(expect.arrayContaining(["firstmate.projects.batch.preview", "firstmate.projects.batch.commit", "firstmate.projects.batch.status", "firstmate.projects.batch.continue", "firstmate.projects.batch.cancel"]));
+  // The retired project-mate setup and batch RPCs are gone; folder mapping ("Add project") remains beside the runtime's own.
+  expect(handles).toEqual(["firstmate.projects.folder", "firstmate.projects.read", "firstmate.projects.admin", "firstmate.projects.provision-ui",
+    "firstmate.projects.memory", "firstmate.projects.recover-ui", "firstmate.projects.abort-ui"]);
   expect((await service.read()).projects).toHaveLength(4);
   expect((await service.read()).projects.find(p => p.name === "remote")?.reason).toMatch(/canonical local/);
   service = make(false); const read = await service.read();
@@ -561,4 +562,28 @@ it("reviewed aliases keep canonical identity and both old plan membership and ne
   const renamed = next.projects.find(p => p.name === "scheduler-next")!;
   expect(renamed.projectId).toBe(original.projectId); expect(renamed.plans[0]?.id).toBe("scheduler");
   expect(scopeSnapshot(await new SupervisionStore(data, home).read(), "general").projects).toContainEqual({ id: project.id, name: "scheduler-next" });
+});
+it("Supervisors' Add: a reviewed profile, caps within the allocation and an opening create one project Supervisor; refusals record nothing", async () => {
+  const { supervisorList } = await import("./supervisor-configuration");
+  const read = await admit(), p = read.projects.find(p => p.name === "scheduler")!, profile = { provider: "codex/test", modeId: "full-access" };
+  const base = { homeId: read.homeId, projectId: p.projectId!, projectVersion: p.version };
+  await expect(service.provision({ ...base, requestId: randomUUID(), profile, limits: { supervisorSessions: 1, supervisorTurns: 6 } }, api)).rejects.toMatchObject({ code: "HELD" });
+  await expect(service.provision({ ...base, requestId: randomUUID(), profile: { provider: "codex/missing", modeId: "full-access" } }, api)).rejects.toMatchObject({ code: "UNSUPPORTED" });
+  expect(receiver.calls).toEqual([]);
+  expect((await service.read()).projects.find(p => p.name === "scheduler")).toMatchObject({ provisionRequestId: null, agentId: null });
+  const input = { ...base, requestId: randomUUID(), profile, limits: { supervisorSessions: 1, supervisorTurns: 3 }, opening: "Supervise scheduler releases; report blockers." };
+  const owner = (await service.provision(input, api)).projects.find(p => p.name === "scheduler")!;
+  expect(receiver.calls.map(c => c.op)).toEqual(["openWorkspace", "createAgent", "send"]);
+  expect(receiver.sends[0]?.text).toContain("Supervise scheduler releases; report blockers.");
+  expect(receiver.agents.get(owner.agentId!)).toMatchObject({ provider: "codex/test", modeId: "full-access" });
+  expect(supervisorList(await runtime.read(home), () => p.limits)).toEqual([expect.objectContaining({ kind: "project", title: "scheduler", agentId: owner.agentId,
+    profile: { provider: "codex/test", modeId: "full-access", thinkingOptionId: null }, limits: { supervisorSessions: 1, supervisorTurns: 3 }, sessions: 1, turns: 1 })]);
+  await service.provision({ ...input, requestId: randomUUID() }, api); await service.provision(input, api);
+  expect(receiver.calls).toHaveLength(3);
+});
+it("without a reviewed opening, the standard project Supervisor opening carries the quoted context", async () => {
+  const read = await admit(), p = read.projects.find(p => p.name === "scheduler")!;
+  await service.provision({ homeId: read.homeId, requestId: randomUUID(), projectId: p.projectId!, projectVersion: p.version }, api);
+  expect(receiver.sends[0]?.text).toContain("You are the Supervisor for project scheduler");
+  expect(receiver.sends[0]?.text).not.toMatch(/project mate/i);
 });

@@ -74,9 +74,12 @@ export const OperationHoldSchema = z.object({
   operations: z.array(PilotOperation).min(1).max(6), reason: label,
   sourceVector: z.array(SupervisionVersionRefSchema).min(1).max(256), state: z.enum(["held", "released"]),
 }).strict();
-/** Durable app request, retained before any provisioning effects are reserved. Context, never a grant. */
+/** Durable app request, retained before any provisioning effects are reserved. Context, never a grant.
+ * Supervisors' Add reviews the profile, caps (within the admitted allocation) and opening; older requests omit them. */
 export const ProjectProvisionInputSchema = z.object({ homeId: z.string(), requestId: SupervisionUuid,
-  projectId: SupervisionUuid, projectVersion: version }).strict();
+  projectId: SupervisionUuid, projectVersion: version, profile: AgentProfileSchema.optional(),
+  limits: z.object({ supervisorSessions: version.min(1), supervisorTurns: version.min(1) }).strict().optional(),
+  opening: z.string().trim().min(1).max(16000).optional() }).strict();
 /** Exact app review retained before admission; admission and native receipts remain separate. */
 export const ProjectSetupInputSchema = z.object({ homeId: z.string(), requestId: SupervisionUuid, reviewDigest: SupervisionHash,
   review: z.object({ homeId: z.string(), registryDigest: SupervisionHash, generalAgentId: label, projectId: SupervisionUuid,
