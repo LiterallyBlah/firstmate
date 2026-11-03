@@ -66,7 +66,7 @@ it("A07/A11: production composition answers once through logical outbox with hon
   await expect(f.commands.answer({ ...input, submissionId: randomUUID() }, { kind: "plugin-ui-unverified", id: "claimed-captain", source: "forged" })).rejects.toThrow();
   await runtime.stop();
 });
-it.each([false, true])("A11/A16/A21: admitted aliases and first Send retain identity/caps, changed-source=%s", async changedSource => {
+it("A11/A16: admitted aliases resolve; a first Send to an unbound project refuses before any record, workspace or session (slice 4)", async () => {
   const { f, runtime, service } = await fixture(), plan = await f.addScope(1, "context", ["probe"], false), projectScope = randomUUID();
   const initial = await f.store.read(), source = initial.policySources[0]!;
   const changes = [{ kind: "scope" as const, value: { id: projectScope, homeId: initial.homeId, kind: "project" as const, projectIds: [plan.projectId], sponsorId: null, version: 1, mode: "scoped" as const, state: "dormant" as const } },
@@ -75,8 +75,6 @@ it.each([false, true])("A11/A16/A21: admitted aliases and first Send retain iden
         profile: { provider: "codex/gpt-6.1-sol", modeId: "full-access" }, limits: { supervisorSessions: 1, supervisorTurns: 1 } } } }];
   await mkdir(join(f.home, "project")); await writeFile(join(f.home, "project", "README.md"), "Project context is not authority.");
   await f.store.transact(expectedFor(initial, changes), randomUUID(), changes);
-  if (changedSource) f.receiver.afterAdmission = () => { writeFileSync(join(f.home, "data/orders.md"), "Changed admission after workspace opening.\n"); };
-  // This fixture's other dormant plan has no binding, so headroom has no unknown native owner.
   const lookup = vi.spyOn(f.receiver, "findAgent"), before = await f.files();
   const result = await service.execute(initial.homeId, projectScope, {} as PaseoApi, async ({ discussions }) => {
     const snapshot = await discussions.read();
@@ -84,24 +82,13 @@ it.each([false, true])("A11/A16/A21: admitted aliases and first Send retain iden
     expect(resolveDiscussion("@mate #read Explain", snapshot.scopes, snapshot.projects).scope.id).toBe("general");
     expect(resolveDiscussion("@read Explain", snapshot.scopes, snapshot.projects).scope.id).toBe(projectScope);
     expect(await f.files()).toEqual(before); expect(lookup).not.toHaveBeenCalled();
-    const input = await address(discussions, "#read Explain without implementing", projectScope);
-    const first = await discussions.result(input); await discussions.result(input);
-    if (!changedSource) {
-      const second = await discussions.result(await address(discussions, "Another turn", projectScope));
-      expect(second.outcome).toBe("refused");
-    }
-    return first;
+    return discussions.result(await address(discussions, "#read Explain without implementing", projectScope));
   });
-  if (changedSource) {
-    expect(f.receiver.calls.map(c => c.op)).toEqual(["openWorkspace"]);
-    expect((await f.store.read()).bindings.find(b => b.scopeId === projectScope)?.purpose).toBe("discussion");
-    await runtime.stop(); return;
-  }
-  expect(result.outcome).toBe("recorded");
-  const status = await f.store.read(), binding = status.bindings.find(b => b.scopeId === projectScope)!;
-  expect(binding.purpose).toBe("discussion"); expect(status.effects.filter(e => e.scopeId === projectScope && e.operation === "agent.create")).toHaveLength(1);
-  expect(f.receiver.sends).toHaveLength(1); expect(f.receiver.sends[0]?.text).toContain("Project context is not authority.");
-  expect(f.receiver.sends[0]?.text).toContain('"authority":"none"');
+  // A project's Supervisor is added explicitly from Supervisors; sending never provisions one.
+  expect(result).toMatchObject({ outcome: "refused", code: "UNKNOWN_OWNER", message: expect.stringContaining("Add one from Supervisors") });
+  expect(f.receiver.calls).toEqual([]); expect(f.receiver.sends).toEqual([]);
+  const status = await f.store.read();
+  expect(status.bindings.some(b => b.scopeId === projectScope)).toBe(false); expect(status.effects.some(e => e.scopeId === projectScope)).toBe(false);
   await runtime.stop();
 });
 it("A16: stale home refuses before writer/resource acquisition", async () => {

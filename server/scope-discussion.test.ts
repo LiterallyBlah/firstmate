@@ -48,16 +48,16 @@ describe("S05 actual S01/S03/S04 composition, isolated receivers", { timeout: 60
     expect(await f.files()).toEqual(before); expect(f.receiver.calls).toEqual([]); expect(lookup).not.toHaveBeenCalled();
     expect((await discussions.result(await address(discussions, "Hello"))).outcome).toBe("refused"); expect(f.receiver.calls).toEqual([]);
   });
-  it("creates plan/project discussion sessions only on Send, reuses dormant context and correlates only the explicit reply file", async () => {
-    const f = await s04Fixture(), scope = await f.addScope(1, "goal-1", [], false), p = await project(f, scope.projectId), { discussions, generalSend } = service(f);
-    const a = await address(discussions, "Explain this plan", scope.id), b = await address(discussions, "#project-1 Explain this project", p);
-    const first = await discussions.discuss(a), second = await discussions.discuss(b);
-    expect(first.messages[0]?.delivery).toBe("sent"); expect(second.messages[0]?.delivery).toBe("sent");
-    expect(f.receiver.calls.filter(c => c.op === "createAgent")).toHaveLength(2); expect(generalSend).not.toHaveBeenCalled();
+  it("creates a plan discussion session only on Send, reuses dormant context and correlates only the explicit reply file", async () => {
+    const f = await s04Fixture(), scope = await f.addScope(1, "goal-1", [], false), { discussions, generalSend } = service(f);
+    const a = await address(discussions, "Explain this plan", scope.id);
+    const first = await discussions.discuss(a);
+    expect(first.messages[0]?.delivery).toBe("sent");
+    expect(f.receiver.calls.filter(c => c.op === "createAgent")).toHaveLength(1); expect(generalSend).not.toHaveBeenCalled();
     const owner = (await f.store.read()).bindings.find(v => v.scopeId === scope.id)!; f.receiver.finish(owner.agentId);
     const follow = await address(discussions, "Follow up", scope.id); follow.route.replyTo = a.id as never;
     await discussions.discuss(follow); expect(f.receiver.sends.filter(s => s.agentId === owner.agentId)).toHaveLength(2);
-    expect(f.receiver.calls.filter(c => c.op === "createAgent")).toHaveLength(2);
+    expect(f.receiver.calls.filter(c => c.op === "createAgent")).toHaveLength(1);
     expect(f.receiver.sends[0]?.text).toContain(f.home); expect(f.receiver.sends[0]?.text).not.toContain("Explain this project");
     expect((await f.store.read()).attempts).toHaveLength(0); // discussion minted no work attempt/approval
     const key = scopeConversationKey(f.store.homeId, scope.id);
@@ -65,6 +65,15 @@ describe("S05 actual S01/S03/S04 composition, isolated receivers", { timeout: 60
     const restored = await discussions.conversation(f.store.homeId, scope.id, "main");
     expect(restored.messages[0]).toMatchObject({ id: a.id, agentId: owner.agentId, reply: "Only the requested plan reply." });
     expect(restored.messages[1]?.reply).toBeNull();
+  });
+  it("an unbound project refuses discussion without creating a session; its Supervisor is added from Supervisors", async () => {
+    const f = await s04Fixture(), scope = await f.addScope(1, "goal-1", [], false), p = await project(f, scope.projectId), { discussions, generalSend } = service(f);
+    const before = await f.store.read();
+    expect(await discussions.result(await address(discussions, "#project-1 Explain this project", p))).toMatchObject({ outcome: "refused", code: "UNKNOWN_OWNER",
+      message: expect.stringContaining("Add one from Supervisors") });
+    expect(f.receiver.calls).toEqual([]); expect(generalSend).not.toHaveBeenCalled();
+    const after = await f.store.read();
+    expect(after.bindings).toEqual(before.bindings); expect(after.effects).toEqual(before.effects);
   });
   it("routes untagged and project context to General; unknown recipients and stale bindings never substitute General", async () => {
     const f = await s04Fixture(), scope = await f.addScope(1, "goal-1", [], false), { discussions, generalSend } = service(f);

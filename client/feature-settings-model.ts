@@ -3,7 +3,7 @@ import { FEATURE_CAPABILITIES, type FeatureCapabilities, type FeatureCapability,
 
 export type HelpKind = "projects" | "plans" | "checks";
 export const HELP = {
-  projects: { title: "Project mates", action: "Set up project mates", description: "A separate mate for each project, with limits you review first.",
+  projects: { title: "Project mates", action: "Review project help", description: "A separate mate for each project, with limits you review first.",
     capabilities: ["projectMates", "scopeUi", "scopeExecution"], owners: ["projectMates"] },
   plans: { title: "Plan help", action: "Review plan help", description: "Choose help for an individual plan. Existing work stays with FirstMate until you review the change.",
     capabilities: ["planSupervisors", "scopedActivation", "scopeUi", "scopeExecution"], owners: ["planSupervisors", "scopedActivation"] },

@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { ProjectRuntimeSnapshotSchema, recoverProjectRuntimeFromUi, readProjectMemory, readProjectRuntime, type ProjectRuntimeSnapshot } from "../shared/project-runtime";
 import { errorText } from "./format";
+import { AddProjectFolder } from "./project-supervisor";
 type Project = ProjectRuntimeSnapshot["projects"][number];
 
 /** Expected legacy handoff context stays in the snapshot; it is not a failed project read. */
@@ -42,7 +43,8 @@ export function ProjectContextBoard({ theme, compact, hostId = "local" }: { them
   const data = query.data;
   useEffect(() => { setError(null); }, [hostId, data?.homeId]);
   if (!data) return query.isError ? <Text accessibilityRole="alert" style={{ color: theme.colors.statusWarning }}>Project status could not be read. Use Refresh Supervisors to check again.</Text> : null;
-  if (!data.projects.length && !data.problems.length && data.freshness !== "held" && !query.isError) return null;
+  const addFolder = hostId === "local" ? <AddProjectFolder theme={theme} data={data} onRead={() => { void query.refetch(); }} /> : null;
+  if (!data.projects.length && !data.problems.length && data.freshness !== "held" && !query.isError) return addFolder;
   async function repair() {
     if (gate.current || query.isError || !data?.enabled || !data.recovery) return;
     gate.current = true; setBusy(true); setError(null);
@@ -53,6 +55,7 @@ export function ProjectContextBoard({ theme, compact, hostId = "local" }: { them
   return <>
     <ProjectContextView theme={theme} compact={compact} data={data} readError={query.isError} onRefresh={() => { void query.refetch(); }} onRecover={() => { void repair(); }} recoveryBusy={busy} />
     {error ? <Text accessibilityRole="alert" style={{ color: theme.colors.statusDanger }}>{error}</Text> : null}
+    {addFolder}
   </>;
 }
 export function ProjectContextView({ theme, compact, data, readError = false, onRefresh, onRecover, recoveryBusy = false, initiallyExpanded = false }: {

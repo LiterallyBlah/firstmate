@@ -66,6 +66,9 @@ export class ScopeDiscussions {
       if (route.target.scopeId !== "general" && snapshot.freshness !== "current") refuse("HELD", "Scoped authority is unavailable; no fallback to General.");
       if (resolved.scope.hostId !== null && resolved.scope.hostId.trim().toLowerCase() !== "local")
         refuse("UNSUPPORTED", "Remote scope discussion has no qualified receiver. Open its original host; no local or General substitution.");
+      // A project's Supervisor is added explicitly from Supervisors; sending never creates one.
+      if (resolved.scope.kind === "project" && route.target.epoch === 0)
+        refuse("UNKNOWN_OWNER", "This project has no Supervisor. Add one from Supervisors first; sending creates no session.");
       const reply = threadReplyPath(key, input.id);
       // Only this message and explicit project identifiers cross into this recipient's model history.
       // Neither other scopes' histories nor reply bodies are forwarded.

@@ -9,6 +9,7 @@ import { execFileSync } from 'node:child_process';
 import { createServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
 import assert from 'node:assert/strict';
+import { removedAtBaseline } from '../supervisor-cleanup/removed-at-baseline.mjs';
 const here = dirname(fileURLToPath(import.meta.url)), root = resolve(here, '../..'), out = resolve(root, '.local/chat-queue/ui');
 const baseline = 'e8a1c0810805b9e05c85cce20d275f52c14917d9';
 const repo = createRequire(resolve(root, 'package.json')), local = createRequire(resolve(root, 'docs/board-list/package.json'));
@@ -24,8 +25,7 @@ for (const stage of ['before', 'after']) await build({ entryPoints: [resolve(her
     b.onResolve({ filter: /^react-dom($|\/)/ }, a => ({ path: local.resolve(a.path) }));
     b.onResolve({ filter: /^react-native($|-web$)/ }, () => ({ path: local.resolve('react-native-web') }));
     b.onResolve({ filter: /^lucide-react$/ }, () => ({ path: local.resolve('lucide-react') }));
-    // The baseline imports modules the Supervisor cleanup (slices 2 and 3) removed; load them from the baseline too.
-    if (stage === 'before') b.onResolve({ filter: /^\.\/(conversation-list|conversation-context|conversation-switcher|mate-mentions|work-details|project-ownership|project-readiness)$/ }, a => ({ path: resolve(a.resolveDir, a.path + (/switcher|mentions|work-details|project-ownership/.test(a.path) ? '.tsx' : '.ts')) }));
+    if (stage === 'before') removedAtBaseline(b, root, baseline);
     if (stage === 'before') b.onLoad({ filter: /[\\/](client|shared)[\\/][^\\/]+\.tsx?$/ }, args => {
       const path = relative(root, args.path).replaceAll('\\', '/');
       return { contents: execFileSync('git', ['show', `${baseline}:${path}`], { cwd: root, encoding: 'utf8' }), loader: path.endsWith('tsx') ? 'tsx' : 'ts' };

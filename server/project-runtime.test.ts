@@ -267,8 +267,9 @@ it.each(["project", "Attach"] as const)("a stalled %s capacity lookup times out 
 }, 60000);
 it("production RPCs are registered; off and enabled reads create nothing, account every registry entry, and never provision", async () => {
   const handles: string[] = []; registerProjectRuntime({ handle: ((rpc: { name: string }) => { handles.push(rpc.name); }) as never }, make(false));
-  expect(handles).toHaveLength(18); expect(handles).toContain("firstmate.projects.recover-ui"); expect(handles).toContain("firstmate.projects.abort-ui");
-  expect(handles).toEqual(expect.arrayContaining(["firstmate.projects.batch.preview", "firstmate.projects.batch.commit", "firstmate.projects.batch.status", "firstmate.projects.batch.continue", "firstmate.projects.batch.cancel"]));
+  // The retired project-mate setup and batch RPCs are gone; folder mapping ("Add project") remains beside the runtime's own.
+  expect(handles).toEqual(["firstmate.projects.folder", "firstmate.projects.read", "firstmate.projects.admin", "firstmate.projects.provision-ui",
+    "firstmate.projects.memory", "firstmate.projects.recover-ui", "firstmate.projects.abort-ui"]);
   expect((await service.read()).projects).toHaveLength(4);
   expect((await service.read()).projects.find(p => p.name === "remote")?.reason).toMatch(/canonical local/);
   service = make(false); const read = await service.read();
@@ -561,4 +562,72 @@ it("reviewed aliases keep canonical identity and both old plan membership and ne
   const renamed = next.projects.find(p => p.name === "scheduler-next")!;
   expect(renamed.projectId).toBe(original.projectId); expect(renamed.plans[0]?.id).toBe("scheduler");
   expect(scopeSnapshot(await new SupervisionStore(data, home).read(), "general").projects).toContainEqual({ id: project.id, name: "scheduler-next" });
+});
+it("Supervisors' Add: a reviewed profile, caps within the allocation and an opening create one project Supervisor; refusals record nothing", async () => {
+  const { supervisorList } = await import("./supervisor-configuration");
+  const read = await admit(), p = read.projects.find(p => p.name === "scheduler")!, profile = { provider: "codex/test", modeId: "full-access" };
+  const base = { homeId: read.homeId, projectId: p.projectId!, projectVersion: p.version };
+  await expect(service.provision({ ...base, requestId: randomUUID(), profile, limits: { supervisorSessions: 1, supervisorTurns: 6 } }, api)).rejects.toMatchObject({ code: "HELD" });
+  await expect(service.provision({ ...base, requestId: randomUUID(), profile: { provider: "codex/missing", modeId: "full-access" } }, api)).rejects.toMatchObject({ code: "UNSUPPORTED" });
+  expect(receiver.calls).toEqual([]);
+  expect((await service.read()).projects.find(p => p.name === "scheduler")).toMatchObject({ provisionRequestId: null, agentId: null });
+  const input = { ...base, requestId: randomUUID(), profile, limits: { supervisorSessions: 1, supervisorTurns: 3 }, opening: "Supervise scheduler releases; report blockers." };
+  const owner = (await service.provision(input, api)).projects.find(p => p.name === "scheduler")!;
+  expect(receiver.calls.map(c => c.op)).toEqual(["openWorkspace", "createAgent", "send"]);
+  expect(receiver.sends[0]?.text).toContain("Supervise scheduler releases; report blockers.");
+  expect(receiver.agents.get(owner.agentId!)).toMatchObject({ provider: "codex/test", modeId: "full-access" });
+  expect(supervisorList(await runtime.read(home), () => p.limits)).toEqual([expect.objectContaining({ kind: "project", title: "scheduler", agentId: owner.agentId,
+    profile: { provider: "codex/test", modeId: "full-access", thinkingOptionId: null }, limits: { supervisorSessions: 1, supervisorTurns: 3 }, sessions: 1, turns: 1 })]);
+  await service.provision({ ...input, requestId: randomUUID() }, api); await service.provision(input, api);
+  expect(receiver.calls).toHaveLength(3);
+});
+it("without a reviewed opening, the standard project Supervisor opening carries the quoted context", async () => {
+  const read = await admit(), p = read.projects.find(p => p.name === "scheduler")!;
+  await service.provision({ homeId: read.homeId, requestId: randomUUID(), projectId: p.projectId!, projectVersion: p.version }, api);
+  expect(receiver.sends[0]?.text).toContain("You are the Supervisor for project scheduler");
+  expect(receiver.sends[0]?.text).not.toMatch(/project mate/i);
+});
+it.each([false, true])("requested caps hold for every later turn, also without an explicit profile (%s)", async explicit => {
+  const { ScopeRuntime } = await import("./scope-runtime");
+  const { resolveDiscussion } = await import("../shared/scope-discussion");
+  const { supervisorList } = await import("./supervisor-configuration");
+  const read = await admit(), p = read.projects.find(p => p.name === "scheduler")!;
+  const input = { homeId: read.homeId, requestId: randomUUID(), projectId: p.projectId!, projectVersion: p.version,
+    ...(explicit ? { profile: { provider: "codex/test", modeId: "full-access" } } : {}), limits: { supervisorSessions: 1, supervisorTurns: 2 } };
+  const current = (await service.provision(input, api)).projects.find(p => p.name === "scheduler")!;
+  expect(supervisorList(await runtime.read(home), () => p.limits)[0]?.limits).toEqual({ supervisorSessions: 1, supervisorTurns: 2 });
+  const scopes = new ScopeRuntime(runtime, { enabled: true, uiEnabled: true, receiver: () => receiver });
+  async function send(text: string) {
+    receiver.finish(current.agentId!);
+    return scopes.execute(read.homeId, p.scopeId!, api, async ({ discussions }) => {
+      const snapshot = await discussions.read(), resolved = resolveDiscussion(text, snapshot.scopes, snapshot.projects, p.scopeId!);
+      return discussions.result({ id: randomUUID(), text: resolved.text, addressedText: text, defaultScope: p.scopeId!, route: { target: resolved.scope.target,
+        recipient: resolved.scope.title, projectIds: resolved.projectIds, conversationId: "main", replyTo: null } });
+    });
+  }
+  expect((await send("Second turn")).outcome).toBe("recorded");
+  expect((await send("Third turn must refuse")).outcome).toBe("refused");
+  expect(receiver.sends).toHaveLength(2);
+});
+it("an older saved request from the retired setup review resumes with that review's exact opening", async () => {
+  const read = await admit(), p = read.projects.find(p => p.name === "scheduler")!;
+  const status = await runtime.read(home), project = status.projects!.projects.find(r => r.id === p.projectId)!;
+  const opening = "Reviewed opening saved before the upgrade; send exactly this.";
+  const review = { homeId: read.homeId, registryDigest: read.registryDigest!, generalAgentId: "general", projectId: p.projectId!, name: "scheduler", projectVersion: p.version,
+    aliases: [], source: { ...source, id: randomUUID() }, profile: project.owner!.profile, budget: { agents: 4, turns: 12 }, limits: { supervisorSessions: 1 as const, supervisorTurns: 5 },
+    policyHash: "c".repeat(64), sourceVector: project.sourceVector, opening, capacity: { slots: 4, generalHeadroom: 1 }, spent: { sessions: 0, turns: 0 } };
+  const setup = { homeId: read.homeId, requestId: randomUUID(), reviewDigest: "d".repeat(64), review };
+  const ui = { kind: "plugin-ui-unverified" as const, id: "unauthenticated-plugin-call", source: "project setup review (unverified)" };
+  const empty = { planId: null, planHash: null, decisionId: null, outboxId: null };
+  await runtime.mutate(home, store => store.transactCommand(stableId("project-setup-input", setup.requestId), digest(setup), ui,
+    async () => ({ mutations: [], expectedVersions: [], result: { ...empty, projectSetup: setup } })));
+  // The base version recorded this request, then stopped before any binding.
+  const input = { homeId: read.homeId, requestId: randomUUID(), projectId: p.projectId!, projectVersion: p.version };
+  await runtime.mutate(home, store => store.transactCommand(stableId("project-provision-input", input.requestId), digest(input),
+    { kind: "plugin-ui-unverified", id: "unauthenticated-plugin-call", source: "project provision button (unverified)" },
+    async () => ({ mutations: [], expectedVersions: [], result: { ...empty, projectProvision: input } })));
+  await runtime.stop(); runtime = projectRuntimeFixture(data); service = make();
+  const saved = (await service.read()).projects.find(row => row.projectId === p.projectId)!.provisionInput!;
+  await service.provision(saved, api);
+  expect(receiver.sends).toHaveLength(1); expect(receiver.sends[0]?.text).toBe(opening);
 });

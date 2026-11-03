@@ -47,3 +47,32 @@ removes: a missing relative client/shared module is read from that harness's bas
 that builds today's Home or Settings around a few baseline files can show the baseline's Work details in
 place of Supervisors (`SUPERVISORS_AS_WORK_DETAILS`). The smooth-pr2, -pr5, -pr6, -pr10 and smooth-rollout
 harnesses use it; their "after" stages now open Supervisors and Projects where they opened Work details.
+
+## Slice 4: no new project-mate provisioning; a project's Supervisor is added from Supervisors
+
+Under D2 a Supervisor stays assignable to a project, and the old project-mate setup goes:
+
+- Removed: the setup wizard (`client/project-setup.tsx`, Settings' "Set up project mates") and its
+  `firstmate.projects.setup.read|preview|commit|status|resume|instructions` RPCs, batch setup
+  (`firstmate.projects.batch.*`, its server, contract and panel), `ProjectRuntime.admitSetup`, the
+  "persistent project mate" opening and the setup-instructions part.
+- Kept and rerouted: `ProjectRuntime.provision`. Supervisors' Add offers **Add project Supervisor** for an admitted
+  project without one: the shared `SupervisorProfileFields` over the host catalog, cumulative caps no higher than the
+  admitted allocation, and an optional opening (otherwise `project-supervisor-opening.md` with the quoted project
+  context). The request records them; the profile is checked against the catalog before the request is recorded,
+  and it becomes the binding's configuration exactly as plan Attach does, so Supervisor settings and the list show
+  it. Requested caps without a profile still bind a configuration (the admitted profile, recorded against the catalog), so
+  they hold for every later turn. An older saved request resumes with its retired setup review's exact opening. A saved
+  request resumes or stops exactly from **Resume ‹project› Supervisor setup**; a stopped one is terminal and is shown as such.
+- Kept: admission, registry, memory, recovery and folder mapping, now **Add project** in the Projects section
+  (`firstmate.projects.folder`). Admission stays with the first mate's `tools/projects.mjs`.
+- A scoped discussion to an unbound project is refused ("Add one from Supervisors first") before anything is
+  recorded; it no longer creates a project session.
+
+Help settings' project action is now "Review project help" and opens only the feature review. The
+`docs/smooth-pr6/render.mjs` and `docs/smooth-pr7/render.mjs` harnesses, which drove the wizard and batch setup, are
+retired from CI with notes in their docs.
+
+`node docs/supervisor-cleanup/project-supervisor-render.mjs` builds `686f497` (before) and the working tree (after) on the
+same live-shaped census: Supervisors' Add section, the old wizard versus the Add project Supervisor review, and Settings'
+Help group, in both themes at 1440 and 390 pixels, checking that browsing and opening a review make no write.

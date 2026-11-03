@@ -11,7 +11,6 @@ import { CAPABILITY_LABELS, HELP, changedCapabilities, helpSelection, helpState,
 import { workflowRequestId } from "./workflow-plans";
 import { errorText } from "./format";
 import { RoutineCheckSetup } from "./routine-check-setup";
-import { ProjectSetup } from "./project-setup";
 import type { PluginSurfaceProps } from "@getpaseo/plugin/client";
 
 export const FEATURE_SETTINGS_QUERY_KEY = ["firstmate", "feature-settings"] as const;
@@ -31,14 +30,13 @@ function HelpButton({ label, onPress, disabled = false, primary = false, theme }
   </Pressable>;
 }
 
-export function HelpSettings({ theme, home, hostId, online = true, compact = false, navigation, capacityReview }: { theme: PluginTheme; home: string; hostId: string; online?: boolean; compact?: boolean; navigation?: PluginSurfaceProps["navigation"]; capacityReview?: { onClose(): void } }) {
+export function HelpSettings({ theme, home, hostId, online = true, compact = false, capacityReview }: { theme: PluginTheme; home: string; hostId: string; online?: boolean; compact?: boolean; navigation?: PluginSurfaceProps["navigation"]; capacityReview?: { onClose(): void } }) {
   const read = useRpc(readFeatureSettings), set = useRpc(setFeatureSettings), cache = useQueryClient();
   const key = [...FEATURE_SETTINGS_QUERY_KEY, hostId, home];
   const query = useQuery({ queryKey: key, queryFn: async () => FeatureReadResultSchema.parse(await read({ home })),
     refetchInterval: 5000, retry: false });
   const snapshot = query.data;
   const [review, setReview] = useState<Review | null>(null), [open, setOpen] = useState(false), [advanced, setAdvanced] = useState(false);
-  const [projectOpen, setProjectOpen] = useState(false);
   const [busy, setBusy] = useState(false), [failure, setFailure] = useState<string | null>(null), [notice, setNotice] = useState<string | null>(null);
   const [routineOpen, setRoutineOpen] = useState(false);
   const pending = useRef(false), mounted = useRef(true);
@@ -54,7 +52,6 @@ export function HelpSettings({ theme, home, hostId, online = true, compact = fal
   }, [capacityReview, mutable, capacityRepair]);
   function begin(kind: Review["kind"], enabled = true) {
     if (!snapshot || pending.current || review?.request) return;
-    if (kind === "projects" && enabled && HELP.projects.capabilities.every(k => snapshot.effective[k])) { setProjectOpen(true); return; }
     setReview({ kind, enabled, snapshot, slots: snapshot.capacity ? String(snapshot.capacity.slots) : "",
       headroom: snapshot.capacity ? String(snapshot.capacity.generalHeadroom) : "", request: null });
     setFailure(null); setNotice(null); setOpen(true);
@@ -99,7 +96,6 @@ export function HelpSettings({ theme, home, hostId, online = true, compact = fal
         setFailure("Settings were saved, but their applied state couldn't be checked. Check saved settings before continuing.");
       } else {
         setNotice(applied.data?.revision === result.policy.revision ? "Your settings are saved and applied here." : "Your change was saved. Settings changed again; review the current setup.");
-        if (review.kind === "projects" && review.enabled && applied.data && HELP.projects.capabilities.every(k => applied.data!.effective[k])) setProjectOpen(true);
         setReview(null); setOpen(false);
         if (review.kind === "checks" && review.enabled) setRoutineOpen(true);
       }
@@ -166,7 +162,7 @@ export function HelpSettings({ theme, home, hostId, online = true, compact = fal
           review.kind === "keep" ? "Save your exact existing choices. No additional help will be enabled." : review.enabled ?
           "Turn on these controls now. Creating a helper still needs a separate review of its model, permissions, cumulative limits and opening message." :
           "This pauses new helper setup, messages, turns and work that hasn't been sent. It does not delete helpers, undo work or return spent budget."}</Text>
-        {review.kind === "projects" && review.enabled ? <Text style={note}>Project controls and contextual conversations will be available. Next, choose a project and review its actual permissions and limits before creating a mate. Existing plan help and routine-check choices stay as they are.</Text> : null}
+        {review.kind === "projects" && review.enabled ? <Text style={note}>Project controls and contextual conversations will be available. Next, add a project Supervisor from Supervisors and review its model, permissions and limits there. Existing plan help and routine-check choices stay as they are.</Text> : null}
         {review.kind === "plans" && review.enabled ? <Text style={note}>Plan execution, handover controls and contextual conversations will be available. Existing plans keep their current owner until a separate checked handover and the captain's review to connect a helper. Required backups and permissions still need to be checked in Advanced work details.</Text> : null}
         {review.kind === "checks" && review.enabled ? <Text style={note}>Only routine-check controls are enabled. Creating a checks helper, choosing jobs and schedules each need a separate review. This does not change timers. Automatic cleanup is unavailable.</Text> : null}
         <View style={{ gap: 6 }}>
@@ -201,6 +197,5 @@ export function HelpSettings({ theme, home, hostId, online = true, compact = fal
     </Modal.Content></Modal>
     {!capacityReview && routineOpen && snapshot ? <RoutineCheckSetup key={`${hostId}:${snapshot.homeId}`} theme={theme} compact={compact} homeId={snapshot.homeId} hostId={hostId} online={online} canEnable={mutable && !busy && !review?.request}
       onEnable={() => { setRoutineOpen(false); begin("checks"); }} onClose={() => setRoutineOpen(false)} /> : null}
-    {!capacityReview ? <ProjectSetup theme={theme} compact={compact} home={home} hostId={hostId} open={projectOpen} onClose={() => setProjectOpen(false)} online={online} navigation={navigation} /> : null}
   </View>;
 }
