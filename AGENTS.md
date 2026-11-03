@@ -430,9 +430,10 @@ toast suppression. `docs/needs-you/header-checks.mjs` checks both states in ligh
 ## Home and the workspace tabs (shell phase 1)
 
 Home's header keeps the title, mate status and task counts together, with the List/Board/Deck and Home files/Plans switches
-and **More** beside them. The top-left cluster follows the right-hand controls: Needs you is drawn like
-`IconButton` (28 points, 8-point corners, 12-point label, a Check/Bell/TriangleAlert icon; its outline and
-fill carry the signal), while "First mate *state*" and the counts are plain text split by thin rules, so
+and **More** beside them. The top-left cluster follows the right-hand controls: Needs you and Supervisors are drawn like
+`IconButton` (the 30-point `CONTROL_HEIGHT` of `client/control-size.ts`, 8-point corners, 12-point label, 44-point
+targets on phones; Needs you's Check/Bell/TriangleAlert icon, outline and fill carry the signal). `Segmented`
+uses the same desktop height, and `docs/header-buttons/render.mjs` measures every header control against More, while "First mate *state*" and the counts are plain text split by thin rules, so
 facts never look like buttons. `docs/header-style/render.mjs` renders it at the usual widths in both themes.
 `client/header-actions.tsx` puts provider migration, watches, pane visibility,
 the full conversation, updates, refresh, settings and the full home path behind More's host modal.
