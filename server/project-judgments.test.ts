@@ -87,3 +87,45 @@ it("A05/A11: a pending project exception refuses a changed source and retains th
   await expect(new SupervisionCommands(f.store, f.home, { enabled: true }).answer(answer, captain)).rejects.toThrow("source or answer context changed");
   const after = await f.store.read(); expect(after.decisions[0]!.state).toBe("pending"); expect(after.outbox.filter(o => o.kind === "decision.answer")).toEqual([]);
 });
+
+/** Supervisor controls over this fixture's bound project owner, for retirement (slice 6). */
+async function retirement(f: Awaited<ReturnType<typeof fixture>>) {
+  const { SupervisorControls } = await import("./supervisor-controls");
+  const controls = new SupervisorControls(f.store, f.sessions, f.gateway, f.receiver, { enabled: true, catalog: async () => [], validate: async () => {} });
+  const retire = async () => { const s = await f.store.read(), b = s.bindings.find(b => b.scopeId === f.scopeId)!;
+    return { requestId: randomUUID(), homeId: s.homeId, scopeId: f.scopeId, expectedEpoch: b.epoch, bindingDigest: digest(b) }; };
+  async function refused() {
+    const before = await f.store.read();
+    await expect(controls.retireFromUnverifiedUi(await retire())).rejects.toMatchObject({ code: "HELD", message: expect.stringContaining("pending owner inputs") });
+    const after = await f.store.read();
+    expect(after.sequence).toBe(before.sequence); expect(after.bindings.find(b => b.scopeId === f.scopeId)?.state).toBe("active");
+    return controls.read(after, f.scopeId).obligations.outbox;
+  }
+  return { controls, retire, refused };
+}
+it("slice 6: an unhandled project input holds retirement and stays handleable by its still-bound owner", async () => {
+  const f = await fixture(), r = await retirement(f); await f.judgments.observe();
+  const outbox = (await f.store.read()).outbox.find(o => o.ownerScopeId === f.scopeId)!;
+  expect(await r.refused()).toEqual([outbox.id]);
+  await f.judgments.handle(randomUUID(), { scopeId: f.scopeId, scopeVersion: 1, epoch: 1, outboxId: outbox.id, subjectHash: outbox.subjectHash, evidenceDigest: f.blob.id, summary: "Handled before retirement" }, f.owner);
+  expect(r.controls.read(await f.store.read(), f.scopeId).obligations.outbox).toEqual([]);
+  await r.controls.retireFromUnverifiedUi(await r.retire());
+  expect((await f.store.read()).bindings.find(b => b.scopeId === f.scopeId)?.state).toBe("retired");
+});
+it("slice 6: an answered project captain decision awaiting its owner's handling holds retirement", async () => {
+  const f = await fixture(), r = await retirement(f); await f.judgments.observe();
+  const before = await f.store.read(), input = before.outbox.find(o => o.ownerScopeId === f.scopeId)!;
+  const { acceptPolicyInventory } = await import("./supervision-policy"), originalRule = before.policyRules[0]!;
+  await acceptPolicyInventory(f.store, f.home, randomUUID(), captain, { sources: [], rules: [{ ...originalRule, id: randomUUID(),
+    selector: { ...originalRule.selector, scopeIds: [f.scopeId], planIds: [input.planId] }, operations: ["decision.answer" as const] }] }, true);
+  await f.judgments.handle(randomUUID(), { scopeId: f.scopeId, scopeVersion: 1, epoch: 1, outboxId: input.id, subjectHash: input.subjectHash, evidenceDigest: f.blob.id,
+    summary: "A genuine delegation exception.", captain: { title: "Delegation", question: "Keep the current delegation?", reason: "Outside the project's delegation.",
+      options: [{ id: "keep", label: "Keep it" }, { id: "review", label: "Review it" }], recommendation: "keep" } }, f.owner);
+  const { withScopedNeedsYou } = await import("./needs-you-service"), { needsYouSnapshot } = await import("./needs-you-ledger");
+  const row = withScopedNeedsYou(needsYouSnapshot(null, { status: "fresh", checkedAt: Date.now(), asOf: Date.now(), problems: [] }), await f.store.read()).scopedDecisions![0]!;
+  const { SupervisionCommands } = await import("./supervision-commands");
+  await new SupervisionCommands(f.store, f.home, { enabled: true, unverifiedUiAnswers: true }).answerFromUnverifiedUi({ ...row.answerContext!, submissionId: randomUUID(), option: "keep", text: "Keep it." });
+  const answered = await f.store.read(), outbox = answered.outbox.find(o => o.kind === "decision.answer")!;
+  expect(answered.decisions[0]!.state).toBe("answered"); expect(outbox.state).toBe("pending");
+  expect(await r.refused()).toEqual([outbox.id]);
+});

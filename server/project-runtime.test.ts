@@ -632,3 +632,23 @@ it("an older saved request from the retired setup review resumes with that revie
   await service.provision(saved, api);
   expect(receiver.sends).toHaveLength(1); expect(receiver.sends[0]?.text).toBe(opening);
 });
+it("D1: the app retires a project's Supervisor through its controls; the project stays admitted context and nothing re-provisions it", async () => {
+  const { SupervisionActivation } = await import("./supervision-activation");
+  const admitted = await admit(), project = admitted.projects.find(p => p.name === "scheduler")!;
+  const input = { homeId: admitted.homeId, requestId: randomUUID(), projectId: project.projectId!, projectVersion: project.version };
+  const owner = (await service.provision(input, api)).projects.find(p => p.name === "scheduler")!;
+  const activation = new SupervisionActivation(data, { runtime, enabled: true, receiver: () => receiver, adapters: () => { throw new Error("No migration in this test."); } });
+  try {
+    const review = await activation.readControls({ homeId: admitted.homeId, scopeId: owner.scopeId! }, api), calls = receiver.calls.length;
+    expect(review).toMatchObject({ kind: "project", title: "scheduler" });
+    const retired = await activation.control({ op: "retire", requestId: randomUUID(), homeId: admitted.homeId, scopeId: owner.scopeId!, expectedEpoch: 1,
+      bindingDigest: review.view.bindingDigest, planHash: review.planHash }, api);
+    expect(retired.view).toMatchObject({ state: "retired", binding: { state: "retired", epoch: 1, agentId: owner.agentId }, sessions: 1, turns: 1 });
+    expect(receiver.calls).toHaveLength(calls); expect(receiver.agents.get(owner.agentId!)?.archivedAt).toBeNull();
+    const after = (await service.read()).projects.find(p => p.name === "scheduler")!;
+    expect(after).toMatchObject({ state: "admitted", agentId: owner.agentId, sessions: 1, turns: 1, reason: expect.stringMatching(/^Supervisor retired/) });
+    await service.provision(input, api);
+    expect(receiver.calls).toHaveLength(calls);
+    expect((await activation.listSupervisors()).rows.map(r => r.scopeId)).not.toContain(owner.scopeId);
+  } finally { await activation.stop(); }
+});

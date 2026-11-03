@@ -22,7 +22,7 @@ beforeEach(() => {
     catalog: [{ provider: profile.provider, label: "Sol", modes: [{ id: profile.modeId, label: "Full access" }], thinking: [{ id: "high", label: "High" }] }],
     view: { pendingDigest: null, reservedOwnerInputs: [], scopeId: id, binding: { scopeId: id, epoch: 1, hostId: "local", agentId: "native-id", workspaceId: "workspace", profileDigest: hash, checkpointHash: hash, acknowledgedSeq: 0, heartbeatDue: null, state: "active", configurationId: id },
       replacementResume: null, bindingDigest: hash, controlId: null, state: "active", configurations: [configuration], pending: null, sessions: 1, turns: 1,
-      obligations: { uncertain: [], reserved: [], workers: [], sources: [], decisions: [], unlanded: [] }, retirement: "Retain all history and obligations." } };
+      obligations: { uncertain: [], reserved: [], workers: [], sources: [], decisions: [], outbox: [], unlanded: [] }, retirement: "Retain all history and obligations." } };
   mocks.read.mockImplementation(async () => structuredClone(data));
 });
 afterEach(async () => { await act(async () => renderer?.unmount()); renderer = undefined; cache.clear(); });
@@ -68,4 +68,34 @@ it("pending withdrawal and undelivered-input disposition remain usable after sub
   await act(async () => button(`Withdraw undelivered input ${id}`).props.onPress());
   expect(onAction.mock.calls[1]![0]).toMatchObject({ op: "withdraw-input", effectId: id, effectVersion: 3, expectedControlId: id });
   expect(data.view.configurations).toHaveLength(1);
+});
+it("a project's Supervisor can be retired after an explicit review; a plan's offers no retire, and outstanding work disables it", async () => {
+  const onAction = vi.fn(), view = () => createElement(SupervisorDetailView, { theme, compact: true, data, onAction });
+  await mount(view());
+  expect(() => button("Review retiring this Supervisor")).toThrow();
+  data = { ...data, kind: "project", title: "Ariadne", planHash: null };
+  await act(async () => renderer!.update(createElement(QueryClientProvider, { client: cache }, view())));
+  await act(async () => button("Review retiring this Supervisor").props.onPress()); expect(onAction).not.toHaveBeenCalled();
+  await act(async () => button("Keep this Supervisor").props.onPress());
+  await act(async () => button("Review retiring this Supervisor").props.onPress());
+  await act(async () => button("Retire project Supervisor").props.onPress());
+  expect(onAction).toHaveBeenCalledExactlyOnceWith({ requestId: "00000000-0000-4000-8000-000000000009", homeId: "home", scopeId: id, expectedEpoch: 1, bindingDigest: hash, planHash: null, op: "retire" });
+  data = { ...data, view: { ...data.view, obligations: { ...data.view.obligations, reserved: ["reserved-input"] } } };
+  await act(async () => renderer!.update(createElement(QueryClientProvider, { client: cache }, view())));
+  expect(button("Retire project Supervisor").props.disabled).toBe(true);
+  data = { ...data, view: { ...data.view, state: "retired", binding: { ...data.view.binding!, state: "retired" } } };
+  await act(async () => renderer!.update(createElement(QueryClientProvider, { client: cache }, view())));
+  expect(() => button("Retire project Supervisor")).toThrow();
+  expect(JSON.stringify(renderer!.toJSON())).toContain("Its conversation stays readable in Paseo");
+});
+it("the retire review names pending owner inputs and holds confirmation; a retired paused Supervisor offers no Resume", async () => {
+  const onAction = vi.fn();
+  data = { ...data, kind: "project", title: "Ariadne", planHash: null, view: { ...data.view, obligations: { ...data.view.obligations, outbox: ["answered-decision"] } } };
+  const view = () => createElement(SupervisorDetailView, { theme, compact: true, data, onAction });
+  await mount(view()); await act(async () => button("Review retiring this Supervisor").props.onPress());
+  expect(JSON.stringify(renderer!.toJSON())).toContain("1 pending owner input awaits this Supervisor's handling");
+  expect(button("Retire project Supervisor").props.disabled).toBe(true);
+  data = { ...data, view: { ...data.view, controlId: id, state: "retired", binding: { ...data.view.binding!, state: "retired" } } };
+  await act(async () => renderer!.update(createElement(QueryClientProvider, { client: cache }, view())));
+  expect(() => button("Resume this pause")).toThrow(); expect(() => button("Pause new admissions")).toThrow(); expect(onAction).not.toHaveBeenCalled();
 });

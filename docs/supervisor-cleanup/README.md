@@ -105,3 +105,26 @@ captures Settings' Help group with the owner's environment switches on, the turn
 Help details, in both themes at 1440 and 390 pixels, checking that browsing and opening a review make no write.
 `docs/smooth-pr5/render.mjs` keeps driving every save path (pilot, partial, off, failure, lost reply, capacity,
 stale, held) against the one setting.
+
+## Slice 6: retiring the Ariadne and Starpath project Supervisors
+
+D1 retires the owner's two project bindings and keeps their transcripts. The code adds the means, and the captain
+uses it in the app: nothing retires a binding on install or start.
+
+- **`retire`**, a new `firstmate.supervisor.controls.act-ui` op (`retireFromUnverifiedUi`), is for a project's
+  Supervisor only; a plan keeps its checked plan retirement. Supervisor settings offers **Review retiring this
+  Supervisor**, then **Retire project Supervisor** or **Keep this Supervisor**. It is refused while a pending change or
+  saved replacement, a reserved or uncertain effect, a worker, a decision, a pending owner input (an unhandled project
+  input or an answered captain decision awaiting handling, both pending outboxes) or a source is outstanding; the
+  review names pending owner inputs. A retired binding reads as retired even over a retained pause, so no Resume is offered.
+- Retiring sets the binding `retired` with its epoch, agent, workspace, profile and spend unchanged, and the scope
+  `dormant`. It makes no native call: the session is not stopped or archived, so its conversation stays readable in
+  Paseo. The exact request replays; a second one is refused, and no turn, send, discussion or re-provisioning reaches it.
+- A retired binding is history, not a recipient: `scopeSnapshot` gives its scope no target (a discussion is refused
+  as having no Supervisor), and `supervisorList` leaves it out. The project stays admitted context (D5), shown as
+  "Admitted · Supervisor retired" with **Open ‹project›'s retired Supervisor conversation**; it isn't offered Add or
+  Resume, and provisioning refuses it. Adding a new Supervisor to that same project would need a reviewed path of its own.
+
+`node docs/supervisor-cleanup/retire-render.mjs` builds `db39e92` (before) and the working tree (after) on the slice 3
+census: Ariadne's Supervisor settings (after: its retire review), and Supervisors and Projects once both are retired,
+in both themes at 1440 and 390 pixels, checking that browsing and opening the review make no write.

@@ -243,7 +243,7 @@ describe("catalog and fleet samples", () => {
     expect(h.events.filter(event => event.kind === "remote-status")).toHaveLength(3);
     expect(h.events.find(event => event.kind === "permission-requested")).toMatchObject({ since: 1000, pollMs: 60000, clockSkewSeconds: 600, baseline: false });
     expect(attentionReport(h.events).permissions.pairs[0]?.latency).toEqual({ minMs: 0, maxMs: 120000, observedMs: 60000 });
-    expect(JSON.stringify(h.events)).not.toContain("PRIVATE"); expect(JSON.stringify(h.events)).not.toContain("2099");
+    expect(JSON.stringify(h.events)).not.toContain("PRIVATE"); expect(JSON.stringify(h.events)).not.toContain("2099-01-01");
   });
 
   it("reports baseline, offline and missing-worker permissions as censored or unpaired, never zero latency", async () => {

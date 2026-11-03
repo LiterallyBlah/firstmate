@@ -23,7 +23,8 @@ export function scopeSnapshot(status: SupervisionStatus, generalId: string | nul
   for (const project of status.projects?.projects ?? []) for (const name of project.aliases)
     if ((!options.admittedProjectsOnly || project.state === "admitted") && !projects.some(p => p.id === project.id && p.name === name)) projects.push({ id: project.id, name });
   const scoped = status.scopes.filter(s => s.kind !== "general").map(scope => {
-    const binding = status.bindings.find(b => b.scopeId === scope.id), ownGoals = goals.filter(g => g.scopeId === scope.id || scope.kind === "project" && g.projectIds.some(p => scope.projectIds.includes(p)));
+    // A retired binding is history, not a recipient: its scope reads as having no Supervisor.
+    const binding = status.bindings.find(b => b.scopeId === scope.id && b.state !== "retired"), ownGoals = goals.filter(g => g.scopeId === scope.id || scope.kind === "project" && g.projectIds.some(p => scope.projectIds.includes(p)));
     const plan = status.plans.find(p => p.scopeId === scope.id)?.plan;
     const label = scope.kind === "project" && scope.projectIds.length === 1 ? [...(names.get(scope.projectIds[0]!) ?? [])] : [];
     const title = plan?.definition.title ?? (label.length === 1 ? label[0]! : `${scope.kind} ${scope.id.slice(0, 8)}`);

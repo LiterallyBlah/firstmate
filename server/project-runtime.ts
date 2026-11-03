@@ -176,6 +176,7 @@ export class ProjectRuntime {
         const stopped = binding?.state === "suspect" || !!provisionInput && status.commands.some(c => c.id === stableId("project-provision-abort", provisionInput.requestId));
         const aliasKnown = !project || [project.name, ...project.aliases].some(name => normalizedName(name) === normalizedName(row.name));
         const reason = row.reason ?? (!aliasKnown ? "Registry name changed; record a reviewed alias before provisioning." : !project ? "Awaiting reviewed admission and allocation." : !project.owner ? "Durable profile and caps are missing." :
+          binding?.state === "retired" ? "Supervisor retired; identity, spend and history retained. The project stays as context." :
           stopped ? "Provisioning stopped; identity and spend retained. Inspect any uncertain operation." :
           !binding ? provisionInput ? "Provisioning incomplete; inspect and resume the recorded request." : null : binding.state !== "active" || effects?.send?.state !== "succeeded" ? "Provisioning incomplete; inspect and resume the recorded request." : null);
         return { name: row.name, directory: row.directory, registryLocation: row.location, hostId: project?.owner?.hostId ?? (row.directory ? "local" : null), projectId: row.projectId, scopeId: project?.scopeId ?? row.scopeId,
@@ -353,6 +354,7 @@ export class ProjectRuntime {
         const recorded = activationEffects(status, project.scopeId, binding.epoch);
         if (recorded.create?.requestId === input.requestId && [recorded.workspace, recorded.create, recorded.send].every(e => e?.state === "succeeded")) return;
       }
+      if (binding?.state === "retired") refuse("HELD", "This project's Supervisor is retired; its identity, spend and history are retained.");
       if (project.state !== "admitted") refuse("HELD", "Project admissions are stopped.");
       if (accepted && project.version !== input.projectVersion) refuse("HELD", "The retained provisioning's project version changed; reconcile its existing effects before proceeding.");
       if (!accepted && project.version !== input.projectVersion) refuse("STALE", "Project allocation or ownership changed; refresh before provisioning.");

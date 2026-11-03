@@ -267,6 +267,14 @@ it("foundation app pause is independent of transfer and exact resume leaves all 
   const resumed = await activation.control({ ...pause, op: "resume", requestId: randomUUID(), expectedControlId: paused.view.controlId! }, api);
   expect(resumed.view.state).toBe("active"); expect((await new SupervisionStore(pluginDir(), home).read()).effects).toEqual(before.effects);
 });
+it("app retire is for a project's Supervisor only: a plan's is refused with nothing recorded", async () => {
+  await cutover(); const input = await attachment(); await activation.attach(input, api);
+  const review = await activation.readControls({ homeId: input.homeId, scopeId: input.scopeId }, api), before = await new SupervisionStore(pluginDir(), home).read();
+  expect(review.kind).toBe("plan");
+  await expect(activation.control({ op: "retire", requestId: randomUUID(), homeId: input.homeId, scopeId: input.scopeId, expectedEpoch: 1,
+    bindingDigest: review.view.bindingDigest, planHash: review.planHash }, api)).rejects.toMatchObject({ code: "UNSUPPORTED" });
+  expect((await new SupervisionStore(pluginDir(), home).read()).sequence).toBe(before.sequence);
+});
 it("default off: view and every mutation leave supervision, gate and receiver untouched", async () => {
   activation = make();
   expect((await activation.read()).enabled).toBe(false);

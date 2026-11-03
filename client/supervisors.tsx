@@ -113,7 +113,8 @@ export function SupervisorsEntry({ theme, compact, hostId = "local", navigation,
         </View>
         <SupervisionActivationBoard theme={theme} compact={compact} advanced navigation={navigation} assignWatches={false} />
         <MaintenanceOwnershipBoard theme={theme} compact={compact} hostId={hostId} {...(navigation ? { navigation } : {})} onNavigate={() => setOpen(false)} advanced listed />
-        <ProjectContextBoard theme={theme} compact={compact} hostId={hostId} />
+        <ProjectContextBoard theme={theme} compact={compact} hostId={hostId} {...(navigation ? { onOpenAgent: (agentId: string) => {
+          navigation.openAgent({ agentId, ...(hostId === "local" ? {} : { serverId: hostId }) }); setOpen(false); } } : {})} />
       </View>
     </Modal.Content></Modal>
   </View>;
