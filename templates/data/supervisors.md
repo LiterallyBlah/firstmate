@@ -10,8 +10,46 @@ This helper is supplied while the captain's saved Supervisors setting is on (unt
 daemon's old environment switches stand in). Changes apply while services are running. The helper
 remains available for reads and receipts while new work is paused. It uses cooperative
 same-user request files, not authenticated IPC. Never impersonate another agent.
-Attach remains the captain's app button, labelled unverified. No helper attaches,
-provisions, takes over, archives, lands or mutates remote work.
+Supervisors are a tool for both the captain and the first mate. The captain attaches and
+provisions from the app buttons, labelled unverified; the current first mate (General) does the
+same through `tools/supervise.mjs`, below, where appropriate — for example when the captain has
+not set one up. Both routes run the same checked server paths and record who acted. No helper
+takes over, archives, lands or mutates remote work, and a bound Supervisor or crewmate can
+never attach or provision: only the captain and General can.
+
+## Setting up a Supervisor (General only)
+
+`node tools/supervise.mjs command --file data/<request>.json --request-id <uuid>` submits one
+strict command; `activation` and `backup-read` read directly. Keep the original UUID and exact
+bytes after a lost reply: the transport id is also the recorded Attach or provisioning request
+id, so replaying it resumes the same recorded request and never creates a second session or
+resends an uncertain opening. Every command re-checks the current first-mate role; anyone else
+is refused, and every handover or Attach records the first mate as its actor.
+
+- `plan-help {plan}` and `evidence {plan, folder?, rollbackPath?}` read the same checked review
+  and handover evidence as the app. Fix every reported problem before preparing.
+- `backup-set {expectedRevision, backup: {destination, retention}}` saves the independent backup
+  folder and how long its files are kept. `backup-read` shows the current choice.
+- `migrate {command}` carries the existing strict migration command: `prepare`/`resume` with the
+  review's plan, scopeId, projectId, migrationId, reviewHash, evidence `{inventory, policy,
+  rollback {path, hash}}` (from the `evidence` read's inventory, policy and rollback hashes) and
+  prerequisites `{inventory: "delivery-inventory:sha256:<inventory hash>", policy:
+  "accepted-permissions:sha256:<policy hash>", rollbackBuild: "home:<rollback path>#sha256:<rollback hash>"}`, then `reconcile`,
+  `barrier` and `commit` with `{homeId, migrationId}`. Read the review first and copy its exact
+  ids and hash; changed sources, evidence or backup settings refuse as stale. Canceling a
+  handover and resolving its delivery holds stay with the captain's app controls.
+- `attach {attach: {plan, planHash, scopeId, scopeVersion, supervisorId, profile, opening}}`
+  attaches the plan's Supervisor after a committed handover, with the chosen profile and
+  opening. Take every field from the `activation` read's plan row. `attach-resume
+  {attachRequestId}` finishes an attachment this tool started; an attachment the captain's
+  button started resumes from the app, and the reverse likewise.
+- `project-provision {provision: {projectId, projectVersion, profile?, limits?, opening?}}`
+  provisions an admitted project's Supervisor (see `data/project-context.md`); caps must stay
+  within the project's admitted allocation.
+
+Scope, epoch, allocation, headroom and budget checks are the app's, re-run before every native
+effect. Installation, access, discarding work and spending beyond the approved caps stay with
+the captain in every plan mode; setting up a Supervisor grants none of them.
 
 ## Operating a scoped plan
 
@@ -116,7 +154,8 @@ still requires external-effect reconciliation and never refunds spend.
 
 A project's Supervisor reads and acknowledges its own checked inputs through the same
 `read|inbox|outbox|project-result` transports. They retain the exact scope/epoch and request
-bytes, and grant no plan execution or Attach.
+bytes, and grant no plan execution or Attach. Setting one up is General's or the captain's job,
+never the bound Supervisor's own.
 
 For an exceptional project judgment that needs the captain's authority, `project-result`
 may include `captain: {title, question, reason, options: [{id, label}, ...], recommendation}`.

@@ -26,7 +26,7 @@ export const SupervisorConfigurationSchema = z.object({ id: uuid, scopeId: uuid,
   target: z.object({ homeId: z.string(), hostId: z.literal("local"), scopeId: uuid, kind: z.enum(["plan", "project", "maintenance"]),
     planId: z.string().nullable(), planHash: hash.nullable() }).strict(),
   limits: z.object({ supervisorSessions: z.number().int().min(1).max(1000), supervisorTurns: z.number().int().min(1).max(100000) }).strict(),
-  effectiveEpoch: z.number().int().positive(), provenance: z.literal("client UI (unverified)") }).strict();
+  effectiveEpoch: z.number().int().positive(), provenance: z.enum(["client UI (unverified)", "first mate tool (unverified)"]) }).strict();
 export type SupervisorConfiguration = z.infer<typeof SupervisorConfigurationSchema>;
 export const SupervisorControlSchema = z.object({ id: uuid, scopeId: uuid, epoch: z.number().int().positive(),
   action: z.enum(["stage", "pause", "resume", "replace", "withdraw"]), predecessor: uuid.nullable(),

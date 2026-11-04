@@ -45,7 +45,8 @@ export const readProjectRuntime = defineRpc({ name: "firstmate.projects.read", i
 /** Same-user role convention, as workflow requests. Never authenticated caller identity or Attach. */
 export const administerProject = defineRpc({ name: "firstmate.projects.admin", input: z.object({ homeId: z.string(), requestId: SupervisionUuid, actorId: z.string().min(1), command: ProjectAdminSchema }).strict(), output: ProjectRuntimeSnapshotSchema });
 export const provisionProjectFromUi = defineRpc({ name: "firstmate.projects.provision-ui", input: ProjectProvisionInputSchema, output: ProjectRuntimeSnapshotSchema });
-/** Explicit inspected repair only. No session reservation, dispatch, authority reconstruction or Attach. */
+/** Explicit inspected repair only. No session reservation, dispatch or authority reconstruction.
+ * (Provisioning itself goes through the app button above or the first mate's supervise tool.) */
 export const recoverProjectRuntimeFromUi = defineRpc({ name: "firstmate.projects.recover-ui", input: z.object({ homeId: z.string(), sequence: count,
   hash: SupervisionHash.nullable() }).strict(), output: ProjectRuntimeSnapshotSchema });
 export const abortProjectProvisionFromUi = defineRpc({ name: "firstmate.projects.abort-ui", input: z.object({ homeId: z.string(), projectId: SupervisionUuid,

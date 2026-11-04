@@ -247,7 +247,10 @@ export async function syncFeatureHelpers(home: string, origin: RecordOrigin = ne
   };
   if (policy.effective.planSupervisors || policy.effective.projectMates) {
     await write(TEMPLATES.scopeHelper);
+    await write(TEMPLATES.superviseHelper);
     await write(TEMPLATES.scopeGuide);
+  } else if (policy.effective.scopedActivation) {
+    await write(TEMPLATES.superviseHelper);
   }
   if (policy.effective.projectMates) {
     await write(TEMPLATES.projectHelper);

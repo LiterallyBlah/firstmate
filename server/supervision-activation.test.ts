@@ -24,6 +24,7 @@ import { askMate } from "./mate";
 import { evidenceReferences } from "../shared/plan-help";
 import { planSubjectHash } from "./workflow-plans";
 import { digest } from "./submissions";
+import { SUPERVISE_ACTOR_SOURCE } from "../shared/supervise";
 vi.setConfig({ testTimeout: 30000 });
 const root = process.env.PASEO_HOME!;
 let home: string, activation: SupervisionActivation, receiver: SyntheticReceiver, ledger: NeedsYouService, clock: number;
@@ -311,6 +312,37 @@ it("production adapters migrate one plan and attach once, auditing unverified pr
   await expect(activation.attach({ ...input, requestId: randomUUID() }, api)).rejects.toMatchObject({ code: "STALE" });
   await expect(activation.attach({ ...input, opening: "different opening" }, api)).rejects.toMatchObject({ code: "CONFLICT" });
 });
+
+it("the current first mate runs the same handover and Attach, recorded as mate-chat; replay holds and others refuse", async () => {
+  const mate = { kind: "mate-chat", id: "general", source: SUPERVISE_ACTOR_SOURCE } as const;
+  await expect(activation.migrate(prepare, { kind: "agent", id: "bound-supervisor", source: "scope helper" })).rejects.toMatchObject({ code: "UNKNOWN_OWNER" });
+  await expect(activation.migrate(prepare, { ...mate, id: "crewmate-7" })).rejects.toMatchObject({ code: "STALE" });
+  expect(await workflowStore(home).cutover("scheduler")).toBe(null); expect(receiver.calls).toEqual([]);
+  await activation.migrate(prepare, mate);
+  await activation.migrate({ op: "reconcile", homeId: prepare.homeId, migrationId: prepare.migrationId }, mate);
+  await activation.migrate({ op: "barrier", homeId: prepare.homeId, migrationId: prepare.migrationId }, mate);
+  const committed = await activation.migrate({ op: "commit", homeId: prepare.homeId, migrationId: prepare.migrationId }, mate);
+  expect(committed.migrations[0]).toMatchObject({ state: "committed" }); expect(committed.plans[0]!.canAttach).toBe(true);
+  const input = await attachment();
+  await expect(activation.attach(input, api, { kind: "agent", id: "bound-supervisor", source: "scope helper" })).rejects.toMatchObject({ code: "UNKNOWN_OWNER" });
+  await expect(activation.attach(input, api, { ...mate, id: "crewmate-7" })).rejects.toMatchObject({ code: "STALE" });
+  expect(receiver.calls).toEqual([]);
+  const next = await activation.attach(input, api, mate);
+  expect(next.plans[0]).toMatchObject({ supervisorId: input.supervisorId, binding: "active", opening: "succeeded", canAttach: false });
+  expect(next.audits).toEqual([{ at: expect.any(String), plan: "scheduler", supervisor: input.supervisorId,
+    source: "first mate tool (unverified)", authorization: "current first mate role convention, not verified" }]);
+  const status = await new SupervisionStore(pluginDir(), home).read();
+  expect(status.commands.find(c => c.id === input.requestId)?.actor).toEqual(mate);
+  expect(status.commands.find(c => c.id === input.requestId)?.result.supervisorConfiguration?.provenance).toBe("first mate tool (unverified)");
+  expect(receiver.calls.map(c => c.op)).toEqual(["openWorkspace", "createAgent", "send"]);
+  // Lost-reply replay: same request id and bytes from the same origin, then an explicit mate resume.
+  await activation.attach(input, api, mate);
+  await activation.attach({ homeId: input.homeId, requestId: input.requestId, resume: true }, api, mate);
+  expect(receiver.calls).toHaveLength(3); expect((await activation.read()).audits).toHaveLength(1);
+  // The other origin cannot replay or resume this recorded request.
+  await expect(activation.attach({ homeId: input.homeId, requestId: input.requestId, resume: true }, api)).rejects.toMatchObject({ code: "HELD" });
+  await expect(activation.attach({ ...input, opening: "different opening" }, api, mate)).rejects.toMatchObject({ code: "CONFLICT" });
+});
 it("stale plan/supervisor and uncommitted cutovers cannot attach", async () => {
   await activation.migrate(prepare);
   const input = await attachment();
@@ -390,7 +422,7 @@ it("production resume accepts the original fields after freeze-before-receipt in
   expect(resumed.migrations[0]).toMatchObject({ id: prepare.migrationId, state: "prepared" });
   await activation.migrate({ op: "abort", homeId: prepare.homeId, migrationId: prepare.migrationId, reason: "End isolated recovery check" });
 });
-it("strict RPCs accept no actor/source and no attach operation exists on migration or home/CLI tools", async () => {
+it("strict RPCs accept no actor/source and no attach operation exists on migration or the app RPC tools", async () => {
   await cutover();
   expect(AttachSupervisorInputSchema.safeParse({ ...await attachment(), actor: { kind: "captain-ui" } }).success).toBe(false);
   for (const extra of [{ actor: { kind: "captain-ui" } }, { supervisorId: randomUUID() }, { opening: "replacement opening" }, { profile: { provider: "codex/test", modeId: "" } }])

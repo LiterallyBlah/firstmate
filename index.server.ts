@@ -40,6 +40,7 @@ import { PlanRuntime } from "./server/plan-runtime";
 import { MigrationSettings } from "./server/migration-settings";
 import { workflowHomeIdentity } from "./server/workflow-ownership";
 import { ProjectRuntime, registerProjectRuntime } from "./server/project-runtime";
+import { SuperviseRequests, registerSuperviseRequests } from "./server/supervise-requests";
 import { MaintenanceRuntime, registerMaintenanceRuntime } from "./server/maintenance-runtime";
 import { nativeSchedules } from "./server/archive-inventory";
 import { readTimerInventory } from "./server/watch-service";
@@ -179,11 +180,13 @@ export default function contribute(server: PluginServerContext) {
   });
   registerSupervisionActivation(server, activation);
   registerProjectRuntime(server, projects);
+  const supervise = new SuperviseRequests({ activation, projects });
+  const unregisterSupervise = registerSuperviseRequests(server, supervise);
   const maintenance = new MaintenanceRuntime(supervisionRuntime, {
     inventory: async (home, config, jobs) => readTimerInventory(home, config, new WatchConfigStore(join(pluginDir(), "watch-config.json")), await nativeSchedules(), jobs) });
   const unregisterMaintenance = registerMaintenanceRuntime(server, maintenance);
   const stopWorkflows = startWorkflowService(async () => {
-    const results = await Promise.allSettled([projects.processRequests(), plans.tick(), maintenance.tick()]);
+    const results = await Promise.allSettled([projects.processRequests(), supervise.processRequests(), plans.tick(), maintenance.tick()]);
     for (const result of results) if (result.status === "rejected") console.error("[firstmate] scoped clock:", result.reason);
   });
   const readCombinedNeeds = async (given?: Awaited<ReturnType<typeof decisions.read>>) => {
@@ -462,6 +465,7 @@ export default function contribute(server: PluginServerContext) {
 
   return async () => {
     await unregisterChatQueue();
+    unregisterSupervise();
     unregisterMaintenance();
     await stopWorkflows();
     unregisterRelay();

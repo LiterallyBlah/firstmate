@@ -20,6 +20,7 @@ import { canonical, digest } from "./submissions";
 import { stableId } from "./supervision-effects";
 import { readProjectContext } from "./supervision-memory";
 import { readProjectMemory } from "../shared/project-runtime";
+import { SUPERVISE_ACTOR_SOURCE } from "../shared/supervise";
 vi.mock("node:fs/promises", async importOriginal => {
   const actual = await importOriginal<typeof import("node:fs/promises")>();
   return { ...actual, open: vi.fn(actual.open) };
@@ -580,6 +581,27 @@ it("Supervisors' Add: a reviewed profile, caps within the allocation and an open
   expect(supervisorList(await runtime.read(home), () => p.limits)).toEqual([expect.objectContaining({ kind: "project", title: "scheduler", agentId: owner.agentId,
     profile: { provider: "codex/test", modeId: "full-access", thinkingOptionId: null }, limits: { supervisorSessions: 1, supervisorTurns: 3 }, sessions: 1, turns: 1 })]);
   await service.provision({ ...input, requestId: randomUUID() }, api); await service.provision(input, api);
+  expect(receiver.calls).toHaveLength(3);
+});
+
+it("the current first mate provisions with supervise provenance; caps, replay and cross-origin resume hold", async () => {
+  const mate = { kind: "mate-chat", id: "general", source: SUPERVISE_ACTOR_SOURCE } as const;
+  const read = await admit(), p = read.projects.find(p => p.name === "scheduler")!, profile = { provider: "codex/test", modeId: "full-access" };
+  const base = { homeId: read.homeId, projectId: p.projectId!, projectVersion: p.version };
+  await expect(service.provision({ ...base, requestId: randomUUID(), profile, limits: { supervisorSessions: 1, supervisorTurns: 6 } }, api, mate)).rejects.toMatchObject({ code: "HELD" });
+  const input = { ...base, requestId: randomUUID(), profile, limits: { supervisorSessions: 1, supervisorTurns: 3 }, opening: "Supervise scheduler; set up by the first mate." };
+  await expect(service.provision(input, api, { ...mate, id: "bound-supervisor" })).rejects.toMatchObject({ code: "UNKNOWN_OWNER" });
+  expect(receiver.calls).toEqual([]);
+  const owner = (await service.provision(input, api, mate)).projects.find(p => p.name === "scheduler")!;
+  expect(receiver.calls.map(c => c.op)).toEqual(["openWorkspace", "createAgent", "send"]);
+  expect(receiver.sends[0]?.text).toContain("set up by the first mate");
+  expect(owner).toMatchObject({ provisionRequestId: input.requestId, provisionInput: input });
+  const status = await new SupervisionStore(data, home).read();
+  expect(status.commands.find(c => c.id === stableId("project-provision-input", input.requestId))?.actor).toEqual(mate);
+  expect(status.commands.find(c => c.id === input.requestId)?.result.supervisorConfiguration?.provenance).toBe("first mate tool (unverified)");
+  await service.provision(input, api, mate);
+  expect(receiver.calls).toHaveLength(3); expect(receiver.agents.size).toBe(1);
+  await expect(service.provision(input, api)).rejects.toMatchObject({ code: "CONFLICT" });
   expect(receiver.calls).toHaveLength(3);
 });
 it("without a reviewed opening, the standard project Supervisor opening carries the quoted context", async () => {

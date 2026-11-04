@@ -143,17 +143,18 @@ describe("prepareHome and the charter", () => {
     expect(await read(home, CHARTER_FILE)).not.toContain("{{briefTemplate}}");
     // Pinned so a charter change is deliberate: every untouched home follows it, and every edited one is
     // offered it as charter.new.md. e0b749cb695c5df6 was the charter as it moved into templates/.
-    // Explicit captain-only-by-convention Attach rule; shared brief parts expand before fingerprinting.
+    // Supervisors as a tool for captain and first mate alike (supervise tool); shared brief parts expand before fingerprinting.
     // Plan modes: three modes drafted from the captain's words, live steps follow the mode, reserved effects stay captain.
-    expect(fingerprint(await pluginCharterTemplate())).toBe("027ea7ec2d8fcb11");
+    expect(fingerprint(await pluginCharterTemplate())).toBe("0860333955895460");
     expect(agents).toContain("`firstmate-pivotal` (you decide routine matters, and pivotal points go to the Captain)");
     expect(agents).toContain("installation, access, discarding work, spending beyond the approved caps");
     expect(agents).not.toContain("Keep captain-only decisions, release, installation");
     expect(agents).toContain("look at Queued for unplanned work whose blocker has cleared");
     expect(agents).toContain("Workers carrying `firstmate.scope`");
     expect(agents).toContain("belong to their scoped owner.");
-    expect(agents).toContain("Never invoke supervisor Attach by any route");
-    expect(agents).toContain("never brief a crewmate to invoke it");
+    expect(agents).toContain("set one up yourself with `tools/supervise.mjs`");
+    expect(agents).not.toContain("Never invoke supervisor Attach");
+    expect(agents).toContain("never brief a crewmate or a Supervisor to invoke it");
 
     await editCopy(home, "# My first mate\n\n<!-- a note to myself -->\nYour home is {{home}}; keep it tidy.");
     await prepareHome(home, FirstmateConfigSchema.parse({}));

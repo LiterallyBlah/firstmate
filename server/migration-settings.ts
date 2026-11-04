@@ -12,7 +12,7 @@ import { SupervisionStore } from "./supervision-store";
 import { refuse } from "./supervision-effects";
 const RecordSchema = z.object({ format: z.literal("firstmate.migration-settings/1"), homeId: z.string(), revision: z.number().int().positive(),
   previous: z.string().nullable(), request: MigrationSettingsInputSchema, at: z.iso.datetime(),
-  canonicalDestination: z.string(), provenance: z.literal("client UI (unverified)"), hash: z.string() }).strict();
+  canonicalDestination: z.string(), provenance: z.enum(["client UI (unverified)", "first mate tool (unverified)"]), hash: z.string() }).strict();
 type Record = z.infer<typeof RecordSchema>;
 const name = (revision: number) => `${String(revision).padStart(12, "0")}.json`;
 export class MigrationSettings {
@@ -63,20 +63,20 @@ export class MigrationSettings {
     return { snapshot, canonicalDestination: records.at(-1)?.canonicalDestination };
   }
   async read(home: string): Promise<MigrationSettingsSnapshot> { return (await this.checked(home)).snapshot; }
-  async set(home: string, raw: MigrationSettingsInput) {
+  async set(home: string, raw: MigrationSettingsInput, provenance: "client UI (unverified)" | "first mate tool (unverified)" = "client UI (unverified)") {
     const input = MigrationSettingsInputSchema.parse(raw);
     if (input.homeId !== workflowHomeIdentity(home)) refuse("STALE", "FirstMate's home changed. Reopen this review before saving.");
     return serialized(this.directory(home), async () => {
       const records = await this.records(home), old = records.find(r => r.request.requestId === input.requestId);
       if (old) {
-        if (digest(old.request) !== digest(input)) refuse("CONFLICT", "This saved request has different backup settings. Reopen the review.");
+        if (digest(old.request) !== digest(input) || old.provenance !== provenance) refuse("CONFLICT", "This saved request has different backup settings. Reopen the review.");
         return this.snapshot(home, records.slice(0, old.revision));
       }
       if ((records.at(-1)?.revision ?? 0) !== input.expectedRevision) refuse("STALE", "Backup settings changed in another window. Refresh and review before saving.");
       // Preserve the exact reviewed path in the receipt; re-resolve at every capture/verification.
       const checked = await this.validate(home, input.backup);
       const body = { format: "firstmate.migration-settings/1" as const, homeId: input.homeId, revision: records.length + 1,
-        previous: records.at(-1)?.hash ?? null, request: input, canonicalDestination: checked.destination, at: new Date().toISOString(), provenance: "client UI (unverified)" as const };
+        previous: records.at(-1)?.hash ?? null, request: input, canonicalDestination: checked.destination, at: new Date().toISOString(), provenance };
       await mkdir(this.directory(home), { recursive: true });
       try { await publish(join(this.directory(home), name(body.revision)), { ...body, hash: digest(body) }); }
       catch (e) {

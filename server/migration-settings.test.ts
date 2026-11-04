@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { expect, it } from "vitest";
 import { MigrationSettings } from "./migration-settings";
 import { workflowHomeIdentity } from "./workflow-ownership";
+import { SUPERVISE_PROVENANCE } from "../shared/supervise";
 const fixture = async () => {
   const root = join(process.env.PASEO_HOME!, randomUUID()), home = join(root, "home"), destination = join(root, "independent-backups");
   await mkdir(home, { recursive: true }); await mkdir(destination);
@@ -21,6 +22,16 @@ it("reads are inert; exact saved settings survive reload without enabling or cre
   expect(await reload.read(f.home)).toEqual(saved);
   expect(await reload.set(f.home, f.input)).toEqual(saved);
   expect(await readdir(join(f.root, "plugin"))).toEqual(["migration-settings"]);
+});
+it("a first-mate save records its provenance; the same request from the other origin conflicts", async () => {
+  const f = await fixture();
+  const saved = await f.store.set(f.home, f.input, SUPERVISE_PROVENANCE);
+  expect(saved).toMatchObject({ revision: 1, requestId: f.input.requestId });
+  const file = join(f.store.directory(f.home), (await readdir(f.store.directory(f.home)))[0]!);
+  expect(JSON.parse(await readFile(file, "utf8")).provenance).toBe("first mate tool (unverified)");
+  expect(await new MigrationSettings(join(f.root, "plugin")).set(f.home, f.input, SUPERVISE_PROVENANCE)).toEqual(saved);
+  await expect(f.store.set(f.home, f.input)).rejects.toMatchObject({ code: "CONFLICT" });
+  expect((await f.store.read(f.home)).revision).toBe(1);
 });
 it("two clients CAS; changed request reuse and cross-home saves refuse; legacy stays home-bound", async () => {
   const f = await fixture(), second = new MigrationSettings(join(f.root, "plugin"));

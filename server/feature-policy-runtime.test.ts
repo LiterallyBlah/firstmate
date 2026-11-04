@@ -40,6 +40,7 @@ it("a project-only pilot supplies the Supervisor transport and guides, old paths
     await syncFeatureHelpers(home);
     const transport = await readFile(join(home, "tools/scope.mjs"), "utf8");
     expect(transport).toContain("scope commands belong to their bound owners");
+    expect(await readFile(join(home, "tools/supervise.mjs"), "utf8")).toContain("Only the current first mate sets up Supervisors");
     const guide = await readFile(join(home, "data/supervisors.md"), "utf8"), projects = await readFile(join(home, "data/project-context.md"), "utf8");
     expect(guide).toContain("grant no plan execution or Attach");
     expect(projects).toContain("A project needs no session of its own");
