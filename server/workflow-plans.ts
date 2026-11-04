@@ -40,6 +40,20 @@ export const backlogSection = (node: PlanNode, state: string, closedWithoutLandi
 export const samePlanItem = (item: ReturnType<typeof parseBacklog>[number], plan: WorkflowPlan, node: PlanNode) =>
   item.id === node.id && (node.kind === "decision" ? true : item.project === node.launch.project && (item.host ?? "local").toLowerCase() === node.launch.host.toLowerCase()) &&
   (plan.definition.implicit || item.plan === plan.definition.id);
+/** Whoever owns the plan, a revision keeps every effect and escalated gate exactly, and every live step behind it,
+ * so a later switch of mode still finds them. Only the captain's own edits can remove one. */
+function assertGatesKept(previous: WorkflowPlan, definition: PlanDefinition): void {
+  for (const old of previous.definition.nodes) {
+    const current = definition.nodes.find(node => node.id === old.id);
+    if (old.kind === "decision" && (old.effect || old.criterion) && digest(current ?? null) !== digest(old))
+      throw new Error(`${old.id}: a revision cannot change or remove a live-step, reserved or escalated gate; ask the captain.`);
+    if (old.kind === "run" && old.effect) {
+      if (current?.kind !== "run" || current.effect !== old.effect) throw new Error(`${old.id}: a revision cannot change or remove a ${old.effect} step's marker; ask the captain.`);
+      for (const edge of old.after.filter(edge => { const gate = previous.definition.nodes.find(n => n.id === edge.node); return gate?.kind === "decision" && !!gate.effect; }))
+        if (!current.after.some(next => digest(next) === digest(edge))) throw new Error(`${old.id}: a revision cannot detach a ${old.effect} step from its gate; ask the captain.`);
+    }
+  }
+}
 /** A transfer names a mode, or (as before modes existed) only an owner. */
 const transferMode = (command: Extract<WorkflowCommand, { op: "captain" }>, from: PlanMode): PlanMode =>
   command.mode ?? (command.owner ? command.owner === "firstmate" ? "firstmate" : "captain" : from);
@@ -61,6 +75,8 @@ export function checkNewCaptainAction(command: WorkflowCommand, previous: Workfl
     const from = planMode(previous), to = transferMode(command, from);
     if (!command.text.trim()) throw new Error("A different owner and the captain's explicit delegation or revocation are required.");
     if (command.owner && command.mode && command.owner !== modeOwner(command.mode)) throw new Error(`Mode ${command.mode} disagrees with owner ${command.owner}.`);
+    // Without a mode, a transfer only changes the owner; it can never quietly change a mode the owner keeps.
+    if (!command.mode && !command.escalate && !command.liveSteps && command.owner === planOwner(previous)) throw new Error("A different owner and the captain's explicit delegation or revocation are required.");
     if ((command.escalate || command.liveSteps) && to !== "firstmate-pivotal") throw new Error("Pivotal criteria belong to the firstmate-pivotal mode.");
     for (const words of command.escalate ?? []) if (!quotes(command.text, words)) throw new Error(`Record each pivotal criterion in the captain's own words: ${words}`);
     const changed = to !== from || !!command.escalate && digest(command.escalate) !== digest(planEscalate(previous)) || !!command.liveSteps && command.liveSteps !== planLiveSteps(previous);
@@ -127,13 +143,14 @@ function assertDelegatedRevision(previous: WorkflowPlan, definition: PlanDefinit
 /** Append admission shared by the legacy request handler and the disabled S03 command seam. */
 export function checkNewWorkflowAction(command: WorkflowCommand, previous: WorkflowPlan | null, plans: WorkflowPlan[], unavailableDependencies = new Set<string>(), unavailable = false): void {
   checkNewCaptainAction(command, previous, plans, unavailableDependencies, unavailable);
+  if (command.op === "revise" && previous) assertGatesKept(previous, command.definition);
   if (command.op === "draft" || command.op === "revise") {
     if (previous && digest(command.definition.ownership ?? null) !== digest(previous.definition.ownership ?? null)) throw new Error("A revision cannot rewrite ownership; the captain changes it with the transfer action.");
     const criteria = previous ? planEscalate(previous) : command.definition.ownership?.escalate ?? [];
     for (const node of command.definition.nodes) {
       if (node.kind !== "decision" || !node.criterion) continue;
       const old = previous?.definition.nodes.find(n => n.id === node.id);
-      if (old?.kind === "decision" && old.criterion === node.criterion) continue;
+      if (old?.kind === "decision" && old.criterion === node.criterion) continue; // Kept unchanged by assertGatesKept.
       if (!criteria.some(words => sameWords(words, node.criterion!))) throw new Error(`${node.id}: quote one of the captain's pivotal criteria exactly.`);
     }
   }
@@ -197,12 +214,14 @@ function reduce(previous: WorkflowPlan | null, event: Event, owned = false): Wor
     if (c.action === "transfer") {
       const from = planOwner(next), fromMode = planMode(next), toMode = transferMode(c, fromMode), to = modeOwner(toMode);
       const named = !!(c.mode || c.escalate || c.liveSteps);
+      // Owners alone describe a plan that has never had a mode; any other plan records both modes.
+      const moded = named || !!next.mode || !!next.definition.ownership?.mode;
       next.owner = to;
-      if (named || next.mode || next.definition.ownership?.mode) next.mode = toMode;
+      if (moded) next.mode = toMode;
       if (c.escalate) next.escalate = c.escalate;
       if (c.liveSteps) next.liveSteps = c.liveSteps;
       next.ownerEvents ??= []; next.ownerEvents.push({ at: event.at, by: event.by, from, to, evidence: c.text,
-        ...(named ? { fromMode, toMode } : {}), ...(c.escalate ? { escalate: c.escalate } : {}), ...(c.liveSteps ? { liveSteps: c.liveSteps } : {}) });
+        ...(moded ? { fromMode, toMode } : {}), ...(c.escalate ? { escalate: c.escalate } : {}), ...(c.liveSteps ? { liveSteps: c.liveSteps } : {}) });
       // The same owner keeps progressing when only the mode or criteria changed.
       if (from !== to && next.status === "review" && to === "firstmate" && !captainReviewRequired(next)) next.status = "active";
       else if (from !== to && next.status === "active" && to === "captain" && !planFinished(next)) next.status = "review";
