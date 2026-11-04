@@ -6,7 +6,8 @@ import { PolicySourceSchema } from "../shared/supervision-policy";
 import { workflowSnapshot } from "./workflow-board";
 import { mkdir, readFile, readdir, writeFile, stat } from "node:fs/promises";
 import { join } from "node:path";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, expect, it, vi } from "vitest";
+import { WARMUP_TIMEOUT_MS, warmWindowsIdentityProbe } from "../test/supervision-warmup";
 import { workflowFixture } from "../test/workflow-fixture";
 import { SyntheticReceiver } from "../test/synthetic-receiver";
 import { AttachSupervisorInputSchema, ResumeSupervisorInputSchema, MigrationCommandSchema, type AttachSupervisorInput, type MigrationCommand } from "../shared/supervision-activation";
@@ -29,6 +30,10 @@ vi.setConfig({ testTimeout: 30000 });
 const root = process.env.PASEO_HOME!;
 let home: string, activation: SupervisionActivation, receiver: SyntheticReceiver, ledger: NeedsYouService, clock: number;
 let prepare: Extract<MigrationCommand, { op: "prepare" | "resume" }>;
+// As in the crash and recovery suites, pay the cold Windows host startup before the real, unchanged 5 s probes.
+beforeAll(async () => {
+  if (process.platform === "win32") await warmWindowsIdentityProbe();
+}, WARMUP_TIMEOUT_MS + 10000);
 beforeEach(async () => {
   process.env.PASEO_HOME = join(root, randomUUID()); home = join(process.env.PASEO_HOME, "home");
   await mkdir(join(home, "data"), { recursive: true });
