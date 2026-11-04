@@ -47,11 +47,13 @@ function assertGatesKept(previous: WorkflowPlan, definition: PlanDefinition): vo
     const current = definition.nodes.find(node => node.id === old.id);
     if (old.kind === "decision" && (old.effect || old.criterion) && digest(current ?? null) !== digest(old))
       throw new Error(`${old.id}: a revision cannot change or remove a live-step, reserved or escalated gate; ask the captain.`);
-    if (old.kind === "run" && old.effect) {
-      if (current?.kind !== "run" || current.effect !== old.effect) throw new Error(`${old.id}: a revision cannot change or remove a ${old.effect} step's marker; ask the captain.`);
-      for (const edge of old.after.filter(edge => { const gate = previous.definition.nodes.find(n => n.id === edge.node); return gate?.kind === "decision" && !!gate.effect; }))
-        if (!current.after.some(next => digest(next) === digest(edge))) throw new Error(`${old.id}: a revision cannot detach a ${old.effect} step from its gate; ask the captain.`);
-    }
+    if (old.kind === "run" && old.effect && (current?.kind !== "run" || current.effect !== old.effect))
+      throw new Error(`${old.id}: a revision cannot change or remove a ${old.effect} step's marker; ask the captain.`);
+    // Any node still in the plan keeps its routes through effect and escalated gates. Removing the node
+    // itself removes its work rather than ungating it (and an effect step cannot be removed, above).
+    if (!current) continue;
+    for (const edge of old.after.filter(edge => { const gate = previous.definition.nodes.find(n => n.id === edge.node); return gate?.kind === "decision" && (!!gate.effect || !!gate.criterion); }))
+      if (!current.after.some(next => digest(next) === digest(edge))) throw new Error(`${old.id}: a revision cannot detach this step from its live-step, reserved or escalated gate; ask the captain.`);
   }
 }
 /** A transfer names a mode, or (as before modes existed) only an owner. */

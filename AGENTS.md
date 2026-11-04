@@ -156,7 +156,7 @@ the current mode (`effectOwner`). Reserved effects (installation/access/discard/
 with the captain in every mode; on an effect gate, the effect alone decides the owner. A `criterion` decision must
 match the captain's list, ignoring case and spacing. An owner-only transfer must name a different owner, and every
 change of mode on a moded plan records both modes. For every owner and mode, a revision cannot change or remove an
-effect or escalated gate, nor drop or detach a step's `effect` (`assertGatesKept`); only the captain's edits can.
+effect or escalated gate, nor drop a step's `effect` or detach any remaining node from such a gate (`assertGatesKept`); only the captain's edits can.
 The charter teaches drafting a mode from the captain's words. The Plans dialog's **Change who decides** records
 the switch, and `docs/plans-graph/render.mjs` opens it.
 Subject/revision checks run at append, never against a changing historical projection on replay.

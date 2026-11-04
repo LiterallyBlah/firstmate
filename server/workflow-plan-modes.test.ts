@@ -267,3 +267,43 @@ it("P6/P7: criteria match the captain's words ignoring case and spacing; criteri
   await reviewCaptain({ action: "transfer", escalate: [CRITERION, "any allowance change"] }, `${WORDS} Also any allowance change.`);
   expect((await current()).escalate).toEqual([CRITERION, "any allowance change"]);
 });
+
+// Re-review of 8b58f07 (probes P11/P12): an escalated gate keeps every dependent's route, whoever owns the plan.
+function escalatedFixture(ownership?: PlanDefinition["ownership"], sail = false): PlanDefinition {
+  const definition = liveFixture(ownership, [{ kind: "decision", id: "continue", title: "Resume or cancel-and-continue", summary: "Choose how to continue the chapter.", authority: "captain", criterion: CRITERION,
+    after: [], options: [{ id: "go", label: "Resume", consequence: "Resume the paused job." }, { id: "stop", label: "Cancel and continue", consequence: "Start the next chapter." }], recommendation: "go", rationale: `Pivotal: ${CRITERION}.` }]);
+  for (const id of ["release", "setup"]) definition.nodes.find(n => n.id === id)!.after.push({ node: "continue", reason: "decision", on: "answered" });
+  if (sail) definition.request = { ...definition.request, posture: "sail", quote: "Captain: sail, but I decide." };
+  if (!ownership) definition.ownership = undefined;
+  return definition;
+}
+const detachSetup = (definition: PlanDefinition) => {
+  const detached = structuredClone(definition), setup = detached.nodes.find(n => n.id === "setup")!;
+  setup.after = setup.after.filter(edge => edge.node !== "continue"); return detached;
+};
+
+it("P11: a captain-owned revision cannot detach one of two dependents from an escalated decision", async () => {
+  // A captain plan gets its criteria from a pivotal draft, then the captain takes it.
+  await store().execute({ op: "draft", definition: escalatedFixture({ owner: "firstmate", mode: "firstmate-pivotal", evidence: WORDS, escalate: [CRITERION] }) }, randomUUID(), "mate-v1");
+  await reviewCaptain({ action: "transfer", mode: "captain" }, "Captain: I own this now.");
+  let plan = await current();
+  expect(planMode(plan)).toBe("captain");
+  await expect(store().execute({ op: "revise", definition: detachSetup(plan.definition), expected: plan.hash, reason: "Setup no longer waits" }, randomUUID(), "mate-v1")).rejects.toThrow("cannot detach");
+  expect((await current()).definition.nodes.find(n => n.id === "setup")!.after.some(e => e.node === "continue")).toBe(true);
+  // Under FirstMate's own delegation the same detachment is refused too.
+  await reviewCaptain({ action: "transfer", mode: "firstmate-pivotal", escalate: [CRITERION] }, WORDS);
+  plan = await current();
+  await expect(store().execute({ op: "revise", definition: detachSetup(plan.definition), expected: plan.hash, reason: "Setup no longer waits" }, randomUUID(), "mate-v1")).rejects.toThrow();
+});
+
+it("P12: on a sailing plan the detachment is refused and the plan stays as it was", async () => {
+  await store().execute({ op: "draft", definition: escalatedFixture({ owner: "firstmate", mode: "firstmate-pivotal", evidence: WORDS, escalate: [CRITERION] }, true) }, randomUUID(), "mate-v1");
+  await reviewCaptain({ action: "transfer", mode: "captain" }, "Captain: I own this now.");
+  await approve();
+  const before = await current();
+  expect([planMode(before), before.posture, before.status]).toEqual(["captain", "sail", "active"]);
+  await expect(store().execute({ op: "revise", definition: detachSetup(before.definition), expected: before.hash, reason: "Setup no longer waits" }, randomUUID(), "mate-v1")).rejects.toThrow("cannot detach");
+  const after = await current();
+  expect([after.revision, after.status, after.hash]).toEqual([before.revision, before.status, before.hash]);
+  await expect(start("setup")).rejects.toThrow();
+});

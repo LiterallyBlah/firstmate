@@ -222,7 +222,7 @@ rationale. Add one mid-plan by revision. The store refuses a criterion that does
 Captain's list, ignoring case and spacing. The Captain answers escalated points while they keep a
 pivotal or captain mode, and FirstMate answers them only after a switch to `firstmate`.
 Whoever owns the plan, no revision can remove or reword an effect gate or an escalated decision, nor
-drop a step's `effect` or detach it from its gate, so a later switch still finds them. Only the
+drop a step's `effect`, or detach any remaining step or decision from such a gate, so a later switch still finds them. Only the
 Captain's own approve-with-edits can remove one.
 Do not create a second backlog hold for a decision already in a plan. File only the plan's projected
 task row, with its plan id and exact scope; put the question, options and rationale in that node.
