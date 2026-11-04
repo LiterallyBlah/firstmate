@@ -163,14 +163,28 @@ An unavailable daemon is a lint failure, never a clean result. No separate parse
 
 ## Plans on the board
 
-Plans have a decision owner. Drafts without `ownership` belong to the Captain, including existing
-plans. To start a delegated plan, add `"ownership":{"owner":"firstmate","evidence":"<captain's explicit delegation>"}`
-to the draft JSON. `ownership` is the initial policy; revisions preserve it. The Plans dialog shows
-the current owner and lets the Captain delegate or take ownership back. From a recorded chat request,
-use `plan action --file <json>` with `action:"transfer"`, `owner:"firstmate"|"captain"`, the
-current revision and subject hash, and the Captain's quoted words in `text`. This appends an auditable
-transfer without changing prior answers, workers or spent budget. A mate must never infer transfer
-from a task assignment, a worker session or a standing preference.
+Plans have one of three modes, which say who decides:
+
+- `firstmate`: FirstMate decides everything in the plan's scope, live steps included.
+- `firstmate-pivotal`: FirstMate decides routine matters; pivotal points go to the Captain.
+- `captain`: every decision goes to the Captain, live steps included.
+
+Drafts without `ownership` are `captain`, including existing plans; an existing delegation
+(`"owner":"firstmate"` without a mode) is `firstmate`. To start a delegated plan, add
+`"ownership":{"owner":"firstmate","mode":"firstmate"|"firstmate-pivotal","evidence":"<captain's explicit delegation>"}`
+to the draft JSON. For `firstmate-pivotal`, also add `"escalate":["<criterion>", …]`, up to 12 of the Captain's
+criteria for a pivotal point, each copied word for word from `evidence`, and optionally
+`"liveSteps":"routine"` when the Captain said live steps need not come to them. `ownership` is the initial
+policy; no revision can rewrite it, whoever owns the plan.
+
+The Captain changes the mode at any time. The Plans dialog shows it under **Who decides** and switches it
+with **Change who decides**, recording the Captain's words. From a recorded chat request, use
+`plan action --file <json>` with `action:"transfer"`, `mode:"firstmate"|"firstmate-pivotal"|"captain"`, the
+current revision and subject hash, and the Captain's quoted words in `text`. For `firstmate-pivotal`, add
+`escalate` and `liveSteps`; each criterion must appear in `text`. Changing only the criteria is a transfer
+too. Every transfer appends an auditable event without changing prior answers, workers or spent budget.
+A mate must never infer a transfer, a mode or a criterion from a task assignment, a worker session or a
+standing preference, and must never write or reword the criteria itself.
 
 For a FirstMate-owned plan, `plan progress --file <json>` accepts
 `{ "op":"progress", "plan":"<id>", "revision":<current>, "subjectHash":"<current>",
@@ -184,10 +198,24 @@ Changing a scout into a ship run, adding ship work to a scout-only scope, or rem
 gate from protected work requires a separate Captain scope decision. Added runs in a gated scope
 keep the recorded Captain prerequisite.
 An internal worker/turn estimate grants no money, access, external effect or resource expansion.
-Routine decisions follow the current plan owner, including after an explicit transfer. Mark
-`"authority":"captain"` to keep a decision with the Captain under delegation; `"authority":"owner"`
-states the default explicitly. Release, installation,
-discard, access, user holds and effect approvals stay with the Captain regardless of owner.
+Routine decisions follow the current mode, including after a transfer. Mark `"authority":"captain"` to
+keep a decision with the Captain in every mode; `"authority":"owner"` states the default explicitly.
+
+Live steps are release, deploy and live product actions (for example, a product's Resume or
+Cancel-and-continue). Mark the run that performs one with `"effect":"release"|"deploy"|"live-action"`, and
+put a decision with the same `effect` before it (`reason:"decision"`, `on:"answered"`). The run cannot start
+until that decision is answered. Who answers follows the mode at the time: FirstMate under `firstmate`, the
+Captain under `captain`, and under `firstmate-pivotal` the Captain unless they recorded `liveSteps:"routine"`.
+Installation, access, discarding work and spending beyond the approved caps stay with the Captain in every
+mode: mark their gates `"effect":"installation"|"access"|"discard"|"spend"`. User holds and other external
+effect approvals also stay with the Captain.
+
+Under `firstmate-pivotal`, when a point matches one of the Captain's criteria, make it a decision with
+`"authority":"captain"` and `"criterion":"<that criterion, word for word>"`, and quote the criterion in its
+rationale. Add one mid-plan by revision; the store refuses a criterion that is not in the Captain's list.
+The Captain answers escalated points while they keep a pivotal or captain mode, and FirstMate answers them
+only after a switch to `firstmate`. No revision can remove or reword an effect gate or an escalated
+decision, so a later switch still finds them.
 Do not create a second backlog hold for a decision already in a plan. File only the plan's projected
 task row, with its plan id and exact scope; put the question, options and rationale in that node.
 The optional `data/<task>/decision.md` adds context to the same gate. A scheduled wake is only an

@@ -20,10 +20,22 @@ export const PlanLaunchSchema = z.object({
   captainAuthority: z.object({ hold: launchText(10000), authority: launchText(10000) }).strict().optional(),
 }).strict();
 export type PlanLaunch = z.infer<typeof PlanLaunchSchema>;
+/** Who decides a plan: everything FirstMate's, FirstMate's with pivotal points to the captain, or the captain's. */
+export const PlanModeSchema = z.enum(["firstmate", "firstmate-pivotal", "captain"]);
+export type PlanMode = z.infer<typeof PlanModeSchema>;
+/** Live steps follow the plan's mode; reserved effects stay with the captain in every mode. */
+export const LIVE_EFFECTS = ["release", "deploy", "live-action"] as const;
+export const RESERVED_EFFECTS = ["installation", "access", "discard", "spend"] as const;
+export const PlanEffectSchema = z.enum([...LIVE_EFFECTS, ...RESERVED_EFFECTS]);
+export type PlanEffect = z.infer<typeof PlanEffectSchema>;
+/** The captain's own words for what counts as pivotal; FirstMate quotes, never edits, them. */
+export const EscalateSchema = z.array(z.string().trim().min(1).max(500)).max(12);
+export const LiveStepsSchema = z.enum(["pivotal", "routine"]);
 const common = { id: PlanId, title: line.max(120), summary: z.string().min(1).max(5000), after: z.array(PlanDependencySchema).max(100).default([]) };
 export const PlanNodeSchema = z.discriminatedUnion("kind", [
-  z.object({ ...common, kind: z.literal("run"), workflow: z.enum(["task@1", "scout@1"]), launch: PlanLaunchSchema }).strict(),
-  z.object({ ...common, kind: z.literal("decision"), authority: z.enum(["owner", "captain"]).optional(), options: z.array(z.object({ id: PlanId, label: line, consequence: z.string().min(1).max(5000) }).strict()).min(2).max(12),
+  z.object({ ...common, kind: z.literal("run"), workflow: z.enum(["task@1", "scout@1"]), launch: PlanLaunchSchema, effect: PlanEffectSchema.optional() }).strict(),
+  z.object({ ...common, kind: z.literal("decision"), authority: z.enum(["owner", "captain"]).optional(), effect: PlanEffectSchema.optional(),
+    criterion: z.string().trim().min(1).max(500).optional(), options: z.array(z.object({ id: PlanId, label: line, consequence: z.string().min(1).max(5000) }).strict()).min(2).max(12),
     recommendation: PlanId.nullable(), rationale: z.string().min(1).max(5000) }).strict(),
 ]);
 export type PlanNode = z.infer<typeof PlanNodeSchema>;
@@ -34,7 +46,8 @@ export const CumulativePlanBudgetSchema = z.object({
 }).strict();
 export const PlanDefinitionSchema = z.object({
   format: z.literal("firstmate.plan/1"), id: PlanId, title: line.max(120),
-  ownership: z.object({ owner: z.enum(["captain", "firstmate"]), evidence: z.string().trim().min(1).max(5000).optional() }).strict().optional(),
+  ownership: z.object({ owner: z.enum(["captain", "firstmate"]), evidence: z.string().trim().min(1).max(5000).optional(),
+    mode: PlanModeSchema.optional(), escalate: EscalateSchema.optional(), liveSteps: LiveStepsSchema.optional() }).strict().optional(),
   request: z.object({ text: z.string().min(1).max(20000), at: z.iso.datetime(),
     posture: z.enum(["review", "sail"]).optional(), quote: z.string().min(1).max(5000).optional() }).strict(),
   implicit: z.boolean().default(false), budget: CumulativePlanBudgetSchema,
@@ -53,7 +66,10 @@ export type PlanPostureSource = z.infer<typeof PlanPostureSourceSchema>;
 export interface WorkflowPlan {
   definition: PlanDefinition; revision: number; sequence: number; hash: string; posture: "review" | "sail";
   owner?: "captain" | "firstmate" | undefined;
-  ownerEvents?: { at: string; by: string; from: "captain" | "firstmate"; to: "captain" | "firstmate"; evidence: string }[] | undefined;
+  /** Set by transfers that name a mode or criteria; otherwise derived from the owner and the draft. */
+  mode?: PlanMode | undefined; escalate?: string[] | undefined; liveSteps?: "pivotal" | "routine" | undefined;
+  ownerEvents?: { at: string; by: string; from: "captain" | "firstmate"; to: "captain" | "firstmate"; evidence: string;
+    fromMode?: PlanMode | undefined; toMode?: PlanMode | undefined; escalate?: string[] | undefined; liveSteps?: "pivotal" | "routine" | undefined }[] | undefined;
   status: "review" | "active" | "held" | "abandoned"; approvedBudget: { agents: number; turns: number };
   nodes: Record<string, PlanNodeState>; told: string[]; handled: string[];
   history: { revision: number; at: string; by: string; reason: string }[];
@@ -77,6 +93,7 @@ export const PlanEditSchema = z.discriminatedUnion("kind", [
 ]);
 export const PlanCaptainCommandSchema = z.object({ op: z.literal("captain"), plan: PlanId, revision: z.number().int().positive(), subjectHash: z.string().length(64),
   action: z.enum(["approve", "edit", "changes", "hold", "resume", "decline", "answer", "transfer"]), text: z.string().max(10000).default(""), owner: z.enum(["captain", "firstmate"]).optional(),
+  mode: PlanModeSchema.optional(), escalate: EscalateSchema.optional(), liveSteps: LiveStepsSchema.optional(),
   edits: z.array(PlanEditSchema).max(100).optional(), node: PlanId.optional(), option: PlanId.optional(),
 }).strict();
 export type PlanCaptainCommand = z.infer<typeof PlanCaptainCommandSchema>;
@@ -107,7 +124,32 @@ export const WorkflowCommandSchema = z.discriminatedUnion("op", [
 ]);
 export type WorkflowCommand = z.infer<typeof WorkflowCommandSchema>;
 export const planOwner = (plan: WorkflowPlan): "captain" | "firstmate" => plan.owner ?? "captain";
-export const decisionOwner = (plan: WorkflowPlan, node: PlanNode): "captain" | "firstmate" => node.kind === "decision" && node.authority === "captain" ? "captain" : planOwner(plan);
+export const modeOwner = (mode: PlanMode): "captain" | "firstmate" => mode === "captain" ? "captain" : "firstmate";
+export const planMode = (plan: WorkflowPlan): PlanMode => plan.mode ?? plan.definition.ownership?.mode ?? (planOwner(plan) === "firstmate" ? "firstmate" : "captain");
+export const planEscalate = (plan: WorkflowPlan): string[] => plan.escalate ?? plan.definition.ownership?.escalate ?? [];
+export const planLiveSteps = (plan: WorkflowPlan): "pivotal" | "routine" => plan.liveSteps ?? plan.definition.ownership?.liveSteps ?? "pivotal";
+export const isLiveEffect = (effect: PlanEffect): boolean => (LIVE_EFFECTS as readonly string[]).includes(effect);
+/** Live steps follow the mode (pivotal by default under firstmate-pivotal); reserved effects never leave the captain. */
+export function effectOwner(plan: WorkflowPlan, effect: PlanEffect): "captain" | "firstmate" {
+  if (!isLiveEffect(effect)) return "captain";
+  const mode = planMode(plan);
+  return mode === "firstmate-pivotal" ? planLiveSteps(plan) === "routine" ? "firstmate" : "captain" : modeOwner(mode);
+}
+export function decisionOwner(plan: WorkflowPlan, node: PlanNode): "captain" | "firstmate" {
+  if (node.kind !== "decision") return planOwner(plan);
+  if (node.effect) return effectOwner(plan, node.effect);
+  // An escalated point follows the mode: FirstMate's only while the captain has handed over everything.
+  if (node.criterion) return planMode(plan) === "firstmate" ? "firstmate" : "captain";
+  return node.authority === "captain" ? "captain" : modeOwner(planMode(plan));
+}
+export function planModeLabel(mode: PlanMode, escalate: readonly string[] = [], liveSteps: "pivotal" | "routine" = "pivotal"): string {
+  if (mode === "captain") return "Captain";
+  if (mode === "firstmate") return "FirstMate (routine plan progression)";
+  return `FirstMate (routine plan progression); pivotal points go to the Captain${liveSteps === "pivotal" ? ", including live steps" : ", live steps routine"}${escalate.length ? `: ${escalate.join("; ")}` : ""}`;
+}
+/** Criteria match as the captain wrote them, ignoring case and spacing. */
+export const sameWords = (a: string, b: string) => a.replace(/\s+/g, " ").trim().toLowerCase() === b.replace(/\s+/g, " ").trim().toLowerCase();
+export const quotes = (text: string, words: string) => text.replace(/\s+/g, " ").toLowerCase().includes(words.replace(/\s+/g, " ").trim().toLowerCase());
 export const captainReviewRequired = (plan: WorkflowPlan): boolean => !!plan.postureSource?.warning ||
   (plan.definition.request.posture === "review" && !plan.ownerEvents?.some(event => event.to === "firstmate"));
 export interface AgendaItem { id: string; priority: number; kind: "escalation" | "captain" | "replan" | "start" | "tell" | "books"; plan: string; node?: string; text: string; line?: string; section?: string }
@@ -121,6 +163,10 @@ export function planProblems(plan: PlanDefinition, others: readonly WorkflowPlan
   if (plan.request.posture && !plan.request.quote) problems.push("A posture override needs the captain's quoted words.");
   if (plan.ownership?.owner === "firstmate" && !plan.ownership.evidence) problems.push("FirstMate ownership needs the captain's recorded delegation.");
   if (plan.implicit && plan.ownership?.owner === "firstmate") problems.push("Automatic one-run plans cannot claim delegated ownership.");
+  const ownership = plan.ownership;
+  if (ownership?.mode && modeOwner(ownership.mode) !== ownership.owner) problems.push(`Mode ${ownership.mode} disagrees with owner ${ownership.owner}.`);
+  if ((ownership?.escalate?.length || ownership?.liveSteps) && ownership.mode !== "firstmate-pivotal") problems.push("Pivotal criteria belong to the firstmate-pivotal mode.");
+  for (const words of ownership?.escalate ?? []) if (!quotes(ownership?.evidence ?? "", words)) problems.push(`Pivotal criterion is not in the captain's recorded words: ${words}`);
   if (plan.implicit && (plan.nodes.length !== 1 || plan.nodes[0]?.kind !== "run" || plan.nodes[0].id !== plan.id)) problems.push("An implicit plan is its one run's task id.");
   const runs = plan.nodes.filter(n => n.kind === "run").length;
   if (runs > plan.budget.agents || runs > plan.budget.turns) problems.push(`Worst case ${runs} agents / ${runs} turns exceeds the plan budget.`);
@@ -128,7 +174,11 @@ export function planProblems(plan: PlanDefinition, others: readonly WorkflowPlan
     if (node.kind === "run") {
       if (node.launch.id !== node.id || node.launch.brief.file !== `data/${node.id}/brief.md`) problems.push(`${node.id}: launch and brief must name the node.`);
       if ((node.workflow === "scout@1") !== (node.launch.kind === "scout")) problems.push(`${node.id}: workflow and kind disagree.`);
+      if (node.effect && !node.after.some(edge => edge.on === "answered" && nodes.get(edge.node)?.kind === "decision" &&
+        (nodes.get(edge.node) as Extract<PlanNode, { kind: "decision" }>).effect === node.effect)) problems.push(`${node.id}: a ${node.effect} step needs a ${node.effect} decision before it.`);
     } else {
+      if (node.criterion && node.authority !== "captain") problems.push(`${node.id}: an escalated point is a captain-authority decision.`);
+      if (node.criterion && node.effect) problems.push(`${node.id}: an effect gate already follows the mode; do not also escalate it.`);
       if (new Set(node.options.map(o => o.id)).size !== node.options.length) problems.push(`${node.id}: duplicate options.`);
       if (node.recommendation && !node.options.some(o => o.id === node.recommendation)) problems.push(`${node.id}: unknown recommendation.`);
       const answered = others.some(p => !!p.nodes[node.id]?.answer);

@@ -76,6 +76,16 @@ try {
       await detail.getByRole("button", { name: "Open plan details", exact: true }).click();
       const planDialog = page.getByRole("dialog", { name: title, exact: true }); await planDialog.waitFor();
       assert.equal(await page.evaluate(() => window.planActions.length), 0);
+      // Who decides: the switch form opens and its choices render, without recording anything.
+      assert(await planDialog.getByText(/^Who decides: /).count() > 0);
+      await planDialog.getByRole("button", { name: "Change who decides", exact: true }).click();
+      await planDialog.getByRole("button", { name: "FirstMate decides, pivotal points to you", exact: true }).click();
+      const pivotalField = planDialog.getByLabel("Pivotal points, one per line", { exact: true });
+      await pivotalField.fill("Cancel-and-continue rather than Resume"); await pivotalField.scrollIntoViewIfNeeded();
+      assert.equal(await planDialog.getByRole("button", { name: "Record who decides", exact: true }).isDisabled(), true);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+      await shot(page, `${prefix}-who-decides`);
+      assert.equal(await page.evaluate(() => window.planActions.length), 0);
       await page.keyboard.press("Escape"); await planDialog.waitFor({ state: "hidden" });
       await page.getByRole("tab", { name: "List", exact: true }).click();
       assert.equal(await page.locator('[data-testid^="workflow-step-"]').count(), 8);

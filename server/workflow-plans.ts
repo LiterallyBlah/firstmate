@@ -4,7 +4,7 @@ import type { Dirent } from "node:fs";
 import { mkdir, readFile, readdir, rename, writeFile, stat, rm } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { z } from "zod";
-import { PlanId, PlanLaunchSchema, PlanDefinitionSchema, PlanPostureSourceSchema, WorkflowCommandSchema, captainReviewRequired, decisionOwner, planOwner, planAwaitingReview, planFinished, planPosture, planProblems, planSpent, planWorstCase, type AgendaItem, type PlanDefinition, type WorkflowCommand, type WorkflowPlan, type PlanNode } from "../shared/workflow-plans";
+import { PlanId, PlanLaunchSchema, PlanDefinitionSchema, PlanPostureSourceSchema, WorkflowCommandSchema, captainReviewRequired, decisionOwner, planOwner, planMode, planEscalate, planLiveSteps, modeOwner, planModeLabel, quotes, sameWords, type PlanMode, planAwaitingReview, planFinished, planPosture, planProblems, planSpent, planWorstCase, type AgendaItem, type PlanDefinition, type WorkflowCommand, type WorkflowPlan, type PlanNode } from "../shared/workflow-plans";
 import { readPlanPosture } from "./workflow-posture";
 import { digest, publish } from "./submissions";
 import { serialized } from "./serialize";
@@ -40,6 +40,9 @@ export const backlogSection = (node: PlanNode, state: string, closedWithoutLandi
 export const samePlanItem = (item: ReturnType<typeof parseBacklog>[number], plan: WorkflowPlan, node: PlanNode) =>
   item.id === node.id && (node.kind === "decision" ? true : item.project === node.launch.project && (item.host ?? "local").toLowerCase() === node.launch.host.toLowerCase()) &&
   (plan.definition.implicit || item.plan === plan.definition.id);
+/** A transfer names a mode, or (as before modes existed) only an owner. */
+const transferMode = (command: Extract<WorkflowCommand, { op: "captain" }>, from: PlanMode): PlanMode =>
+  command.mode ?? (command.owner ? command.owner === "firstmate" ? "firstmate" : "captain" : from);
 /** Append admission only. Replayers deliberately do not call this helper. */
 export function checkNewCaptainAction(command: WorkflowCommand, previous: WorkflowPlan | null, plans: WorkflowPlan[], unavailableDependencies = new Set<string>(), unavailable = false): void {
   if (command.op !== "captain" && command.op !== "progress") return;
@@ -55,7 +58,13 @@ export function checkNewCaptainAction(command: WorkflowCommand, previous: Workfl
     return;
   }
   if (command.action === "transfer") {
-    if (!command.owner || command.owner === planOwner(previous) || !command.text.trim()) throw new Error("A different owner and the captain's explicit delegation or revocation are required.");
+    const from = planMode(previous), to = transferMode(command, from);
+    if (!command.text.trim()) throw new Error("A different owner and the captain's explicit delegation or revocation are required.");
+    if (command.owner && command.mode && command.owner !== modeOwner(command.mode)) throw new Error(`Mode ${command.mode} disagrees with owner ${command.owner}.`);
+    if ((command.escalate || command.liveSteps) && to !== "firstmate-pivotal") throw new Error("Pivotal criteria belong to the firstmate-pivotal mode.");
+    for (const words of command.escalate ?? []) if (!quotes(command.text, words)) throw new Error(`Record each pivotal criterion in the captain's own words: ${words}`);
+    const changed = to !== from || !!command.escalate && digest(command.escalate) !== digest(planEscalate(previous)) || !!command.liveSteps && command.liveSteps !== planLiveSteps(previous);
+    if (!changed) throw new Error("A different owner and the captain's explicit delegation or revocation are required.");
     return;
   }
   if (command.action === "resume" && previous.status !== "held") throw new Error("Only a held plan can be resumed by the captain.");
@@ -69,13 +78,16 @@ export function checkNewCaptainAction(command: WorkflowCommand, previous: Workfl
   }
 }
 const delegatedRunScope = (node: Extract<PlanNode, { kind: "run" }>) => digest({
-  project: node.launch.project, host: node.launch.host, baseBranch: node.launch.baseBranch,
+  ...(node.effect ? { effect: node.effect } : {}), project: node.launch.project, host: node.launch.host, baseBranch: node.launch.baseBranch,
   mode: node.launch.mode, backlog: node.launch.backlog.existing, workflow: node.workflow, kind: node.launch.kind,
 });
+/** Gates FirstMate may never rewrite: captain decisions now, and effect or escalated gates whatever the mode is now,
+ * so switching modes later still finds them. */
+const modeGuarded = (plan: WorkflowPlan, node: PlanNode) => node.kind === "decision" ? decisionOwner(plan, node) === "captain" || !!node.effect || !!node.criterion :
+  !!node.launch.captainAuthority || !!node.effect;
 function assertDelegatedRevision(previous: WorkflowPlan, definition: PlanDefinition, plans: WorkflowPlan[]): void {
   if (digest(definition.request) !== digest(previous.definition.request) || digest(definition.ownership ?? null) !== digest(previous.definition.ownership ?? null)) throw new Error("Delegated revision cannot rewrite the request or ownership evidence.");
-  const protectedNodes = new Set(plans.flatMap(plan => plan.definition.nodes.filter(node =>
-    node.kind === "decision" && decisionOwner(plan, node) === "captain" || node.kind === "run" && !!node.launch.captainAuthority).map(node => node.id)));
+  const protectedNodes = new Set(plans.flatMap(plan => plan.definition.nodes.filter(node => modeGuarded(plan, node)).map(node => node.id)));
   // Keep every old route to a Captain gate, including an indirect route through a routine decision.
   for (let added = true; added;) {
     added = false;
@@ -84,7 +96,7 @@ function assertDelegatedRevision(previous: WorkflowPlan, definition: PlanDefinit
     }
   }
   for (const old of previous.definition.nodes) {
-    if (old.kind === "decision" && decisionOwner(previous, old) === "captain" || old.kind === "run" && !!old.launch.captainAuthority) {
+    if (modeGuarded(previous, old)) {
       if (digest(definition.nodes.find(node => node.id === old.id) ?? null) !== digest(old)) throw new Error("A captain-owned decision or authority gate cannot be changed through delegated revision.");
     }
     const current = definition.nodes.find(node => node.id === old.id);
@@ -115,6 +127,16 @@ function assertDelegatedRevision(previous: WorkflowPlan, definition: PlanDefinit
 /** Append admission shared by the legacy request handler and the disabled S03 command seam. */
 export function checkNewWorkflowAction(command: WorkflowCommand, previous: WorkflowPlan | null, plans: WorkflowPlan[], unavailableDependencies = new Set<string>(), unavailable = false): void {
   checkNewCaptainAction(command, previous, plans, unavailableDependencies, unavailable);
+  if (command.op === "draft" || command.op === "revise") {
+    if (previous && digest(command.definition.ownership ?? null) !== digest(previous.definition.ownership ?? null)) throw new Error("A revision cannot rewrite ownership; the captain changes it with the transfer action.");
+    const criteria = previous ? planEscalate(previous) : command.definition.ownership?.escalate ?? [];
+    for (const node of command.definition.nodes) {
+      if (node.kind !== "decision" || !node.criterion) continue;
+      const old = previous?.definition.nodes.find(n => n.id === node.id);
+      if (old?.kind === "decision" && old.criterion === node.criterion) continue;
+      if (!criteria.some(words => sameWords(words, node.criterion!))) throw new Error(`${node.id}: quote one of the captain's pivotal criteria exactly.`);
+    }
+  }
   if (!previous) return;
   if (command.op === "replace") {
     const state = previous.nodes[command.node];
@@ -128,6 +150,13 @@ export function checkNewWorkflowAction(command: WorkflowCommand, previous: Workf
     }
   }
   if (command.op === "revise" && planOwner(previous) === "firstmate") assertDelegatedRevision(previous, command.definition, plans);
+  if (command.op === "start") {
+    const node = previous.definition.nodes.find(n => n.id === command.node);
+    if (node?.kind === "run" && node.effect && !node.after.some(edge => {
+      const gate = previous.definition.nodes.find(n => n.id === edge.node);
+      return edge.on === "answered" && gate?.kind === "decision" && gate.effect === node.effect && !!previous.nodes[gate.id]?.answer;
+    })) throw new Error(`This ${node.effect} step needs its answered ${node.effect} decision before it starts.`);
+  }
   if (command.op === "start" && planOwner(previous) === "firstmate") {
     const node = previous.definition.nodes.find(n => n.id === command.node);
     if (node?.kind === "run" && node.launch.captainAuthority && !node.after.some(edge => edge.on === "answered" &&
@@ -166,11 +195,17 @@ function reduce(previous: WorkflowPlan | null, event: Event, owned = false): Wor
     if (c.action === "changes" && !c.text.trim()) throw new Error("Describe the requested changes.");
     if (c.action === "answer") answerDecision(next, c.node, c.option, c.text, event.at);
     if (c.action === "transfer") {
-      const from = planOwner(next), to = c.owner!;
+      const from = planOwner(next), fromMode = planMode(next), toMode = transferMode(c, fromMode), to = modeOwner(toMode);
+      const named = !!(c.mode || c.escalate || c.liveSteps);
       next.owner = to;
-      next.ownerEvents ??= []; next.ownerEvents.push({ at: event.at, by: event.by, from, to, evidence: c.text });
-      if (next.status === "review" && to === "firstmate" && !captainReviewRequired(next)) next.status = "active";
-      else if (next.status === "active" && to === "captain" && !planFinished(next)) next.status = "review";
+      if (named || next.mode || next.definition.ownership?.mode) next.mode = toMode;
+      if (c.escalate) next.escalate = c.escalate;
+      if (c.liveSteps) next.liveSteps = c.liveSteps;
+      next.ownerEvents ??= []; next.ownerEvents.push({ at: event.at, by: event.by, from, to, evidence: c.text,
+        ...(named ? { fromMode, toMode } : {}), ...(c.escalate ? { escalate: c.escalate } : {}), ...(c.liveSteps ? { liveSteps: c.liveSteps } : {}) });
+      // The same owner keeps progressing when only the mode or criteria changed.
+      if (from !== to && next.status === "review" && to === "firstmate" && !captainReviewRequired(next)) next.status = "active";
+      else if (from !== to && next.status === "active" && to === "captain" && !planFinished(next)) next.status = "review";
     }
     if (c.action === "edit") {
       if (!c.edits?.length) throw new Error("Choose an edit before approving.");
@@ -735,7 +770,7 @@ export class WorkflowPlanStore {
     const content = fill(await readTemplate(TEMPLATES.workflowPlan), {
       title: plan.definition.title, request: plan.definition.request.text, revision: String(plan.revision), posture: plan.posture, state: planFinished(plan) ? "finished" : plan.status,
       budget: JSON.stringify(planWorstCase(plan.definition, plan.nodes, plan.removed)),
-      owner: planOwner(plan) === "firstmate" ? "FirstMate (routine plan progression)" : "Captain",
+      owner: planModeLabel(planMode(plan), planEscalate(plan), planLiveSteps(plan)),
       delegation: plan.ownerEvents?.at(-1)?.evidence ?? plan.definition.ownership?.evidence ?? "No delegation recorded",
       postureSource: plan.postureSource ? `${plan.postureSource.source}: ${plan.postureSource.detail}${plan.postureSource.warning ? ` ${plan.postureSource.warning}` : ""}` : "D2 default",
       nodes: nodes.join("\n\n"),

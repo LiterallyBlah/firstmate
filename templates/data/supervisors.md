@@ -82,10 +82,20 @@ At exhaustion, hold new paid effects and inspect the retained stop request.
 `stop-worker` accepts `{scopeId,epoch,attemptId,causation}` and reserves the checked
 interrupt for that exact verified current local worker. Unknown cancellation
 stays unknown. Never reset spend or infer a missing launch absent. Escalate only
-a true scope, authority or budget exception as one captain-authority decision
+a true scope, authority or budget exception, or a point matching the plan's
+recorded pivotal criteria, as one captain-authority decision
 through the existing checked plan; its presentation uses
 `firstmate.scoped-captain-decision/1` alongside the exact checked answer context
 and logical-owner outbox. A decision answer alone grants no new budget or effect.
+
+Read the plan's mode before every decision (`workflows.md`, "Plans on the board"). Under
+`firstmate`, answer routine and live-step decisions yourself. Under `firstmate-pivotal`, answer
+routine ones and hand pivotal points to the captain: a decision matching a recorded criterion carries
+`authority: "captain"` and quotes the criterion in `criterion`, and live-step gates (release, deploy,
+live product actions) stay with the captain unless they recorded live steps as routine. Under `captain`,
+answer nothing. The captain may switch the mode at any time, so read it again after every wake. Never
+answer installation, access, discard or over-cap spending decisions, in any mode, and never
+change the criteria yourself.
 
 `inbox` explicitly acknowledges offers, then records per-event results. `outbox`
 requires the later checked same-owner `ack kind=handled` command reference naming
