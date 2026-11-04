@@ -11,11 +11,13 @@ Git repository or local directory; it is marked private to prevent accidental np
 ### Added
 
 - **The first mate can set Supervisors up itself.** A new `tools/supervise.mjs` lets the current first
-  mate run the plan-help handover (backup folder and retention, evidence, prepare, reconcile, barrier,
-  commit), Attach a plan Supervisor, and provision a project's Supervisor — through the same checked
-  server paths as your app buttons, which keep working. Every action records the first mate as its
-  actor beside your button's record; crewmates and Supervisors are refused, and canceling a handover,
-  resolving its holds and the always-yours matters stay yours.
+  mate run the plan-help handover (backup folder and retention, evidence, prepare/resume, reconcile,
+  barrier, commit), Attach a plan Supervisor, and provision or resume a project's Supervisor —
+  through the same checked paths as your app buttons, which keep working. Every action records the
+  first mate as its actor beside your button's record; if the first mate is replaced mid-setup, its
+  successor (or you, from the app) takes the recorded request over, recorded as a takeover.
+  Crewmates and Supervisors are refused, and canceling a handover, resolving its holds and the
+  always-yours matters stay yours.
 
 - **Converse with a worker in one press.** Every card and list row with a worker has a 💬 that opens its
   conversation in a drawer beside the list or board — over it where the pane is narrow, the whole Crew tab on a

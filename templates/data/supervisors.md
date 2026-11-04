@@ -13,24 +13,31 @@ same-user request files, not authenticated IPC. Never impersonate another agent.
 Supervisors are a tool for both the captain and the first mate. The captain attaches and
 provisions from the app buttons, labelled unverified; the current first mate (General) does the
 same through `tools/supervise.mjs`, below, where appropriate — for example when the captain has
-not set one up. Both routes run the same checked server paths and record who acted. No helper
+not set one up. Both routes run the same checked paths and record who acted. No helper
 takes over, archives, lands or mutates remote work, and a bound Supervisor or crewmate can
 never attach or provision: only the captain and General can.
 
 ## Setting up a Supervisor (General only)
 
 `node tools/supervise.mjs command --file data/<request>.json --request-id <uuid>` submits one
-strict command; `activation` and `backup-read` read directly. Keep the original UUID and exact
-bytes after a lost reply: the transport id is also the recorded Attach or provisioning request
-id, so replaying it resumes the same recorded request and never creates a second session or
-resends an uncertain opening. Every command re-checks the current first-mate role; anyone else
-is refused, and every handover or Attach records the first mate as its actor.
+strict command; `activation` and `backup-read` read directly. The transport id is also the
+recorded Attach or provisioning request id. If no reply has arrived yet, keep the original UUID
+and exact bytes: replaying them resumes the same recorded request and never creates a second
+session or resends an uncertain opening. If a reply already reported an error, that reply is
+kept for that id — fix the cause and submit a **new** request id, or finish an interrupted
+setup with `attach-resume` / `project-provision-resume` below. Commands are acted on only
+while the current first mate is in a turn, and every command is refused by the cooperative
+role check unless it names that mate (same-user convention, not authentication). Every
+handover or Attach records the first mate as its actor.
 
 - `plan-help {plan}` and `evidence {plan, folder?, rollbackPath?}` read the same checked review
   and handover evidence as the app. Fix every reported problem before preparing.
 - `backup-set {expectedRevision, backup: {destination, retention}}` saves the independent backup
   folder and how long its files are kept. `backup-read` shows the current choice.
-- `migrate {command}` carries the existing strict migration command: `prepare`/`resume` with the
+- `migrate {command}` carries the existing strict migration command. The handover steps are
+  `prepare`, `reconcile`, `barrier`, `commit`, with `resume` for an interrupted preparation.
+  First-mate `prepare` (and `resume` before any migration is recorded) must carry the reviewed
+  `reviewHash` and checked `evidence`; a bare prepare is refused. `prepare`/`resume` take the
   review's plan, scopeId, projectId, migrationId, reviewHash, evidence `{inventory, policy,
   rollback {path, hash}}` (from the `evidence` read's inventory, policy and rollback hashes) and
   prerequisites `{inventory: "delivery-inventory:sha256:<inventory hash>", policy:
@@ -41,11 +48,18 @@ is refused, and every handover or Attach records the first mate as its actor.
 - `attach {attach: {plan, planHash, scopeId, scopeVersion, supervisorId, profile, opening}}`
   attaches the plan's Supervisor after a committed handover, with the chosen profile and
   opening. Take every field from the `activation` read's plan row. `attach-resume
-  {attachRequestId}` finishes an attachment this tool started; an attachment the captain's
-  button started resumes from the app, and the reverse likewise.
+  {attachRequestId}` finishes a recorded attachment this tool started. An attachment the
+  captain's button started resumes from the app.
 - `project-provision {provision: {projectId, projectVersion, profile?, limits?, opening?}}`
   provisions an admitted project's Supervisor (see `data/project-context.md`); caps must stay
-  within the project's admitted allocation.
+  within the project's admitted allocation. `project-provision-resume {projectId}` reruns the
+  project's recorded provisioning request exactly, after an interruption or an error reply.
+
+If the first mate is replaced mid-setup, the successor first mate takes the recorded work over:
+`attach-resume`, `project-provision-resume` and the remaining handover steps continue the same
+recorded requests (never a second identity), the takeover itself is recorded with the successor
+as its actor, and the captain can likewise resume a first-mate-started attachment or provisioning
+from the app. Nothing is resent and no spend is refunded.
 
 Scope, epoch, allocation, headroom and budget checks are the app's, re-run before every native
 effect. Installation, access, discarding work and spending beyond the approved caps stay with

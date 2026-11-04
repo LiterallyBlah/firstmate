@@ -10,7 +10,7 @@ import type { WorkflowPlan } from "../shared/workflow-plans";
 import { ProjectAdminSchema, ProjectRuntimeSnapshotSchema, administerProject, provisionProjectFromUi, readProjectMemory,
   readProjectRuntime, recoverProjectRuntimeFromUi, abortProjectProvisionFromUi, type ProjectAdmin, type ProjectRuntimeSnapshot } from "../shared/project-runtime";
 import { ProjectProvisionInputSchema } from "../shared/supervision-policy";
-import { SUPERVISE_ACTOR_SOURCE } from "../shared/supervise";
+import { SUPERVISE_ACTOR_SOURCE, isSuperviseMateActor, superviseReplayEquivalent } from "../shared/supervise";
 import { registerProjectFolders } from "./project-folders";
 import { normalizedName, type ProjectRecord } from "../shared/supervision-projects";
 import type { GatewayReceiver } from "../shared/supervision-effects";
@@ -45,11 +45,12 @@ const provisionOrigin = (actor: SupervisionActor) => digest(actor) === digest(UI
 const result = { planId: null, planHash: null, decisionId: null, outboxId: null };
 const normalPath = (path: string) => process.platform === "win32" ? resolve(path).toLowerCase() : resolve(path);
 const generalScopeId = (home: string) => projectRowId("general", workflowHomeIdentity(home));
-const recordedProvision = (status: SupervisionStatus, projectId: string) => status.commands.flatMap(c => {
+const recordedProvisionRecord = (status: SupervisionStatus, projectId: string) => status.commands.flatMap(c => {
   const input = c.result.projectProvision;
   return input && input.homeId === status.homeId && input.projectId === projectId && c.id === stableId("project-provision-input", input.requestId) &&
-    c.inputHash === digest(input) && provisionOrigin(c.actor) ? [input] : [];
+    c.inputHash === digest(input) && provisionOrigin(c.actor) ? [{ input, actor: c.actor }] : [];
 })[0] ?? null;
+const recordedProvision = (status: SupervisionStatus, projectId: string) => recordedProvisionRecord(status, projectId)?.input ?? null;
 type RegistryEntry = { name: string; location: string | null; directory: string | null; projectId: string | null; scopeId: string | null; reason: string | null };
 async function registry(home: string) {
   const file = await readTextFile(home, "data/projects.md");
@@ -177,7 +178,8 @@ export class ProjectRuntime {
         const project = status.projects?.projects.find(p => p.id === row.projectId), scope = status.scopes.find(s => s.id === project?.scopeId),
           binding = status.bindings.find(b => b.scopeId === scope?.id), spend = scope ? supervisorSpend(status, scope.id) : { sessions: 0, turns: 0, uncertain: 0 };
         const effects = binding ? activationEffects(status, binding.scopeId, binding.epoch) : null;
-        const provisionInput = project ? recordedProvision(status, project.id) : null;
+        const provisionRecord = project ? recordedProvisionRecord(status, project.id) : null, provisionInput = provisionRecord?.input ?? null;
+        const provisionOriginName = provisionRecord ? isSuperviseMateActor(provisionRecord.actor) ? "first-mate" as const : "app" as const : null;
         const stopped = binding?.state === "suspect" || !!provisionInput && status.commands.some(c => c.id === stableId("project-provision-abort", provisionInput.requestId));
         const aliasKnown = !project || [project.name, ...project.aliases].some(name => normalizedName(name) === normalizedName(row.name));
         const reason = row.reason ?? (!aliasKnown ? "Registry name changed; record a reviewed alias before provisioning." : !project ? "Awaiting reviewed admission and allocation." : !project.owner ? "Durable profile and caps are missing." :
@@ -186,7 +188,7 @@ export class ProjectRuntime {
           !binding ? provisionInput ? "Provisioning incomplete; inspect and resume the recorded request." : null : binding.state !== "active" || effects?.send?.state !== "succeeded" ? "Provisioning incomplete; inspect and resume the recorded request." : null);
         return { name: row.name, directory: row.directory, registryLocation: row.location, hostId: project?.owner?.hostId ?? (row.directory ? "local" : null), projectId: row.projectId, scopeId: project?.scopeId ?? row.scopeId,
           reason, state: row.reason ? "held" : project?.state ?? "unadmitted", version: project?.version ?? 0, aliases: project?.aliases ?? [],
-          agentId: binding?.agentId ?? null, workspaceId: binding?.workspaceId ?? null, provisionRequestId: effects?.create?.requestId ?? provisionInput?.requestId ?? null, provisionInput,
+          agentId: binding?.agentId ?? null, workspaceId: binding?.workspaceId ?? null, provisionRequestId: effects?.create?.requestId ?? provisionInput?.requestId ?? null, provisionInput, provisionOrigin: provisionOriginName,
           ...spend, profile: project?.owner?.profile ?? null, limits: project?.owner?.limits ?? null,
           memoryPending: status.projects?.memoryProposals.filter(p => p.projectId === project?.id && p.state === "proposed").length ?? 0,
           plans: associations.filter(a => row.projectId && a.projectIds.includes(row.projectId)) };
@@ -355,7 +357,16 @@ export class ProjectRuntime {
       if (retained && retained.requestId !== input.requestId) return;
       if (status.commands.some(c => c.id === stableId("project-provision-abort", input.requestId))) refuse("HELD", "Provisioning was stopped; its identity and spend remain reserved.");
       const marker = status.commands.find(c => c.id === stableId("project-provision-input", input.requestId));
-      if (marker && (marker.inputHash !== digest(input) || digest(marker.actor) !== digest(actor))) refuse("CONFLICT", "Request ID belongs to different provisioning input or provenance. Resume it through the route that started it.");
+      if (marker && marker.inputHash !== digest(input)) refuse("CONFLICT", "Request ID belongs to different provisioning input.");
+      if (marker && digest(marker.actor) !== digest(actor)) {
+        // Only a first-mate-started request can be taken over (by the successor first mate or the
+        // captain's app); the takeover itself is recorded before the recorded request continues.
+        if (!isSuperviseMateActor(marker.actor) || !superviseReplayEquivalent(marker.actor, actor))
+          refuse("CONFLICT", "Request ID belongs to a different provenance. Resume it through the route that started it.");
+        await store.transactCommand(stableId("supervise-takeover", input.requestId, digest(actor)),
+          digest({ superviseTakeover: { requestId: input.requestId, from: marker.actor, to: actor } }), actor,
+          async () => ({ mutations: [], expectedVersions: [], result }));
+      }
       const binding = status.bindings.find(b => b.scopeId === project.scopeId), accepted = status.commands.find(c => c.id === input.requestId);
       if (binding && accepted) {
         const recorded = activationEffects(status, project.scopeId, binding.epoch);

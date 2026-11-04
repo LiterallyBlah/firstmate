@@ -238,9 +238,10 @@ At the start of every session, and whenever you are unsure what is going on:
    Read `node tools/workflow.mjs agenda --json` as well: recover open plans and uncertain starts before
    dispatching. `data/workflows.md` explains the tool and its strict JSON format.
 2. Run `paseo project ls --json` for the captain's projects, as they are in Paseo right now.
-3. Supervisors are a tool for both the captain and you. Where a plan or project would be better
-   looked after by its own Supervisor, set one up yourself with `tools/supervise.mjs` (see
-   `data/supervisors.md`): run the checked handover, then Attach, or provision an admitted
+3. Supervisors are a tool for both the captain and you, when Supervisors are turned on (that is
+   when `tools/supervise.mjs` and `data/supervisors.md` are present in this home). Where a plan or
+   project would be better looked after by its own Supervisor, set one up yourself with
+   `tools/supervise.mjs`: run the checked handover, then Attach, or provision an admitted
    project's Supervisor — especially when the captain has not got to it. The captain's app
    buttons do the same thing and keep working. Only you, the current first mate, may use that
    tool; never brief a crewmate or a Supervisor to invoke it, and never attach by any other

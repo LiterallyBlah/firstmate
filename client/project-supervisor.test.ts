@@ -88,6 +88,17 @@ it("resumes a saved request with its original input and never mints a new one", 
   expect(effects().at(-1)).toEqual({ name: "firstmate.projects.abort-ui", input: { homeId: "fixture", projectId: id(102), projectVersion: 2, provisionRequestId: id(77) } });
 });
 
+it("a first-mate-started saved request still resumes here, labelled as a recorded takeover", async () => {
+  const saved = { homeId: "fixture", requestId: id(76), projectId: id(102), projectVersion: 2 };
+  data.projects[1] = { ...data.projects[1]!, provisionInput: saved, provisionRequestId: id(76), provisionOrigin: "first-mate", reason: "Provisioning incomplete; inspect and resume the recorded request." };
+  state.provision.mockResolvedValue(data);
+  await mount();
+  await press("Resume Starpath Supervisor setup");
+  expect(text()).toContain("The first mate started this setup; resuming here records the takeover.");
+  await press("Retry this exact request");
+  expect(effects().map(c => c.input)).toEqual([saved]);
+});
+
 it("points to settings while project help is off, and holds actions on stale records", async () => {
   data.enabled = false; await mount();
   expect(text()).toContain("Turn on project help in FirstMate settings");

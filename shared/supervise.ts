@@ -1,7 +1,8 @@
 /** The current first mate's (General's) Supervisor setup transport: plan-help handover, plan Attach
  * and project provisioning through the same server paths and checks as the captain's app buttons.
- * Request files are a same-user role convention, not authenticated IPC. The server re-checks that the
- * named actor is the configured first mate; crewmates and Supervisors are refused. Handover `abort`
+ * Request files are a same-user role convention, not authenticated IPC. Every command is refused by
+ * the cooperative role check unless the named actor is the configured first mate, in an active turn;
+ * crewmates and Supervisors are refused. Handover `abort`
  * and `resolve-hold` are not mate commands: they stay with the captain's app controls. */
 import { z } from "zod";
 import { AttachSupervisorInputSchema, MigrationCommandSchema } from "./supervision-activation";
@@ -10,7 +11,7 @@ import { ProjectProvisionInputSchema } from "./supervision-policy";
 import { SupervisionUuid } from "./supervision";
 import { PlanId } from "./workflow-plans";
 
-export const SUPERVISE_ACTOR_SOURCE = "supervise tool (same-user role convention, unverified)";
+export { SUPERVISE_ACTOR_SOURCE, isSuperviseMateActor, isSuperviseOriginActor, superviseReplayEquivalent } from "./supervision";
 export const SUPERVISE_PROVENANCE = "first mate tool (unverified)" as const;
 
 export const SuperviseCommandSchema = z.discriminatedUnion("op", [
@@ -26,6 +27,9 @@ export const SuperviseCommandSchema = z.discriminatedUnion("op", [
   z.object({ op: z.literal("attach"), attach: AttachSupervisorInputSchema.omit({ homeId: true, requestId: true }) }).strict(),
   z.object({ op: z.literal("attach-resume"), attachRequestId: SupervisionUuid }).strict(),
   z.object({ op: z.literal("project-provision"), provision: ProjectProvisionInputSchema.omit({ homeId: true, requestId: true }) }).strict(),
+  // Resumes the project's recorded provisioning input exactly (its original request id), for an
+  // interrupted setup whose supervise reply already reported the interruption.
+  z.object({ op: z.literal("project-provision-resume"), projectId: SupervisionUuid }).strict(),
 ]);
 export type SuperviseCommand = z.infer<typeof SuperviseCommandSchema>;
 

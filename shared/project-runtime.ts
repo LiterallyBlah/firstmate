@@ -37,6 +37,8 @@ export const ProjectRuntimeSnapshotSchema = z.object({ enabled: z.boolean(), hom
     directory: z.string().nullable(), registryLocation: z.string().nullable().optional(), state: z.string(), reason: z.string().nullable(), version: count, aliases: z.array(z.string()),
     agentId: z.string().nullable(), workspaceId: z.string().nullable(), provisionRequestId: SupervisionUuid.nullable(),
     provisionInput: ProjectProvisionInputSchema.nullable().optional(),
+    /** Which route recorded the saved provisioning request: the captain's app or the first mate's tool. */
+    provisionOrigin: z.enum(["app", "first-mate"]).nullable().optional(),
     sessions: count, turns: count, uncertain: count, memoryPending: count, profile: AgentProfileSchema.nullable(),
     limits: z.object({ supervisorSessions: count, supervisorTurns: count }).strict().nullable(), plans: z.array(PlanAssociation) }).strict()),
 }).strict();

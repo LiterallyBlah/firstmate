@@ -2,7 +2,7 @@
 // Supervisor setup for the current first mate (General): plan-help handover, plan Attach and
 // project provisioning through the same checked server paths as the captain's app buttons
 // (data/supervisors.md). Same-user role convention, not authenticated IPC. Only the current
-// first mate may submit; crewmates and Supervisors are refused here and again by the daemon.
+// first mate may submit, from within a turn; crewmates and Supervisors are refused here and again by the cooperative role check.
 // Handover cancel and hold resolution stay with the captain's app controls.
 import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
@@ -37,7 +37,7 @@ export async function submit(command, id = randomUUID()) {
     catch (e) { if (e.code !== "ENOENT") throw e; }
     await new Promise(done => setTimeout(done, 100));
   }
-  throw new Error(`No reply. Request ${id} remains queued; reuse --request-id ${id}.`);
+  throw new Error(`No reply yet. Request ${id} remains queued; reuse --request-id ${id} only while no reply exists. After an error reply, fix the cause and submit a new request id (attach-resume or project-provision-resume for an interrupted setup).`);
 }
 export async function main(argv) {
   if (argv[0] === "activation" && argv.length === 1) return submit({ op: "activation" });

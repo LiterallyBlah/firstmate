@@ -10,19 +10,22 @@ import type { PaseoApi } from "./host-types";
 
 let home: string, calls: { name: string; input: unknown; actor?: unknown }[];
 const api = {} as PaseoApi;
-function service() {
+const retainedProvision = { homeId: "retained-home", requestId: "00000000-0000-4000-8000-000000000099", projectId: "00000000-0000-4000-8000-000000000042", projectVersion: 2 };
+function service(turn = true) {
   calls = [];
   const record = (name: string) => async (input: unknown, _paseo?: unknown, actor?: unknown) => { calls.push({ name, input, actor }); return { name }; };
   const activation = {
     planHelp: vi.fn(async (homeId: string, plan: string) => { calls.push({ name: "planHelp", input: { homeId, plan } }); return { plan }; }),
     evidence: vi.fn(record("evidence")), readBackup: vi.fn(record("readBackup")), read: vi.fn(record("read")),
-    saveBackup: vi.fn(async (input: unknown, provenance?: unknown) => { calls.push({ name: "saveBackup", input, actor: provenance }); return { saved: true }; }),
+    saveBackup: vi.fn(async (input: unknown, provenance?: unknown, actorId?: unknown) => { calls.push({ name: "saveBackup", input, actor: { provenance, actorId } }); return { saved: true }; }),
     migrate: vi.fn(async (input: unknown, actor?: unknown) => { calls.push({ name: "migrate", input, actor }); return { migrated: true }; }),
     attach: vi.fn(record("attach")),
   };
-  const projects = { provision: vi.fn(record("provision")) };
+  const projects = { provision: vi.fn(record("provision")),
+    read: vi.fn(async () => ({ projects: [{ projectId: retainedProvision.projectId, provisionInput: retainedProvision }] })) };
   const supervise = new SuperviseRequests({ activation: activation as never, projects: projects as never });
   supervise.remember(api);
+  if (turn) supervise.turnStarted("general", "turn-1");
   return supervise;
 }
 const request = (command: unknown, actor = "general", id = randomUUID()) => SuperviseRequestSchema.parse({ id, actor, command });
@@ -61,7 +64,28 @@ it("only the configured first mate reaches the checked paths, recorded as that m
   expect(calls.find(c => c.name === "planHelp")?.input).toEqual({ homeId, plan: "scheduler" });
   expect(calls.find(c => c.name === "attach")).toMatchObject({ input: { homeId, requestId: attachId, plan: "scheduler" }, actor: mate });
   expect(calls.find(c => c.name === "provision")).toMatchObject({ input: { homeId, requestId: provisionId, projectVersion: 2 }, actor: mate });
-  expect(calls.find(c => c.name === "saveBackup")).toMatchObject({ input: { homeId, requestId: backupId, expectedRevision: 0 }, actor: "first mate tool (unverified)" });
+  expect(calls.find(c => c.name === "saveBackup")).toMatchObject({ input: { homeId, requestId: backupId, expectedRevision: 0 }, actor: { provenance: "first mate tool (unverified)", actorId: "general" } });
+});
+it("commands run only while the named first mate is mid-turn", async () => {
+  const idle = service(false);
+  await expect(idle.execute(request({ op: "activation" }))).rejects.toMatchObject({ code: "HELD" });
+  expect(calls).toEqual([]);
+  idle.turnStarted("crewmate-7", "turn-x");
+  await expect(idle.execute(request({ op: "activation" }))).rejects.toMatchObject({ code: "HELD" });
+  idle.turnStarted("general", "turn-9");
+  await idle.execute(request({ op: "activation" }));
+  expect(calls.map(c => c.name)).toEqual(["read"]);
+  idle.turnEnded("general", "turn-9");
+  await expect(idle.execute(request({ op: "activation" }))).rejects.toMatchObject({ code: "HELD" });
+  expect(calls.map(c => c.name)).toEqual(["read"]);
+});
+it("project-provision-resume reruns the recorded input exactly; nothing saved refuses", async () => {
+  const supervise = service();
+  await supervise.execute(request({ op: "project-provision-resume", projectId: retainedProvision.projectId }));
+  const mate = { kind: "mate-chat", id: "general", source: "supervise tool (same-user role convention, unverified)" };
+  expect(calls.find(c => c.name === "provision")).toMatchObject({ input: retainedProvision, actor: mate });
+  await expect(supervise.execute(request({ op: "project-provision-resume", projectId: randomUUID() }))).rejects.toMatchObject({ code: "HELD" });
+  expect(calls.filter(c => c.name === "provision")).toHaveLength(1);
 });
 it("request files reply once; deleting the reply replays the same id and bytes as a lost-reply retry", async () => {
   const supervise = service(), directory = join(home, "data/supervise-requests");
