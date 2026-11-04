@@ -147,6 +147,18 @@ All omits worker-absence claims when it has no fleet inventory. List/Board omit 
 compares all four views against its pinned baseline in both themes and desktop/phone browser widths;
 renders and checks stay in ignored `.local/plan-decisions/`.
 Plan actions retain author provenance: a captain press and a mate-recorded chat action are distinct.
+Plans have three modes (`shared/workflow-plans.ts`, `planMode`): `firstmate`, `firstmate-pivotal` and `captain`.
+Existing plans keep their defaults: no ownership is `captain`, and a recorded delegation is `firstmate`. Only the
+`transfer` captain action changes a mode, its captain-worded `escalate` criteria or `liveSteps`, never a revision.
+The event keeps `fromMode`/`toMode` (legacy owner-only transfers keep their old shape). A run marked with a live
+`effect` (release/deploy/live-action) needs an answered same-effect decision before it. That decision's owner follows
+the current mode (`effectOwner`). Reserved effects (installation/access/discard/spend) and `authority: "captain"` stay
+with the captain in every mode; on an effect gate, the effect alone decides the owner. A `criterion` decision must
+match the captain's list, ignoring case and spacing. An owner-only transfer must name a different owner, and every
+change of mode on a moded plan records both modes. For every owner and mode, a revision cannot change or remove an
+effect or escalated gate, nor drop a step's `effect` or detach any remaining node from such a gate (`assertGatesKept`); only the captain's edits can.
+The charter teaches drafting a mode from the captain's words. The Plans dialog's **Change who decides** records
+the switch, and `docs/plans-graph/render.mjs` opens it.
 Subject/revision checks run at append, never against a changing historical projection on replay.
 Fleet/Needs-you/Bearings isolate plan failures and label incomplete counts. Decision projections,
 card chips and filters require the explicit plan association plus host/project/task scope.

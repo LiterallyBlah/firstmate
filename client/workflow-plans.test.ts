@@ -51,20 +51,48 @@ it("shows delegation and exceptions, requires a recorded transfer and routes rou
   const p = plan(), onAct = vi.fn().mockResolvedValue(undefined);
   const props = { theme, plan: p, subjectHash: "b".repeat(64), homeId: "home", stale: false, busy: false, error: null, onAct, onRefresh() {} };
   await act(async () => { renderer = create(createElement(PlanDialog, props)); });
-  expect(visibleText(renderer!.toJSON())).toContain("Plan owner: Captain");
-  await act(async () => button("Delegate to FirstMate").props.onPress());
-  expect(button("Confirm delegation").props.disabled).toBe(true);
+  expect(visibleText(renderer!.toJSON())).toContain("Who decides: You decide");
+  await act(async () => button("Change who decides").props.onPress());
+  expect(button("Record who decides").props.disabled).toBe(true);
+  await act(async () => button("FirstMate decides").props.onPress());
+  expect(button("Record who decides").props.disabled).toBe(true); // Words are required.
   await act(async () => renderer!.root.find(n => n.type === ("TextInput" as any) && n.props.accessibilityLabel === "Reason for owner transfer").props.onChangeText("Take the scheduler outcome and routine stages"));
-  await act(async () => button("Confirm delegation").props.onPress());
-  expect(onAct).toHaveBeenCalledWith(expect.objectContaining({ action: "transfer", owner: "firstmate", text: "Take the scheduler outcome and routine stages", subjectHash: "b".repeat(64) }));
+  await act(async () => button("Record who decides").props.onPress());
+  expect(onAct).toHaveBeenCalledWith(expect.objectContaining({ action: "transfer", mode: "firstmate", owner: "firstmate", text: "Take the scheduler outcome and routine stages", subjectHash: "b".repeat(64) }));
   const decision = p.definition.nodes.find(n => n.id === "database"); if (decision?.kind === "decision") decision.authority = "owner";
   p.owner = "firstmate"; p.status = "active"; p.nodes.trial = { state: "done", evidence: "Verified trial" };
   await act(async () => renderer!.update(createElement(PlanDialog, props)));
   const text = visibleText(renderer!.toJSON());
-  expect(text).toContain("Plan owner: FirstMate"); expect(text).toContain("Captain-only decisions");
+  expect(text).toContain("Who decides: FirstMate decides"); expect(text).toContain("Captain-only decisions"); expect(text).toContain("live steps included");
   expect(button("SQLite").props.disabled).toBe(true);
   expect(renderer!.root.findAll(n => n.type === ("Pressable" as any) && n.props.accessibilityLabel === "Approve")).toEqual([]);
-  expect(button("Take ownership")).toBeTruthy();
+  expect(button("Change who decides")).toBeTruthy();
+});
+it("switches to pivotal points with the captain's criteria and live-step choice, and shows live gates and escalations", async () => {
+  const p = plan(), onAct = vi.fn().mockResolvedValue(undefined);
+  p.owner = "firstmate"; p.status = "active"; p.definition.ownership = { owner: "firstmate", evidence: "Captain: own this." };
+  const decision = p.definition.nodes.find(n => n.id === "database"); if (decision?.kind === "decision") { decision.authority = "captain"; decision.criterion = "Choosing a database"; }
+  const build = p.definition.nodes.find(n => n.id === "build"); if (build?.kind === "run") build.effect = "release";
+  const props = { theme, plan: p, subjectHash: "b".repeat(64), homeId: "home", stale: false, busy: false, error: null, onAct, onRefresh() {} };
+  await act(async () => { renderer = create(createElement(PlanDialog, props)); });
+  let text = visibleText(renderer!.toJSON());
+  expect(text).toContain("Pivotal: Choosing a database"); expect(text).toContain("Live step: Release");
+  await act(async () => button("Change who decides").props.onPress());
+  await act(async () => button("FirstMate decides, pivotal points to you").props.onPress());
+  await act(async () => renderer!.root.find(n => n.type === ("TextInput" as any) && n.props.accessibilityLabel === "Pivotal points, one per line").props.onChangeText("Choosing a database\n\n Any allowance change "));
+  await act(async () => button("Live steps are routine").props.onPress());
+  await act(async () => renderer!.root.find(n => n.type === ("TextInput" as any) && n.props.accessibilityLabel === "Reason for owner transfer").props.onChangeText("Keep it, but ask me first on these."));
+  await act(async () => button("Record who decides").props.onPress());
+  expect(onAct).toHaveBeenCalledWith(expect.objectContaining({ action: "transfer", mode: "firstmate-pivotal", owner: "firstmate", escalate: ["Choosing a database", "Any allowance change"], liveSteps: "routine",
+    text: "Keep it, but ask me first on these.\nPivotal points: Choosing a database; Any allowance change" }));
+  p.mode = "firstmate-pivotal"; p.escalate = ["Choosing a database", "Any allowance change"]; p.liveSteps = "routine";
+  p.ownerEvents = [{ at: "2026-11-04T12:00:00Z", by: "board:captain", from: "firstmate", to: "firstmate", fromMode: "firstmate", toMode: "firstmate-pivotal", evidence: "Keep it, but ask me first on these." }];
+  await act(async () => renderer!.update(createElement(PlanDialog, { ...props, plan: { ...p } })));
+  text = visibleText(renderer!.toJSON());
+  expect(text).toContain("Who decides: FirstMate decides, pivotal points to you");
+  expect(text).toContain("Pivotal points, in your words: Choosing a database; Any allowance change");
+  expect(text).toContain("you recorded live steps as routine");
+  expect(text).toContain("FirstMate decides → FirstMate decides, pivotal points to you: Keep it, but ask me first on these.");
 });
 it("keeps future choices read-only, then enables only approved evidence-ready decisions", async () => {
   const p = plan(), onAct = vi.fn(), props = { theme, plan: p, subjectHash: "b".repeat(64), homeId: "home", stale: false, busy: false, error: null, onAct, onRefresh() {} };

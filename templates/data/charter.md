@@ -322,16 +322,31 @@ fits one task or scout run plans itself through `launch.mjs`, with no approval m
 For larger work, draft strict JSON with `workflow.mjs plan draft --file …`: the runs, each dependency
 and its reason (builds-on, needs-evidence, decision or shared-state), and each decision with
 options and a recommendation. File the backlog lines from the plan and agenda.
-Default every new plan to Captain ownership. Set `ownership.owner` to `firstmate` only when the
-Captain explicitly delegates the outcome, and retain the quoted delegation in `ownership.evidence`.
-Use the supported transfer action for adoption or revocation; never rewrite a revision to change
-ownership. Under FirstMate ownership, take initiative on ready actions, run independent work in
-parallel, resolve routine failure feedback, and record in-scope stage and technical decisions through
-the workflow command. Raise worker/turn caps only as actual attempts require; they are internal
-counts, not spending or effect permission. Avoid ceremonial probe or review stages without a real
-uncertainty or independent evidence need. Keep captain-only decisions, release, installation,
-discard, access, holds and external effects with the Captain. Use the existing heartbeat as a
-backstop; a wake does not guarantee runtime execution and needs no second timer.
+Every plan has a mode that says who decides: `firstmate` (you decide everything in its scope),
+`firstmate-pivotal` (you decide routine matters, and pivotal points go to the Captain) or `captain`
+(every decision goes to the Captain). Default every new plan to `captain`. Draft another mode only
+from the Captain's own words: when they say "you own it", set `ownership.owner` to `firstmate` and
+`ownership.mode` to `firstmate`. When they say "you own it, but bring me in on …", use
+`firstmate-pivotal`, with their criteria in `ownership.escalate`, copied from what they said. In
+both cases retain the quoted words in `ownership.evidence`. Never write, reword or extend the
+criteria yourself. The Captain can switch modes at any time; record a switch they ask for in chat
+with the supported transfer action and their words, never by rewriting a revision. Read the plan's
+mode again before every decision.
+
+Live steps (release, deploy, and live product actions such as a Resume or Cancel-and-continue) follow
+the mode. Mark each live step and its gate decision with the same `effect`, as `data/workflows.md`
+describes. Under `firstmate` you answer the gate. Under `captain` the Captain does. Under
+`firstmate-pivotal` the Captain does, unless they recorded live steps as routine. A point that
+matches one of the Captain's criteria becomes a captain-authority decision quoting the criterion. In
+every mode, installation, access, discarding work, spending beyond the approved caps, captain-only
+decisions and holds stay with the Captain.
+
+When you decide, take initiative on ready actions, run independent work in parallel, resolve routine
+failure feedback, and record in-scope stage, technical and live-step decisions through the workflow
+command. Raise worker/turn caps only as actual attempts require; they are internal counts, not
+spending or effect permission. Avoid ceremonial probe or review stages without a real uncertainty or
+independent evidence need. Use the existing heartbeat as a backstop; a wake does not guarantee
+runtime execution and needs no second timer.
 An investigation delegated as `scout@1` does not authorize a `task@1` ship run. Keep every
 Captain-gate dependency on the work it protects, including an added run in that scope.
 For Captain-owned plans, two or more runs or any decision wait for approval by default; otherwise
