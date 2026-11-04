@@ -30,6 +30,19 @@ from the runner (`watchPolicyEnv`), never the daemon's raw switch. New Superviso
 binding goes `retired` (epoch, identity, spend kept, no native call), its scope `dormant`; projections and the
 Supervisors list skip it, and the project stays context. See `docs/supervisor-cleanup/README.md`.
 
+**The first mate can set Supervisors up too.** `tools/supervise.mjs` (`shared/supervise.ts`,
+`server/supervise-requests.ts`, request files under `data/supervise-requests/` on the workflow clock) gives
+the current first mate (General) the plan-help handover (backup settings, evidence, prepare/resume, reconcile,
+barrier, commit), plan Attach (`SupervisorSessions.attachFromMate`, mode `attach-mate`) and project
+provisioning, through the same `SupervisionActivation`/`ProjectRuntime` paths and checks as the captain's
+app buttons, which keep working unchanged. Every command is refused by the cooperative role check (not authentication) unless it names the configured mate in an active turn
+so crewmates and Supervisors are refused; recorded actors are `mate-chat`/the mate's id
+with provenance `first mate tool (unverified)` beside the app's `plugin-ui-unverified`. The transport id is
+the attach/provision request id. Journal replay treats the two supervise origins as equivalent (`superviseReplayEquivalent`): a successor first mate — or the captain, for a mate-started request — records an explicit takeover row, then continues the same
+recorded request. Handover `abort`/`resolve-hold`, routine-check admission, retirement and the
+always-captain plan effects (installation/access/discard/spend) stay captain-only. The sections below that
+call Attach or provisioning captain-app-only describe the builds as first shipped.
+
 Build A overlays the historical unwired S09 notes below: `server/supervision-runtime.ts` owns one
 coordinator per home shared with activation; `server/project-runtime.ts` exposes reviewed registry
 admission, S09 administration and explicit project provisioning only with `FIRSTMATE_PROJECT_MATES=1`.

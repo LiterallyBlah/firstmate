@@ -34,7 +34,7 @@ try {
     assert.equal(await page.getByTestId("supervision-activation-board").count(), 0);
     assert.equal(await page.evaluate(() => window.attachCalls.length), 0);
     await page.goto(`${origin}/?${theme}`);
-    await page.getByText("Attachment history · by convention, not verified", { exact: true }).waitFor();
+    await page.getByText("Attachment history · recorded, not verified", { exact: true }).waitFor();
     await page.screenshot({ path: resolve(out, `${theme}-${device}-board.png`) });
     await page.getByRole("button", { name: "Attach supervisor to Scheduler", exact: true }).click();
     const dialog = page.getByRole("dialog", { name: "Attach supervisor to Scheduler?" });

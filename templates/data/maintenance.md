@@ -1,7 +1,7 @@
 # Observe maintenance
 
 Available while the captain's saved Supervisors setting is on (until one is saved, the daemon's old environment switches stand in). Changes apply while services are running. Turning Supervisors off refuses new work while retaining read/receipt reconciliation and all identities, spend and uncertainty. This is same-user cooperative transport,
-not authenticated IPC. It does not provision sessions, Attach, dispatch workers,
+not authenticated IPC. It does not provision sessions, dispatch workers,
 create/retire native timers or delete files. Automatic cleanup is held by G8.
 
 `node tools/maintenance.mjs summary` gives General the stored exception/coverage/resource
@@ -17,7 +17,7 @@ accepted request never repeats its mutation. The current first mate records job
 administration. A registered maintenance work owner may submit `observe`, `ack`,
 `escalate` and `answer-handled`. Captain-app admission first creates the maintenance
 scope and owner from Home/Plans, with an explicit profile and cumulative turn cap.
-Fresh clients resume its saved request. No helper or CLI exposes admission or Attach.
+Fresh clients resume its saved request. No helper or CLI exposes routine-check admission; plan and project Supervisor setup lives in `tools/supervise.mjs` instead.
 
 Commands use the `firstmate.maintenance.admin` contract:
 

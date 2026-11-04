@@ -41,7 +41,7 @@ export function SupervisionActivationBoard({ theme, compact, advanced = false, p
     {data.problems.map(p => <Text key={p} accessibilityRole="alert" style={{ color: theme.colors.foreground }}>{p}</Text>)}
     {readError ? <Text accessibilityRole="alert" style={{ color: theme.colors.foreground }}>Supervisor status could not be refreshed. Attach is unavailable.</Text> : null}
     {data.plans.map(plan => <View key={plan.scopeId} style={{ gap: 4 }}>
-      <Text style={{ color: theme.colors.foreground }}>{planId ? plan.binding === "active" && plan.opening === "succeeded" ? "Plan helper is ready." : !plan.binding ? "Ready for the captain's Attach review." : "Saved helper setup needs checking. Inspect its attachment before continuing." : `${plan.title} · ${plan.binding ?? "No supervisor"}${plan.opening ? ` · opening ${plan.opening}` : ""}`}</Text>
+      <Text style={{ color: theme.colors.foreground }}>{planId ? plan.binding === "active" && plan.opening === "succeeded" ? "Plan helper is ready." : !plan.binding ? "Ready for Attach review." : "Saved helper setup needs checking. Inspect its attachment before continuing." : `${plan.title} · ${plan.binding ?? "No supervisor"}${plan.opening ? ` · opening ${plan.opening}` : ""}`}</Text>
       {showDetails ? <Text selectable style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>Plan {plan.plan} · scope {plan.scopeId} · version {plan.scopeVersion} · supervisor {plan.supervisorId}</Text> : null}
       {showDetails && plan.readiness ? <Text style={{ color: theme.colors.foregroundMuted }}>{plan.readiness.ready ? "Stored readiness checks met; live qualification still required." : `Readiness held: ${plan.readiness.reasons.join(" ")}`}</Text> : null}
       {plan.binding ? <SupervisorControlsButton theme={theme} compact={compact} homeId={data.homeId} scopeId={plan.scopeId} navigation={navigation} /> : null}
@@ -49,7 +49,7 @@ export function SupervisionActivationBoard({ theme, compact, advanced = false, p
       {plan.resumeRequestId ? <Action theme={theme} label={`Resume attachment to ${plan.title}`} disabled={!!readError || !data.enabled} onPress={() => select(plan)} /> : null}
     </View>)}
     {planId ? <Action theme={theme} label={details ? "Hide attachment details" : "Attachment details"} onPress={() => setDetails(!details)} /> : null}
-    {showDetails && data.audits.length ? <Text style={{ color: theme.colors.foregroundMuted }}>Attachment history · by convention, not verified</Text> : null}
+    {showDetails && data.audits.length ? <Text style={{ color: theme.colors.foregroundMuted }}>Attachment history · recorded, not verified</Text> : null}
     {showDetails ? data.audits.map(a => <Text selectable key={`${a.at}:${a.supervisor}`} style={{ color: theme.colors.foregroundMuted }}>
       {a.at} · {a.plan} · supervisor {a.supervisor} · {a.source}
     </Text>) : null}

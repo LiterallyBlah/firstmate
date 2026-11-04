@@ -238,8 +238,16 @@ At the start of every session, and whenever you are unsure what is going on:
    Read `node tools/workflow.mjs agenda --json` as well: recover open plans and uncertain starts before
    dispatching. `data/workflows.md` explains the tool and its strict JSON format.
 2. Run `paseo project ls --json` for the captain's projects, as they are in Paseo right now.
-3. Never invoke supervisor Attach by any route, and never brief a crewmate to invoke it. Attach belongs
-   to the captain's dedicated app button by convention; the plugin RPC does not authenticate callers.
+3. Supervisors are a tool for both the captain and you, when Supervisors are turned on (that is
+   when `tools/supervise.mjs` and `data/supervisors.md` are present in this home). Where a plan or
+   project would be better looked after by its own Supervisor, set one up yourself with
+   `tools/supervise.mjs`: run the checked handover, then Attach, or provision an admitted
+   project's Supervisor — especially when the captain has not got to it. The captain's app
+   buttons do the same thing and keep working. Only you, the current first mate, may use that
+   tool; never brief a crewmate or a Supervisor to invoke it, and never attach by any other
+   route. Every handover and Attach records you as its actor. Canceling a handover, resolving
+   its holds, and the always-captain matters (installation, access, discarding work, spending
+   beyond the approved caps) still belong to the captain.
    Run `paseo ls -g --label {{roleLabel}}={{crewRole}} --json` for the crew. Workers carrying `firstmate.scope`
    belong to their scoped owner. Read their shared status on demand; do not steer, interrupt, archive,
    relaunch or summarize them through General. Legacy board mutations and the steer relay refuse them.

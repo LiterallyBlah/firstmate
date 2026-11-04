@@ -93,7 +93,7 @@ function ProjectSupervisorReview({ theme, compact, data, projects, saved, onClos
   const field = { ...text, minHeight: 44, padding: 10, borderWidth: 1, borderRadius: 8, borderColor: theme.colors.border, backgroundColor: theme.colors.surface1 };
   return <Modal title={saved ? `Resume ${projects[0]?.name ?? "project"} Supervisor setup` : "Add project Supervisor"} open onOpenChange={open => { if (!open && !busy) onClose(); }}><Modal.Content>
     <View testID="project-supervisor-review" style={{ gap: 14 }}>
-      <Text style={text}>{saved ? "Resume the saved request with its original model, caps and opening. Recovery looks up its exact identity and never repeats an uncertain opening."
+      <Text style={text}>{saved ? `Resume the saved request with its original model, caps and opening. Recovery looks up its exact identity and never repeats an uncertain opening.${projects[0]?.provisionOrigin === "first-mate" ? " The first mate started this setup; resuming here records the takeover." : ""}`
         : "Creates one Supervisor session for this project in its own workspace and sends its opening. One session and one turn count against the project's caps, including uncertain outcomes. Its model, permissions and caps can be changed later in Supervisor settings."}</Text>
       {saved ? null : <>
         <Text style={text}>Project</Text>

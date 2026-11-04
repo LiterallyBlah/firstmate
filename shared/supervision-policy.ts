@@ -123,9 +123,10 @@ export const ScopedCommandResultSchema = z.object({
     evidenceDigest: SupervisionHash, reason: z.string().min(1).max(2000) }).strict().optional(),
   projectJudgment: z.object({ scopeId: SupervisionUuid, epoch: z.number().int().positive(), outboxId: SupervisionUuid,
     subjectHash: SupervisionHash, evidenceDigest: SupervisionHash, summary: z.string().min(1).max(2000), disposition: z.enum(["judged", "source-changed"]).optional() }).strict().optional(),
-  /** UI convention only. Kept in the immutable accepted command, never authentication evidence. */
+  /** Kept in the immutable accepted command, never authentication evidence: the captain's app button (unverified UI convention) or the current first mate's supervise tool (same-user role convention). */
   attachmentAudit: z.object({ at: SupervisionUtc, plan: PlanId, supervisor: SupervisionUuid,
-    source: z.literal("client UI (unverified)"), authorization: z.literal("by convention, not verified"),
+    source: z.enum(["client UI (unverified)", "first mate tool (unverified)"]),
+    authorization: z.enum(["by convention, not verified", "current first mate role convention, not verified"]),
   }).strict().optional(),
   /** Only an explicit handled command can introduce these checked causal links. No replay defaults. */
   handling: z.object({ scopeId: SupervisionUuid, epoch: version,

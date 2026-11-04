@@ -1,4 +1,4 @@
-/** App-only snapshot configuration. Saving grants no handover or Attach authority. */
+/** Snapshot configuration, saved from the app or the first mate's supervise tool. Saving grants no handover or Attach authority. */
 import { defineRpc } from "@getpaseo/plugin";
 import { z } from "zod";
 export const MigrationBackupSchema = z.object({ destination: z.string().trim().min(1).max(2048), retention: z.string().trim().min(1).max(2048) }).strict();

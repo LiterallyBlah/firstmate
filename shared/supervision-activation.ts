@@ -1,4 +1,5 @@
-/** Dedicated app controls only; no MCP, CLI or home-tool attachment transport. RPC origin is unverified. */
+/** Dedicated app controls; the current first mate reaches the same checked paths through
+ * `tools/supervise.mjs` (shared/supervise.ts), never MCP. RPC origin is unverified. */
 import { defineRpc } from "@getpaseo/plugin";
 import { z } from "zod";
 import { SupervisionHash, SupervisionUuid } from "./supervision";

@@ -72,7 +72,7 @@ it("board history shows time, plan, supervisor and unverified source without att
     source: "client UI (unverified)", authorization: "by convention, not verified" }] };
   await render(createElement(SupervisionActivationBoard, { theme, compact: true }));
   const text = visibleText(renderer!.toJSON());
-  for (const part of ["2026-10-28T12:00:00Z", "scheduler", plan.supervisorId, "client UI (unverified)", "by convention, not verified"]) expect(text).toContain(part);
+  for (const part of ["2026-10-28T12:00:00Z", "scheduler", plan.supervisorId, "client UI (unverified)", "recorded, not verified"]) expect(text).toContain(part);
   expect(mocks.attach).not.toHaveBeenCalled();
 });
 it("confirmation names the plan and supervisor; cancel and form edits never invoke attach", async () => {

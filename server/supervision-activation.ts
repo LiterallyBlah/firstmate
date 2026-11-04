@@ -10,12 +10,12 @@ import type { GatewayLimits } from "../shared/supervision-effects";
 import type { SupervisorConfiguration } from "../shared/supervisor-profile";
 import { featurePause } from "../shared/feature-settings";
 /** Default-off production wiring. Views never initialize a store or acquire a coordinator.
- * Attach is an app convention, NOT a verified captain principal. Build B's operating loop is separate. */
+ * Attach is an app convention or the current first mate's supervise-tool role convention, never a verified principal. */
 import type { PluginServerContext } from "@getpaseo/plugin/server";
 import type { GatewayReceiver } from "../shared/supervision-effects";
 import { ActivationSnapshotSchema, readSupervisionActivation, migrateSupervisionPlan, attachSupervisorFromUi,
   type ActivationSnapshot, type MigrationCommand, type AttachSupervisorInput, type ResumeSupervisorInput } from "../shared/supervision-activation";
-import type { SupervisionStatus, SupervisionActor } from "../shared/supervision";
+import { isSuperviseMateActor, isSuperviseOriginActor, superviseReplayEquivalent, type SupervisionStatus, type SupervisionActor } from "../shared/supervision";
 import { readFirstmateConfig, resolveHome } from "./config";
 import { oneAtATime, requireNoMigration } from "./mate";
 import { serialized } from "./serialize";
@@ -65,7 +65,7 @@ export function activationSnapshot(status: SupervisionStatus, enabled: boolean, 
       const binding = status.bindings.find(b => b.scopeId === scopeId), effects = binding ? activationEffects(status, scopeId, binding.epoch) : null;
       const migrations = (status.migrations ?? []).filter(m => m.scopeId === scopeId);
       const readiness = cooperativeReadiness(status, scopeId);
-      const attachment = status.commands.find(c => c.id === effects?.create?.requestId && c.actor.kind === "plugin-ui-unverified" &&
+      const attachment = status.commands.find(c => c.id === effects?.create?.requestId && isSuperviseOriginActor(c.actor) &&
         c.result.attachmentAudit?.supervisor === binding?.agentId && c.result.attachmentAudit?.plan === plan.definition.id);
       const resumeRequestId = enabled && status.freshness === "current" && !status.storage.admissionsHeld && attachment &&
         binding && ["prepared", "active"].includes(binding.state) && effects?.send?.state === "reserved" &&
@@ -111,11 +111,11 @@ export class SupervisionActivation {
     if (!this.options.backupSettings) refuse("UNSUPPORTED", "Backup setup isn't available in this build.");
     return this.options.backupSettings.read(home);
   }
-  async saveBackup(input: Parameters<MigrationSettings["set"]>[1]) {
+  async saveBackup(input: Parameters<MigrationSettings["set"]>[1], provenance?: Parameters<MigrationSettings["set"]>[2], actorId?: string) {
     return serialized(this.lock, async () => {
-      const { home } = await this.checkedConfig(input.homeId);
+      const { home } = await this.checkedConfig(input.homeId, actorId);
       if (!this.options.backupSettings) refuse("UNSUPPORTED", "Backup setup isn't available in this build.");
-      return this.options.backupSettings.set(home, input);
+      return this.options.backupSettings.set(home, input, provenance);
     });
   }
   async planHelp(homeId: string, planId: string, workflowId?: string): Promise<PlanHelpReview> {
@@ -155,7 +155,7 @@ export class SupervisionActivation {
     const opening = binding ? activationEffects(status, scopeId, binding.epoch).send?.state : null;
     const body = { homeId, plan: planId, title: plan.definition.title, planHash: plan.hash,
       currentOwner: binding ? binding.state === "active" && opening === "succeeded" ? "Dedicated plan helper" : "Saved plan helper; setup needs checking" :
-        backend?.state === "active" ? "Handover complete; waiting for the captain to attach a helper" : planOwner(plan) === "firstmate" ? "FirstMate" : "Captain",
+        backend?.state === "active" ? "Handover complete; waiting for a helper to be attached" : planOwner(plan) === "firstmate" ? "FirstMate" : "Captain",
       projectId: project?.id ?? null, scopeId, migrationId: migration?.id ?? (freeze && preparation ? preparation.migrationId :
         migrationUuid(homeId, planId, "plan-help-handover", preparation?.migrationId ?? "first-review", digest({ plan: plan.hash, sources, project, backupRevision: backup?.revision ?? 0, effective: policy?.effective ?? null }))),
       supervisorId: binding?.agentId ?? proposedSupervisor(scopeId), budget: plan.definition.budget, spent: planBudgetUsed(plan),
@@ -186,18 +186,26 @@ export class SupervisionActivation {
     return { ...activationSnapshot(status, policy?.effective.scopedActivation ?? !!this.options.enabled, await this.snapshotRequired(home)),
       pause: policy ? featurePause(status, policy.effective, "plan") : null };
   }
-  private mutate<T>(homeId: string, run: (home: string, store: SupervisionStore) => Promise<T>, recoverIndex = false, settlement = false) {
+  private mutate<T>(homeId: string, run: (home: string, store: SupervisionStore) => Promise<T>, recoverIndex = false, settlement = false, generalId?: string) {
     // Same lock order as legacy delivery: lifecycle -> gate/queue/store. Cleanup waits for all writes.
+    // A first-mate actor is re-checked by id at every inner boundary, so a restart mid-mutation refuses.
     return oneAtATime(() => serialized(this.lock, async () => {
-      const { home } = await this.checkedConfig(homeId, undefined, settlement);
+      const { home } = await this.checkedConfig(homeId, generalId, settlement);
       return this.runtime.mutate(home, store => {
-        const commit = async () => { await this.checkedConfig(homeId, undefined, settlement); return run(home, store); };
+        const commit = async () => { await this.checkedConfig(homeId, generalId, settlement); return run(home, store); };
         return !settlement && this.runtime.features ? this.runtime.features.boundary(home, commit) : commit();
       }, recoverIndex);
     }));
   }
-  async migrate(input: MigrationCommand) {
+  async migrate(input: MigrationCommand, actor: SupervisionActor = UI_CALL) {
+    if (actor.kind === "mate-chat") await this.checkedConfig(input.homeId, actor.id);
+    else if (digest(actor) !== digest(UI_CALL)) refuse("UNKNOWN_OWNER", "Handover is recorded by the captain's app controls or the current first mate.");
     return this.mutate(input.homeId, async (home, store) => {
+      if (actor.kind === "mate-chat" && (input.op === "prepare" || input.op === "resume")) {
+        const recorded = (await store.read()).migrations?.some(m => m.id === input.migrationId);
+        if ((!input.reviewHash || !input.evidence) && (input.op === "prepare" || !recorded))
+          refuse("HELD", "First-mate handover preparation requires the reviewed plan-help hash and its checked evidence. Read plan-help and evidence first, then prepare with both; a bare prepare is refused.");
+      }
       if ((input.op === "prepare" || input.op === "resume") && input.reviewHash) {
         const original = await this.preparations().read(home, input.plan);
         const frozen = await workflowStore(home).cutover(input.plan);
@@ -240,25 +248,27 @@ export class SupervisionActivation {
           await snapshots.verify(snapshot, expected);
         }
       }
-      const migrator = new SupervisionMigrator({ home, store, legacy: workflowStore(home), adapters: this.options.adapters(home), enabled: true, actor: UI_CALL });
+      const migrator = new SupervisionMigrator({ home, store, legacy: workflowStore(home), adapters: this.options.adapters(home), enabled: true, actor });
       switch (checked.op) {
         case "prepare": await migrator.arm(); await migrator.prepare(checked); break;
         case "reconcile": await migrator.reconcile(input.migrationId); break;
         case "barrier": await migrator.barrier(input.migrationId); break;
         case "commit": await migrator.commit(input.migrationId); break;
-        case "abort": await store.recoverPublication(); await migrator.abort(checked.migrationId, checked.reason, UI_CALL); break;
-        case "resolve-hold": await migrator.resolveHold(checked.migrationId, checked.dispositionId, checked.route, checked.evidence, UI_CALL); break;
+        case "abort": await store.recoverPublication(); await migrator.abort(checked.migrationId, checked.reason, actor); break;
+        case "resolve-hold": await migrator.resolveHold(checked.migrationId, checked.dispositionId, checked.route, checked.evidence, actor); break;
         // Deliberate recovery only: validates the complete event+tip, never reconstructs missing history.
         case "resume": await store.recoverPublication(); await migrator.resume(checked); break;
       }
       return activationSnapshot(await store.read(), true, await this.snapshotRequired(home));
-    }, input.op === "resume" || input.op === "abort", ["abort", "reconcile", "resolve-hold"].includes(input.op));
+    }, input.op === "resume" || input.op === "abort", ["abort", "reconcile", "resolve-hold"].includes(input.op), actor.kind === "mate-chat" ? actor.id : undefined);
   }
-  async attach(input: AttachSupervisorInput | ResumeSupervisorInput, paseo: PaseoApi) {
+  async attach(input: AttachSupervisorInput | ResumeSupervisorInput, paseo: PaseoApi, actor: SupervisionActor = UI_CALL) {
+    const fromMate = actor.kind === "mate-chat";
+    if (!fromMate && digest(actor) !== digest(UI_CALL)) refuse("UNKNOWN_OWNER", "Attach is recorded by the captain's app button or the current first mate.");
     // Neither this queue nor capacity/receiver IO may be awaited under General's lifecycle lock.
     // Migration retains the legacy lifecycle -> gate ordering; it never waits for this Attach queue.
     return serialized(this.attachLock, async () => {
-      const { home, config } = await this.checkedConfig(input.homeId);
+      const { home, config } = await this.checkedConfig(input.homeId, fromMate ? actor.id : undefined);
       return this.runtime.mutate(home, async store => {
         const checkOwner = async () => { await this.checkedConfig(input.homeId, config.mateAgentId); };
         const receiver = this.options.receiver?.(paseo) ?? new SupervisionUiReceiver(paseo, this.root);
@@ -277,19 +287,28 @@ export class SupervisionActivation {
           configuration = { id: input.requestId, scopeId: input.scopeId, generation: 1, workspace: supervisorWorkspace(this.root, input.scopeId, 1), requested: input.profile, resolved: input.profile,
             catalogDigest: digest(catalog), policyDigest: digest(policy ?? { enabled: true }),
             target: { homeId: input.homeId, hostId: "local", scopeId: input.scopeId, kind: "plan", planId: input.plan, planHash: input.planHash },
-            limits: this.controlsLimits(await store.read(), input.scopeId) ?? { supervisorSessions: 1, supervisorTurns: 1 }, effectiveEpoch: 1, provenance: "client UI (unverified)" };
+            limits: this.controlsLimits(await store.read(), input.scopeId) ?? { supervisorSessions: 1, supervisorTurns: 1 }, effectiveEpoch: 1, provenance: fromMate ? "first mate tool (unverified)" as const : "client UI (unverified)" as const };
         }
+        const priorMate = prior ? isSuperviseMateActor(prior.actor) : false;
         const sessions = new SupervisorSessions(store, gateway, receiver, { enabled: true, ...(configuration ? { configuration } : {}),
         featurePolicy: async () => this.runtime.features?.reservation(home, "scopedActivation"),
-        reserveBoundary: run => this.runtime.features ? this.runtime.features.boundary(home, run) : run(), unverifiedUiAttach: true,
+        reserveBoundary: run => this.runtime.features ? this.runtime.features.boundary(home, run) : run(), unverifiedUiAttach: true, mateAttach: fromMate || priorMate,
           limits: { supervisorSessions: 1, supervisorTurns: 1 }, reserveCheck: checkOwner,
           ...((await this.snapshotRequired(home)) ? { openingContext: (s: SupervisionStatus, scopeId: string) => ({
             guide: join(home, TEMPLATES.scopeGuide), helper: join(home, "tools", "scope.mjs"),
             rules: s.planRules?.filter(r => r.scopeId === scopeId && s.plans.some(p => p.scopeId === scopeId && p.plan.revision === r.revision)),
-            instruction: "Read the guide. Retain current rules/evidence; routine repairs stay delegated. Missing report evidence alone does not justify rerunning. Opening counts against the durable continuing-turn cap. Attach provenance is unverified." }) } : {}),
+            instruction: `Read the guide. Retain current rules/evidence; routine repairs stay delegated. Missing report evidence alone does not justify rerunning. Opening counts against the durable continuing-turn cap. Attached by ${fromMate ? "the current first mate through its supervise tool" : "the captain's app button"}; provenance is unverified.` }) } : {}),
           globalMateId: async () => (await this.checkedConfig(input.homeId, config.mateAgentId)).config.mateAgentId || null });
         // Explicit app retry can finish an exact pending publication, but never reconstruct lost history.
         await store.recoverPublication();
+        if (prior && digest(prior.actor) !== digest(actor)) {
+          // Taking over another supervise origin's recorded request (a replaced first mate's, by the
+          // successor or the captain) is itself recorded before anything is dispatched for it.
+          if (!isSuperviseMateActor(prior.actor)) refuse("HELD", "This attachment was started from the app; resume it there. Nothing is dispatched.");
+          await store.transactCommand(stableId("supervise-takeover", input.requestId, digest(actor)),
+            digest({ superviseTakeover: { requestId: input.requestId, from: prior.actor, to: actor } }), actor,
+            async () => ({ mutations: [], expectedVersions: [], result: { planId: null, planHash: null, decisionId: null, outboxId: null } }));
+        }
         if (!("resume" in input)) {
           if ((await this.snapshotRequired(home)) && !(await store.read()).commands.some(c => c.id === input.requestId)) {
             const migration = (await store.read()).migrations?.find(m => m.scopeId === input.scopeId && m.planId === input.plan && m.state === "committed");
@@ -301,13 +320,18 @@ export class SupervisionActivation {
             const capacity = await this.runtime.features?.capacity(home);
             if ((capacity || this.options.headroom) && !(await store.read()).commands.some(c => c.id === input.requestId))
               await checkGeneralHeadroom(await store.read(), receiver, capacity?.slots ?? this.options.headroom!.slots, capacity?.generalHeadroom ?? this.options.headroom!.reserved);
-            await sessions.attachFromUnverifiedUi({ requestId: input.requestId, scopeId: input.scopeId, scopeVersion: input.scopeVersion,
-              planId: input.plan, planHash: input.planHash, supervisorId: input.supervisorId, profile: input.profile, opening: input.opening });
+            const reserved = { requestId: input.requestId, scopeId: input.scopeId, scopeVersion: input.scopeVersion,
+              planId: input.plan, planHash: input.planHash, supervisorId: input.supervisorId, profile: input.profile, opening: input.opening };
+            // Replay identity includes the recorded origin's seam: a takeover replays through it, under its actor.
+            if (priorMate) await sessions.attachFromMate(reserved, prior!.actor);
+            else if (prior) await sessions.attachFromUnverifiedUi(reserved);
+            else if (fromMate) await sessions.attachFromMate(reserved, actor);
+            else await sessions.attachFromUnverifiedUi(reserved);
           });
         }
         // Only this accepted request's three supervisor effects. Never launch workers or replay an uncertain send.
         const status = await store.read(), accepted = status.commands.find(c => c.id === input.requestId), audit = accepted?.result.attachmentAudit;
-        if (!audit || accepted?.actor.kind !== "plugin-ui-unverified") refuse("HELD", "Attachment audit is missing; nothing is dispatched.");
+        if (!audit || !accepted || !superviseReplayEquivalent(accepted.actor, actor)) refuse("HELD", "Attachment audit is missing; nothing is dispatched.");
         const create = status.effects.find(e => e.requestId === input.requestId && e.attemptId === null && e.operation === "agent.create");
         const binding = status.bindings.find(b => b.scopeId === create?.scopeId);
         if (!binding || binding.agentId !== audit.supervisor || binding.epoch !== create?.epoch ||

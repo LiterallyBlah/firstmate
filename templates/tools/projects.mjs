@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Project context administration (data/project-context.md). Same-user role convention, not authenticated IPC.
-// No provisioning or Attach command is accepted. The captain uses explicit app buttons.
+// Provisioning goes through tools/supervise.mjs (first mate) or the captain's app Add button, not here.
 import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, open, link, rm, realpath } from "node:fs/promises";
@@ -15,7 +15,7 @@ async function inside(path) {
 }
 export async function submit(command, id = randomUUID()) {
   if (!/^[0-9a-f-]{36}$/.test(id)) throw new Error("Use a UUID request id.");
-  if (["attach", "provision", "provision-ui"].includes(command.op)) throw new Error("Project provisioning and Attach are explicit captain app actions.");
+  if (["attach", "provision", "provision-ui"].includes(command.op)) throw new Error("Project provisioning uses tools/supervise.mjs project-provision (first mate) or the captain's app Add button.");
   if (!["read", "memory-read"].includes(command.op)) {
     const role = await execute(process.execPath, [join(home, "tools/role.mjs")], { cwd: home, env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" }, windowsHide: true, timeout: 30000 });
     if (role.stdout.trim() !== "first-mate" || !process.env.PASEO_AGENT_ID) throw new Error("Only the current first mate records project administration.");

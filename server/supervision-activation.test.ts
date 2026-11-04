@@ -6,7 +6,8 @@ import { PolicySourceSchema } from "../shared/supervision-policy";
 import { workflowSnapshot } from "./workflow-board";
 import { mkdir, readFile, readdir, writeFile, stat } from "node:fs/promises";
 import { join } from "node:path";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, expect, it, vi } from "vitest";
+import { WARMUP_TIMEOUT_MS, warmWindowsIdentityProbe } from "../test/supervision-warmup";
 import { workflowFixture } from "../test/workflow-fixture";
 import { SyntheticReceiver } from "../test/synthetic-receiver";
 import { AttachSupervisorInputSchema, ResumeSupervisorInputSchema, MigrationCommandSchema, type AttachSupervisorInput, type MigrationCommand } from "../shared/supervision-activation";
@@ -14,7 +15,7 @@ import { SupervisionActivation, registerSupervisionActivation } from "./supervis
 import { SupervisionStore } from "./supervision-store";
 import { SupervisionRuntime } from "./supervision-runtime";
 import { pluginDir } from "./data-dir";
-import { updateFirstmateConfig } from "./config";
+import { readFirstmateConfig, updateFirstmateConfig } from "./config";
 import { workflowStore } from "./workflow-service";
 import { legacyAdapters, SupervisionMigrator } from "./supervision-migrate";
 import { NeedsYouService, readConfiguredDecisionHome } from "./needs-you-service";
@@ -24,10 +25,15 @@ import { askMate } from "./mate";
 import { evidenceReferences } from "../shared/plan-help";
 import { planSubjectHash } from "./workflow-plans";
 import { digest } from "./submissions";
+import { SUPERVISE_ACTOR_SOURCE, SUPERVISE_PROVENANCE } from "../shared/supervise";
 vi.setConfig({ testTimeout: 30000 });
 const root = process.env.PASEO_HOME!;
 let home: string, activation: SupervisionActivation, receiver: SyntheticReceiver, ledger: NeedsYouService, clock: number;
 let prepare: Extract<MigrationCommand, { op: "prepare" | "resume" }>;
+// As in the crash and recovery suites, pay the cold Windows host startup before the real, unchanged 5 s probes.
+beforeAll(async () => {
+  if (process.platform === "win32") await warmWindowsIdentityProbe();
+}, WARMUP_TIMEOUT_MS + 10000);
 beforeEach(async () => {
   process.env.PASEO_HOME = join(root, randomUUID()); home = join(process.env.PASEO_HOME, "home");
   await mkdir(join(home, "data"), { recursive: true });
@@ -311,6 +317,72 @@ it("production adapters migrate one plan and attach once, auditing unverified pr
   await expect(activation.attach({ ...input, requestId: randomUUID() }, api)).rejects.toMatchObject({ code: "STALE" });
   await expect(activation.attach({ ...input, opening: "different opening" }, api)).rejects.toMatchObject({ code: "CONFLICT" });
 });
+
+it("the current first mate runs the reviewed handover and Attach, recorded as mate-chat; a bare prepare, replay and takeover hold", async () => {
+  const mate = { kind: "mate-chat", id: "general", source: SUPERVISE_ACTOR_SOURCE } as const;
+  await expect(activation.migrate(prepare, { kind: "agent", id: "bound-supervisor", source: "scope helper" })).rejects.toMatchObject({ code: "UNKNOWN_OWNER" });
+  await expect(activation.migrate(prepare, { ...mate, id: "crewmate-7" })).rejects.toMatchObject({ code: "STALE" });
+  // F1: a bare first-mate prepare (no reviewHash, no evidence) never reaches the migrator.
+  await expect(activation.migrate(prepare, mate)).rejects.toMatchObject({ code: "HELD" });
+  await expect(activation.migrate({ ...prepare, op: "resume" }, mate)).rejects.toMatchObject({ code: "HELD" });
+  expect(await workflowStore(home).cutover("scheduler")).toBe(null); expect(receiver.calls).toEqual([]);
+  const { runtime } = await guided();
+  try {
+    // F6 (saveBackup half): the inner checked config refuses a non-mate actor id.
+    await expect(activation.saveBackup({ homeId: prepare.homeId, expectedRevision: 1, requestId: randomUUID(),
+      backup: (await activation.readBackup(prepare.homeId)).backup! }, SUPERVISE_PROVENANCE, "crewmate-7")).rejects.toMatchObject({ code: "STALE" });
+    const report = "Retained FirstMate build: isolated tested build; location: reviewed test archive.\nRecovery test: exact S07 history and external-effect reconciliation verified.\n";
+    await writeFile(join(home, "data/rollback.md"), report);
+    const review = await activation.planHelp(prepare.homeId, "scheduler");
+    expect(review.problems).toEqual([]);
+    const evidence = await activation.evidence({ homeId: prepare.homeId, plan: "scheduler", folder: "data", rollbackPath: "data/rollback.md" });
+    const selected = { inventory: evidence.inventory!.hash, policy: evidence.policy!.hash, rollback: { path: evidence.rollback!.path, hash: evidence.rollback!.hash } };
+    const command = { ...prepare, scopeId: review.scopeId, projectId: review.projectId!, migrationId: review.migrationId, reviewHash: review.reviewHash,
+      evidence: selected, prerequisites: evidenceReferences(selected) };
+    // F1: reviewHash without checked evidence is still refused for the first mate.
+    await expect(activation.migrate({ ...command, evidence: undefined }, mate)).rejects.toMatchObject({ code: "HELD" });
+    expect(await workflowStore(home).cutover("scheduler")).toBe(null);
+    await activation.migrate(command, mate);
+    // F5: a successor first mate finishes the recorded handover; its own stages record it.
+    await updateFirstmateConfig({ mateAgentId: "successor" });
+    const successor = { ...mate, id: "successor" };
+    await activation.migrate({ ...command, op: "resume" }, successor);
+    await activation.migrate({ op: "reconcile", homeId: prepare.homeId, migrationId: review.migrationId }, successor);
+    await activation.migrate({ op: "barrier", homeId: prepare.homeId, migrationId: review.migrationId }, successor);
+    const committed = await activation.migrate({ op: "commit", homeId: prepare.homeId, migrationId: review.migrationId }, successor);
+    expect(committed.migrations[0]).toMatchObject({ state: "committed" }); expect(committed.plans[0]!.canAttach).toBe(true);
+    const input = await attachment();
+    await expect(activation.attach(input, api, { kind: "agent", id: "bound-supervisor", source: "scope helper" })).rejects.toMatchObject({ code: "UNKNOWN_OWNER" });
+    await expect(activation.attach(input, api, mate)).rejects.toMatchObject({ code: "STALE" });
+    expect(receiver.calls).toEqual([]);
+    const next = await activation.attach(input, api, successor);
+    expect(next.plans[0]).toMatchObject({ supervisorId: input.supervisorId, binding: "active", opening: "succeeded", canAttach: false });
+    expect(next.audits).toEqual([{ at: expect.any(String), plan: "scheduler", supervisor: input.supervisorId,
+      source: "first mate tool (unverified)", authorization: "current first mate role convention, not verified" }]);
+    let status = await new SupervisionStore(pluginDir(), home).read();
+    expect(status.commands.find(c => c.id === input.requestId)?.actor).toEqual(successor);
+    expect(status.commands.find(c => c.id === input.requestId)?.result.supervisorConfiguration?.provenance).toBe("first mate tool (unverified)");
+    expect(receiver.calls.map(c => c.op)).toEqual(["openWorkspace", "createAgent", "send"]);
+    await activation.attach(input, api, successor);
+    await activation.attach({ homeId: input.homeId, requestId: input.requestId, resume: true }, api, successor);
+    expect(receiver.calls).toHaveLength(3); expect((await activation.read()).audits).toHaveLength(1);
+    // F5: the captain's app can take the recorded attachment over; the takeover itself is recorded.
+    await activation.attach({ homeId: input.homeId, requestId: input.requestId, resume: true }, api);
+    status = await new SupervisionStore(pluginDir(), home).read();
+    expect(status.commands.some(c => c.actor.kind === "plugin-ui-unverified" && c.id !== input.requestId)).toBe(true);
+    expect(receiver.calls).toHaveLength(3);
+    await expect(activation.attach({ ...input, opening: "different opening" }, api, successor)).rejects.toMatchObject({ code: "CONFLICT" });
+  } finally { await activation.stop(); await runtime.stop(); }
+});
+it("F6: a first mate replaced between migrate's entry and inner checks refuses before any write", async () => {
+  const real = await readFirstmateConfig(); let reads = 0;
+  activation = new SupervisionActivation(pluginDir(), { enabled: true, adapters: () => legacyAdapters(null, () => ledger.read()), receiver: () => receiver,
+    config: async () => ({ ...real, mateAgentId: ++reads <= 2 ? "general" : "replacement" }) });
+  const mate = { kind: "mate-chat", id: "general", source: SUPERVISE_ACTOR_SOURCE } as const;
+  await expect(activation.migrate({ op: "reconcile", homeId: prepare.homeId, migrationId: prepare.migrationId }, mate)).rejects.toMatchObject({ code: "STALE" });
+  expect(reads).toBeGreaterThanOrEqual(3);
+  expect(await workflowStore(home).cutover("scheduler")).toBe(null); expect(receiver.calls).toEqual([]);
+});
 it("stale plan/supervisor and uncommitted cutovers cannot attach", async () => {
   await activation.migrate(prepare);
   const input = await attachment();
@@ -390,7 +462,7 @@ it("production resume accepts the original fields after freeze-before-receipt in
   expect(resumed.migrations[0]).toMatchObject({ id: prepare.migrationId, state: "prepared" });
   await activation.migrate({ op: "abort", homeId: prepare.homeId, migrationId: prepare.migrationId, reason: "End isolated recovery check" });
 });
-it("strict RPCs accept no actor/source and no attach operation exists on migration or home/CLI tools", async () => {
+it("strict RPCs accept no actor/source and no attach operation exists on migration or the app RPC tools", async () => {
   await cutover();
   expect(AttachSupervisorInputSchema.safeParse({ ...await attachment(), actor: { kind: "captain-ui" } }).success).toBe(false);
   for (const extra of [{ actor: { kind: "captain-ui" } }, { supervisorId: randomUUID() }, { opening: "replacement opening" }, { profile: { provider: "codex/test", modeId: "" } }])

@@ -161,6 +161,11 @@ It accepts opaque legacy blocker prose; only recognized ID lists acquire depende
 An unavailable daemon is a lint failure, never a clean result. No separate parser replica can drift.
 
 
+A larger plan may be better looked after by its own Supervisor. The captain can hand one over
+from Plans, and the current first mate can run the same checked handover and Attach with
+`tools/supervise.mjs` where appropriate; `data/supervisors.md` explains the commands. Handover
+changes who runs the plan, never its mode, gates or budget.
+
 ## Plans on the board
 
 Plans have one of three modes, which say who decides:

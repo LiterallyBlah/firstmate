@@ -10,7 +10,7 @@ import { z } from "zod";
 import {
   SupervisionActorSchema, SupervisionAttemptSchema, SupervisionBackendSchema, SupervisionBindingSchema,
   SupervisionEffectSchema, SupervisionExpectedSchema, SupervisionHash, SupervisionScopeSchema,
-  SupervisionTaskSchema, SupervisionUtc, SupervisionUuid,
+  SupervisionTaskSchema, SupervisionUtc, SupervisionUuid, superviseReplayEquivalent,
   type SupervisionActor, type SupervisionCode, type SupervisionExpected, type SupervisionOwnership,
   type SupervisionReceipt, type SupervisionStatus,
 } from "../shared/supervision";
@@ -1133,7 +1133,10 @@ export class SupervisionStore {
       if (snapshot.problems.length) fail("HELD", snapshot.problems.join(" "));
       const replay = this.accepted(snapshot, requestId);
       if (replay) {
-        if (replay.requestHash !== requestHash) fail("CONFLICT", "Request ID has different content; retain and inspect the original receipt.");
+        // A supervise-origin successor (a replaced first mate, or the captain's app) may replay the exact
+        // recorded content: substitute the recorded actor before comparing hashes. Replay writes nothing.
+        if (replay.requestHash !== requestHash && !(superviseReplayEquivalent(replay.actor, body.actor) && digest({ ...body, actor: replay.actor }) === replay.requestHash))
+          fail("CONFLICT", "Request ID has different content; retain and inspect the original receipt.");
         return this.receipt(replay); // Before CAS/admission; historical approval is not reauthorized.
       }
       return this.commit(snapshot, body, requestId, requestHash);
@@ -1167,7 +1170,7 @@ export class SupervisionStore {
       const replay = this.accepted(snapshot, requestId);
       if (replay) {
         const accepted = AcceptedScopedCommandSchema.safeParse(snapshot.frames.get(key("command", requestId))?.value);
-        if (!accepted.success || accepted.data.inputHash !== inputHash || digest(accepted.data.actor) !== digest(actor))
+        if (!accepted.success || accepted.data.inputHash !== inputHash || !superviseReplayEquivalent(accepted.data.actor, actor))
           fail("CONFLICT", "Request ID belongs to different command content or provenance.");
         return { receipt: this.receipt(replay), result: structuredClone(accepted.data.result) };
       }

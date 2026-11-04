@@ -83,6 +83,7 @@ export const TEMPLATES = {
   projectGuide: "data/project-context.md",
   /** Both remain unseeded unless Supervisors are on. */
   scopeHelper: "tools/scope.mjs",
+  superviseHelper: "tools/supervise.mjs",
   scopeGuide: "data/supervisors.md",
   backlogLint: "data/backlog-lint.js",
   workflowGuide: "data/workflows.md",

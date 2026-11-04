@@ -144,6 +144,18 @@ export type SupervisionEffect = z.infer<typeof SupervisionEffectSchema>;
 export type SupervisionBackend = z.infer<typeof SupervisionBackendSchema>;
 export type SupervisionExpected = z.infer<typeof SupervisionExpectedSchema>;
 export type SupervisionActor = z.infer<typeof SupervisionActorSchema>;
+/** The current first mate's supervise-tool actor source, beside the captain's app-button actors. */
+export const SUPERVISE_ACTOR_SOURCE = "supervise tool (same-user role convention, unverified)";
+export const isSuperviseMateActor = (actor: SupervisionActor) => actor.kind === "mate-chat" && actor.source === SUPERVISE_ACTOR_SOURCE;
+/** The two recorded origins of one Supervisor setup request: the captain's app button or the first mate's tool. */
+export const isSuperviseOriginActor = (actor: SupervisionActor) =>
+  isSuperviseMateActor(actor) || actor.kind === "plugin-ui-unverified" && actor.id === "unauthenticated-plugin-call";
+/** Journal replay identity for a setup request is its content under either supervise origin: the first
+ * mate is a role that legitimately transfers to a successor session, and the captain may finish what
+ * the mate started (or the reverse). Replay writes nothing; every new write still records its own actor,
+ * and callers re-check the fresh role and record an explicit takeover before continuing another origin. */
+export const superviseReplayEquivalent = (a: SupervisionActor, b: SupervisionActor) =>
+  a.kind === b.kind && a.id === b.id && a.source === b.source || isSuperviseOriginActor(a) && isSuperviseOriginActor(b);
 export type SupervisionCode = "STALE" | "HELD" | "UNKNOWN_OWNER" | "UNSUPPORTED" | "UNCERTAIN" | "CONFLICT";
 export interface SupervisionReceipt {
   requestId: string; requestHash: string; sequence: number; hash: string; generation: number;

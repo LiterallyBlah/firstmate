@@ -1,5 +1,6 @@
 import { featurePause } from "../shared/feature-settings";
-/** Build A production service. No background model turns, attach path or worker dispatcher. */
+/** Build A production service. No background model turns or worker dispatcher; provisioning is an
+ * explicit app-button or first-mate supervise-tool action, recorded with its actor. */
 import { readFile, readdir, realpath, stat } from "node:fs/promises";
 import { z } from "zod";
 import { isAbsolute, resolve } from "node:path";
@@ -9,6 +10,7 @@ import type { WorkflowPlan } from "../shared/workflow-plans";
 import { ProjectAdminSchema, ProjectRuntimeSnapshotSchema, administerProject, provisionProjectFromUi, readProjectMemory,
   readProjectRuntime, recoverProjectRuntimeFromUi, abortProjectProvisionFromUi, type ProjectAdmin, type ProjectRuntimeSnapshot } from "../shared/project-runtime";
 import { ProjectProvisionInputSchema } from "../shared/supervision-policy";
+import { SUPERVISE_ACTOR_SOURCE, isSuperviseMateActor, superviseReplayEquivalent } from "../shared/supervise";
 import { registerProjectFolders } from "./project-folders";
 import { normalizedName, type ProjectRecord } from "../shared/supervision-projects";
 import type { GatewayReceiver } from "../shared/supervision-effects";
@@ -37,14 +39,18 @@ import type { PaseoApi } from "./host-types";
 import { SupervisionStore } from "./supervision-store";
 
 const UI: SupervisionActor = { kind: "plugin-ui-unverified", id: "unauthenticated-plugin-call", source: "project provision button (unverified)" };
+/** A recorded provision belongs to the origin that started it: the captain's app button or the
+ * current first mate's supervise tool. Journal replay is provenance-bound, so each resumes its own. */
+const provisionOrigin = (actor: SupervisionActor) => digest(actor) === digest(UI) || actor.kind === "mate-chat" && actor.source === SUPERVISE_ACTOR_SOURCE;
 const result = { planId: null, planHash: null, decisionId: null, outboxId: null };
 const normalPath = (path: string) => process.platform === "win32" ? resolve(path).toLowerCase() : resolve(path);
 const generalScopeId = (home: string) => projectRowId("general", workflowHomeIdentity(home));
-const recordedProvision = (status: SupervisionStatus, projectId: string) => status.commands.flatMap(c => {
+const recordedProvisionRecord = (status: SupervisionStatus, projectId: string) => status.commands.flatMap(c => {
   const input = c.result.projectProvision;
   return input && input.homeId === status.homeId && input.projectId === projectId && c.id === stableId("project-provision-input", input.requestId) &&
-    c.inputHash === digest(input) && digest(c.actor) === digest(UI) ? [input] : [];
+    c.inputHash === digest(input) && provisionOrigin(c.actor) ? [{ input, actor: c.actor }] : [];
 })[0] ?? null;
+const recordedProvision = (status: SupervisionStatus, projectId: string) => recordedProvisionRecord(status, projectId)?.input ?? null;
 type RegistryEntry = { name: string; location: string | null; directory: string | null; projectId: string | null; scopeId: string | null; reason: string | null };
 async function registry(home: string) {
   const file = await readTextFile(home, "data/projects.md");
@@ -172,7 +178,8 @@ export class ProjectRuntime {
         const project = status.projects?.projects.find(p => p.id === row.projectId), scope = status.scopes.find(s => s.id === project?.scopeId),
           binding = status.bindings.find(b => b.scopeId === scope?.id), spend = scope ? supervisorSpend(status, scope.id) : { sessions: 0, turns: 0, uncertain: 0 };
         const effects = binding ? activationEffects(status, binding.scopeId, binding.epoch) : null;
-        const provisionInput = project ? recordedProvision(status, project.id) : null;
+        const provisionRecord = project ? recordedProvisionRecord(status, project.id) : null, provisionInput = provisionRecord?.input ?? null;
+        const provisionOriginName = provisionRecord ? isSuperviseMateActor(provisionRecord.actor) ? "first-mate" as const : "app" as const : null;
         const stopped = binding?.state === "suspect" || !!provisionInput && status.commands.some(c => c.id === stableId("project-provision-abort", provisionInput.requestId));
         const aliasKnown = !project || [project.name, ...project.aliases].some(name => normalizedName(name) === normalizedName(row.name));
         const reason = row.reason ?? (!aliasKnown ? "Registry name changed; record a reviewed alias before provisioning." : !project ? "Awaiting reviewed admission and allocation." : !project.owner ? "Durable profile and caps are missing." :
@@ -181,7 +188,7 @@ export class ProjectRuntime {
           !binding ? provisionInput ? "Provisioning incomplete; inspect and resume the recorded request." : null : binding.state !== "active" || effects?.send?.state !== "succeeded" ? "Provisioning incomplete; inspect and resume the recorded request." : null);
         return { name: row.name, directory: row.directory, registryLocation: row.location, hostId: project?.owner?.hostId ?? (row.directory ? "local" : null), projectId: row.projectId, scopeId: project?.scopeId ?? row.scopeId,
           reason, state: row.reason ? "held" : project?.state ?? "unadmitted", version: project?.version ?? 0, aliases: project?.aliases ?? [],
-          agentId: binding?.agentId ?? null, workspaceId: binding?.workspaceId ?? null, provisionRequestId: effects?.create?.requestId ?? provisionInput?.requestId ?? null, provisionInput,
+          agentId: binding?.agentId ?? null, workspaceId: binding?.workspaceId ?? null, provisionRequestId: effects?.create?.requestId ?? provisionInput?.requestId ?? null, provisionInput, provisionOrigin: provisionOriginName,
           ...spend, profile: project?.owner?.profile ?? null, limits: project?.owner?.limits ?? null,
           memoryPending: status.projects?.memoryProposals.filter(p => p.projectId === project?.id && p.state === "proposed").length ?? 0,
           plans: associations.filter(a => row.projectId && a.projectIds.includes(row.projectId)) };
@@ -223,7 +230,7 @@ export class ProjectRuntime {
         const original = marker?.result.projectProvision;
         const effects = status.effects.filter(e => e.scopeId === project?.scopeId && e.requestId === input.provisionRequestId && e.attemptId === null);
         const legacyBinding = !original && binding && effects.some(e => e.operation === "agent.create" && e.receiverKey === binding.agentId);
-        if (!project || project.version !== input.projectVersion || !marker || digest(marker.actor) !== digest(UI) ||
+        if (!project || project.version !== input.projectVersion || !marker || !provisionOrigin(marker.actor) ||
           (original ? original.projectId !== project.id || original.homeId !== input.homeId : !legacyBinding)) refuse("STALE", "Inspect the current recorded provisioning before stopping it.");
         if (effects.some(e => e.operation === "agent.send" && e.state === "succeeded")) refuse("HELD", "Opening already completed; use the project's reviewed stop controls.");
         const scope = status.scopes.find(s => s.id === project.scopeId)!;
@@ -336,9 +343,11 @@ export class ProjectRuntime {
     return { ...context, proposals };
   }
   /** A project's Supervisor, from Supervisors' Add (or an older recorded request, replayed exactly). */
-  async provision(input: z.infer<typeof ProjectProvisionInputSchema>, paseo: PaseoApi) {
+  async provision(input: z.infer<typeof ProjectProvisionInputSchema>, paseo: PaseoApi, actor: SupervisionActor = UI) {
+    if (!provisionOrigin(actor)) refuse("UNKNOWN_OWNER", "Provisioning is recorded by the captain's app button or the current first mate.");
     ProjectProvisionInputSchema.parse(input);
     await serialized(`firstmate.project-provision:${input.homeId}:${input.projectId}`, () => this.mutate(input.homeId, async (home, store, config) => {
+      if (actor.kind === "mate-chat" && actor.id !== config.mateAgentId) refuse("UNKNOWN_OWNER", "Current first-mate role required for provisioning.");
       let status = await store.read();
       const project = status.projects?.projects.find(p => p.id === input.projectId);
       if (!project?.owner) refuse("HELD", "Reviewed project with durable profile and caps required.");
@@ -348,7 +357,16 @@ export class ProjectRuntime {
       if (retained && retained.requestId !== input.requestId) return;
       if (status.commands.some(c => c.id === stableId("project-provision-abort", input.requestId))) refuse("HELD", "Provisioning was stopped; its identity and spend remain reserved.");
       const marker = status.commands.find(c => c.id === stableId("project-provision-input", input.requestId));
-      if (marker && (marker.inputHash !== digest(input) || digest(marker.actor) !== digest(UI))) refuse("CONFLICT", "Request ID belongs to different provisioning input or provenance.");
+      if (marker && marker.inputHash !== digest(input)) refuse("CONFLICT", "Request ID belongs to different provisioning input.");
+      if (marker && digest(marker.actor) !== digest(actor)) {
+        // Only a first-mate-started request can be taken over (by the successor first mate or the
+        // captain's app); the takeover itself is recorded before the recorded request continues.
+        if (!isSuperviseMateActor(marker.actor) || !superviseReplayEquivalent(marker.actor, actor))
+          refuse("CONFLICT", "Request ID belongs to a different provenance. Resume it through the route that started it.");
+        await store.transactCommand(stableId("supervise-takeover", input.requestId, digest(actor)),
+          digest({ superviseTakeover: { requestId: input.requestId, from: marker.actor, to: actor } }), actor,
+          async () => ({ mutations: [], expectedVersions: [], result }));
+      }
       const binding = status.bindings.find(b => b.scopeId === project.scopeId), accepted = status.commands.find(c => c.id === input.requestId);
       if (binding && accepted) {
         const recorded = activationEffects(status, project.scopeId, binding.epoch);
@@ -364,7 +382,7 @@ export class ProjectRuntime {
       const workspace = reviewedProfile && supervisorWorkspace(this.runtime.root, project.scopeId, 1);
       // A captain-chosen profile must be in the host catalog; the admitted one was reviewed at admission and is recorded against what is seen now.
       const reviewedCatalog = !reviewedProfile || binding ? null : input.profile ? await checkedSupervisorCatalog(paseo, workspace!.directory, input.profile) : await supervisorCatalog(paseo, workspace!.directory);
-      await store.transactCommand(stableId("project-provision-input", input.requestId), digest(input), UI,
+      await store.transactCommand(stableId("project-provision-input", input.requestId), digest(input), actor,
         async current => {
           const owner = current.projects?.projects.find(p => p.id === project.id);
           if (owner?.version !== input.projectVersion || owner.state !== "admitted") refuse("STALE", "Project admission changed before recording provisioning.");
@@ -394,7 +412,7 @@ export class ProjectRuntime {
       const configuration = reviewedProfile && reviewedCatalog ? { id: input.requestId, scopeId: project.scopeId, generation: 1, workspace: workspace!, requested: reviewedProfile, resolved: reviewedProfile,
         catalogDigest: digest(reviewedCatalog), policyDigest: digest(await this.runtime.features?.read(home) ?? { enabled: true }),
         target: { homeId: input.homeId, hostId: "local" as const, scopeId: project.scopeId, kind: "project" as const, planId: null, planHash: null },
-        limits: input.limits ?? project.owner.limits, effectiveEpoch: 1, provenance: "client UI (unverified)" as const } : reviewed?.catalogDigest ? { id: input.requestId, scopeId: project.scopeId, generation: 1,
+        limits: input.limits ?? project.owner.limits, effectiveEpoch: 1, provenance: actor.kind === "mate-chat" ? "first mate tool (unverified)" as const : "client UI (unverified)" as const } : reviewed?.catalogDigest ? { id: input.requestId, scopeId: project.scopeId, generation: 1,
         ...(reviewed.workspace ? { workspace: reviewed.workspace } : {}), requested: reviewed.profile, resolved: reviewed.profile, catalogDigest: reviewed.catalogDigest, policyDigest: reviewed.policyHash,
         target: { homeId: input.homeId, hostId: "local" as const, scopeId: project.scopeId, kind: "project" as const, planId: null, planHash: null },
         limits: reviewed.limits, effectiveEpoch: 1, provenance: "client UI (unverified)" as const } : undefined;
@@ -419,7 +437,7 @@ export class ProjectRuntime {
           const capacity = await this.capacity(home);
           await checkGeneralHeadroom(status, receiver, capacity.slots, capacity.generalHeadroom);
           await sessions.prepare({ requestId: input.requestId, scopeId: project.scopeId, scopeVersion: status.scopes.find(s => s.id === project.scopeId)!.version,
-            profile: reviewedProfile ?? project.owner!.profile, opening, purpose: "work" }, UI);
+            profile: reviewedProfile ?? project.owner!.profile, opening, purpose: "work" }, actor);
         });
       } else if (!accepted || activationEffects(status, project.scopeId, binding.epoch).create?.requestId !== input.requestId) {
         // Another explicit press cannot allocate another identity, even if it uses a different request ID.

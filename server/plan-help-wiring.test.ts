@@ -61,7 +61,8 @@ it("R1: real workflow and supervision identities compose in Plans; switching hom
     (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
     await act(async () => { tree = create(render()); });
     await act(async () => tree!.root.find(n => n.type === "Pressable" as never && n.props.accessibilityLabel === "Review plan help").props.onPress());
-    await act(async () => { await new Promise(done => setTimeout(done, 40)); });
+    // Condition-based wait: hosted CI can take seconds to settle these reads; a fixed sleep flakes.
+    await vi.waitFor(async () => { await act(async () => {}); expect(visibleText(tree!.toJSON())).toContain("Current owner:"); }, { timeout: 20000, interval: 50 });
     expect(visibleText(tree!.toJSON())).toContain("Current owner:");
     expect(visibleText(tree!.toJSON())).not.toContain("This review couldn't be checked");
     expect(calls.filter(c => /plan-help.read|backup.read/.test(c.name))).toEqual([

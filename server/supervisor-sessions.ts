@@ -20,6 +20,8 @@ export interface SupervisorOptions {
   enabled?: boolean;
   /** Captain-approved UI convention. RPC transport has no caller identity; this is NOT authorization. */
   unverifiedUiAttach?: boolean;
+  /** The current first mate's supervise tool, admitted only after the caller's fresh role re-check. */
+  mateAttach?: boolean;
   /** Fixture-supplied caps; the durable policy source for them is an integration item. */
   limits: GatewayLimits;
   /** Captured reviewed catalog metadata for new app setup; never a raw config setter. */
@@ -82,8 +84,8 @@ export class SupervisorSessions {
     return this.reserve(input, actor, "activate", null);
   }
   /** S11: the first supervisor of a scope S07 has cut over (committed migration, scope active, no binding). It creates a
-   * full-access session, so it is an explicit captain action only, like `hold` and `prepareReplacement`; the first mate
-   * cannot attach from chat. Nothing attaches on its own, and it never replaces an existing binding. The same reserved,
+   * full-access session, so it is an explicit captain action, like `hold` and `prepareReplacement`; the first mate
+   * uses `attachFromMate` below instead. Nothing attaches on its own, and it never replaces an existing binding. The same reserved,
    * unprompted identity and verify/activate path as `prepare` follow. */
   async attach(input: { requestId: string; scopeId: string; scopeVersion: number; profile: AgentProfile; opening: string; purpose?: "discussion" | "work" }, actor: SupervisionActor) {
     this.enabled();
@@ -91,12 +93,23 @@ export class SupervisorSessions {
     return this.reserve(input, actor, "attach", null);
   }
   /** Production's dedicated button calls this seam. Never manufacture a captain-ui actor from an RPC.
-   * No tool, request-file or CLI adapter calls it. Direct RPC callers cannot be authenticated by Paseo. */
+   * The first mate's supervise tool uses its own seam below and never this one. Direct RPC callers cannot be authenticated by Paseo. */
   async attachFromUnverifiedUi(input: { requestId: string; scopeId: string; scopeVersion: number; profile: AgentProfile; opening: string;
     planId: string; planHash: string; supervisorId: string }) {
     this.enabled();
     if (!this.options.unverifiedUiAttach) refuse("UNSUPPORTED", "Unverified UI attachment is disabled.");
     return this.reserve(input, { kind: "plugin-ui-unverified", id: "unauthenticated-plugin-call", source: "client UI (unverified)" }, "attach-ui-unverified", null);
+  }
+  /** The current first mate's supervise tool calls this seam. The caller re-checks the fresh
+   * first-mate role immediately before reservation and at dispatch; the recorded actor is that
+   * mate (`mate-chat`), never the captain and never a scope-bound agent. Same reserved identity,
+   * cut-over, scope/epoch and budget checks as the app button. */
+  async attachFromMate(input: { requestId: string; scopeId: string; scopeVersion: number; profile: AgentProfile; opening: string;
+    planId: string; planHash: string; supervisorId: string }, actor: SupervisionActor) {
+    this.enabled();
+    if (!this.options.mateAttach) refuse("UNSUPPORTED", "First-mate attachment is disabled.");
+    if (actor.kind !== "mate-chat") refuse("UNSUPPORTED", "Only the current first mate attaches through the supervise tool.");
+    return this.reserve(input, actor, "attach-mate", null);
   }
   /** Manual replacement only after the exact old supervisor is shown stopped; a lease or timeout proves nothing. */
   async prepareReplacement(input: { requestId: string; scopeId: string; scopeVersion: number; expectedEpoch: number; profile: AgentProfile; opening: string }, actor: SupervisionActor) {
@@ -127,7 +140,8 @@ export class SupervisorSessions {
   }
   private async reserve(input: { requestId: string; scopeId: string; scopeVersion: number; expectedEpoch?: number; profile: AgentProfile; opening: string; purpose?: "discussion" | "work";
     planId?: string; planHash?: string; supervisorId?: string; configuration?: SupervisorConfiguration; controlId?: string; reviewIdentity?: string; replacementInput?: SupervisorReplacementInput },
-    actor: SupervisionActor, mode: "activate" | "attach" | "attach-ui-unverified" | "replace" | "replace-ui-unverified", checked: SupervisionBinding | null) {
+    actor: SupervisionActor, mode: "activate" | "attach" | "attach-ui-unverified" | "attach-mate" | "replace" | "replace-ui-unverified", checked: SupervisionBinding | null) {
+    const attaching = mode === "attach" || mode === "attach-ui-unverified" || mode === "attach-mate";
     this.enabled();
     const inputHash = mode === "replace-ui-unverified" ? digest({ supervisor: mode, reviewIdentity: input.reviewIdentity }) : digest({ supervisor: mode, input });
     if (mode !== "replace" && await this.accepted(input.requestId)) return this.replay(input.requestId, inputHash, actor);
@@ -146,10 +160,10 @@ export class SupervisorSessions {
       const scope = status.scopes.find(s => s.id === input.scopeId), old = status.bindings.find(b => b.scopeId === input.scopeId);
       if (!scope || !["plan", "project", "maintenance"].includes(scope.kind) || scope.mode !== "scoped") refuse("UNKNOWN_OWNER", "Exact scoped plan, project or maintenance owner required.");
       if (scope.version !== input.scopeVersion) refuse("STALE", "Scope version changed.");
-      if (mode === "activate" ? scope.state !== "dormant" || old : mode === "attach" || mode === "attach-ui-unverified" ? scope.state !== "active" || old || !cutOver(status, scope.id)
+      if (mode === "activate" ? scope.state !== "dormant" || old : attaching ? scope.state !== "active" || old || !cutOver(status, scope.id)
         : scope.state !== "transferring" || !old || old.epoch !== input.expectedEpoch || !["suspect", "retired"].includes(old.state))
         refuse("HELD", mode === "activate" ? "Only a dormant scope without a binding is activated here."
-          : mode === "attach" || mode === "attach-ui-unverified" ? "Only a scope S07 has cut over (committed, active, no binding and no migration in progress) is attached here."
+          : attaching ? "Only a scope S07 has cut over (committed, active, no binding and no migration in progress) is attached here."
           : "Replacement needs the held previous epoch.");
       // The observed-stopped identity must still be the binding being replaced.
       if ((mode === "replace" || mode === "replace-ui-unverified") && digest(old) !== digest(checked)) refuse("STALE", "The held binding changed after its quiescence was observed.");
@@ -176,7 +190,7 @@ export class SupervisorSessions {
       const agentId = stableId("agent", ids.create), intent = supervisorWorkspaceIntent(scope.id, epoch, ids.workspace);
       if (input.configuration?.workspace && input.configuration.workspace.intentKey !== intent.key) refuse("STALE", "Qualified workspace differs from the reserved next session.");
       const attachedPlan = status.plans.find(p => p.scopeId === scope.id)?.plan;
-      if (mode === "attach-ui-unverified" && (!attachedPlan || attachedPlan.definition.id !== input.planId || attachedPlan.hash !== input.planHash || agentId !== input.supervisorId))
+      if ((mode === "attach-ui-unverified" || mode === "attach-mate") && (!attachedPlan || attachedPlan.definition.id !== input.planId || attachedPlan.hash !== input.planHash || agentId !== input.supervisorId))
         refuse("STALE", "The displayed plan or reserved supervisor changed. Refresh before attaching.");
       // Explicit intent; the verified workspace ID is unknown (null) until its own effect succeeds and verify binds it.
       const binding: SupervisionBinding = { ...(input.configuration ? { configurationId: input.configuration.id } : {}), scopeId: scope.id, epoch, hostId: "local", agentId, workspaceId: null, workspaceIntent: intent.key,
@@ -197,11 +211,12 @@ export class SupervisorSessions {
         ...effects.map(value => ({ kind: "effect" as const, value })), ...blobs.map(value => ({ kind: "blob" as const, value })),
       ];
       const plan = status.plans.find(p => p.scopeId === scope.id)?.plan;
-      if (mode === "attach-ui-unverified" && !plan) refuse("UNKNOWN_OWNER", "Attachment requires the imported plan.");
-      return { expectedVersions: expectedFor(status, mutations), mutations, result: mode === "attach-ui-unverified" ? {
+      if ((mode === "attach-ui-unverified" || mode === "attach-mate") && !plan) refuse("UNKNOWN_OWNER", "Attachment requires the imported plan.");
+      return { expectedVersions: expectedFor(status, mutations), mutations, result: mode === "attach-ui-unverified" || mode === "attach-mate" ? {
         ...NO_RESULT, ...(input.configuration ? { supervisorConfiguration: input.configuration } : {}), planId: plan!.definition.id, planHash: plan!.hash,
         attachmentAudit: { at: new Date().toISOString(), plan: plan!.definition.id, supervisor: agentId,
-          source: "client UI (unverified)" as const, authorization: "by convention, not verified" as const },
+          source: mode === "attach-mate" ? "first mate tool (unverified)" as const : "client UI (unverified)" as const,
+          authorization: mode === "attach-mate" ? "current first mate role convention, not verified" as const : "by convention, not verified" as const },
       } : input.configuration && mode === "replace-ui-unverified" ? { ...NO_RESULT, ...(input.replacementInput ? { supervisorReplacement: input.replacementInput } : {}), supervisorControl: { id: input.requestId, scopeId: scope.id, epoch,
         action: "replace", predecessor: input.controlId ?? null, configuration: input.configuration } } : input.configuration ? { ...NO_RESULT, supervisorConfiguration: input.configuration } : NO_RESULT };
     });
