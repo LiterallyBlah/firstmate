@@ -11,7 +11,8 @@ import { WARMUP_TIMEOUT_MS, warmWindowsIdentityProbe } from "../test/supervision
 import { workflowFixture } from "../test/workflow-fixture";
 import { SyntheticReceiver } from "../test/synthetic-receiver";
 import { AttachSupervisorInputSchema, ResumeSupervisorInputSchema, MigrationCommandSchema, type AttachSupervisorInput, type MigrationCommand } from "../shared/supervision-activation";
-import { SupervisionActivation, registerSupervisionActivation } from "./supervision-activation";
+import { SupervisionActivation, registerSupervisionActivation, decisionProblems } from "./supervision-activation";
+import type { NeedsYouSnapshot } from "../shared/needs-you";
 import { SupervisionStore } from "./supervision-store";
 import { SupervisionRuntime } from "./supervision-runtime";
 import { pluginDir } from "./data-dir";
@@ -106,7 +107,7 @@ it("a changed reviewed source/backup or incomplete decision census holds guided 
     const review = await activation.planHelp(prepare.homeId, "scheduler");
     const command = { ...prepare, scopeId: review.scopeId, projectId: review.projectId!, migrationId: review.migrationId, reviewHash: review.reviewHash };
     vi.spyOn(ledger, "read").mockResolvedValueOnce(null as never);
-    expect((await activation.planHelp(prepare.homeId, "scheduler")).problems.join(" ")).toContain("Decisions haven't all been checked");
+    expect((await activation.planHelp(prepare.homeId, "scheduler")).problems.join(" ")).toContain("Needs you is off");
     await activation.saveBackup({ homeId: prepare.homeId, requestId: randomUUID(), expectedRevision: 1, backup: { destination: (await activation.readBackup(prepare.homeId)).backup!.destination, retention: "Keep indefinitely" } });
     await expect(activation.migrate(command)).rejects.toMatchObject({ code: "STALE" });
     expect(await workflowStore(home).cutover("scheduler")).toBe(null);
@@ -477,4 +478,22 @@ it("strict RPCs accept no actor/source and no attach operation exists on migrati
   }
   for (const file of ["server/scope-requests.ts", "server/workflow-service.ts", "server/cli.ts", "index.client.tsx"])
     expect(await readFile(file, "utf8")).not.toMatch(/attach-ui|attachSupervisorFromUi|attachFromUnverifiedUi/);
+});
+it("plan help names why Needs you can't vouch for its decisions, and only this plan's quarantines hold it", () => {
+  const snapshot = (freshness: Partial<NeedsYouSnapshot["freshness"]>, quarantined: NeedsYouSnapshot["quarantined"] = []) =>
+    ({ homeId: "home", quarantined, freshness: { status: "fresh", asOf: 1, checkedAt: 1, problems: [], ...freshness } }) as NeedsYouSnapshot;
+  expect(decisionProblems(null, [])).toEqual([expect.stringContaining("Needs you is off")]);
+  expect(decisionProblems(snapshot({ status: "stale", problems: ["Waiting for a stable backlog observation."] }), []))
+    .toEqual(["The backlog is still being changed, so its decisions haven't settled yet. Try again in a few seconds."]);
+  expect(decisionProblems(snapshot({ status: "stale", problems: ["Backlog is missing its ## Done section."] }), []))
+    .toEqual(["Decisions couldn't be checked: Backlog is missing its ## Done section."]);
+  const missing = { line: 0, taskId: "gone", key: null, hasHold: true, problem: "Task gone is missing. Restore its backlog record before answering it." };
+  const broken = { line: 12, taskId: "scheduler-run", key: null, hasHold: false, problem: "Unreadable fields." };
+  expect(decisionProblems(snapshot({}, [missing]), ["scheduler-run"])).toEqual([]);
+  expect(decisionProblems(snapshot({}, [missing, broken]), ["scheduler-run"]))
+    .toEqual(["Needs you can't check task scheduler-run at backlog line 12: Unreadable fields."]);
+  expect(decisionProblems(snapshot({}, [{ ...broken, taskId: null }]), [])).toEqual([expect.stringContaining("a backlog row at backlog line 12")]);
+  expect(decisionProblems(snapshot({}), ["scheduler-run"])).toEqual([]);
+  for (const text of decisionProblems(snapshot({ status: "stale", problems: ["Waiting for a stable backlog observation."] }), []))
+    expect(text).not.toMatch(/refresh/i);
 });

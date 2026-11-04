@@ -166,6 +166,10 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Fixed
 
+- **Plan help no longer asks you to refresh Needs you.** It now checks your decisions itself and
+  waits a few seconds for the backlog to settle. Busy crewmates updating the backlog no longer keep it
+  from settling. Only a damaged or missing row that belongs to the plan being handed over holds it,
+  and the message names the task and line instead of asking you to refresh.
 - **The shark keeps you on deck.** Clicking its body or speech bubble, or choosing its keyboard Focus action,
   zooms to the selected worker and opens the crew focus panel in place.
 

@@ -277,6 +277,20 @@ export class NeedsYouService {
     return pending;
   }
 
+  /** Observe until fresh, for callers that act on the snapshot (plan help, cutover). A fresh
+   * observation needs two equal reads `stableMs` apart, so this reads again after that interval
+   * instead of returning whatever the last timer tick left. Bounded by `withinMs`. */
+  async settled(withinMs = 6000): Promise<NeedsYouSnapshot> {
+    const pause = (this.options.stableMs ?? 2000) + 50;
+    let snapshot = await this.read();
+    for (let waited = 0; waited + pause <= withinMs && !this.stopped &&
+      (snapshot.freshness.status === "stale" || snapshot.freshness.status === "unknown"); waited += pause) {
+      await new Promise(resolve => setTimeout(resolve, pause));
+      snapshot = await this.read();
+    }
+    return snapshot;
+  }
+
   /** The fleet passes the exact file read used for its cards. */
   observe(
     home: string,
@@ -396,10 +410,11 @@ export class NeedsYouService {
         ? { valid: false, problems: [source.problem], sources: [] }
         : observeNeedsYou(source.markdown, catalog);
     const problems = [...detection.problems];
-    // Hash exactly what was read plus resolved identities. Tag/runtime edits can delay
-    // observation but never revise a gate; changed host mappings require stability too.
+    // Hash what the gates are made of: the detected sources (with resolved host identities),
+    // quarantines and problems. A busy crew's runtime edits to other parts of the file (agent ids,
+    // notes, tags) never revise a gate, so they must not keep the snapshot from settling.
     const fingerprint = createHash("sha256")
-      .update(JSON.stringify([source.markdown, detection.sources]))
+      .update(JSON.stringify([detection.sources, detection.quarantined ?? [], detection.problems]))
       .digest("hex");
     let stable = false;
     if (!detection.valid) state.candidate = null;
