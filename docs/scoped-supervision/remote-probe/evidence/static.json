@@ -1,0 +1,478 @@
+{
+  "probe": "firstmate-remote-supervisors-s0",
+  "mode": "static",
+  "at": "2026-11-04T11:27:10.005Z",
+  "platform": "win32",
+  "steps": [
+    {
+      "name": "version",
+      "atMs": 447,
+      "args": [
+        "--version"
+      ],
+      "code": 0,
+      "ms": 447,
+      "stdout": "0.14.0\n",
+      "stderr": ""
+    },
+    {
+      "name": "help:run",
+      "atMs": 938,
+      "code": 0,
+      "options": [
+        "--no-wait",
+        "--title <title>",
+        "--provider <provider>",
+        "--model <model>",
+        "--thinking <id>",
+        "--mode <mode>",
+        "--new-workspace <local|worktree>",
+        "--worktree-mode <mode>",
+        "--worktree-slug <slug>",
+        "--new-branch <name>",
+        "--base <ref>",
+        "--branch <name>",
+        "--pr-number <n>",
+        "--forge <forge>",
+        "--workspace <id>",
+        "--image <path>",
+        "--cwd <path>",
+        "--env <key=value>",
+        "--label <key=value>",
+        "--wait-timeout <duration>",
+        "--output-schema <schema>",
+        "--json",
+        "--host <host>",
+        "--home <path>",
+        "-o, --format <format>",
+        "-q, --quiet",
+        "--no-headers",
+        "--no-color",
+        "-v, --version",
+        "-h, --help"
+      ]
+    },
+    {
+      "name": "help:send",
+      "atMs": 1569,
+      "code": 0,
+      "options": [
+        "--prompt <text>",
+        "--prompt-file <path>",
+        "--image <path>",
+        "--behavior <behavior>",
+        "--no-wait",
+        "--json",
+        "--host <host>",
+        "--home <path>",
+        "-o, --format <format>",
+        "-q, --quiet",
+        "--no-headers",
+        "--no-color",
+        "-v, --version",
+        "-h, --help"
+      ]
+    },
+    {
+      "name": "help:inspect",
+      "atMs": 2185,
+      "code": 0,
+      "options": [
+        "--json",
+        "--host <host>",
+        "--home <path>",
+        "-o, --format <format>",
+        "-q, --quiet",
+        "--no-headers",
+        "--no-color",
+        "-v, --version",
+        "-h, --help"
+      ]
+    },
+    {
+      "name": "help:ls",
+      "atMs": 2755,
+      "code": 0,
+      "options": [
+        "-a, --all",
+        "-g, --global",
+        "--background",
+        "--label <key=value>",
+        "--thinking <id>",
+        "--json",
+        "--host <host>",
+        "--home <path>",
+        "-o, --format <format>",
+        "-q, --quiet",
+        "--no-headers",
+        "--no-color",
+        "-v, --version",
+        "-h, --help"
+      ]
+    },
+    {
+      "name": "help:wait",
+      "atMs": 3360,
+      "code": 0,
+      "options": [
+        "--timeout <seconds>",
+        "--json",
+        "--host <host>",
+        "--home <path>",
+        "-o, --format <format>",
+        "-q, --quiet",
+        "--no-headers",
+        "--no-color",
+        "-v, --version",
+        "-h, --help"
+      ]
+    },
+    {
+      "name": "help:stop",
+      "atMs": 3953,
+      "code": 0,
+      "options": [
+        "--all",
+        "--cwd <path>",
+        "--json",
+        "--host <host>",
+        "--home <path>",
+        "-o, --format <format>",
+        "-q, --quiet",
+        "--no-headers",
+        "--no-color",
+        "-v, --version",
+        "-h, --help"
+      ]
+    },
+    {
+      "name": "help:archive",
+      "atMs": 4555,
+      "code": 0,
+      "options": [
+        "--force",
+        "--json",
+        "--host <host>",
+        "--home <path>",
+        "-o, --format <format>",
+        "-q, --quiet",
+        "--no-headers",
+        "--no-color",
+        "-v, --version",
+        "-h, --help"
+      ]
+    },
+    {
+      "name": "help:permit ls",
+      "atMs": 5140,
+      "code": 0,
+      "options": [
+        "--json",
+        "--host <host>",
+        "--home <path>",
+        "-h, --help"
+      ]
+    },
+    {
+      "name": "help:permit allow",
+      "atMs": 5748,
+      "code": 0,
+      "options": [
+        "--all",
+        "--input <json>",
+        "--json",
+        "--host <host>",
+        "--home <path>",
+        "-h, --help"
+      ]
+    },
+    {
+      "name": "help:permit deny",
+      "atMs": 6328,
+      "code": 0,
+      "options": [
+        "--all",
+        "--message <msg>",
+        "--interrupt",
+        "--json",
+        "--host <host>",
+        "--home <path>",
+        "-h, --help"
+      ]
+    },
+    {
+      "name": "help:workspace create",
+      "atMs": 6934,
+      "code": 0,
+      "options": [
+        "--isolation <local|worktree>",
+        "--path <path>",
+        "--project <id>",
+        "--title <title>",
+        "--mode <mode>",
+        "--worktree-slug <slug>",
+        "--new-branch <name>",
+        "--base <ref>",
+        "--branch <name>",
+        "--pr-number <n>",
+        "--forge <forge>",
+        "--background",
+        "--no-background",
+        "--json",
+        "--host <host>",
+        "--home <path>",
+        "-h, --help"
+      ]
+    },
+    {
+      "name": "help:agent update",
+      "atMs": 7555,
+      "code": 0,
+      "options": [
+        "--name <name>",
+        "--thinking <id>",
+        "--label <label>",
+        "--json",
+        "--host <host>",
+        "--home <path>",
+        "-h, --help"
+      ]
+    },
+    {
+      "name": "help:agent detach",
+      "atMs": 8159,
+      "code": 0,
+      "options": [
+        "--json",
+        "--host <host>",
+        "--home <path>",
+        "-h, --help"
+      ]
+    },
+    {
+      "name": "help:host",
+      "atMs": 8785,
+      "code": 0,
+      "options": [
+        "-o, --format <format>",
+        "--json",
+        "--format json)",
+        "-q, --quiet",
+        "--no-headers",
+        "--no-color",
+        "--host <host>",
+        "--home <path>",
+        "-v, --version",
+        "-h, --help"
+      ]
+    },
+    {
+      "name": "run:empty-prompt",
+      "atMs": 9386,
+      "args": [
+        "run",
+        "--provider",
+        "claude",
+        "--json",
+        "--host",
+        "127.0.0.1:1",
+        " "
+      ],
+      "code": 1,
+      "ms": 601,
+      "stdout": "",
+      "stderr": "error: missing required argument 'prompt'\n"
+    },
+    {
+      "name": "run:bridge-flags",
+      "atMs": 10031,
+      "args": [
+        "run",
+        "--background",
+        "--json",
+        "--host",
+        "127.0.0.1:1",
+        "--provider",
+        "claude",
+        "noop"
+      ],
+      "code": 1,
+      "ms": 645,
+      "stdout": "",
+      "stderr": "Warning: --background (-d) is deprecated. Use --no-wait instead.\n{\n  \"error\": {\n    \"code\": \"DAEMON_UNREACHABLE\",\n    \"message\": \"Cannot connect to daemon at 127.0.0.1:1: connect ECONNREFUSED 127.0.0.1:1\",\n    \"details\": \"Check the selected endpoint and credentials. SSH transport does not install or start the daemon.\"\n  }\n}\n"
+    },
+    {
+      "name": "run:unknown-id-flag",
+      "atMs": 10648,
+      "args": [
+        "run",
+        "--agent-id",
+        "00000000-0000-4000-8000-000000000000",
+        "--json",
+        "--host",
+        "127.0.0.1:1",
+        "--provider",
+        "claude",
+        "noop"
+      ],
+      "code": 1,
+      "ms": 617,
+      "stdout": "",
+      "stderr": "error: unknown option '--agent-id'\n"
+    },
+    {
+      "name": "unreachable:refused:status",
+      "atMs": 11246,
+      "args": [
+        "status",
+        "--json",
+        "--host",
+        "127.0.0.1:1"
+      ],
+      "code": 1,
+      "ms": 598,
+      "stdout": "",
+      "stderr": "{\n  \"error\": {\n    \"code\": \"DAEMON_UNREACHABLE\",\n    \"message\": \"Cannot connect to daemon at 127.0.0.1:1: connect ECONNREFUSED 127.0.0.1:1\",\n    \"details\": \"Check the selected endpoint and credentials. SSH transport does not install or start the daemon.\"\n  }\n}\n"
+    },
+    {
+      "name": "unreachable:refused:ls",
+      "atMs": 11860,
+      "args": [
+        "ls",
+        "-g",
+        "--json",
+        "--host",
+        "127.0.0.1:1"
+      ],
+      "code": 1,
+      "ms": 614,
+      "stdout": "",
+      "stderr": "{\n  \"error\": {\n    \"code\": \"DAEMON_UNREACHABLE\",\n    \"message\": \"Cannot connect to daemon at 127.0.0.1:1: connect ECONNREFUSED 127.0.0.1:1\",\n    \"details\": \"Check the selected endpoint and credentials. SSH transport does not install or start the daemon.\"\n  }\n}\n"
+    },
+    {
+      "name": "unreachable:refused:inspect",
+      "atMs": 12405,
+      "args": [
+        "inspect",
+        "abc",
+        "--json",
+        "--host",
+        "127.0.0.1:1"
+      ],
+      "code": 1,
+      "ms": 545,
+      "stdout": "",
+      "stderr": "{\n  \"error\": {\n    \"code\": \"DAEMON_UNREACHABLE\",\n    \"message\": \"Cannot connect to daemon at 127.0.0.1:1: connect ECONNREFUSED 127.0.0.1:1\",\n    \"details\": \"Check the selected endpoint and credentials. SSH transport does not install or start the daemon.\"\n  }\n}\n"
+    },
+    {
+      "name": "unreachable:refused:permit",
+      "atMs": 13051,
+      "args": [
+        "permit",
+        "ls",
+        "--json",
+        "--host",
+        "127.0.0.1:1"
+      ],
+      "code": 1,
+      "ms": 646,
+      "stdout": "",
+      "stderr": "{\n  \"error\": {\n    \"code\": \"DAEMON_UNREACHABLE\",\n    \"message\": \"Cannot connect to daemon at 127.0.0.1:1: connect ECONNREFUSED 127.0.0.1:1\",\n    \"details\": \"Check the selected endpoint and credentials. SSH transport does not install or start the daemon.\"\n  }\n}\n"
+    },
+    {
+      "name": "unreachable:refused:run",
+      "atMs": 13675,
+      "args": [
+        "run",
+        "--no-wait",
+        "--json",
+        "--provider",
+        "claude",
+        "noop",
+        "--host",
+        "127.0.0.1:1"
+      ],
+      "code": 1,
+      "ms": 624,
+      "stdout": "",
+      "stderr": "{\n  \"error\": {\n    \"code\": \"DAEMON_UNREACHABLE\",\n    \"message\": \"Cannot connect to daemon at 127.0.0.1:1: connect ECONNREFUSED 127.0.0.1:1\",\n    \"details\": \"Check the selected endpoint and credentials. SSH transport does not install or start the daemon.\"\n  }\n}\n"
+    },
+    {
+      "name": "unreachable:blackhole:status",
+      "atMs": 15799,
+      "args": [
+        "status",
+        "--json",
+        "--host",
+        "192.0.2.1:6767"
+      ],
+      "code": 1,
+      "ms": 2124,
+      "stdout": "",
+      "stderr": "{\n  \"error\": {\n    \"code\": \"DAEMON_UNREACHABLE\",\n    \"message\": \"Cannot connect to daemon at 192.0.2.1:6767: Connection timed out\",\n    \"details\": \"Check the selected endpoint and credentials. SSH transport does not install or start the daemon.\"\n  }\n}\n"
+    },
+    {
+      "name": "unreachable:blackhole:ls",
+      "atMs": 31228,
+      "args": [
+        "ls",
+        "-g",
+        "--json",
+        "--host",
+        "192.0.2.1:6767"
+      ],
+      "code": 1,
+      "ms": 15429,
+      "stdout": "",
+      "stderr": "{\n  \"error\": {\n    \"code\": \"DAEMON_UNREACHABLE\",\n    \"message\": \"Cannot connect to daemon at 192.0.2.1:6767: Connection timed out\",\n    \"details\": \"Check the selected endpoint and credentials. SSH transport does not install or start the daemon.\"\n  }\n}\n"
+    },
+    {
+      "name": "unreachable:blackhole:inspect",
+      "atMs": 46714,
+      "args": [
+        "inspect",
+        "abc",
+        "--json",
+        "--host",
+        "192.0.2.1:6767"
+      ],
+      "code": 1,
+      "ms": 15486,
+      "stdout": "",
+      "stderr": "{\n  \"error\": {\n    \"code\": \"DAEMON_UNREACHABLE\",\n    \"message\": \"Cannot connect to daemon at 192.0.2.1:6767: Connection timed out\",\n    \"details\": \"Check the selected endpoint and credentials. SSH transport does not install or start the daemon.\"\n  }\n}\n"
+    },
+    {
+      "name": "unreachable:blackhole:permit",
+      "atMs": 62108,
+      "args": [
+        "permit",
+        "ls",
+        "--json",
+        "--host",
+        "192.0.2.1:6767"
+      ],
+      "code": 1,
+      "ms": 15394,
+      "stdout": "",
+      "stderr": "{\n  \"error\": {\n    \"code\": \"DAEMON_UNREACHABLE\",\n    \"message\": \"Cannot connect to daemon at 192.0.2.1:6767: Connection timed out\",\n    \"details\": \"Check the selected endpoint and credentials. SSH transport does not install or start the daemon.\"\n  }\n}\n"
+    },
+    {
+      "name": "unreachable:blackhole:run",
+      "atMs": 77527,
+      "args": [
+        "run",
+        "--no-wait",
+        "--json",
+        "--provider",
+        "claude",
+        "noop",
+        "--host",
+        "192.0.2.1:6767"
+      ],
+      "code": 1,
+      "ms": 15419,
+      "stdout": "",
+      "stderr": "{\n  \"error\": {\n    \"code\": \"DAEMON_UNREACHABLE\",\n    \"message\": \"Cannot connect to daemon at 192.0.2.1:6767: Connection timed out\",\n    \"details\": \"Check the selected endpoint and credentials. SSH transport does not install or start the daemon.\"\n  }\n}\n"
+    }
+  ]
+}
