@@ -220,7 +220,8 @@ export class SupervisionActivation {
         if (review.reviewHash !== input.reviewHash || review.scopeId !== input.scopeId || review.projectId !== input.projectId || review.migrationId !== input.migrationId)
           refuse("STALE", "The plan, permissions or backup settings changed. Refresh and review plan help again.");
         if (input.evidence) {
-          const evidence = await handoverEvidence(this.root, home, review, await store.read(), this.options.adapters(home), "data", input.evidence.rollback.path);
+          // No folder listing: it only feeds the picker, and a busy data/ holds far more than its 200-entry cap.
+          const evidence = await handoverEvidence(this.root, home, review, await store.read(), this.options.adapters(home), null, input.evidence.rollback.path);
           if (evidence.problems.length || !evidence.inventory || evidence.inventory.problems.length || !evidence.policy || !evidence.rollback)
             refuse("HELD", [...evidence.problems, ...(evidence.inventory?.problems ?? [])].join(" ") || "Choose and review the missing handover evidence before continuing.");
           const checkedEvidence = { inventory: evidence.inventory.hash, policy: evidence.policy.hash, rollback: { path: evidence.rollback.path, hash: evidence.rollback.hash } };
