@@ -316,7 +316,11 @@ export class SupervisionGateway {
       inFlightEffects.add(track);
       const pending = admitted.run(); // New-work calls initiate the native API before their first await.
       // Attach a handler before releasing the fence; settlement below owns the outcome.
-      void pending.then(() => inFlightEffects.delete(track), () => inFlightEffects.delete(track));
+      // The minimum-age clock restarts when the call ends: one marked uncertain mid-flight by a
+      // concurrent reconcile and then timing out long after starts its age at the timeout —
+      // when the daemon may still be creating — not at the mid-flight mark.
+      const ended = () => { inFlightEffects.delete(track); if (operation === "workspace.open") uncertainSince.set(track, this.options.now?.() ?? Date.now()); };
+      void pending.then(ended, ended);
       return { claimed, admitted, pending };
     };
     const { claimed, admitted, pending } = this.options.policyFence && !stopping

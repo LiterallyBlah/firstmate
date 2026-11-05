@@ -1,5 +1,6 @@
 /** Local cooperative SDK worker receiver. No parent, archive, release or remote effects. */
 import { execFile } from "node:child_process";
+import { createHash } from "node:crypto";
 import { promisify } from "node:util";
 import { readdir, readFile, realpath } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
@@ -152,27 +153,23 @@ export class SupervisionWorkerReceiver extends SupervisionUiReceiver {
       return true;
     } catch { return false; }
   }
-  /** The daemon's durable per-key creation record (`$PASEO_HOME/creations/*.json`, snapshot
+  /** The daemon's durable per-key creation record, read directly at its fixed name
+   * `creations/<sha256(JSON.stringify(["workspace", key]))>.json` (snapshot
    * `idempotencyKey`/`workspace.worktreeSlug` carrying the intent key, `phase` its outcome).
-   * True — doubt — when a matching record is anything but terminally `failed`: `completed`
+   * True — doubt — for anything at that name other than a parsed record for this key with
+   * phase `failed` (an in-flight write with a null snapshot included): `completed`
    * means a workspace was created, and any other or unreadable shape may still be in flight
-   * in another process. No creations directory means no record to be live. */
+   * in another process. No record at that name means no record to be live. */
   private async creationLive(intent: WorkspaceIntent): Promise<boolean> {
-    const dir = join(paseoHome(), "creations");
-    let names: string[];
-    try { names = await readdir(dir); }
-    catch (error) { return (error as { code?: unknown }).code !== "ENOENT"; }
-    for (const name of names) {
-      if (!name.endsWith(".json")) continue;
-      const text = await readFile(join(dir, name), "utf8").catch(() => null);
-      if (text === null || !text.includes(intent.key)) continue;
-      let record: { snapshot?: { idempotencyKey?: unknown; phase?: unknown; workspace?: { worktreeSlug?: unknown } } };
-      try { record = JSON.parse(text); } catch { return true; }
-      const snapshot = record.snapshot;
-      if (snapshot?.idempotencyKey !== intent.key && !slugFor(intent.key, typeof snapshot?.workspace?.worktreeSlug === "string" ? snapshot.workspace.worktreeSlug : undefined)) continue;
-      if (snapshot?.phase !== "failed") return true;
-    }
-    return false;
+    const name = createHash("sha256").update(JSON.stringify(["workspace", intent.key])).digest("hex");
+    let text: string;
+    try { text = await readFile(join(paseoHome(), "creations", `${name}.json`), "utf8"); }
+    catch (error) { return (error as { code?: unknown }).code !== "ENOENT"; }      
+    let record: { snapshot?: { idempotencyKey?: unknown; phase?: unknown; workspace?: { worktreeSlug?: unknown } } | null };
+    try { record = JSON.parse(text); } catch { return true; }
+    const snapshot = record.snapshot;
+    if (!snapshot || (snapshot.idempotencyKey !== intent.key && !slugFor(intent.key, typeof snapshot.workspace?.worktreeSlug === "string" ? snapshot.workspace.worktreeSlug : undefined))) return true;
+    return snapshot.phase !== "failed";
   }
   /** The daemon's managed-worktree root: `worktrees.root` from `$PASEO_HOME/config.json`
    * (relative to the Paseo home), defaulting to `$PASEO_HOME/worktrees`. Null is doubt:

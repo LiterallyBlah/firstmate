@@ -155,6 +155,25 @@ describe("S04 effect gateway (synthetic receiver)", { timeout: 60000 }, () => {
     expect(fx.receiver.calls.filter(c => c.op === "openWorkspace")).toHaveLength(1);
   });
 
+  it("restarts the proof age when a call marked uncertain mid-flight finally times out", async () => {
+    const fx = await s04Fixture({ capabilities: { workspaceIntentLookup: true, workspaceNotCreatedProof: true } }), scope = await ready(fx), started = await fx.start(scope, "a-trial");
+    let now = Date.now();
+    const gateway = new SupervisionGateway(fx.store, fx.commands, fx.home, fx.receiver, { enabled: true, now: () => now });
+    fx.receiver.workspaceNotCreated = true; fx.receiver.faults.openWorkspace = ["fail"];
+    let release!: () => void; fx.receiver.beforePerform = () => new Promise<void>(done => { release = done; });
+    const inflight = gateway.dispatch(started.effects!.workspace);
+    while ((await effect(fx, started.effects!.workspace)).state !== "dispatching") await new Promise(r => setTimeout(r, 10));
+    expect((await gateway.reconcile(started.effects!.workspace)).state).toBe("uncertain"); // Marked uncertain mid-call.
+    now += NOT_CREATED_PROOF_MIN_AGE_MS + 60_000; // The call then runs past the minimum age...
+    release(); fx.receiver.beforePerform = null;
+    expect((await inflight).state).toBe("uncertain"); // ...and times out. The daemon may still be creating.
+    expect((await gateway.reconcile(started.effects!.workspace)).state).toBe("uncertain"); // Age restarted at call end.
+    expect(fx.receiver.proofCalls).toEqual([]);
+    now += NOT_CREATED_PROOF_MIN_AGE_MS + 60_000;
+    expect((await gateway.reconcile(started.effects!.workspace)).state).toBe("failed");
+    expect(fx.receiver.proofCalls).toHaveLength(1);
+  });
+
   it("lost create reply: negative lookup proves nothing; the late original binds to the same reserved ID (A10/A18-C03)", async () => {
     const fx = await s04Fixture(), scope = await ready(fx), started = await fx.start(scope, "a-trial");
     await fx.gateway.dispatch(started.effects!.workspace);

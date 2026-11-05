@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { mkdir, realpath, rm, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { expect, it, vi } from "vitest";
@@ -220,15 +220,19 @@ it("treats a registry row for the intent with no directory as doubt, not absence
 it("the proof reads the daemon's creation record for the intent key: live or completed is doubt, failed is not", async () => {
   const f = await fixture(), creations = join(process.env.PASEO_HOME!, "creations");
   await mkdir(creations, { recursive: true });
-  const record = (phase?: string) => writeFile(join(creations, `${randomUUID()}.json`), JSON.stringify({
+  const direct = (key: string) => join(creations, `${createHash("sha256").update(JSON.stringify(["workspace", key])).digest("hex")}.json`);
+  const record = (phase?: string) => writeFile(direct(f.intent.key), JSON.stringify({
     ...(phase === undefined ? { inFlight: "workspace" } : { inFlight: null }),
     snapshot: { kind: "workspace", idempotencyKey: f.intent.key, ...(phase === undefined ? {} : { phase }) } }));
   await record("failed");
   expect(await f.receiver.proveWorkspaceNotCreated(f.intent)).toBe(true);
   await record(undefined); // No terminal phase: may still be creating in another process.
   expect(await f.receiver.proveWorkspaceNotCreated(f.intent)).toBe(false);
+  const writing = await fixture();
+  await writeFile(direct(writing.intent.key), JSON.stringify({ inFlight: "workspace", snapshot: null })); // Caught mid-write.
+  expect(await writing.receiver.proveWorkspaceNotCreated(writing.intent)).toBe(false);
   const done = await fixture();
-  await writeFile(join(creations, `${randomUUID()}.json`), JSON.stringify({ inFlight: null,
+  await writeFile(direct(done.intent.key), JSON.stringify({ inFlight: null,
     snapshot: { kind: "workspace", idempotencyKey: done.intent.key, phase: "completed" } }));
   expect(await done.receiver.proveWorkspaceNotCreated(done.intent)).toBe(false);
 }, 30000);
