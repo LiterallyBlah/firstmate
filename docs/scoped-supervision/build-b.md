@@ -145,15 +145,21 @@ retains each reproduction and covers their alternate native-admission boundaries
   excluding only that effect's already charged reservation. Another occupied slot
   holds the effect before its claim; missing observations never free capacity.
 - F2: the existing workflow clock can obtain a supported SDK connection at idle
-  startup, before any view or agent event. The operator must explicitly configure
+  startup, before any view or agent event. The operator may explicitly configure
   `FIRSTMATE_PLAN_BOOTSTRAP_URL` as a loopback WebSocket endpoint with an explicit
   port and `/ws` path (for example `ws://127.0.0.1:6767/ws` for that daemon).
   `FIRSTMATE_PLAN_BOOTSTRAP_PASSWORD` supplies its password when required; neither
   credentials nor connection errors enter the journal. The read-only bootstrap
   verifies the configured General's exact identity and home, then reuses the
-  existing coordinator/gateway for retained obligations. Missing configuration,
-  authentication failure or changed ownership holds work and backs off for a
-  minute. Shutdown closes the connection. No Attach, provisioning, extra workflow
+  existing coordinator/gateway for retained obligations. Authentication failure
+  or changed ownership holds host work and backs off for a minute.
+  The bootstrap is optional. Paseo hands a host handle only to RPCs and lifecycle
+  hooks, so until one arrives every clock tick still answers store-only scope
+  requests (reads, inbox/outbox, rules, evidence, ordinary plan commands) with
+  `gateway: null`. Requests whose only path is the gateway's host effects (scoped
+  starts/claims/recovery and `stop-worker`, `needsHost`) are left unanswered, never
+  refused or reserved, and are served once a handle exists. Request files are
+  already processed in name order, which is random, so deferral orders nothing new. Shutdown closes the connection. No Attach, provisioning, extra workflow
   clock or paid bootstrap turn is added. `@getpaseo/client@0.11.0` is now a real
   runtime dependency; the existing host-import guard remains unchanged.
 - F3: B conservatively refuses scoped board delivery until a checked, counted

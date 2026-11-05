@@ -166,6 +166,11 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Fixed
 
+- **Plan Supervisors are answered straight after a plugin restart or install.** A freshly started
+  plugin used to leave an attached Supervisor's scope requests — even a read — unanswered until some
+  unrelated agent event arrived, unless `FIRSTMATE_PLAN_BOOTSTRAP_URL` was configured. The scoped
+  clock now answers every request that needs only the plugin's records at once, and holds only those
+  that start, recover or stop a worker until Paseo hands it a connection; none is refused or sent twice.
 - **Plan help no longer asks you to refresh Needs you.** It checks your decisions itself and waits a
   few seconds for the backlog to settle. The first mate recording workers, start dates, tags and notes
   in the backlog no longer keeps it from settling; adding, moving or changing a task still restarts the
