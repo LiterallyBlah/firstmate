@@ -44,20 +44,37 @@ export async function workflowSnapshotWithin(home: string, budgetMs = PLAN_READ_
   try { return await Promise.race([pending, new Promise<null>(done => { timer = setTimeout(() => done(null), budgetMs); })]); }
   finally { clearTimeout(timer); }
 }
-export async function workflowSnapshot(home: string, scoped?: import("../shared/supervision").SupervisionStatus): Promise<WorkflowSnapshot> {
+type ScopedStatus = import("../shared/supervision").SupervisionStatus;
+let scopedReader: ((home: string) => Promise<ScopedStatus>) | null = null;
+let fallbackReader: { root: string; reader: import("./supervision-status-reader").SupervisionStatusReader } | null = null;
+/** The plugin hands in its runtime's reader, so every snapshot shares one validated, warm journal projection.
+ * A reader is warm per instance: a new one re-validated the whole journal, about 2.7 s of CPU on a large home,
+ * on every snapshot (fleet, Plans, decisions and the clock alike), which put a cold decisions read past its budget. */
+export function shareScopedStatusReader(read: (home: string) => Promise<ScopedStatus>): () => void {
+  scopedReader = read;
+  return () => { if (scopedReader === read) scopedReader = null; };
+}
+async function readScopedStatus(home: string): Promise<ScopedStatus> {
+  if (scopedReader) return scopedReader(home);
+  const { SupervisionStatusReader } = await import("./supervision-status-reader");
+  const { pluginDir } = await import("./data-dir");
+  const root = pluginDir();
+  if (fallbackReader?.root !== root) fallbackReader = { root, reader: new SupervisionStatusReader(root) };
+  return fallbackReader.reader.read(home);
+}
+export async function workflowSnapshot(home: string, scoped?: ScopedStatus): Promise<WorkflowSnapshot> {
   let read: { plans: WorkflowPlan[]; problems: string[]; warnings?: string[]; quarantined?: QuarantinedWorkflow[] };
   const store = workflowStore(home);
+  // The scoped projection is read alongside the plan logs, not after them.
+  const scopedRead = scoped ? Promise.resolve(scoped) : readScopedStatus(home);
+  scopedRead.catch(() => undefined);
   try { read = await store.read(); } catch (e) { read = { plans: [], problems: [`Plans unavailable: ${String(e)}`] }; }
   // S07: damaged cutover records and held cutovers are visible, with their owner, wherever plan problems are.
   const cutover = await cutoverProblems(cutoverGate(home));
   read = { ...read, problems: [...read.problems, ...cutover.problems], warnings: [...(read.warnings ?? []), ...cutover.warnings] };
   // The browser retains all history; due actions below still exclude finished plans. A plan in an S07
   // cutover is no longer the legacy mate's: its retained history still resolves dependencies only.
-  if (!scoped) {
-    const { SupervisionStatusReader } = await import("./supervision-status-reader");
-    const { pluginDir } = await import("./data-dir");
-    scoped = await new SupervisionStatusReader(pluginDir()).read(home);
-  }
+  scoped = await scopedRead;
   const scopedPlans = scoped?.freshness === "current" ? scoped.plans.filter(p => scoped!.backends.some(b => b.planId === p.plan.definition.id && b.ownerScopeId === p.scopeId && b.backend === "scoped")) : [];
   const currentScoped = new Set(scopedPlans.map(p => p.plan.definition.id));
   if (scoped?.freshness === "held") read.problems.push("Scoped plans are held; their retained legacy copies remain historical.");

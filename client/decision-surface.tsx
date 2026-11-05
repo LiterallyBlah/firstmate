@@ -15,7 +15,6 @@ import { DecisionActionContext, type OpenDecision } from "./decision-action";
 import { DecisionDrawer } from "./decision-drawer";
 import { useNeedsYou } from "./needs-you-query";
 import {
-  decisionQueue,
   routeDecision,
   type DecisionDestination,
 } from "./needs-you-state";
@@ -23,7 +22,7 @@ import { focusWebElement, webAttributes } from "./web";
 import { useFleet } from "./fleet-query";
 import type { FleetShell, FleetView } from "./shell";
 import { MIN_SPLIT_WIDTH } from "./resize-layout";
-import { decisionCardSnapshot } from "../shared/plan-decisions";
+import { needsYouQueue } from "./scoped-queue";
 import { discussionRequest, prepareDiscussion, routeDiscussion, type DecisionDiscussion } from "./decision-discussion";
 import { useWorkflowPlans } from "./workflow-plans";
 import { DecisionReadContext } from "./decision-read-context";
@@ -154,9 +153,7 @@ export function DecisionSurface({
     )
       return;
     if (destination.homeId && destination.homeId !== query.data.homeId) return;
-    const next = decisionQueue(decisionCardSnapshot(query.data).requests).find(
-      (r) => r.state === "new" || r.state === "seen",
-    );
+    const next = needsYouQueue(query.data)[0];
     setDestination({
       homeId: query.data.homeId,
       requestId: next?.id ?? "empty",

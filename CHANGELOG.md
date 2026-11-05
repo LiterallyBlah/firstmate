@@ -166,6 +166,17 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Fixed
 
+- **A Supervisor's question for you now shows in Needs you.** Home's List and Board counted a plan
+  Supervisor's decisions and paused plans in "Needs you · N" but never drew them, so the count was one
+  higher than the list and the question could only be found under the decision drawer's All. They are
+  now drawn with their own answer controls, right after the plan decisions, and the drawer's "1 of N"
+  and ‹ › reach them too; answering the last backlog decision moves on to them instead of closing.
+- **Decisions load promptly after a restart.** Every plan read re-checked the whole Supervisor journal
+  from scratch, about three seconds each time on a large home; at startup several ran at once and the
+  decisions read gave up with "Plans are still loading". Plan reads now share the plugin's already
+  checked copy and read it alongside the plans. Measured on a copy of a large home: the startup
+  decisions read answers in about 6 seconds instead of timing out at 10, and a later read takes half
+  a second instead of three.
 - **Plan Supervisors are answered straight after a plugin restart or install.** A freshly started
   plugin used to leave an attached Supervisor's scope requests — even a read — unanswered until some
   unrelated agent event arrived, unless `FIRSTMATE_PLAN_BOOTSTRAP_URL` was configured. The scoped

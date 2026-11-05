@@ -5,8 +5,9 @@ import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-quer
 import { afterEach, expect, it, vi } from "vitest";
 import type { NeedsYouSnapshot } from "../shared/needs-you";
 import { attentionRequest, attentionSnapshot, attentionTheme } from "../test/attention-deck-fixture";
-import type { DecisionDestination } from "./needs-you-state";
+import { indicatorState, type DecisionDestination } from "./needs-you-state";
 import { planDecisionNeed } from "../test/plan-decision-fixture";
+import { SCOPE_ID, withScopedNeeds } from "../test/scoped-needs-fixture";
 import type { PlanCaptainCommand } from "../shared/workflow-plans";
 import { visibleText } from "../test/visible-text";
 import { DecisionTask } from "./decision-tasks";
@@ -689,4 +690,37 @@ it.each(["List", "Board", "Drawer"])("keeps %s unchanged during a successful sna
   const before = words();
   await act(async () => renderer.update(render(true)));
   expect(words()).toBe(before); expect(words()).not.toMatch(/Updating|as of|Last updated/);
+});
+
+it("counts scoped decisions and paused plans in 1 of N, reaches them with ‹ ›, and draws them on their own answer path", async () => {
+  await mount(["backlog"], true, snapshot => Object.assign(snapshot, withScopedNeeds(snapshot)));
+  const count = indicatorState(rpc.snapshot!).count;
+  expect(count).toBe(5);
+  expect(words()).toMatch(new RegExp(`Decisions\\s+2 of ${count}\\b`));
+  await press("Next decision");
+  expect(selectedId).toBe(`scope-decision:${SCOPE_ID}:${rpc.snapshot!.scopedDecisions![0]!.decision.id}`);
+  expect(words()).toMatch(/Decisions\s+3 of 5/);
+  const task = renderer.root.findByType(DecisionTask);
+  expect(task.props.request.source.title).toBe("Worker launch is broken");
+  expect(task.props.waitingLabel).toBe("Needs your answer");
+  expect(rpc.snapshot!.requests.some(r => r.id === selectedId)).toBe(false);
+  await press("Next decision");
+  expect(words()).toMatch(/Decisions\s+4 of 5/);
+  expect(words()).toContain("Hold 1");
+  expect(words()).toContain("Hold 2");
+  await press("Next decision");
+  expect(words()).toMatch(/Decisions\s+5 of 5/);
+  expect(words()).toContain("Hold 3");
+  await press("Next decision");
+  expect(words()).toMatch(/Decisions\s+1 of 5/);
+  expect(selectedId).toBe("local:backlog");
+  expect(rpc.calls).toEqual([]);
+});
+
+it("advances from the last backlog answer to a waiting scoped decision instead of closing", async () => {
+  await mount(["backlog"], false, snapshot => Object.assign(snapshot, withScopedNeeds(snapshot)));
+  expect(words()).toMatch(/Decisions\s+1 of 4/);
+  await answer();
+  expect(selectedId).toBe(`scope-decision:${SCOPE_ID}:${rpc.snapshot!.scopedDecisions![0]!.decision.id}`);
+  expect(close).not.toHaveBeenCalled();
 });
