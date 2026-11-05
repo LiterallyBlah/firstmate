@@ -12,7 +12,7 @@ import { registerScopeRpcs } from "./scope-rpc";
 import { readScopes, readScopeNeeds, readScopeConversation, discussScope, answerScopeDecision } from "../shared/supervision-rpc";
 import { resolveDiscussion } from "../shared/scope-discussion";
 import { needsYouSnapshot } from "./needs-you-ledger";
-import { expectedFor } from "./supervision-effects";
+import { expectedFor, stableId } from "./supervision-effects";
 import { policyRef } from "./supervision-policy";
 import { SupervisionCommands } from "./supervision-commands";
 import { scopedBearings } from "./scope-bearings";
@@ -151,5 +151,24 @@ it("B/C A10/A20: discussion and initiative reservations share the durable cap, c
   await expect(reserve(randomUUID())).rejects.toThrow("budget is exhausted");
   await expect(reserve(randomUUID())).rejects.toThrow("budget is exhausted");
   const after = await f.store.read(); expect(after.decisions).toHaveLength(1); expect(after.commands.flatMap(c => c.result.captainDecisions ?? [])).toHaveLength(1);
+  expect(f.receiver.calls).toEqual([]); await runtime.stop();
+});
+it("a decision-only revision carries its rules forward, so the captain's answer is accepted", async () => {
+  const { ruleFixture } = await import("../test/plan-rules-fixture"), { planSupervisorGatewayLimits } = await import("../shared/plan-supervisor-limits");
+  const { planSupervisorAuthority } = await import("./plan-supervisor-authority"), { scopeAnswerContext } = await import("./scope-answer-context");
+  const f = await ruleFixture(), p = (await f.store.read()).plans[0]!.plan, definition = structuredClone(p.definition);
+  definition.nodes.push({ kind: "decision", id: "launch-blocked", title: "Launch is blocked", summary: "Proceed without the remote host?", after: [], authority: "captain",
+    options: [{ id: "yes", label: "Yes", consequence: "Proceed." }, { id: "no", label: "No", consequence: "Stop." }], recommendation: "yes", rationale: "Bounded." });
+  definition.nodes[0]!.after = [{ node: "launch-blocked", on: "answered", reason: "decision" }];
+  await f.commands.planCommand(await f.commandInput(f.scope, { op: "revise", definition, expected: p.hash, reason: "Ask the captain about the blocked launch" }), f.scope.owner);
+  const s = await f.store.read(), revised = s.plans[0]!.plan, carried = s.planRules!.find(r => r.revision === revised.revision)!;
+  expect(revised.revision).toBe(p.revision + 1);
+  expect(carried).toMatchObject({ id: stableId("plan-rules", s.homeId, "rules", revised.revision), version: 1, sources: f.record.sources, supervisorLimits: f.record.supervisorLimits, nodes: f.record.nodes });
+  expect(planSupervisorAuthority(s, f.scope.id).id).toBe(carried.id);
+  const runtime = new SupervisionRuntime(join(f.home, "store"), () => f.store), config = FirstmateConfigSchema.parse({ home: f.home, mateAgentId: f.state.globalMate });
+  const service = new ScopeRuntime(runtime, { enabled: true, config: async () => config, receiver: () => f.receiver, planLimits: planSupervisorGatewayLimits });
+  const decision = s.decisions.find(d => d.nodeId === "launch-blocked")!;
+  await service.execute(s.homeId, f.scope.id, {} as PaseoApi, ({ commands }) => commands.answerFromUnverifiedUi({ ...scopeAnswerContext(s, decision)!, submissionId: randomUUID(), option: "yes", text: "Proceed without it." }));
+  expect((await f.store.read()).decisions.find(d => d.id === decision.id)).toMatchObject({ state: "answered", answer: { option: "yes" } });
   expect(f.receiver.calls).toEqual([]); await runtime.stop();
 });
