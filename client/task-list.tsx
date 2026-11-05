@@ -12,6 +12,7 @@ import { converseKey, conversingWith } from "./converse-layout";
 import { activeDecisions, matchingDecisionMessage, presentedTasks, taskSourceKey, waitingOver30Minutes, OWNER_LABELS, TASK_TITLES, type TaskOwner } from "./task-presentation";
 import { DecisionTask, DecisionQueueNote } from "./decision-tasks";
 import { PlanNeeds } from "./workflow-plans";
+import { ScopedNeeds } from "./scoped-needs";
 import { webAttributes } from "./web";
 
 export interface TaskListProps {
@@ -113,6 +114,7 @@ export function TaskList(props: TaskListProps) {
           </View>;
         })}
         <PlanNeeds theme={theme} snapshot={snapshot} showUpcoming={false} showReviews={false} />
+        <ScopedNeeds snapshot={snapshot} theme={theme} compact={compact} offline={!!props.offline} actionableOnly />
         {decisionState.count === 0 && decisionState.fresh ? <Text style={heading}>Nothing needs a decision now.</Text> : null}
       </View>
       {matchingNotice ? <Text style={heading}>{matchingNotice}</Text> : null}

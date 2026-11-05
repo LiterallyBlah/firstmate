@@ -26,24 +26,31 @@ export function scopedDecisionRequest(row: Row): NeedsYouRequest {
     generation: 1, revision: d.revision, state: d.state === "answered" ? "answer-sent" : "seen", detectedAt: 0, updatedAt: 0,
     originalAsk: d.question, baseline: true, seenAt: null, seenRevision: null, snoozedUntil: null, submissions: [], resolution: null };
 }
-export function ScopedNeeds({ snapshot, theme, compact = false, offline = false }: { snapshot?: NeedsYouSnapshot | undefined; theme: PluginTheme; compact?: boolean; offline?: boolean }) {
+/** `actionableOnly` draws exactly what Needs you counts (`scopedEntries`): Home's List and Board.
+ * Without it, every scoped decision is drawn, waiting ones included: the drawer's All. */
+export function ScopedNeeds({ snapshot, theme, compact = false, offline = false, actionableOnly = false }: { snapshot?: NeedsYouSnapshot | undefined; theme: PluginTheme; compact?: boolean; offline?: boolean; actionableOnly?: boolean }) {
   const [showProblems, setShowProblems] = useState(false);
   if (!snapshot) return null;
   const holds = [...new Set(snapshot?.scopedHolds?.map(h => h.planId) ?? [])];
-  if (!snapshot?.scopedDecisions?.length && !holds.length && !snapshot?.scopedProblems?.length) return null;
+  const rows = (snapshot.scopedDecisions ?? []).filter(row => !actionableOnly || row.ready);
+  if (!rows.length && !holds.length && !snapshot?.scopedProblems?.length) return null;
   return <View testID="scoped-needs" style={{ gap: 12 }}>
     {snapshot.scopedProblems?.length ? <View style={{ gap: 4 }}>
       <Text accessibilityRole="alert" style={{ color: theme.colors.statusWarning }}>Some work couldn't be checked. Review details before continuing.</Text>
       <Pressable accessibilityRole="button" accessibilityLabel="Details about unchecked work" accessibilityState={{ expanded: showProblems }} onPress={() => setShowProblems(v => !v)} style={{ minHeight: 44, justifyContent: "center" }}><Text style={{ color: theme.colors.foreground }}>Details</Text></Pressable>
       {showProblems ? snapshot.scopedProblems.map((p, i) => <Text selectable key={i} style={{ color: theme.colors.foregroundMuted }}>{p}</Text>) : null}
     </View> : null}
-    {holds.map(plan => <View key={plan} style={{ gap: 4 }}><Text style={{ color: theme.colors.foreground, fontWeight: "600" }}>{snapshot.scopeDirectory?.find(s => s.planId === plan)?.title ?? "This plan"} is paused</Text>
-      {snapshot.scopedHolds?.filter(h => h.planId === plan).map(h => <Text key={h.id} style={{ color: theme.colors.foregroundMuted }}>{h.reason}</Text>)}</View>)}
-    {snapshot.scopedDecisions?.map(row => <ScopedDecisionRow key={`${snapshot.homeId}:${row.decision.id}:${row.decision.revision}:${row.decision.subjectHash}`}
+    {holds.map(plan => <ScopedHoldNotice key={plan} planId={plan} snapshot={snapshot} theme={theme} />)}
+    {rows.map(row => <ScopedDecisionRow key={`${snapshot.homeId}:${row.decision.id}:${row.decision.revision}:${row.decision.subjectHash}`}
       row={row} snapshot={snapshot} theme={theme} compact={compact} offline={offline} />)}
   </View>;
 }
-function ScopedDecisionRow({ row, snapshot, theme, compact, offline }: { row: Row; snapshot: NeedsYouSnapshot; theme: PluginTheme; compact: boolean; offline: boolean }) {
+export function ScopedHoldNotice({ planId, snapshot, theme }: { planId: string; snapshot: NeedsYouSnapshot; theme: PluginTheme }) {
+  return <View testID="scoped-hold" style={{ gap: 4 }}><Text style={{ color: theme.colors.foreground, fontWeight: "600" }}>{snapshot.scopeDirectory?.find(s => s.planId === planId)?.title ?? "This plan"} is paused</Text>
+    {snapshot.scopedHolds?.filter(h => h.planId === planId).map(h => <Text key={h.id} style={{ color: theme.colors.foregroundMuted }}>{h.reason}</Text>)}</View>;
+}
+/** `onAnswered` runs once a confirmed answer has been re-read, so the drawer can move to the next decision. */
+export function ScopedDecisionRow({ row, snapshot, theme, compact, offline, onAnswered }: { row: Row; snapshot: NeedsYouSnapshot; theme: PluginTheme; compact: boolean; offline: boolean; onAnswered?: () => void }) {
   const answer = useRpc(answerScopeDecision), maintenanceAnswer = useRpc(answerMaintenanceFromUi), read = useRpc(readScopeNeeds), cache = useQueryClient(), plans = useWorkflowPlans();
   const [open, setOpen] = useState(false), [details, setDetails] = useState(false), [busy, setBusy] = useState(false), gate = useRef(false);
   const d = row.decision, maintenance = !!d.maintenance, key = JSON.stringify(["firstmate.scope-answer/1", snapshot.homeId, d.id, d.revision, d.subjectHash]);
@@ -88,6 +95,7 @@ function ScopedDecisionRow({ row, snapshot, theme, compact, offline }: { row: Ro
         throw new Error("No matching maintenance answer receipt returned. The original submission stays retained; refresh before continuing.");
       // Keep the confirmed answer disabled if the combined read fails; never advance on a ledger-only result.
       await refresh();
+      onAnswered?.();
     } catch (e) { drafts.set(errorKey, errorText(e)); }
     finally { gate.current = false; setBusy(false); }
   }

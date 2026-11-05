@@ -64,7 +64,8 @@ import { useKeyboardOverlap } from "./keyboard";
 import { errorText } from "./format";
 import { PlanNeeds, useWorkflowPlans, WORKFLOW_QUERY_KEY, workflowRequestId } from "./workflow-plans";
 import { DecisionTask } from "./decision-tasks";
-import { ScopedNeeds } from "./scoped-needs";
+import { ScopedDecisionRow, ScopedHoldNotice, ScopedNeeds } from "./scoped-needs";
+import { isScopedQueueId, needsYouQueue, scopedEntry } from "./scoped-queue";
 import { ScopeInboxFilters } from "./scope-inbox-filters";
 import { filterScopeInbox, type ScopeInboxFilter } from "../shared/scope-inbox";
 
@@ -217,21 +218,21 @@ export function DecisionDrawer({
   });
   if (order.current.home !== snapshot?.homeId)
     order.current = { home: snapshot?.homeId ?? null, ids: [] };
-  order.current.ids = stableDecisionOrder(
-    order.current.ids,
-    decisionQueue(snapshot?.requests ?? []).filter(
-      (r) => r.state === "new" || r.state === "seen",
-    ),
-  );
+  // Scoped decisions and paused plans are counted, so they are in the queue too, after the backlog and
+  // plan decisions. Their entries are placeholders: they are drawn and answered by their own component.
+  const waiting = needsYouQueue(snapshot);
+  order.current.ids = stableDecisionOrder(order.current.ids, waiting);
   const ids = order.current.ids;
   const queue = ids
-    .map((id) => snapshot?.requests.find((r) => r.id === id))
+    .map((id) => waiting.find((r) => r.id === id))
     .filter((r): r is NeedsYouRequest => r?.state === "new" || r?.state === "seen");
   const sameHome =
     !snapshot || !destination.homeId || destination.homeId === snapshot.homeId;
   const request = sameHome
-    ? snapshot?.requests.find((r) => r.id === destination.requestId) ?? (["next", "empty"].includes(destination.requestId) ? queue[0] : undefined)
+    ? snapshot?.requests.find((r) => r.id === destination.requestId) ?? waiting.find((r) => r.id === destination.requestId) ??
+      (["next", "empty"].includes(destination.requestId) ? queue[0] : undefined)
     : undefined;
+  const scoped = request ? scopedEntry(snapshot, request.id) : undefined;
   const index = queue.findIndex((r) => r.id === request?.id);
   const plans = useWorkflowPlans(), review = planReviewFor(snapshot, request?.id ?? "");
   const [expandedAll, setAll] = useState(false);
@@ -290,13 +291,22 @@ export function DecisionDrawer({
     });
     if (selected.current !== destination.requestId || next.homeId !== snapshot?.homeId)
       return;
+    // An answer's result is the backlog ledger alone; scoped entries come from the combined read.
+    const stillWaiting = [...next.requests, ...waiting.filter(r => isScopedQueueId(r.id))];
     const following = nextWaitingDecision(
-      stableDecisionOrder(order.current.ids, decisionQueue(next.requests)),
+      stableDecisionOrder(order.current.ids, decisionQueue(stillWaiting)),
       request!.id,
-      next.requests,
+      stillWaiting,
     );
     if (following) select(following);
     else if (answered) onClose();
+  }
+  /** Advance only if the captain is still on the decision that was answered. */
+  function scopedAnswered(opened: string, id: string) {
+    if (selected.current !== opened) return;
+    const following = nextWaitingDecision(order.current.ids, id, queue);
+    if (following) select(following);
+    else onClose();
   }
   const colors = theme.colors;
   const scopedRows = (snapshot?.quarantined ?? []).filter(row => all || !request || quarantinesSource([row], request.source));
@@ -618,6 +628,15 @@ export function DecisionDrawer({
                   new Date().toDateString(),
             ) ?? [],
           )}
+        </ScrollView>
+      ) : scoped ? (
+        <ScrollView contentContainerStyle={{ ...readableContent, padding: compact ? 16 : 20, gap: 16 }}>
+          {chrome}
+          {scoped.kind === "decision" ? (
+            <ScopedDecisionRow key={`${snapshot!.homeId}:${scoped.row.decision.id}:${scoped.row.decision.revision}:${scoped.row.decision.subjectHash}`}
+              row={scoped.row} snapshot={snapshot!} theme={theme} compact={compact} offline={offline}
+              onAnswered={() => scopedAnswered(destination.requestId, scoped.id)} />
+          ) : <ScopedHoldNotice planId={scoped.planId} snapshot={snapshot!} theme={theme} />}
         </ScrollView>
       ) : request && review ? (
         <ScrollView contentContainerStyle={{ ...readableContent, padding: compact ? 16 : 20, gap: 16 }}>
