@@ -14,16 +14,13 @@ const exec = promisify(execFile);
 /** The durable slug mark: the intent key itself, or the daemon's `-1`, `-2` path-collision suffix. */
 const slugFor = (key: string, slug: string | undefined) =>
   slug === key || (slug?.startsWith(`${key}-`) === true && /^\d+$/.test(slug.slice(key.length + 1)));
-/** Errors known to be raised before the daemon admits a creation, so nothing was provisioned:
- * the client's own schema parse, and the daemon's pre-admission codes in their exact forms only —
- * the bare code, or its exact "Directory not found: …" message. A code word buried in a longer
- * provisioning message proves nothing. Everything else (key conflicts included) must earn its
- * rejection through git-level proof. */
+/** The one error known to be raised before the daemon admits a creation, so nothing was
+ * provisioned: the client's own schema parse, which rejects the request before it is sent.
+ * Every daemon-side error — including "Directory not found:", which the daemon also emits for a
+ * creation already recorded completed whose directory has since gone — must earn its rejection
+ * through git-level proof. */
 function preAdmissionRefusal(error: unknown): boolean {
-  if (!(error instanceof Error)) return false;
-  if (error.name === "ZodError" && Array.isArray((error as { issues?: unknown }).issues)) return true;
-  const text = error.message.trim();
-  return text === "directory_not_found" || text === "source_required" || text.startsWith("Directory not found:");
+  return error instanceof Error && error.name === "ZodError" && Array.isArray((error as { issues?: unknown }).issues);
 }
 /** Errors after which creation may still be running or may already have landed: connection loss,
  * the client's request timeout, and the daemon's own outcome-unknown marker. Always uncertain. */

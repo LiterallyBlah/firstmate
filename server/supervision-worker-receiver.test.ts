@@ -19,7 +19,7 @@ const execute = promisify(execFile);
  * daemon error with the outcome unknown, never as a clean refusal. */
 type Behavior = "ok" | "slug-collision" | "slug-rewritten" | "slug-rewritten-alias" | "timeout-after-create" | "timeout" |
   "outcome-unknown" | "half-built" | "half-built-dir" | "refuse" | "schema" | "daemon-error" | "lose-before-create" |
-  "key-conflict" | "key-conflict-half-built" | "embedded-code-half-built" | "directory-message-half-built" | "corrupt-packed-refs";
+  "key-conflict" | "key-conflict-half-built" | "embedded-code-half-built" | "directory-message" | "directory-message-half-built" | "corrupt-packed-refs";
 async function fixture(behavior: Behavior = "ok") {
   const root = join(process.env.PASEO_HOME!, randomUUID()), project = join(root, "project"), worktree = join(root, "isolated");
   await mkdir(project, { recursive: true });
@@ -38,6 +38,7 @@ async function fixture(behavior: Behavior = "ok") {
     const claimed = options.workspaceId !== undefined
       ? z.string().regex(/^wks_[a-f0-9]{16}$/).parse(options.workspaceId) : paseoId;
     if (behavior === "refuse") throw new Error("directory_not_found");
+    if (behavior === "directory-message") throw new Error("Directory not found: /nope");
     if (behavior === "key-conflict") throw new Error("workspace_request_key_conflict");
     if (behavior === "corrupt-packed-refs") { await writeFile(join(project, ".git", "packed-refs"), "garbage-line-not-a-ref\n"); throw new Error("workspace setup failed"); }
     if (behavior === "daemon-error") throw new Error("workspace setup failed");
@@ -114,7 +115,7 @@ it("finds the workspace by its branch when the listed directory is an alias spel
   expect(found?.workspaceId).toBe(workspace.workspaceId);
   expect(await realpath(found!.directory)).toBe(await realpath(f.worktree));
 }, 30000);
-it("settles a pre-admission daemon refusal as rejected, with nothing created", async () => {
+it("settles a bare directory_not_found as rejected only with git-level proof nothing was created", async () => {
   const f = await fixture("refuse");
   await expect(f.receiver.openWorkspace(f.intent)).rejects.toBeInstanceOf(ReceiverRejected);
   await expect(f.receiver.openWorkspace(f.intent)).rejects.toThrow("directory_not_found");
@@ -172,8 +173,14 @@ it("keeps an error merely mentioning a refusal code uncertain when a worktree ex
   await expect(f.receiver.openWorkspace(f.intent)).rejects.not.toBeInstanceOf(ReceiverRejected);
   expect(await f.receiver.findWorkspace(f.intent)).toBeNull();
 }, 30000);
-it("settles the daemon's exact Directory not found message as rejected without git proof", async () => {
+it("keeps Directory not found uncertain when the branch is on disk: it also names a completed creation since removed", async () => {
   const f = await fixture("directory-message-half-built");
+  await expect(f.receiver.openWorkspace(f.intent)).rejects.toThrow("Directory not found:");
+  await expect(f.receiver.openWorkspace(f.intent)).rejects.not.toBeInstanceOf(ReceiverRejected);
+  expect(await f.receiver.findWorkspace(f.intent)).toBeNull();
+}, 30000);
+it("settles Directory not found as rejected with git-level proof nothing was created", async () => {
+  const f = await fixture("directory-message");
   await expect(f.receiver.openWorkspace(f.intent)).rejects.toBeInstanceOf(ReceiverRejected);
   await expect(f.receiver.openWorkspace(f.intent)).rejects.toThrow("Directory not found:");
   expect(await f.receiver.findWorkspace(f.intent)).toBeNull();
