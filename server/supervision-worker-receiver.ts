@@ -1,21 +1,34 @@
 /** Local cooperative SDK worker receiver. No parent, archive, release or remote effects. */
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { realpath } from "node:fs/promises";
+import { readdir, realpath } from "node:fs/promises";
+import { join } from "node:path";
 import type { AgentCreateIntent, WorkspaceIntent, WorkspaceReceipt } from "../shared/supervision-effects";
 import type { PaseoApi } from "./host-types";
+import { paseoHome } from "./data-dir";
 import { ReceiverRejected, sameDirectory } from "./supervision-effects";
 import { SupervisionUiReceiver } from "./supervision-ui-receiver";
 import { stopAgent } from "./cli";
 
 const exec = promisify(execFile);
-/** A create error the host answered, as opposed to a reply lost in transport: the daemon client
- * marks connection loss with a code and its timeouts say so, while a daemon refusal surfaces as
- * a plain Error carrying the daemon's message. */
-function definiteRefusal(error: unknown): boolean {
-  if ((error as { code?: unknown } | null)?.code === "DAEMON_CONNECTION_LOST") return false;
+/** The durable slug mark: the intent key itself, or the daemon's `-1`, `-2` path-collision suffix. */
+const slugFor = (key: string, slug: string | undefined) =>
+  slug === key || (slug?.startsWith(`${key}-`) === true && /^\d+$/.test(slug.slice(key.length + 1)));
+/** Errors known to be raised before the daemon admits a creation, so nothing was provisioned:
+ * the client's own schema parse and in-flight key conflict, and the daemon's pre-admission codes. */
+function preAdmissionRefusal(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  if (error.name === "ZodError" && Array.isArray((error as { issues?: unknown }).issues)) return true;
+  if (error.message === "workspace_request_key_conflict") return true;
+  return error.message.split(/[^a-z_]+/).some(token => token === "directory_not_found" || token === "source_required");
+}
+/** Errors after which creation may still be running or may already have landed: connection loss,
+ * the client's request timeout, and the daemon's own outcome-unknown marker. Always uncertain. */
+function transportLoss(error: unknown): boolean {
+  const code = (error as { code?: unknown } | null)?.code;
+  if (code === "DAEMON_CONNECTION_LOST" || code === "DAEMON_REQUEST_TIMEOUT") return true;
   const message = error instanceof Error ? error.message : String(error);
-  return !/timed out|Daemon client closed/i.test(message);
+  return /outcome_unknown|Timeout waiting|timed out|Daemon client closed/i.test(message);
 }
 export class SupervisionWorkerReceiver extends SupervisionUiReceiver {
   constructor(private readonly api: PaseoApi, root: string, private readonly projectDirectory: (name: string) => Promise<string>) {
@@ -30,20 +43,22 @@ export class SupervisionWorkerReceiver extends SupervisionUiReceiver {
       throw new ReceiverRejected("Only reserved isolated local worker worktrees are supported.");
     const directory = await realpath(await this.projectDirectory(intent.project));
     return async () => {
-      // Paseo assigns workspace ids (`wks_<hex>`): @getpaseo/client refuses a caller-selected
-      // `workspaceId` before any daemon call. The intent key travels as the idempotency key and
-      // the worktree slug, which is how the created workspace is found again below.
+      // No caller-chosen workspace id: on creationLifecycle hosts the protocol only accepts
+      // `wks_[a-f0-9]{16}` (our `ws-<uuid>` key died in the client's schema parse), and on older
+      // hosts the client refuses a caller id outright. The daemon assigns the id; the intent key
+      // travels as idempotency key and worktree slug, the marks the lookup below finds it by.
       let workspace;
       try {
         workspace = await this.api.workspaces.create({ idempotencyKey: intent.key,
           source: { kind: "worktree", cwd: directory, action: "branch-off", refName: intent.baseBranch, baseBranch: intent.baseBranch,
             branchName: intent.branch, worktreeSlug: intent.key } });
       } catch (error) {
-        // A lost reply may still have created the workspace: reconcile by slug before settling.
-        // A clean lookup that finds nothing makes a non-transport error a definite refusal.
+        // A lost reply may still have created the workspace: reconcile by the intent's marks
+        // before settling. Default is uncertain; "not created" must be proven — a known
+        // pre-admission refusal, or an empty registry plus git-level absence (proveNotCreated).
         const found = await this.lookupWorkspace(intent, directory).catch(() => undefined);
         if (found) return found;
-        if (found === null && definiteRefusal(error))
+        if (found === null && !transportLoss(error) && (preAdmissionRefusal(error) || await this.proveNotCreated(intent, directory)))
           throw new ReceiverRejected(`Workspace creation was refused and no workspace was created: ${error instanceof Error ? error.message : String(error)}`);
         throw error;
       }
@@ -57,19 +72,23 @@ export class SupervisionWorkerReceiver extends SupervisionUiReceiver {
     if (intent.purpose === "supervisor") return super.findWorkspace(intent);
     return this.lookupWorkspace(intent, await this.projectDirectory(intent.project));
   }
-  /** Positive lookup by the intent's durable marks: worktree slug (or a legacy caller-chosen id),
-   * confirmed against the project's git worktree on the reserved branch. Null only when no
-   * candidate exists; a present but unverifiable or ambiguous candidate throws, staying uncertain. */
+  /** Positive lookup by the intent's durable marks: worktree slug (with any collision suffix, or a
+   * legacy caller-chosen id), or the reserved branch's worktree inside the project's repository —
+   * each confirmed by git verification. Null only when no candidate exists; a present but
+   * unverifiable or ambiguous candidate throws, staying uncertain. */
   private async lookupWorkspace(intent: WorkspaceIntent, project: string): Promise<WorkspaceReceipt | null> {
-    const matches: { id: string; workspaceDirectory: string }[] = [];
+    const entries: { id: string; workspaceDirectory: string; worktreeSlug: string | undefined }[] = [];
     let cursor: string | undefined;
     do {
-      const page = await this.api.workspaces.list({ page: { limit: 200, ...(cursor ? { cursor } : {}) } });
+      const page = await this.api.workspaces.list({ sort: [{ key: "name", direction: "asc" }], page: { limit: 200, ...(cursor ? { cursor } : {}) } });
       for (const entry of page.entries)
-        if (entry.workspaceDirectory && (entry.worktreeSlug === intent.key || entry.id === intent.key) && !matches.some(m => m.id === entry.id))
-          matches.push({ id: entry.id, workspaceDirectory: entry.workspaceDirectory });
+        if (entry.workspaceDirectory && !entries.some(e => e.id === entry.id))
+          entries.push({ id: entry.id, workspaceDirectory: entry.workspaceDirectory, worktreeSlug: entry.worktreeSlug });
       cursor = page.pageInfo.nextCursor ?? undefined;
     } while (cursor);
+    const branchPath = await this.branchWorktreePath(project, intent.branch).catch(() => null);
+    const matches = entries.filter(e => slugFor(intent.key, e.worktreeSlug) || e.id === intent.key ||
+      (branchPath !== null && sameDirectory(e.workspaceDirectory, branchPath)));
     if (!matches.length) return null;
     const verified: typeof matches = [];
     let failure: unknown;
@@ -81,12 +100,44 @@ export class SupervisionWorkerReceiver extends SupervisionUiReceiver {
     if (verified.length > 1) throw new Error("More than one workspace matches the reserved intent; retain uncertainty.");
     throw failure;
   }
+  /** Git-level proof that a failed create left nothing behind: no branch ref, no worktree for it,
+   * and no managed worktree directory named for the intent. Any doubt returns false (uncertain). */
+  private async proveNotCreated(intent: WorkspaceIntent, project: string): Promise<boolean> {
+    try {
+      await this.git(project, ["rev-parse", "--path-format=absolute", "--git-common-dir"]); // git reads this repo at all
+      if (await this.git(project, ["rev-parse", "--verify", "--quiet", `refs/heads/${intent.branch}`]).then(() => true, () => false)) return false;
+      if (await this.branchWorktreePath(project, intent.branch)) return false;
+      const root = join(paseoHome(), "worktrees");
+      let hashes;
+      try { hashes = await readdir(root, { withFileTypes: true }); }
+      catch (error) { return (error as { code?: unknown }).code === "ENOENT"; }
+      for (const hash of hashes) {
+        if (!hash.isDirectory()) continue;
+        const names = await readdir(join(root, hash.name)).catch(() => null);
+        if (names === null || names.some(name => slugFor(intent.key, name))) return false;
+      }
+      return true;
+    } catch { return false; }
+  }
+  private async branchWorktreePath(project: string, branch: string): Promise<string | null> {
+    const out = await this.git(project, ["worktree", "list", "--porcelain"], false);
+    let path: string | null = null;
+    for (const line of out.split(/\r?\n/)) {
+      if (line.startsWith("worktree ")) path = line.slice("worktree ".length);
+      else if (line === `branch refs/heads/${branch}` && path) return path;
+      else if (!line) path = null;
+    }
+    return null;
+  }
+  private async git(cwd: string, args: string[], trim = true): Promise<string> {
+    const out = (await exec("git", ["-C", cwd, ...args], { timeout: 15000, maxBuffer: 65536, windowsHide: true })).stdout;
+    return trim ? out.trim() : out;
+  }
   private async verifyWorktree(path: string, project: string, branch: string) {
-    const git = async (cwd: string, args: string[]) => (await exec("git", ["-C", cwd, ...args], { timeout: 15000, maxBuffer: 65536, windowsHide: true })).stdout.trim();
     const root = await realpath(project), directory = await realpath(path);
-    if (sameDirectory(root, directory) || !sameDirectory(await git(directory, ["rev-parse", "--show-toplevel"]), directory) ||
-      await git(directory, ["branch", "--show-current"]) !== branch ||
-      !sameDirectory(await git(directory, ["rev-parse", "--path-format=absolute", "--git-common-dir"]), await git(root, ["rev-parse", "--path-format=absolute", "--git-common-dir"])))
+    if (sameDirectory(root, directory) || !sameDirectory(await this.git(directory, ["rev-parse", "--show-toplevel"]), directory) ||
+      await this.git(directory, ["branch", "--show-current"]) !== branch ||
+      !sameDirectory(await this.git(directory, ["rev-parse", "--path-format=absolute", "--git-common-dir"]), await this.git(root, ["rev-parse", "--path-format=absolute", "--git-common-dir"])))
       throw new Error("Workspace isolation or repository/branch identity cannot be verified.");
   }
   override async createAgent(intent: AgentCreateIntent) {
