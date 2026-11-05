@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { SupervisionGateway, effectLogicalKey, requireGatewayOperation } from "./supervision-effects";
+import { NOT_CREATED_PROOF_MIN_AGE_MS, SupervisionGateway, effectLogicalKey, requireGatewayOperation } from "./supervision-effects";
 import { SupervisorSessions } from "./supervisor-sessions";
 import { recordContinuation } from "./supervision-continuation";
 import { oneAtATime } from "./mate";
@@ -15,6 +15,9 @@ async function ready(fx: S04Fixture, n = 1, prefix = "a") {
   return scope;
 }
 const effect = async (fx: S04Fixture, id: string) => (await fx.store.read()).effects.find(e => e.id === id)!;
+/** A gateway whose clock is past the not-created proof's minimum uncertain age. */
+const laterGateway = (fx: S04Fixture) => new SupervisionGateway(fx.store, fx.commands, fx.home, fx.receiver,
+  { enabled: true, now: () => Date.now() + NOT_CREATED_PROOF_MIN_AGE_MS + 60_000 });
 const attempt = async (fx: S04Fixture, id: string) => (await fx.store.read()).attempts.find(a => a.id === id)!;
 
 describe("S04 effect gateway (synthetic receiver)", { timeout: 60000 }, () => {
@@ -94,7 +97,10 @@ describe("S04 effect gateway (synthetic receiver)", { timeout: 60000 }, () => {
     fx.receiver.faults.openWorkspace = ["fail"]; // Plain failure, nothing created: dispatch goes uncertain.
     expect((await fx.gateway.dispatch(started.effects!.workspace)).state).toBe("uncertain");
     fx.receiver.workspaceNotCreated = true;
-    const settled = await fx.gateway.reconcile(started.effects!.workspace);
+    // Too young: a creation the reply lost track of may still be running, so the proof is not even asked.
+    expect((await fx.gateway.reconcile(started.effects!.workspace)).state).toBe("uncertain");
+    expect(fx.receiver.proofCalls).toEqual([]);
+    const settled = await laterGateway(fx).reconcile(started.effects!.workspace);
     expect(settled.state).toBe("failed"); expect(settled.receiptRef).toMatch(/^rejected:not-created:/);
     expect((await effect(fx, started.effects!.create)).state).toBe("cancelled");
     expect((await effect(fx, started.effects!.send)).state).toBe("cancelled");
@@ -109,7 +115,7 @@ describe("S04 effect gateway (synthetic receiver)", { timeout: 60000 }, () => {
     fx.receiver.faults.openWorkspace = ["fail"];
     await fx.gateway.dispatch(started.effects!.workspace);
     // workspaceNotCreated stays false: the proof cannot say nothing was created.
-    expect((await fx.gateway.reconcile(started.effects!.workspace)).state).toBe("uncertain");
+    expect((await laterGateway(fx).reconcile(started.effects!.workspace)).state).toBe("uncertain");
     expect((await effect(fx, started.effects!.create)).state).toBe("reserved");
     expect((await effect(fx, started.effects!.send)).state).toBe("reserved");
     expect(fx.receiver.proofCalls).toHaveLength(1); // Asked, and its "cannot say" is what kept it uncertain.
@@ -117,7 +123,7 @@ describe("S04 effect gateway (synthetic receiver)", { timeout: 60000 }, () => {
     const off = await s04Fixture({ capabilities: { workspaceIntentLookup: true, workspaceNotCreatedProof: false } }), scope2 = await ready(off), started2 = await off.start(scope2, "a-trial");
     off.receiver.faults.openWorkspace = ["fail"]; off.receiver.workspaceNotCreated = true;
     await off.gateway.dispatch(started2.effects!.workspace);
-    expect((await off.gateway.reconcile(started2.effects!.workspace)).state).toBe("uncertain"); // No proof capability: never asked.
+    expect((await laterGateway(off).reconcile(started2.effects!.workspace)).state).toBe("uncertain"); // No proof capability: never asked.
     expect(off.receiver.proofCalls).toEqual([]);
   });
 
@@ -129,6 +135,24 @@ describe("S04 effect gateway (synthetic receiver)", { timeout: 60000 }, () => {
     expect(settled.state).toBe("succeeded"); expect(JSON.parse(settled.receiptRef!).workspaceId).toBe("ws-1");
     expect(fx.receiver.proofCalls).toEqual([]);
     expect((await effect(fx, started.effects!.create)).state).toBe("reserved");
+  });
+
+  it("never proves not-created while the original workspace.open call is still in flight", async () => {
+    const fx = await s04Fixture({ capabilities: { workspaceIntentLookup: true, workspaceNotCreatedProof: true } }), scope = await ready(fx), started = await fx.start(scope, "a-trial");
+    fx.receiver.workspaceNotCreated = true; // The proof would say "nothing there" — it must not be asked yet.
+    let release!: () => void; fx.receiver.beforePerform = () => new Promise<void>(done => { release = done; });
+    const inflight = fx.gateway.dispatch(started.effects!.workspace);
+    while ((await effect(fx, started.effects!.workspace)).state !== "dispatching") await new Promise(r => setTimeout(r, 10));
+    // A concurrent reconcile marks the in-flight call uncertain; that state alone proves nothing.
+    expect((await fx.gateway.reconcile(started.effects!.workspace)).state).toBe("uncertain");
+    // Even past the minimum age, the outstanding call blocks the proof: no failed settle, no cancelled siblings.
+    expect((await laterGateway(fx).reconcile(started.effects!.workspace)).state).toBe("uncertain");
+    expect(fx.receiver.proofCalls).toEqual([]);
+    expect((await effect(fx, started.effects!.create)).state).toBe("reserved");
+    expect((await effect(fx, started.effects!.send)).state).toBe("reserved");
+    release(); fx.receiver.beforePerform = null;
+    expect(await inflight).toMatchObject({ state: "succeeded" }); // The original creation lands and binds.
+    expect(fx.receiver.calls.filter(c => c.op === "openWorkspace")).toHaveLength(1);
   });
 
   it("lost create reply: negative lookup proves nothing; the late original binds to the same reserved ID (A10/A18-C03)", async () => {

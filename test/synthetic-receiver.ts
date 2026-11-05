@@ -33,6 +33,8 @@ export class SyntheticReceiver implements GatewayReceiver {
   afterAdmission: (() => void) | null = null;
   /** When set, an admitted request waits here before replying (models a slow reply in flight). */
   gate: Promise<void> | null = null;
+  /** Awaited before the request is performed (models a creation still running, nothing landed yet). */
+  beforePerform: (() => Promise<void>) | null = null;
   capabilityValue: unknown;
   constructor(capabilities: Partial<ReceiverCapabilities> = {}, private readonly root = "C:/synthetic") {
     this.capabilityValue = { ...fullCapabilities, ...capabilities };
@@ -41,6 +43,7 @@ export class SyntheticReceiver implements GatewayReceiver {
   private fault(op: Operation) { return this.faults[op]?.shift(); }
   private async perform<T>(op: Operation, target: string, act: () => T): Promise<T> {
     this.calls.push({ op, target });
+    if (this.beforePerform) await this.beforePerform();
     const fault = this.fault(op);
     if (fault === "reject") throw new ReceiverRejected(`${op} refused`, "invalid");
     if (fault === "capacity") throw new ReceiverRejected(`${op}: provider capacity unavailable`, "capacity");

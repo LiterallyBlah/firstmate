@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { randomUUID } from "node:crypto";
-import { mkdir, realpath, symlink, writeFile } from "node:fs/promises";
+import { mkdir, realpath, rm, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { expect, it, vi } from "vitest";
 import { z } from "zod";
@@ -19,7 +19,7 @@ const execute = promisify(execFile);
  * daemon error with the outcome unknown, never as a clean refusal. */
 type Behavior = "ok" | "slug-collision" | "slug-rewritten" | "slug-rewritten-alias" | "timeout-after-create" | "timeout" |
   "outcome-unknown" | "half-built" | "half-built-dir" | "refuse" | "schema" | "daemon-error" | "lose-before-create" |
-  "key-conflict" | "key-conflict-half-built" | "embedded-code-half-built" | "directory-message" | "directory-message-half-built" | "corrupt-packed-refs";
+  "key-conflict" | "key-conflict-half-built" | "embedded-code-half-built" | "directory-message" | "directory-message-half-built" | "corrupt-packed-refs" | "directoryless-row";
 async function fixture(behavior: Behavior = "ok") {
   const root = join(process.env.PASEO_HOME!, randomUUID()), project = join(root, "project"), worktree = join(root, "isolated");
   await mkdir(project, { recursive: true });
@@ -29,6 +29,7 @@ async function fixture(behavior: Behavior = "ok") {
   const intent: WorkspaceIntent = { key: `ws-${randomUUID()}`, purpose: "worker", project: "fixture", hostId: "local", branch: `fm/${randomUUID()}`, baseBranch: "main" };
   const paseoId = `wks_${randomUUID().replace(/-/g, "").slice(0, 16)}`;
   const entries: { id: string; workspaceDirectory: string; worktreeSlug: string }[] = [];
+  if (behavior === "directoryless-row") entries.push({ id: paseoId, workspaceDirectory: undefined as never, worktreeSlug: intent.key });
   let added = false;
   const agentCreate = vi.fn(async (i: { agentId: string }) => ({ id: i.agentId }));
   let handle = { id: paseoId, directory: worktree, refresh: async () => ({ id: paseoId, workspaceDirectory: worktree, worktreeSlug: intent.key }), agents: { create: agentCreate } };
@@ -202,6 +203,46 @@ it("cannot prove not created when a half-built worktree is on disk", async () =>
   const f = await fixture("half-built");
   await expect(f.receiver.openWorkspace(f.intent)).rejects.toThrow("provisioning failed");
   expect(await f.receiver.proveWorkspaceNotCreated(f.intent)).toBe(false);
+}, 30000);
+it("cannot prove not created for a directory-only leftover or a git error other than exit 1", async () => {
+  const dir = await fixture("half-built-dir");
+  await expect(dir.receiver.openWorkspace(dir.intent)).rejects.toThrow("provisioning failed");
+  expect(await dir.receiver.proveWorkspaceNotCreated(dir.intent)).toBe(false);
+  const git = await fixture("corrupt-packed-refs");
+  await expect(git.receiver.openWorkspace(git.intent)).rejects.toThrow("workspace setup failed");
+  expect(await git.receiver.proveWorkspaceNotCreated(git.intent)).toBe(false);
+}, 30000);
+it("treats a registry row for the intent with no directory as doubt, not absence", async () => {
+  const f = await fixture("directoryless-row");
+  await expect(f.receiver.findWorkspace(f.intent)).rejects.toThrow("no directory");
+  expect(await f.receiver.proveWorkspaceNotCreated(f.intent)).toBe(false);
+}, 30000);
+it("the proof reads the daemon's creation record for the intent key: live or completed is doubt, failed is not", async () => {
+  const f = await fixture(), creations = join(process.env.PASEO_HOME!, "creations");
+  await mkdir(creations, { recursive: true });
+  const record = (phase?: string) => writeFile(join(creations, `${randomUUID()}.json`), JSON.stringify({
+    ...(phase === undefined ? { inFlight: "workspace" } : { inFlight: null }),
+    snapshot: { kind: "workspace", idempotencyKey: f.intent.key, ...(phase === undefined ? {} : { phase }) } }));
+  await record("failed");
+  expect(await f.receiver.proveWorkspaceNotCreated(f.intent)).toBe(true);
+  await record(undefined); // No terminal phase: may still be creating in another process.
+  expect(await f.receiver.proveWorkspaceNotCreated(f.intent)).toBe(false);
+  const done = await fixture();
+  await writeFile(join(creations, `${randomUUID()}.json`), JSON.stringify({ inFlight: null,
+    snapshot: { kind: "workspace", idempotencyKey: done.intent.key, phase: "completed" } }));
+  expect(await done.receiver.proveWorkspaceNotCreated(done.intent)).toBe(false);
+}, 30000);
+it("the managed-directory check follows worktrees.root; a set but unreadable root is doubt", async () => {
+  const f = await fixture(), config = join(process.env.PASEO_HOME!, "config.json");
+  const custom = join(process.env.PASEO_HOME!, `custom-worktrees-${randomUUID()}`);
+  try {
+    await writeFile(config, JSON.stringify({ worktrees: { root: custom } }));
+    expect(await f.receiver.proveWorkspaceNotCreated(f.intent)).toBe(false); // Set root does not exist: unreadable.
+    await mkdir(custom, { recursive: true });
+    expect(await f.receiver.proveWorkspaceNotCreated(f.intent)).toBe(true);
+    await mkdir(join(custom, "fixturehash", f.intent.key), { recursive: true });
+    expect(await f.receiver.proveWorkspaceNotCreated(f.intent)).toBe(false); // The slug directory under the custom root.
+  } finally { await rm(config, { force: true }); }
 }, 30000);
 it("keeps a legacy connection lost before creation uncertain, not rejected", async () => {
   const f = await fixture("lose-before-create");

@@ -24,7 +24,7 @@ export const ReceiverCapabilitiesSchema = z.object({
   createReceiptLookup: z.boolean(),
   /** Exact lookup of a workspace by its deterministic intent key after a lost reply. */
   workspaceIntentLookup: z.boolean(),
-  /** Definitive proof that a worker workspace intent created nothing: no registry row,
+  /** Definitive proof that a worker workspace intent created nothing: no registry row, no live creation record,
    * branch (rev-parse exit 1 only), worktree or managed directory. Any doubt is false. */
   workspaceNotCreatedProof: z.boolean(),
   /** Complete persisted descendant inventory, including unloaded providers (archive-inventory). */
