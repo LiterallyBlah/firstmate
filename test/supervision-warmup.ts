@@ -1,6 +1,6 @@
 /** Pays Windows' cold first PowerShell start (image load and scanning, 3.3–5.3 s on CI runners) once, before any timed
- * identity probe. Its own long bound is for this warm-up only; its result decides nothing, and the product probe keeps
- * its 5 s deadline and fails closed. */
+ * identity probe. Its own long bound is for this warm-up only; its result decides nothing. The product probe has a
+ * bounded retry budget and fails closed, but suites warm up so a cold start is not paid per probe. */
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { windowsIdentityCommand } from "../server/supervision-process";

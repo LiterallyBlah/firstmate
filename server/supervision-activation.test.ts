@@ -31,7 +31,7 @@ vi.setConfig({ testTimeout: 30000 });
 const root = process.env.PASEO_HOME!;
 let home: string, activation: SupervisionActivation, receiver: SyntheticReceiver, ledger: NeedsYouService, clock: number;
 let prepare: Extract<MigrationCommand, { op: "prepare" | "resume" }>;
-// As in the crash and recovery suites, pay the cold Windows host startup before the real, unchanged 5 s probes.
+// As in the crash and recovery suites, pay the cold Windows host startup before the real probes.
 beforeAll(async () => {
   if (process.platform === "win32") await warmWindowsIdentityProbe();
 }, WARMUP_TIMEOUT_MS + 10000);

@@ -28,16 +28,35 @@ export function windowsIdentityCommand(pid: number): { file: string; args: strin
   return { file: join(process.env.SystemRoot ?? "C:/Windows", "System32/WindowsPowerShell/v1.0/powershell.exe"),
     args: ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", script] };
 }
-export const WINDOWS_IDENTITY_TIMEOUT_MS = 5000;
+/** Per-attempt deadlines. The first stays the historical 5 s, so a warm probe is exactly as before; later attempts
+ * escalate because repeating the same deadline cannot outlast the cold start that just missed it (a first PowerShell
+ * start measured 5.3 s on a CI runner, 3.3 s when green). The sum plus backoff is the probe's whole budget:
+ * 30 s of attempts and 0.75 s of pauses, paid in full only when every attempt times out. */
+export const WINDOWS_IDENTITY_ATTEMPT_TIMEOUTS_MS = [5000, 10000, 15000] as const;
+export const WINDOWS_IDENTITY_TIMEOUT_MS = WINDOWS_IDENTITY_ATTEMPT_TIMEOUTS_MS[0];
+const WINDOWS_IDENTITY_RETRY_BACKOFF_MS = [250, 500] as const;
+const defaultSleep = (ms: number): Promise<void> => new Promise(resolve => { setTimeout(resolve, ms); });
 type Run = (file: string, args: string[], options: { windowsHide: boolean; timeout: number; maxBuffer: number }) => Promise<{ stdout: string }>;
-/** One bounded probe, never retried: a probe that misses its deadline is unknown, not dead. */
-export async function windowsSupervisionProcessIdentity(pid: number, run: Run = exec): Promise<ProcessIdentity> {
+/** Bounded retries of an unverifiable probe: only an "unknown" attempt (timeout, spawn failure, unusable output) is
+ * retried, after a short growing pause; a definitive alive/dead answer returns at once and is never second-guessed.
+ * Every attempt re-queries the OS, so a retry can only replace stale ignorance with a fresher answer — exhaustion
+ * still returns unknown, never dead or alive, so callers keep failing closed (no takeover, no unverified claim). */
+export async function windowsSupervisionProcessIdentity(pid: number, run: Run = exec,
+  options: { sleep?: (ms: number) => Promise<void> } = {}): Promise<ProcessIdentity> {
   if (!Number.isSafeInteger(pid) || pid < 1) return { state: "unknown" };
   try {
     const { file, args } = windowsIdentityCommand(pid);
-    const value = (await run(file, args, { windowsHide: true, timeout: WINDOWS_IDENTITY_TIMEOUT_MS, maxBuffer: 4096 })).stdout.trim();
-    if (/^alive:[0-9]+$/.test(value)) return { state: "alive", start: value.slice(6) };
-    return { state: value === "dead" ? "dead" : "unknown" };
+    const sleep = options.sleep ?? defaultSleep;
+    for (let attempt = 0; attempt < WINDOWS_IDENTITY_ATTEMPT_TIMEOUTS_MS.length; attempt++) {
+      try {
+        const value = (await run(file, args, { windowsHide: true, timeout: WINDOWS_IDENTITY_ATTEMPT_TIMEOUTS_MS[attempt]!, maxBuffer: 4096 })).stdout.trim();
+        if (/^alive:[0-9]+$/.test(value)) return { state: "alive", start: value.slice(6) };
+        if (value === "dead") return { state: "dead" };
+      } catch { /* This attempt is unknown; a later one may still verify. */ }
+      const backoff = WINDOWS_IDENTITY_RETRY_BACKOFF_MS[attempt];
+      if (backoff !== undefined) await sleep(backoff);
+    }
+    return { state: "unknown" };
   } catch { return { state: "unknown" }; }
 }
 export async function supervisionProcessIdentity(pid: number): Promise<ProcessIdentity> {
