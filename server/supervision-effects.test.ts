@@ -89,6 +89,48 @@ describe("S04 effect gateway (synthetic receiver)", { timeout: 60000 }, () => {
     expect(fx.receiver.calls.filter(c => c.op === "openWorkspace")).toHaveLength(1);
   });
 
+  it("reconcile settles an uncertain worker workspace.open as not created on proof, cancelling reserved siblings and keeping spend", async () => {
+    const fx = await s04Fixture({ capabilities: { workspaceIntentLookup: true, workspaceNotCreatedProof: true } }), scope = await ready(fx), started = await fx.start(scope, "a-trial");
+    fx.receiver.faults.openWorkspace = ["fail"]; // Plain failure, nothing created: dispatch goes uncertain.
+    expect((await fx.gateway.dispatch(started.effects!.workspace)).state).toBe("uncertain");
+    fx.receiver.workspaceNotCreated = true;
+    const settled = await fx.gateway.reconcile(started.effects!.workspace);
+    expect(settled.state).toBe("failed"); expect(settled.receiptRef).toMatch(/^rejected:not-created:/);
+    expect((await effect(fx, started.effects!.create)).state).toBe("cancelled");
+    expect((await effect(fx, started.effects!.send)).state).toBe("cancelled");
+    expect(await attempt(fx, started.attemptId!)).toMatchObject({ spentAgents: 1, spentTurns: 1 }); // Spend is kept, never refunded.
+    expect(fx.receiver.calls.map(c => c.op)).toEqual(["openWorkspace"]); // Nothing resent or recreated.
+    expect(fx.receiver.proofCalls).toHaveLength(1);
+    expect((await fx.store.read()).uncertainEffectIds).not.toContain(started.effects!.workspace);
+  });
+
+  it("reconcile keeps an uncertain worker workspace.open uncertain when the not-created proof is inconclusive or unoffered", async () => {
+    const fx = await s04Fixture({ capabilities: { workspaceIntentLookup: true, workspaceNotCreatedProof: true } }), scope = await ready(fx), started = await fx.start(scope, "a-trial");
+    fx.receiver.faults.openWorkspace = ["fail"];
+    await fx.gateway.dispatch(started.effects!.workspace);
+    // workspaceNotCreated stays false: the proof cannot say nothing was created.
+    expect((await fx.gateway.reconcile(started.effects!.workspace)).state).toBe("uncertain");
+    expect((await effect(fx, started.effects!.create)).state).toBe("reserved");
+    expect((await effect(fx, started.effects!.send)).state).toBe("reserved");
+    expect(fx.receiver.proofCalls).toHaveLength(1); // Asked, and its "cannot say" is what kept it uncertain.
+    expect(fx.receiver.calls.filter(c => c.op === "openWorkspace")).toHaveLength(1);
+    const off = await s04Fixture({ capabilities: { workspaceIntentLookup: true, workspaceNotCreatedProof: false } }), scope2 = await ready(off), started2 = await off.start(scope2, "a-trial");
+    off.receiver.faults.openWorkspace = ["fail"]; off.receiver.workspaceNotCreated = true;
+    await off.gateway.dispatch(started2.effects!.workspace);
+    expect((await off.gateway.reconcile(started2.effects!.workspace)).state).toBe("uncertain"); // No proof capability: never asked.
+    expect(off.receiver.proofCalls).toEqual([]);
+  });
+
+  it("a found workspace still settles succeeded even when a not-created proof is on offer", async () => {
+    const fx = await s04Fixture({ capabilities: { workspaceIntentLookup: true, workspaceNotCreatedProof: true } }), scope = await ready(fx), started = await fx.start(scope, "a-trial");
+    fx.receiver.faults.openWorkspace = ["lose"]; fx.receiver.workspaceNotCreated = true;
+    await fx.gateway.dispatch(started.effects!.workspace);
+    const settled = await fx.gateway.reconcile(started.effects!.workspace);
+    expect(settled.state).toBe("succeeded"); expect(JSON.parse(settled.receiptRef!).workspaceId).toBe("ws-1");
+    expect(fx.receiver.proofCalls).toEqual([]);
+    expect((await effect(fx, started.effects!.create)).state).toBe("reserved");
+  });
+
   it("lost create reply: negative lookup proves nothing; the late original binds to the same reserved ID (A10/A18-C03)", async () => {
     const fx = await s04Fixture(), scope = await ready(fx), started = await fx.start(scope, "a-trial");
     await fx.gateway.dispatch(started.effects!.workspace);

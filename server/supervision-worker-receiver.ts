@@ -35,7 +35,7 @@ export class SupervisionWorkerReceiver extends SupervisionUiReceiver {
     super(api, root, { projectMates: true });
   }
   override async capabilities() {
-    return { ...await super.capabilities(), receiver: "paseo-sdk/cooperative-local-worker", workspaceIntentLookup: true };
+    return { ...await super.capabilities(), receiver: "paseo-sdk/cooperative-local-worker", workspaceIntentLookup: true, workspaceNotCreatedProof: true };
   }
   override async prepareWorkspace(intent: WorkspaceIntent) {
     if (intent.purpose === "supervisor") return super.prepareWorkspace(intent);
@@ -67,6 +67,18 @@ export class SupervisionWorkerReceiver extends SupervisionUiReceiver {
       await this.verifyWorktree(path, directory, intent.branch);
       return { workspaceId: workspace.id, directory: path };
     };
+  }
+  /** The reconcile-time twin of the dispatch proof: no registry row for the intent's marks
+   * (the lookup, re-run here so the proof stands alone), and git-level absence — no branch
+   * (rev-parse exit 1 only), no worktree on it, no managed directory. Any doubt is false.
+   * Worker intents only; supervisor workspaces have no git proof. Read-only. */
+  async proveWorkspaceNotCreated(intent: WorkspaceIntent): Promise<boolean> {
+    if (intent.purpose !== "worker" || intent.hostId !== "local" || !/^ws-[0-9a-f-]{36}$/.test(intent.key) || !/^fm\/[a-z0-9][a-z0-9-]*$/.test(intent.branch)) return false;
+    try {
+      const directory = await realpath(await this.projectDirectory(intent.project));
+      if (await this.lookupWorkspace(intent, directory) !== null) return false;
+      return await this.proveNotCreated(intent, directory);
+    } catch { return false; }
   }
   override async findWorkspace(intent: WorkspaceIntent) {
     if (intent.purpose === "supervisor") return super.findWorkspace(intent);

@@ -509,7 +509,10 @@ export class SupervisionGateway {
     return key;
   }
 
-  /** Exact identity lookup only. A negative or misbound answer never proves anything; nothing is resent. */
+  /** Exact identity lookup only; nothing is resent. A negative or misbound answer never proves
+   * anything — one exception: an uncertain worker `workspace.open` whose lookup found nothing
+   * may settle `failed` (not created) on the receiver's full absence proof, cancelling its
+   * still-reserved siblings through `settle` and keeping spend. Inconclusive proof stays uncertain. */
   async reconcile(effectId: string): Promise<SupervisionEffect> {
     this.enabled();
     const status = await this.store.audit();
@@ -517,11 +520,17 @@ export class SupervisionGateway {
     const effect = status.effects.find(e => e.id === effectId) ?? refuse("UNKNOWN_OWNER", "Unknown effect.");
     if (!["dispatching", "uncertain", "accepted"].includes(effect.state)) return effect;
     const capabilities = await this.capabilities();
-    let found: string | null = null;
+    let found: string | null = null, notCreated = false;
     if (effect.operation === "workspace.open" && capabilities.workspaceIntentLookup) {
       const intent = effect.attemptId === null ? supervisorWorkspaceIntent(effect.scopeId, effect.epoch, effect.id) : workerIntentFor(status, effect);
       const receipt = await this.receiver.findWorkspace(intent);
       found = receipt ? JSON.stringify(WorkspaceReceiptSchema.parse(receipt)) : null;
+      // Only an already-uncertain worker open earns the proof: a dispatching/in-flight effect
+      // may still be creating, a supervisor or reused workspace already exists, and an effect
+      // with no real lookup has no registry absence to stand on. The proof is read-only.
+      if (!found && effect.state === "uncertain" && effect.attemptId !== null && !effect.reusedWorkspace &&
+        capabilities.workspaceNotCreatedProof && this.receiver.proveWorkspaceNotCreated)
+        notCreated = await this.receiver.proveWorkspaceNotCreated(intent).catch(() => false);
     } else if (effect.operation === "agent.create" && capabilities.createReceiptLookup && effect.receiverKey) {
       const observed = await this.receiver.findAgent(effect.receiverKey);
       found = observed?.id === effect.receiverKey ? `agent:${observed.id}` : null; // Late original creation binds here.
@@ -533,6 +542,8 @@ export class SupervisionGateway {
     const current = (await this.store.read()).effects.find(e => e.id === effectId)!;
     if (current.version !== effect.version) return current;
     if (found) return this.settle(current, { state: "succeeded", receiptRef: found });
+    if (notCreated && current.state === "uncertain")
+      return this.settle(current, { state: "failed", receiptRef: "rejected:not-created:no registry workspace, branch, worktree or managed directory for the reserved intent" });
     if (current.state === "uncertain") return current;
     return this.settle(current, { state: "uncertain", receiptRef: null });
   }

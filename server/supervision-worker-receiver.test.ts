@@ -191,6 +191,18 @@ it("keeps a daemon error uncertain when git cannot answer the branch check (exit
   await expect(f.receiver.openWorkspace(f.intent)).rejects.not.toBeInstanceOf(ReceiverRejected);
   expect(await f.receiver.findWorkspace(f.intent)).toBeNull();
 }, 30000);
+it("proves a worker workspace not created only when the registry and git show nothing", async () => {
+  const f = await fixture();
+  expect(await f.receiver.proveWorkspaceNotCreated(f.intent)).toBe(true);
+  expect(await f.receiver.capabilities()).toMatchObject({ workspaceNotCreatedProof: true });
+  await f.receiver.openWorkspace(f.intent);
+  expect(await f.receiver.proveWorkspaceNotCreated(f.intent)).toBe(false); // It now exists.
+}, 30000);
+it("cannot prove not created when a half-built worktree is on disk", async () => {
+  const f = await fixture("half-built");
+  await expect(f.receiver.openWorkspace(f.intent)).rejects.toThrow("provisioning failed");
+  expect(await f.receiver.proveWorkspaceNotCreated(f.intent)).toBe(false);
+}, 30000);
 it("keeps a legacy connection lost before creation uncertain, not rejected", async () => {
   const f = await fixture("lose-before-create");
   await expect(f.receiver.openWorkspace(f.intent)).rejects.toThrow("connection lost");

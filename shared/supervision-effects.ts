@@ -24,6 +24,9 @@ export const ReceiverCapabilitiesSchema = z.object({
   createReceiptLookup: z.boolean(),
   /** Exact lookup of a workspace by its deterministic intent key after a lost reply. */
   workspaceIntentLookup: z.boolean(),
+  /** Definitive proof that a worker workspace intent created nothing: no registry row,
+   * branch (rev-parse exit 1 only), worktree or managed directory. Any doubt is false. */
+  workspaceNotCreatedProof: z.boolean(),
   /** Complete persisted descendant inventory, including unloaded providers (archive-inventory). */
   persistedInventory: z.boolean(),
   sendReceiptLookup: z.literal(false),
@@ -63,6 +66,9 @@ export interface GatewayReceiver {
   prepareWorkspace?(intent: WorkspaceIntent): Promise<() => Promise<WorkspaceReceipt>>;
   openWorkspace(intent: WorkspaceIntent): Promise<WorkspaceReceipt>;
   findWorkspace(intent: WorkspaceIntent): Promise<WorkspaceReceipt | null>;
+  /** True only when the intent provably created nothing (see `workspaceNotCreatedProof`).
+   * Read-only: it must never create, resend or repair anything. Absent means no proof. */
+  proveWorkspaceNotCreated?(intent: WorkspaceIntent): Promise<boolean>;
   createAgent(intent: AgentCreateIntent): Promise<{ agentId: string }>;
   findAgent(agentId: string): Promise<AgentObservation | null>;
   send(agentId: string, text: string, messageId: string): Promise<void>;
