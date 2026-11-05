@@ -7,7 +7,7 @@ import { planSupervisorGatewayLimits } from "./shared/plan-supervisor-limits";
 import { WatchSupervisors } from "./server/watch-supervisors";
 import type { PluginServerContext } from "@getpaseo/plugin/server";
 import { startWorkflowService, workflowStore, queuePlanNotes } from "./server/workflow-service";
-import { workflowHomeId, workflowSnapshot, workflowSnapshotWithin, withWorkflowNeeds, withWorkflowFleet } from "./server/workflow-board";
+import { shareScopedStatusReader, workflowHomeId, workflowSnapshot, workflowSnapshotWithin, withWorkflowNeeds, withWorkflowFleet } from "./server/workflow-board";
 import { readWorkflowPlans, actOnWorkflowPlan } from "./shared/workflow-rpc";
 import { ensureSharedTerminal as ensureSharedTerminalRpc } from "./shared/native-tools";
 import { ensureSharedTerminal } from "./server/native-tools";
@@ -145,6 +145,8 @@ export default function contribute(server: PluginServerContext) {
   // crew-seen decides whether to clear attention, so it always waits for the newest head.
   const readSupervision = async (home?: string, newest = false) =>
     supervisionRuntime.read(home ?? resolveHome(await readFirstmateConfig()), newest ? {} : { settleAfterMs: 750 });
+  // Every plan snapshot reads scoped plans through this runtime's warm projection, never a fresh full validation.
+  const unshareScopedReader = shareScopedStatusReader(home => supervisionRuntime.read(home));
   server.handle(readSupervisionInbox, async input => supervisionInboxStatus(await readSupervision(), input));
   server.handle(ensureSharedTerminalRpc, ({ workspaceId }, { paseo }) => ensureSharedTerminal(paseo, workspaceId));
   const updates = new UpdateService();
@@ -467,6 +469,7 @@ export default function contribute(server: PluginServerContext) {
     await unregisterChatQueue();
     unregisterSupervise();
     unregisterMaintenance();
+    unshareScopedReader();
     await stopWorkflows();
     unregisterRelay();
     unregisterCrewSeen();

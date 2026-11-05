@@ -6,7 +6,7 @@ import { workflowFixture } from "../test/workflow-fixture";
 import { type PlanCaptainCommand } from "../shared/workflow-plans";
 import { workflowStore, queuePlanNotes } from "./workflow-service";
 import { planSubjectHash, WorkflowPlanStore } from "./workflow-plans";
-import { workflowHomeId, workflowSnapshot, withWorkflowCards, withWorkflowNeeds, workflowBearings } from "./workflow-board";
+import { shareScopedStatusReader, workflowHomeId, workflowSnapshot, withWorkflowCards, withWorkflowNeeds, workflowBearings } from "./workflow-board";
 import { updateFirstmateConfig, readFirstmateConfig } from "./config";
 import { commandMessage } from "./mate";
 import { readBearingsMessage } from "../shared/bearings";
@@ -362,4 +362,27 @@ it("keeps a decline on the agenda, removes pending projections and leaves backlo
   expect(agenda[0]?.kind).toBe("captain"); expect(agenda.filter(i => i.kind === "books" && i.section === "remove")).toHaveLength(2);
   expect(await withWorkflowCards(cards, home)).toEqual([]); expect((await workflowSnapshot(home)).now).toEqual([]);
   expect(await readFile(join(home, "data/backlog.md"), "utf8")).toBe(backlog);
+});
+it("reads scoped plans through one shared, warm projection, beside the plan logs and never re-validated per snapshot", async () => {
+  const { SupervisionStatusReader } = await import("./supervision-status-reader");
+  const read = vi.spyOn(SupervisionStatusReader.prototype, "read");
+  try {
+    await workflowSnapshot(home); await workflowSnapshot(home);
+    expect(read).toHaveBeenCalledTimes(2);
+    expect(read.mock.contexts[1]).toBe(read.mock.contexts[0]);
+  } finally { read.mockRestore(); }
+  // The plugin's runtime reader, once shared, is used instead, and is started before the plan logs finish.
+  let started = false, released!: () => void;
+  const status = await new SupervisionStatusReader(process.env.PASEO_HOME!).read(home);
+  const runtime = vi.fn(async () => { started = true; return status; });
+  const plans = vi.spyOn(WorkflowPlanStore.prototype, "read");
+  const gate = new Promise<void>(done => { released = done; });
+  plans.mockImplementationOnce(async () => { await gate; return { plans: [], problems: [], warnings: [], quarantined: [] }; });
+  const unshare = shareScopedStatusReader(runtime);
+  try {
+    const pending = workflowSnapshot(home);
+    await vi.waitFor(() => expect(started).toBe(true));
+    released(); await pending;
+    expect(runtime).toHaveBeenCalledWith(home);
+  } finally { unshare(); plans.mockRestore(); }
 });
