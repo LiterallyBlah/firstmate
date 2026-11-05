@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, realpath, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { expect, it, vi } from "vitest";
 import { z } from "zod";
@@ -17,7 +17,7 @@ const execute = promisify(execFile);
  * inside the client, so the receiver sees success there; `DAEMON_CONNECTION_LOST` surfacing as a
  * rejection is the legacy path. Provisioning failures (e.g. an invalid ref) surface as a plain
  * daemon error with the outcome unknown, never as a clean refusal. */
-type Behavior = "ok" | "slug-collision" | "slug-rewritten" | "timeout-after-create" | "timeout" |
+type Behavior = "ok" | "slug-collision" | "slug-rewritten" | "slug-rewritten-alias" | "timeout-after-create" | "timeout" |
   "outcome-unknown" | "half-built" | "half-built-dir" | "refuse" | "schema" | "daemon-error" | "lose-before-create";
 async function fixture(behavior: Behavior = "ok") {
   const root = join(process.env.PASEO_HOME!, randomUUID()), project = join(root, "project"), worktree = join(root, "isolated");
@@ -46,8 +46,12 @@ async function fixture(behavior: Behavior = "ok") {
     }
     await git("worktree", "add", "-b", intent.branch, worktree, "main");
     if (behavior === "half-built") throw new Error("workspace provisioning failed"); // worktree+branch on disk, no registry row
-    const slug = behavior === "slug-collision" ? `${intent.key}-1` : behavior === "slug-rewritten" ? "rewritten-by-hook" : options.source.worktreeSlug!;
-    entries.push({ id: claimed, workspaceDirectory: worktree, worktreeSlug: slug });
+    const slug = behavior === "slug-collision" ? `${intent.key}-1` : behavior.startsWith("slug-rewritten") ? "rewritten-by-hook" : options.source.worktreeSlug!;
+    // The daemon's spelling of the directory may differ from git's (junction here; Windows 8.3
+    // short names on CI runners): only canonical-path comparison can still match the branch mark.
+    let listed = worktree;
+    if (behavior === "slug-rewritten-alias") { listed = join(root, "alias"); await symlink(worktree, listed, "junction"); }
+    entries.push({ id: claimed, workspaceDirectory: listed, worktreeSlug: slug });
     handle = { ...handle, id: claimed, refresh: async () => ({ id: claimed, workspaceDirectory: worktree, worktreeSlug: slug }) };
     if (behavior === "timeout-after-create") throw timeout();
     return handle;
@@ -96,6 +100,12 @@ it("finds the workspace when the daemon suffixed its slug on a path collision", 
 it("finds the workspace by its branch when a hook rewrote the slug", async () => {
   const f = await fixture("slug-rewritten"), workspace = await f.receiver.openWorkspace(f.intent);
   expect(await f.receiver.findWorkspace(f.intent)).toEqual(workspace);
+}, 30000);
+it("finds the workspace by its branch when the listed directory is an alias spelling", async () => {
+  const f = await fixture("slug-rewritten-alias"), workspace = await f.receiver.openWorkspace(f.intent);
+  const found = await f.receiver.findWorkspace(f.intent);
+  expect(found?.workspaceId).toBe(workspace.workspaceId);
+  expect(await realpath(found!.directory)).toBe(await realpath(f.worktree));
 }, 30000);
 it("settles a pre-admission daemon refusal as rejected, with nothing created", async () => {
   const f = await fixture("refuse");

@@ -87,8 +87,17 @@ export class SupervisionWorkerReceiver extends SupervisionUiReceiver {
       cursor = page.pageInfo.nextCursor ?? undefined;
     } while (cursor);
     const branchPath = await this.branchWorktreePath(project, intent.branch).catch(() => null);
-    const matches = entries.filter(e => slugFor(intent.key, e.worktreeSlug) || e.id === intent.key ||
+    let matches = entries.filter(e => slugFor(intent.key, e.worktreeSlug) || e.id === intent.key ||
       (branchPath !== null && sameDirectory(e.workspaceDirectory, branchPath)));
+    if (!matches.length && branchPath) {
+      // Git and the daemon may spell the same directory differently (Windows 8.3 short names,
+      // junctions): compare canonical paths before giving up on the branch mark.
+      const realBranch = await realpath(branchPath).catch(() => null);
+      if (realBranch) for (const entry of entries) {
+        const real = await realpath(entry.workspaceDirectory).catch(() => null);
+        if (real && sameDirectory(real, realBranch)) matches.push(entry);
+      }
+    }
     if (!matches.length) return null;
     const verified: typeof matches = [];
     let failure: unknown;
