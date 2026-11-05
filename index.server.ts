@@ -6,7 +6,7 @@ import { PlanRules } from "./server/plan-rules";
 import { planSupervisorGatewayLimits } from "./shared/plan-supervisor-limits";
 import { WatchSupervisors } from "./server/watch-supervisors";
 import type { PluginServerContext } from "@getpaseo/plugin/server";
-import { startWorkflowService, workflowStore, queuePlanNotes } from "./server/workflow-service";
+import { shareLegacyRouteStore, startWorkflowService, workflowStore, queuePlanNotes } from "./server/workflow-service";
 import { shareScopedStatusReader, workflowHomeId, workflowSnapshot, workflowSnapshotWithin, withWorkflowNeeds, withWorkflowFleet } from "./server/workflow-board";
 import { readWorkflowPlans, actOnWorkflowPlan } from "./shared/workflow-rpc";
 import { ensureSharedTerminal as ensureSharedTerminalRpc } from "./shared/native-tools";
@@ -147,6 +147,8 @@ export default function contribute(server: PluginServerContext) {
     supervisionRuntime.read(home ?? resolveHome(await readFirstmateConfig()), newest ? {} : { settleAfterMs: 750 });
   // Every plan snapshot reads scoped plans through this runtime's warm projection, never a fresh full validation.
   const unshareScopedReader = shareScopedStatusReader(home => supervisionRuntime.read(home));
+  // The legacy writer's route check reads the journal through the same current store.
+  const unshareLegacyRouteStore = shareLegacyRouteStore(home => supervisionRuntime.readStore(home));
   server.handle(readSupervisionInbox, async input => supervisionInboxStatus(await readSupervision(), input));
   server.handle(ensureSharedTerminalRpc, ({ workspaceId }, { paseo }) => ensureSharedTerminal(paseo, workspaceId));
   const updates = new UpdateService();
@@ -471,6 +473,7 @@ export default function contribute(server: PluginServerContext) {
     unregisterSupervise();
     unregisterMaintenance();
     unshareScopedReader();
+    unshareLegacyRouteStore();
     await stopWorkflows();
     unregisterRelay();
     unregisterCrewSeen();

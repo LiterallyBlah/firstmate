@@ -607,23 +607,40 @@ export class WorkflowPlanStore {
       try { for (const id of await readdir(join(this.root, directory))) consider(id); } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") return { plans, problems: [String(e)], warnings, quarantined, unavailable: true }; }
     }
     const folders = await this.cutoverFolders();
-    for (const id of ids) {
-      try {
-        const plan = await this.get(id);
-        const stage = plan ? await this.cutover(id, folders) : null;
-        if (stage) warnings.push(`Plan ${id} ${stage === "committed" ? "now belongs to its scoped supervisor" : "is held in a scoped cutover"}; its legacy history is read-only.`);
-        if (plan) plans.push(plan);
-        else {
-          const recovered = await this.recoveries(id);
-          if (!recovered.length || recovered.some(r => r.sequence !== 0 || r.previous !== null)) throw new Error("Empty or stray plan entry.");
+    // Plans are independent reads (each fold is already shared and cached per plan in get());
+    // walking 150+ of them strictly one at a time left a cold or warm read at seconds of file
+    // latency. A small pool overlaps that latency; outcomes are merged in id order below, so
+    // plans, problems, warnings and quarantines keep exactly their previous order.
+    const idList = [...ids];
+    const outcomes = new Array<{ plan?: WorkflowPlan; warning?: string; held?: QuarantinedWorkflow; problem?: string }>(idList.length);
+    let cursor = 0;
+    const worker = async () => {
+      while (cursor < idList.length) {
+        const index = cursor++, id = idList[index]!;
+        try {
+          const plan = await this.get(id);
+          const stage = plan ? await this.cutover(id, folders) : null;
+          const warning = stage ? `Plan ${id} ${stage === "committed" ? "now belongs to its scoped supervisor" : "is held in a scoped cutover"}; its legacy history is read-only.` : undefined;
+          if (plan) outcomes[index] = { plan, ...(warning ? { warning } : {}) };
+          else {
+            const recovered = await this.recoveries(id);
+            if (!recovered.length || recovered.some(r => r.sequence !== 0 || r.previous !== null)) throw new Error("Empty or stray plan entry.");
+            outcomes[index] = {};
+          }
+        } catch (error) {
+          const problem = `Plan ${id}: ${error instanceof Error ? error.message : String(error)}`;
+          outcomes[index] = { held: await this.quarantine(id, problem), problem };
         }
       }
-      catch (error) {
-        const problem = `Plan ${id}: ${error instanceof Error ? error.message : String(error)}`;
-        const held = await this.quarantine(id, problem);
-        quarantined.push(held);
-        if (held.retirement) warnings.push(`Retired quarantine ${id}: ${held.retirement.evidence} Task reservations remain held.`);
-        else problems.push(problem);
+    };
+    await Promise.all(Array.from({ length: Math.min(4, idList.length) }, worker));
+    for (const [index, outcome] of outcomes.entries()) {
+      if (outcome.warning) warnings.push(outcome.warning);
+      if (outcome.plan) plans.push(outcome.plan);
+      if (outcome.held) {
+        quarantined.push(outcome.held);
+        if (outcome.held.retirement) warnings.push(`Retired quarantine ${idList[index]}: ${outcome.held.retirement.evidence} Task reservations remain held.`);
+        else problems.push(outcome.problem!);
       }
     }
     return { plans: plans.sort((a, b) => a.definition.id.localeCompare(b.definition.id)), problems, warnings, quarantined };

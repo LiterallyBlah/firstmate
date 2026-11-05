@@ -389,7 +389,7 @@ export class SupervisionActivation {
       catalog = await supervisorCatalog(paseo, supervisorWorkspace(this.root, input.scopeId, (view.binding?.epoch ?? 0) + 1).directory);
     } catch (e) { problems.push(e instanceof Error ? e.message : "The exact host catalog is unavailable."); }
     if (!c.enabled) problems.push("This responsibility is paused in Help settings. Inspect retained work before resuming.");
-    const reader = new SupervisionStore(this.root, c.home);
+    const reader = this.runtime.readStore(c.home);
     const reservedOwnerInputs = await Promise.all(view.reservedOwnerInputs.map(async input => {
       try { const text = Buffer.from(await reader.readBlob(input.payloadDigest)).toString("utf8");
         return { ...input, preview: text.slice(0, 16000), truncated: text.length > 16000 };

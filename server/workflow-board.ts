@@ -31,8 +31,12 @@ function decisionDueAt(plan: WorkflowPlan, node: WorkflowPlan["definition"]["nod
 }
 
 export const workflowHomeId = (home: string) => digest(process.platform === "win32" ? resolve(home).toLowerCase() : resolve(home));
-/** How long the decisions read waits for plans before answering without them. The host gives an RPC 30 s. */
-export const PLAN_READ_BUDGET_MS = 10_000;
+/** How long the decisions read waits for plans before answering without them. The host gives an RPC 30 s;
+ * the rest of the combined read (ledger, briefs, the warm scoped projection) keeps the remainder.
+ * A cold process still validates the whole scoped journal and every plan log once, which on a large
+ * home is most of this budget, so it must leave the honest "still loading" answer for a genuinely
+ * stuck store rather than for a normal cold start. */
+export const PLAN_READ_BUDGET_MS = 15_000;
 /** The plan snapshot, or null once `budgetMs` has passed. A fresh process verifies every plan log once (about
  * 12,000 events on a large home), which can outlast the host's RPC limit while startup work competes; the
  * snapshot then carries on and warms the cache, so the next read is quick. Each call starts its own snapshot,

@@ -8,6 +8,17 @@ import { digest } from "./submissions";
 import { checkPolicySource, policyRef, sameVector } from "./supervision-policy";
 import { SupervisionMigrator, type LegacyDeliveryAdapters } from "./supervision-migrate";
 import { SupervisionError, SupervisionStore } from "./supervision-store";
+import { SupervisionStatusReader } from "./supervision-status-reader";
+import { resolve } from "node:path";
+/** The dry run only reads and validates against the journal. One warm reader per data root for
+ * the process: a fresh store per evidence read re-validated the whole journal every time.
+ */
+let evidenceReader: { root: string; reader: SupervisionStatusReader } | null = null;
+function evidenceStore(root: string, home: string): SupervisionStore {
+  const resolved = resolve(root);
+  if (evidenceReader?.root !== resolved) evidenceReader = { root: resolved, reader: new SupervisionStatusReader(resolved) };
+  return evidenceReader.reader.storeFor(home);
+}
 import { workflowStore } from "./workflow-service";
 /** Presentation only: never infer handling from a send receipt or change a disposition. */
 function deliveryExplanation(d: LegacyDeliveryDisposition, plan: string, work?: string): string {
@@ -64,7 +75,7 @@ export async function handoverEvidence(root: string, home: string, review: PlanH
   } catch { result.problems.push("The accepted permission sources need a fresh review. Open project setup in FirstMate settings before continuing; this handover cannot create permission evidence."); }
   if (!result.policy) result.problems.push("Accepted project permissions are missing. Open project setup in FirstMate settings and review its original permission sources first.");
   if (review.projectId && !status.migrations?.some(m => m.planId === review.plan)) try {
-    const dry = await new SupervisionMigrator({ home, store: new SupervisionStore(root, home), legacy: workflowStore(home), adapters, enabled: true }).dryRun({
+    const dry = await new SupervisionMigrator({ home, store: evidenceStore(root, home), legacy: workflowStore(home), adapters, enabled: true }).dryRun({
       plan: review.plan, scopeId: review.scopeId, projectId: review.projectId, migrationId: review.migrationId,
       prerequisites: { inventory: "Read-only preview; not accepted", policy: "Read-only preview; not accepted", rollbackBuild: "Read-only preview; not accepted" } });
     const plan = await workflowStore(home).get(review.plan);
