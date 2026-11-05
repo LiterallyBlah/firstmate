@@ -17,9 +17,9 @@ import type { SupervisionActor, SupervisionAttempt, SupervisionEffect, Supervisi
 import type { PlanLaunch, WorkflowPlan } from "../shared/workflow-plans";
 import type { VersionRef } from "../shared/supervision-policy";
 import {
-  AgentProfileSchema, EffectCauseSchema, GatewayOperation, RELEASE_OPERATIONS, REMOTE_PROMPT_MAX_CHARS, ReceiverCapabilitiesSchema, SCOPE_KIND_LABEL, SCOPE_LABELS, SUPERVISOR_ROLE, qualifiedRemote, supervisorKind, supervisorRoleKind,
+  AgentProfileSchema, EffectCauseSchema, GatewayOperation, QUALIFIED_REMOTE_PAIRS, RELEASE_OPERATIONS, REMOTE_PROMPT_MAX_CHARS, ReceiverCapabilitiesSchema, SCOPE_KIND_LABEL, SCOPE_LABELS, SUPERVISOR_ROLE, qualifiedRemote, supervisorKind, supervisorRoleKind,
   WorkspaceReceiptSchema, type AgentObservation, type AgentProfile, type EffectCause, type GatewayReceiver,
-  type ReceiverCapabilities, type WorkspaceIntent, type WorkspaceReceipt,
+  type QualifiedRemotePair, type ReceiverCapabilities, type WorkspaceIntent, type WorkspaceReceipt,
 } from "../shared/supervision-effects";
 import { resolveInHome } from "./files";
 import { digest } from "./submissions";
@@ -145,6 +145,8 @@ export interface GatewayOptions {
   reserveStart?: <T>(run: () => Promise<T>) => Promise<T>;
   /** The label-bound receiver for a non-local task host. Absent means remote work fails closed to local-only. */
   receiverFor?: (hostId: string) => GatewayReceiver | undefined;
+  /** Exact qualified remote version pairs; defaults to the production table (currently empty: fail closed). Tests inject a fixture pair. */
+  remotePairs?: readonly QualifiedRemotePair[];
   beforeStart?: (status: SupervisionStatus, input: ScopedPlanCommand) => Promise<void>;
   startCheck?: (status: SupervisionStatus, input: ScopedPlanCommand) => void;
   recovery?: boolean;
@@ -159,6 +161,7 @@ export class SupervisionGateway {
   constructor(readonly store: SupervisionStore, readonly commands: SupervisionCommands, readonly home: string,
     readonly receiver: GatewayReceiver, private readonly options: GatewayOptions = {}) {}
   private enabled() { if (!this.options.enabled) refuse("UNSUPPORTED", "The S04 effect gateway is disabled."); }
+  private qualified(capabilities: ReceiverCapabilities) { return qualifiedRemote(capabilities, this.options.remotePairs ?? QUALIFIED_REMOTE_PAIRS); }
   private async accepted(requestId: string) { return (await this.store.read()).commands.some(c => c.id === requestId); }
   /** The receiver behind one task host: local work keeps the composed receiver; any other host needs its registered label-bound receiver, and without one remote work fails closed to local-only. */
   private pick(hostId: string): GatewayReceiver {
@@ -211,7 +214,7 @@ export class SupervisionGateway {
     try {
       capabilities = await this.capabilitiesFor(hostId);
       if (remote) {
-        if (!qualifiedRemote(capabilities)) refuse("UNSUPPORTED", "Remote reservation requires the qualified label-bound receiver on the exact probed CLI and recorded daemon version pair; it fails closed to local-only.");
+        if (!this.qualified(capabilities)) refuse("UNSUPPORTED", "Remote reservation requires the qualified label-bound receiver on an exact qualified CLI and remote daemon version pair; it fails closed to local-only.");
       } else if (!capabilities.selectedAgentIds) refuse("UNSUPPORTED", "Receiver lacks caller-selected agent IDs; no legacy or fresh-ID fallback.");
       const brief = await this.pinnedBrief(input);
       briefBlob = brief ? await this.store.putBlob(brief) : null;
@@ -240,8 +243,8 @@ export class SupervisionGateway {
       const attemptId = event.attempt ?? (command.op === "claim" ? command.attempt : null);
       const briefHash = event.briefHash ?? (command.op === "claim" ? command.briefHash : null);
       if (!attemptId || !briefHash) return { expectedVersions: [], mutations: [] }; // Review posture: no attempt yet.
-      if (remote ? !qualifiedRemote(capabilities) : !capabilities.selectedAgentIds)
-        refuse("UNSUPPORTED", remote ? "Remote reservation requires the qualified label-bound receiver on the exact probed CLI and recorded daemon version pair; it fails closed to local-only." : "Receiver lacks caller-selected agent IDs; no legacy or fresh-ID fallback.");
+      if (remote ? !this.qualified(capabilities) : !capabilities.selectedAgentIds)
+        refuse("UNSUPPORTED", remote ? "Remote reservation requires the qualified label-bound receiver on an exact qualified CLI and remote daemon version pair; it fails closed to local-only." : "Receiver lacks caller-selected agent IDs; no legacy or fresh-ID fallback.");
       if (!blob || !briefBlob || briefBlob.id !== briefHash) refuse("STALE", "Brief changed between pinning and reservation.");
       const nodeId = command.op === "implicit" ? command.launch.id : (command as { node: string }).node;
       const scopeId = input.scopeId, planId = event.plan;
@@ -420,7 +423,9 @@ export class SupervisionGateway {
     const attempt = effect.attemptId ? status.attempts.find(a => a.id === effect.attemptId) : undefined;
     const task = attempt ? status.tasks.find(t => t.id === attempt.taskId) : undefined;
     if (task && !isLocalHost(task.hostId) !== fresh.remote) refuse("STALE", "The task's host changed since the receiver was selected.");
-    if (task && fresh.remote && !qualifiedRemote(fresh.capabilities))
+    // The version-pair gate admits new work only. A safe stop of an already-created remote worker
+    // stays possible after a host upgrade moves it off the qualified pair.
+    if (!stopping && task && fresh.remote && !this.qualified(fresh.capabilities))
       refuse("UNSUPPORTED", "The remote receiver is no longer on the qualified version pair; the reservation stays as it is.");
     let launch: PlanLaunch | null = null, plan: WorkflowPlan | null = null;
     if (!supervisor) {
@@ -450,7 +455,7 @@ export class SupervisionGateway {
       }
       case "agent.create": {
         if (fresh.remote) {
-          if (!qualifiedRemote(fresh.capabilities)) refuse("UNSUPPORTED", "The remote receiver is no longer on the qualified version pair; the reservation stays as it is.");
+          if (!this.qualified(fresh.capabilities)) refuse("UNSUPPORTED", "The remote receiver is no longer on the qualified version pair; the reservation stays as it is.");
         } else if (!fresh.capabilities.selectedAgentIds) refuse("UNSUPPORTED", "Receiver no longer supports caller-selected IDs; the reservation stays as it is.");
         const workspace = workspaceReceipt(sibling("workspace.open"));
         if (!workspace) refuse("HELD", "The workspace effect has not succeeded; creation waits for it.");
@@ -629,6 +634,15 @@ export class SupervisionGateway {
       // uncertain and two or more is a held duplicate — never archived or relabelled automatically.
       const ids = await receiver.discoverAttemptAgentIds(effect.attemptId);
       found = ids.length === 1 ? `agent:${ids[0]}` : null;
+      // A duplicate is recorded as its own immutable observation, visibly distinct from zero
+      // matches: the captain can see why this attempt is held without reading code. It never
+      // occupies the effect's receiptRef, which the store keeps set-once for the real receipt.
+      if (ids.length > 1) {
+        const remoteDuplicate = { effectId: effect.id, attemptId: effect.attemptId, matches: ids.length,
+          reason: `Held duplicate: ${ids.length} remote sessions carry this attempt's labels; none is bound, archived or relabelled.` };
+        await this.store.transactCommand(stableId("remote-duplicate", effect.id, [...ids].sort()), digest({ remoteDuplicate }), GATEWAY,
+          async () => ({ mutations: [], expectedVersions: [], result: { planId: null, planHash: null, decisionId: null, outboxId: null, remoteDuplicate } }));
+      }
     } else if (effect.operation === "agent.create" && capabilities.createReceiptLookup && effect.receiverKey) {
       const observed = await receiver.findAgent(effect.receiverKey);
       found = observed?.id === effect.receiverKey ? `agent:${observed.id}` : null; // Late original creation binds here.
@@ -663,10 +677,21 @@ export class SupervisionGateway {
     const agentId = remote ? create.receiptRef?.startsWith("agent:") ? create.receiptRef.slice("agent:".length) : "" : create.receiverKey;
     if (!agentId) refuse("HELD", "The remote creation receipt binds no discovered identity; verification waits.");
     const observed = await receiver.findAgent(agentId);
-    const problem = remote
+    // Labels are not readable through inspect: for a label-bound identity, owner-filtered label
+    // discovery (archived included) is the only proof the labels landed and no duplicate exists.
+    // Exactly one match, equal to the create receipt's identity, or the attempt holds.
+    let labelProblem: string | null = null;
+    if (remote) {
+      const discovered = receiver.discoverAttemptAgentIds ? await receiver.discoverAttemptAgentIds(attempt.id) : null;
+      labelProblem = discovered === null ? "The remote receiver offers no attempt-label discovery; its identity cannot be verified." :
+        discovered.length === 0 ? "No remote session carries this attempt's labels; its identity cannot be verified." :
+        discovered.length > 1 ? `Held duplicate: ${discovered.length} remote sessions carry this attempt's labels; none is bound, archived or relabelled.` :
+        discovered[0] !== agentId ? "The one remote session carrying this attempt's labels is not the created identity." : null;
+    }
+    const problem = labelProblem ?? (remote
       ? verifyRemoteObservation(observed, { agentId, workspace, profile: launch.agent },
         await receiver.creationWindow?.(agentId) ?? { sentAt: Date.parse(attempt.reservedAt ?? "") || 0, receivedAt: this.options.now?.() ?? Date.now() })
-      : verifyObservation(observed, { agentId, workspace, profile: launch.agent, labels: workerLabels(scope.id, task, attempt.id, launch) });
+      : verifyObservation(observed, { agentId, workspace, profile: launch.agent, labels: workerLabels(scope.id, task, attempt.id, launch) }));
     if (problem) refuse("HELD", remote ? `${problem} The brief was already delivered at create; the attempt is held, not resent.` : `${problem} No brief was sent.`);
     const next: SupervisionAttempt = { ...attempt, worker: { hostId: task.hostId, agentId, workspaceId: workspace.workspaceId }, state: "active", version: attempt.version + 1 };
     const mutations: SupervisionMutation[] = [{ kind: "attempt", value: next }];
@@ -697,7 +722,11 @@ export class SupervisionGateway {
         continue;
       }
       const observed = await this.pick(a.worker.hostId).findAgent(a.worker.agentId);
-      if (!observed || observed.id !== a.worker.agentId || (observed.workspaceId !== null && observed.workspaceId !== a.worker.workspaceId) || !["idle", "closed"].includes(observed.status) || observed.pendingPermissions)
+      // Local workers keep their exact-workspace guarantee; only a label-bound remote observation
+      // may report no workspace id (the CLI's inspect carries none), and then it must not contradict.
+      const workspaceOk = isLocalHost(a.worker.hostId) ? observed?.workspaceId === a.worker.workspaceId :
+        observed !== null && observed !== undefined && (observed.workspaceId === null || observed.workspaceId === a.worker.workspaceId);
+      if (!observed || observed.id !== a.worker.agentId || !workspaceOk || !["idle", "closed"].includes(observed.status) || observed.pendingPermissions)
         refuse("HELD", "Observe the exact original worker stopped; missing or uncertain is held.");
     }
     return this.commands.planCommandWith(input, actor, "s04.checked-recovery/1", async current => {

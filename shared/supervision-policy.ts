@@ -115,6 +115,10 @@ export const ScopedCommandResultSchema = z.object({
     limits: z.object({ sessions: version, turns: version }).strict(), spent: z.object({ sessions: z.number().int().nonnegative(), turns: z.number().int().nonnegative() }).strict() }).strict().optional(),
   ruleStopRequest: z.object({ scopeId: SupervisionUuid, attemptId: SupervisionUuid, ruleId: SupervisionUuid,
     ruleVersion: version, reason: label }).strict().optional(),
+  /** A held label-bound duplicate observed by remote reconcile: the visible reason the attempt
+   * stays uncertain, recorded beside (never in) the effect's set-once receipt. */
+  remoteDuplicate: z.object({ effectId: SupervisionUuid, attemptId: SupervisionUuid,
+    matches: z.number().int().min(2).max(1000), reason: label }).strict().optional(),
   evidenceArtifact: z.object({ digest: SupervisionHash, bytes: z.number().int().positive().max(512 * 1024) }).strict().optional(),
   projectInput: z.object({ scopeId: SupervisionUuid, projectId: SupervisionUuid, kind: z.enum(["conflict", "memory-proposal", "memory"]), recordId: SupervisionUuid,
     recordVersion: z.number().int().positive(), subjectHash: SupervisionHash }).strict().optional(),

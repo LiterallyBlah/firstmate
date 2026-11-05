@@ -37,16 +37,22 @@ export const ReceiverCapabilitiesSchema = z.object({
   remoteVersions: z.object({ cliVersion: z.string().max(64), daemonVersion: z.string().max(64) }).strict().optional(),
 }).strict();
 export type ReceiverCapabilities = z.infer<typeof ReceiverCapabilitiesSchema>;
-/** The one CLI version the remote receiver surface was probed and qualified against (slice 0). */
+/** The one CLI version the remote receiver surface was probed against (slice 0). */
 export const QUALIFIED_REMOTE_CLI_VERSION = "0.14.0";
+/** Exact `(cliVersion, remoteDaemonVersion)` pairs qualified by evidence for label-bound identity.
+ * The slice 0 probe never recorded a remote daemon version, so no pair is qualified yet: this table
+ * stays empty and remote reservation fails closed to local-only until a pair earns its place here
+ * from recorded probe evidence. A version is never invented to fill it. */
+export const QUALIFIED_REMOTE_PAIRS: readonly { cliVersion: string; daemonVersion: string }[] = [];
+export type QualifiedRemotePair = { cliVersion: string; daemonVersion: string };
 /** A remote `run` prompt travels on a command line; briefs plus appended rules beyond this are refused. */
 export const REMOTE_PROMPT_MAX_CHARS = 28000;
-/** Label-bound (remote) reservation is admitted only for the exact qualified pair: the probed CLI
- * version and a recorded remote daemon version. Anything else fails closed to local-only. */
-export function qualifiedRemote(capabilities: ReceiverCapabilities): boolean {
-  return capabilities.labelBoundIdentity === true && capabilities.selectedAgentIds === false &&
-    capabilities.remoteVersions?.cliVersion === QUALIFIED_REMOTE_CLI_VERSION &&
-    !!capabilities.remoteVersions?.daemonVersion.trim();
+/** Label-bound (remote) reservation is admitted only for an exact qualified pair from `pairs`
+ * (the production table by default; tests may inject a fixture pair). Anything else fails closed. */
+export function qualifiedRemote(capabilities: ReceiverCapabilities, pairs: readonly QualifiedRemotePair[] = QUALIFIED_REMOTE_PAIRS): boolean {
+  const versions = capabilities.remoteVersions;
+  return capabilities.labelBoundIdentity === true && capabilities.selectedAgentIds === false && !!versions &&
+    pairs.some((pair) => pair.cliVersion === versions.cliVersion && pair.daemonVersion === versions.daemonVersion);
 }
 
 export const WorkspaceIntentSchema = z.object({

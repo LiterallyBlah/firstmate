@@ -405,8 +405,12 @@ export class RemoteService {
         } catch { next.online = false; next.error = "Cannot read this host. Reconnect it in Paseo; check its daemon and provider configuration."; }
         const index = this.snapshot.hosts.findIndex((entry) => entry.serverId === host.serverId);
         // A concurrent sync may have removed or replaced the profile.
-        // A run measured during this poll keeps its clock measurement.
-        if (index >= 0 && this.hosts.includes(host)) this.snapshot.hosts[index] = { ...next, clockSkew: this.snapshot.hosts[index]!.clockSkew ?? null };
+        // A run measured during this poll keeps its clock measurement, and the daemon version
+        // `connect` recorded on the live entry during this poll (a fresh value after an upgrade
+        // replaces the stale one `next` was copied from) is kept, never overwritten by the copy.
+        if (index >= 0 && this.hosts.includes(host)) this.snapshot.hosts[index] = { ...next,
+          clockSkew: this.snapshot.hosts[index]!.clockSkew ?? null,
+          daemonVersion: this.snapshot.hosts[index]!.daemonVersion ?? next.daemonVersion ?? null };
       });
       await this.publish();
       try { this.observedPoll?.(this.snapshot); } catch { console.error("[firstmate] attention observer could not queue a remote poll"); }

@@ -112,12 +112,17 @@ export class PlanRuntime {
   }
   compose(store: SupervisionStore, home: string, generalId: string, paseo: PaseoApi) {
     const { rules, commands, sources, inbox, projectJudgments } = this.hostFree(store, home, generalId);
-    const directory = async (name: string) => {
+    const directory = async (name: string, hostId: string) => {
       const s = await store.read();
       const matches = s.projects?.projects.filter(p => p.state === "admitted" && [p.name, ...p.aliases].some(n => normalizedName(n) === normalizedName(name)));
       // A remote owner's directory is declared at admission and returned as written; only the local receiver realpaths it, and the gateway never routes a remote task there.
       if (s.freshness !== "current" || matches?.length !== 1 || !matches[0]!.owner)
         refuse("UNKNOWN_OWNER", "Worker project needs one admitted project directory.");
+      // The resolver refuses a host mismatch itself, in both directions, so no caller can hand a
+      // remote-owned project's declared directory to the local receiver (or the reverse).
+      const ownerHost = matches[0]!.owner!.hostId.trim(), wanted = hostId.trim();
+      const sameHost = wanted.toLowerCase() === "local" ? ownerHost.toLowerCase() === "local" : ownerHost.toLowerCase() !== "local" && ownerHost.toLowerCase() === wanted.toLowerCase();
+      if (!sameHost) refuse("UNKNOWN_OWNER", "Worker project is owned by a different host than this run; its directory is refused.");
       return matches[0]!.owner!.directory;
     };
     const receiver = this.options.receiver?.(paseo, store) ?? new SupervisionWorkerReceiver(paseo, this.runtime.root, directory);

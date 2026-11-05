@@ -337,12 +337,14 @@ describe("S04 effect gateway (synthetic receiver)", { timeout: 60000 }, () => {
   });
 });
 describe("label-bound remote worker receiver (fake CLI bridge, probe shapes)", { timeout: 60000 }, () => {
-  async function remoteReady(fx: S04Fixture, bridge: FakeCliBridge, cliVersion = "0.14.0") {
+  // A fixture pair only: the production table is empty (no daemon version is qualified yet).
+  const FIXTURE_PAIRS = [{ cliVersion: "0.14.0", daemonVersion: "0.14.0" }];
+  async function remoteReady(fx: S04Fixture, bridge: FakeCliBridge, cliVersion = "0.14.0", pairs: readonly { cliVersion: string; daemonVersion: string }[] | null = FIXTURE_PAIRS) {
     const scope = await fx.addScope(3, "plan-r", ["r-trial", "r-build"], true, REMOTE_HOST);
     await fx.draft(scope, [{ id: "r-trial" }, { id: "r-build", kind: "ship", after: [{ node: "r-trial", on: "done" }] }]);
     const receiver = new SupervisionRemoteReceiver(bridge, REMOTE_HOST, async () => REMOTE_CWD, { cliVersion: async () => cliVersion });
     const gateway = new SupervisionGateway(fx.store, fx.commands, fx.home, fx.receiver,
-      { enabled: true, receiverFor: (host) => host === REMOTE_HOST ? receiver : undefined });
+      { enabled: true, receiverFor: (host) => host === REMOTE_HOST ? receiver : undefined, ...(pairs ? { remotePairs: pairs } : {}) });
     return { scope, receiver, gateway };
   }
   const startRemote = async (fx: S04Fixture, gateway: SupervisionGateway, scope: ScopeHandle) =>
@@ -359,13 +361,20 @@ describe("label-bound remote worker receiver (fake CLI bridge, probe shapes)", {
     expect((await gateway.dispatch(started.effects!.send)).receiptRef).toBe(`message:at-create:${agentId}`);
     expect(bridge.runs()).toHaveLength(1);
     expect(bridge.runs()[0]).toContain(`firstmate.attempt=${started.attemptId}`);
+    // The bridge adds role/owner itself; the receiver must not pass its own copies or the real
+    // `commandArguments` (which the fake runs) refuses every create as a reserved label.
+    expect(bridge.runs()[0]!.filter((arg) => arg === "firstmate.role=crew")).toHaveLength(1);
+    expect(bridge.runs()[0]).toContain("firstmate.owner=srv_local:firstmate");
+    await expect(bridge.request(REMOTE_HOST, ["run", "--label", "firstmate.role=crew", "--", "x"])).rejects.toThrow("Reserved ownership label");
     expect(bridge.runs()[0]!.at(-1)).toBe("Synthetic checked brief.");
     expect(bridge.calls.filter((args) => args[0] === "send")).toEqual([]);
     expect(await attempt(fx, started.attemptId!)).toMatchObject({ state: "prompted", spentAgents: 1 });
     const owner = await fx.actorFor(scope);
+    // A host upgrade moves the pair out of qualification; a safe stop of the created worker stays possible.
+    bridge.daemonVersion = "0.20.0";
     const stop = await gateway.propose({ scopeId: scope.id, epoch: 1, attemptId: started.attemptId!, operation: "agent.interrupt", causation: "test-stop", requestId: randomUUID() }, owner);
     expect((await gateway.dispatch(stop.id)).state).toBe("succeeded");
-    expect(bridge.calls.filter((args) => args[0] === "stop")).toEqual([["stop", agentId]]);
+    expect(bridge.calls.filter((args) => args[0] === "stop")).toEqual([["stop", agentId, "--json"]]);
     await expect(gateway.propose({ scopeId: scope.id, epoch: 1, attemptId: started.attemptId!, operation: "agent.archive", causation: "test-archive", requestId: randomUUID() }, owner))
       .rejects.toMatchObject({ code: "UNSUPPORTED" });
   });
@@ -378,10 +387,13 @@ describe("label-bound remote worker receiver (fake CLI bridge, probe shapes)", {
     expect((await gateway.dispatch(started.effects!.create)).state).toBe("uncertain");
     await expect(gateway.dispatch(started.effects!.create)).rejects.toMatchObject({ code: "UNCERTAIN" });
     expect(bridge.runs()).toHaveLength(1);
-    // A second same-label agent is a held duplicate: reconcile binds nothing and touches nothing.
+    // A second same-label agent is a held duplicate: reconcile binds nothing and touches nothing,
+    // and records the reason on the effect, visibly distinct from zero matches.
     const [agentId] = [...bridge.agents.keys()];
     bridge.byAttempt.set(started.attemptId!, [agentId!, randomUUID()]);
-    expect((await gateway.reconcile(started.effects!.create)).state).toBe("uncertain");
+    expect(await gateway.reconcile(started.effects!.create)).toMatchObject({ state: "uncertain", receiptRef: null });
+    expect((await fx.store.read()).commands.flatMap(c => c.result.remoteDuplicate ? [c.result.remoteDuplicate] : []))
+      .toEqual([{ effectId: started.effects!.create, attemptId: started.attemptId, matches: 2, reason: expect.stringContaining("Held duplicate") }]);
     expect(bridge.calls.filter((args) => ["archive", "stop"].includes(args[0]!))).toEqual([]);
     bridge.byAttempt.set(started.attemptId!, [agentId!]);
     const settled = await gateway.reconcile(started.effects!.create);
@@ -426,6 +438,50 @@ describe("label-bound remote worker receiver (fake CLI bridge, probe shapes)", {
     bridge2.daemonVersion = null;
     const second = await remoteReady(fx2, bridge2);
     await expect(startRemote(fx2, second.gateway, second.scope)).rejects.toMatchObject({ code: "UNSUPPORTED" });
+    // Any non-empty daemon version is not enough: only an exact qualified pair admits.
+    const fx3 = await s04Fixture(), bridge3 = new FakeCliBridge();
+    bridge3.daemonVersion = "0.11.0";
+    const third = await remoteReady(fx3, bridge3);
+    await expect(startRemote(fx3, third.gateway, third.scope)).rejects.toMatchObject({ code: "UNSUPPORTED" });
+    // The production table is empty — no daemon version is qualified yet — so even the probed
+    // CLI with a recorded daemon version fails closed without an injected fixture pair.
+    const fx4 = await s04Fixture(), bridge4 = new FakeCliBridge();
+    const fourth = await remoteReady(fx4, bridge4, "0.14.0", null);
+    await expect(startRemote(fx4, fourth.gateway, fourth.scope)).rejects.toMatchObject({ code: "UNSUPPORTED" });
+    expect(bridge4.calls).toEqual([]);
+  });
+
+  it("verification holds unless label discovery finds exactly the created identity", async () => {
+    const fx = await s04Fixture(), bridge = new FakeCliBridge(), { scope, gateway } = await remoteReady(fx, bridge);
+    const started = await startRemote(fx, gateway, scope);
+    await gateway.dispatch(started.effects!.workspace);
+    await gateway.dispatch(started.effects!.create);
+    const [agentId] = [...bridge.agents.keys()];
+    bridge.byAttempt.set(started.attemptId!, []);
+    await expect(gateway.verifyWorker(started.attemptId!)).rejects.toMatchObject({ code: "HELD" });
+    bridge.byAttempt.set(started.attemptId!, [randomUUID()]);
+    await expect(gateway.verifyWorker(started.attemptId!)).rejects.toMatchObject({ code: "HELD" });
+    bridge.byAttempt.set(started.attemptId!, [agentId!, randomUUID()]);
+    await expect(gateway.verifyWorker(started.attemptId!)).rejects.toThrow(/Held duplicate/);
+    expect((await attempt(fx, started.attemptId!)).state).toBe("reserved");
+    bridge.byAttempt.set(started.attemptId!, [agentId!]);
+    expect((await gateway.verifyWorker(started.attemptId!)).worker?.agentId).toBe(agentId);
+  });
+
+  it("a create refused after workspace create leaves the worktree retained and accounted, never dropped", async () => {
+    const fx = await s04Fixture(), bridge = new FakeCliBridge(), { scope, receiver, gateway } = await remoteReady(fx, bridge);
+    const started = await startRemote(fx, gateway, scope);
+    await gateway.dispatch(started.effects!.workspace);
+    bridge.fault = "refuse-run";
+    expect((await gateway.dispatch(started.effects!.create)).state).toBe("failed");
+    // No archive/delete surface exists to remove it: the workspace effect stays succeeded with its
+    // receipt as the durable account of the retained remote worktree, and the receiver keeps it too.
+    const workspace = await effect(fx, started.effects!.workspace);
+    expect(workspace.state).toBe("succeeded");
+    expect(JSON.parse(workspace.receiptRef!)).toEqual({ workspaceId: "wks_remote1", directory: REMOTE_CWD });
+    expect([...receiver.retainedWorkspaces().values()]).toEqual([{ workspaceId: "wks_remote1", directory: REMOTE_CWD }]);
+    expect((await effect(fx, started.effects!.send)).state).toBe("cancelled");
+    expect(await attempt(fx, started.attemptId!)).toMatchObject({ spentAgents: 1, spentTurns: 1 });
   });
 
   it("an oversized brief is refused before reservation, never truncated", async () => {

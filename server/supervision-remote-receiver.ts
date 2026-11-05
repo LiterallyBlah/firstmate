@@ -5,7 +5,14 @@
  * owner-filtered label discovery including archived agents: exactly one match binds, zero stays
  * uncertain, two or more is a held duplicate. Archive and persisted inventory are refused.
  * A failure before submission (connect refused) is a definite `ReceiverRejected`; a failure
- * after submission is a plain error, which the gateway settles uncertain and never resends. */
+ * after submission is a plain error, which the gateway settles uncertain and never resends.
+ * Assumed, unproven reply shapes (no live `workspace create`/`workspace ls --json` reply was ever
+ * captured): create returns `{ workspaceId|id, cwd|path|directory }`, possibly nested under
+ * `workspace`; ls rows carry `{ workspaceId|id, cwd|path, branch, name }`. `run`/`inspect`/`ls -g`
+ * shapes come from the slice 0 probe evidence. A create refused after `workspace create` leaves
+ * that worktree in place — removing it would need the refused archive/delete surface — retained
+ * and accounted by the succeeded `workspace.open` effect's receipt, and rediscovered by
+ * `findWorkspace`; it is never silently dropped. */
 import {
   REMOTE_PROMPT_MAX_CHARS, type AgentCreateIntent, type AgentObservation, type GatewayReceiver,
   type ReceiverCapabilities, type WorkspaceIntent, type WorkspaceReceipt,
@@ -43,14 +50,22 @@ async function defaultCliVersion(): Promise<string> {
   } catch { return ""; }
 }
 
+/** Labels the bridge itself owns: `commandArguments` adds `firstmate.role=crew` and the
+ * `firstmate.owner` label to every remote `run` and refuses any caller-supplied copy. The
+ * receiver must never pass them, or every real create is refused after `workspace create`. */
+export const RESERVED_REMOTE_LABELS = ["firstmate.role", "firstmate.owner"] as const;
+export function remoteRunLabels(labels: Record<string, string>): [string, string][] {
+  return Object.entries(labels).filter(([key]) => !(RESERVED_REMOTE_LABELS as readonly string[]).includes(key));
+}
 export class SupervisionRemoteReceiver implements GatewayReceiver {
   private readonly workspaces = new Map<string, WorkspaceReceipt>();
   private readonly agentWorkspaces = new Map<string, string>();
   private readonly windows = new Map<string, { sentAt: number; receivedAt: number }>();
+  private readonly attemptWindows = new Map<string, { sentAt: number; receivedAt: number }>();
   constructor(
     private readonly bridge: RemoteBridge,
     readonly hostId: string,
-    private readonly projectDirectory: (name: string) => Promise<string>,
+    private readonly projectDirectory: (name: string, hostId: string) => Promise<string>,
     private readonly options: { cliVersion?: () => Promise<string>; now?: () => number } = {},
   ) {}
   private now() { return this.options.now?.() ?? Date.now(); }
@@ -71,7 +86,7 @@ export class SupervisionRemoteReceiver implements GatewayReceiver {
   async openWorkspace(intent: WorkspaceIntent): Promise<WorkspaceReceipt> {
     if (intent.purpose !== "worker" || intent.hostId !== this.hostId)
       throw new ReceiverRejected("The remote receiver opens only its own host's worker worktrees.", "unsupported");
-    const directory = await this.projectDirectory(intent.project);
+    const directory = await this.projectDirectory(intent.project, intent.hostId);
     const result = record(await this.call(["workspace", "create", "--isolation", "worktree", "--path", directory,
       "--worktree-slug", intent.key, "--new-branch", intent.branch, "--base", intent.baseBranch, "--title", intent.branch]));
     const workspaceId = text(result.workspaceId, result.id, record(result.workspace).workspaceId, record(result.workspace).id);
@@ -104,13 +119,19 @@ export class SupervisionRemoteReceiver implements GatewayReceiver {
       ...(intent.profile.modeId ? ["--mode", intent.profile.modeId] : []),
       ...(intent.profile.thinkingOptionId ? ["--thinking", intent.profile.thinkingOptionId] : []),
       "--title", intent.title,
-      ...Object.entries(intent.labels).flatMap(([key, value]) => ["--label", `${key}=${value}`]),
+      ...remoteRunLabels(intent.labels).flatMap(([key, value]) => ["--label", `${key}=${value}`]),
       "--", prompt];
-    const sentAt = this.now();
-    const result = record(await this.call(args));
+    const sentAt = this.now(), attemptId = intent.labels["firstmate.attempt"]!;
+    let result: Record<string, unknown>;
+    try { result = record(await this.call(args)); }
+    finally {
+      // Keyed by attempt as well as agent: a lost reply still leaves its narrow submission
+      // window for the identity discovery later binds, instead of the wide reservation fallback.
+      this.attemptWindows.set(attemptId, { sentAt, receivedAt: this.now() });
+    }
     const agentId = text(result.agentId, result.id);
     if (!agentId) throw new Error("Remote run returned no agent identity; reconcile by attempt label, never resend.");
-    this.windows.set(agentId, { sentAt, receivedAt: this.now() });
+    this.windows.set(agentId, this.attemptWindows.get(attemptId)!);
     this.agentWorkspaces.set(agentId, intent.workspaceId);
     return { agentId };
   }
@@ -139,8 +160,14 @@ export class SupervisionRemoteReceiver implements GatewayReceiver {
   }
   async discoverAttemptAgentIds(attemptId: string): Promise<string[]> {
     const found = await this.bridge.discoverByAttempt(this.hostId, `firstmate.attempt=${attemptId}`).catch((error: unknown) => definite(error));
-    return [...new Set(found.map((row) => text(row.id, row.Id)).filter(Boolean))];
+    const ids = [...new Set(found.map((row) => text(row.id, row.Id)).filter(Boolean))];
+    const window = this.attemptWindows.get(attemptId);
+    if (window) for (const id of ids) if (!this.windows.has(id)) this.windows.set(id, window);
+    return ids;
   }
+  /** Remote worktrees this receiver opened and still accounts for, by intent key. A worktree whose
+   * create was refused stays here (and in its `workspace.open` effect receipt), never dropped. */
+  retainedWorkspaces(): ReadonlyMap<string, WorkspaceReceipt> { return this.workspaces; }
   async creationWindow(agentId: string) { return this.windows.get(agentId) ?? null; }
   async send(agentId: string, prompt: string, _messageId: string): Promise<void> {
     if (prompt.length > REMOTE_PROMPT_MAX_CHARS)

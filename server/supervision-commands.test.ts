@@ -209,6 +209,17 @@ it("registers a non-local run only under policy for that host and a matching adm
   await store.transact(expected(project), randomUUID(), project);
   await run({ op: "revise", definition: revised, expected: before.hash, reason: "Add a remote run" });
   expect((await store.read()).tasks.find(t => t.nodeId === "remote-node")).toMatchObject({ hostId: "srv_remote", projectId: ids.project, currentAttempt: null });
+  // The other direction holds too: with the project owner now recorded on the remote host, a new
+  // local run for that project is refused instead of resolving its declared directory locally.
+  await mkdir(join(home, "data/local-node")); await writeFile(join(home, "data/local-node/brief.md"), "Synthetic checked brief.");
+  const beforeLocal = (await store.read()).plans[0]!.plan, localRevised = structuredClone(beforeLocal.definition), localTrial = localRevised.nodes[0]!;
+  if (localTrial.kind !== "run") throw new Error("fixture");
+  const localNode = structuredClone(localTrial);
+  localNode.id = "local-node"; localNode.title = "Local node"; localNode.launch.id = "local-node";
+  localNode.launch.host = "local"; localNode.launch.brief.file = "data/local-node/brief.md";
+  localRevised.nodes.push(localNode); localRevised.budget = { agents: 7, turns: 7 };
+  await expect(run({ op: "revise", definition: localRevised, expected: beforeLocal.hash, reason: "Add a local run" })).rejects.toMatchObject({ code: "UNKNOWN_OWNER" });
+  expect((await store.read()).tasks.find(t => t.nodeId === "local-node")).toBeUndefined();
 }, 15000);
 it("keeps S03 Captain decision routes on both delegated consumers", async () => {
   const definition = workflowFixture();

@@ -53,7 +53,9 @@ it("remote worker attempts take no local General slot, while the local Superviso
   const remoteReceiver = new SyntheticReceiver({ selectedAgentIds: false, createReceiptLookup: false, labelBoundIdentity: true,
     remoteVersions: { cliVersion: "0.14.0", daemonVersion: "0.14.0" } });
   const gateway = new SupervisionGateway(f.store, f.commands, f.home, f.receiver,
-    { enabled: true, receiverFor: (host) => host === "srv_remote" ? remoteReceiver : undefined });
+    { enabled: true, receiverFor: (host) => host === "srv_remote" ? remoteReceiver : undefined,
+      // Fixture pair only; the production qualified table is empty and fails closed.
+      remotePairs: [{ cliVersion: "0.14.0", daemonVersion: "0.14.0" }] });
   const started = await gateway.startWorker(await f.input(remote, { op: "start", plan: remote.planId, node: remote.nodes[0]! }), await f.actorFor(remote));
   const status = await f.store.read();
   // Two running Supervisor bindings + one reserved local worker = 3; the reserved remote worker adds none.

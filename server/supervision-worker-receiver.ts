@@ -32,7 +32,7 @@ function transportLoss(error: unknown): boolean {
   return /outcome_unknown|Timeout waiting|timed out|Daemon client closed/i.test(message);
 }
 export class SupervisionWorkerReceiver extends SupervisionUiReceiver {
-  constructor(private readonly api: PaseoApi, root: string, private readonly projectDirectory: (name: string) => Promise<string>) {
+  constructor(private readonly api: PaseoApi, root: string, private readonly projectDirectory: (name: string, hostId: string) => Promise<string>) {
     super(api, root, { projectMates: true });
   }
   override async capabilities() {
@@ -42,7 +42,7 @@ export class SupervisionWorkerReceiver extends SupervisionUiReceiver {
     if (intent.purpose === "supervisor") return super.prepareWorkspace(intent);
     if (intent.hostId !== "local" || !/^ws-[0-9a-f-]{36}$/.test(intent.key) || !/^fm\/[a-z0-9][a-z0-9-]*$/.test(intent.branch))
       throw new ReceiverRejected("Only reserved isolated local worker worktrees are supported.");
-    const directory = await realpath(await this.projectDirectory(intent.project));
+    const directory = await realpath(await this.projectDirectory(intent.project, intent.hostId));
     return async () => {
       // No caller-chosen workspace id: on creationLifecycle hosts the protocol only accepts
       // `wks_[a-f0-9]{16}` (our `ws-<uuid>` key died in the client's schema parse), and on older
@@ -76,14 +76,14 @@ export class SupervisionWorkerReceiver extends SupervisionUiReceiver {
   async proveWorkspaceNotCreated(intent: WorkspaceIntent): Promise<boolean> {
     if (intent.purpose !== "worker" || intent.hostId !== "local" || !/^ws-[0-9a-f-]{36}$/.test(intent.key) || !/^fm\/[a-z0-9][a-z0-9-]*$/.test(intent.branch)) return false;
     try {
-      const directory = await realpath(await this.projectDirectory(intent.project));
+      const directory = await realpath(await this.projectDirectory(intent.project, intent.hostId));
       if (await this.lookupWorkspace(intent, directory) !== null) return false;
       return await this.proveNotCreated(intent, directory);
     } catch { return false; }
   }
   override async findWorkspace(intent: WorkspaceIntent) {
     if (intent.purpose === "supervisor") return super.findWorkspace(intent);
-    return this.lookupWorkspace(intent, await this.projectDirectory(intent.project));
+    return this.lookupWorkspace(intent, await this.projectDirectory(intent.project, intent.hostId));
   }
   /** Positive lookup by the intent's durable marks: worktree slug (with any collision suffix, or a
    * legacy caller-chosen id), or the reserved branch's worktree inside the project's repository —

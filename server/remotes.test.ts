@@ -188,6 +188,19 @@ describe("independent remote access", () => {
     const refused = await fixture(async () => ({ code: 1, stdout: "", stderr: JSON.stringify({ error: { code: "DAEMON_UNREACHABLE", message: "connect ECONNREFUSED" } }) }));
     await expect(refused.service.request("Remote", ["run", "brief"])).rejects.toBeInstanceOf(RemoteConnectRefused);
   });
+  it("the minute poll records the daemon version it observes and replaces a stale value after an upgrade", async () => {
+    let daemonVersion = "0.14.0";
+    const { service } = await fixture(async (args) => {
+      if (args[0] === "status") return success({ serverId: remote.serverId, connectedDaemon: "reachable", daemonVersion });
+      return success([]);
+    });
+    await service.poll();
+    expect((await service.hostInfo("Remote"))?.daemonVersion).toBe("0.14.0");
+    daemonVersion = "0.15.0";
+    await service.poll();
+    expect((await service.hostInfo("Remote"))?.daemonVersion).toBe("0.15.0");
+    expect((await service.read()).hosts[0]?.daemonVersion).toBe("0.15.0");
+  });
   it("sends a brief from a home file, shows pending tool calls, and prints times as reported", async () => {
     const calls: string[][] = [];
     const { directory, home, service } = await fixture(async (args) => {
