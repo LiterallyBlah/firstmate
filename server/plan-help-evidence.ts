@@ -32,11 +32,12 @@ function deliveryExplanation(d: LegacyDeliveryDisposition, plan: string, work?: 
       return `${labels[d.source]} needs review. Keep the current owner and ask FirstMate to check it before continuing.`;
   }
 }
+/** `folder` is the picker's listing; null skips it (a re-check needs only the report, policy and inventory). */
 export async function handoverEvidence(root: string, home: string, review: PlanHelpReview, status: SupervisionStatus,
-  adapters: LegacyDeliveryAdapters, folder: string, rollbackPath?: string): Promise<HandoverEvidenceReview> {
+  adapters: LegacyDeliveryAdapters, folder: string | null, rollbackPath?: string): Promise<HandoverEvidenceReview> {
   const result: HandoverEvidenceReview = { homeId: review.homeId, plan: review.plan, reviewHash: review.reviewHash,
-    folder, entries: [], inventory: null, policy: null, rollback: null, problems: [] };
-  try {
+    folder: folder ?? "", entries: [], inventory: null, policy: null, rollback: null, problems: [] };
+  if (folder !== null) try {
     const directory = await listDirectory(home, folder); result.folder = directory.path;
     if (directory.entries.length > 200) result.problems.push("This folder has too many files. Choose a smaller folder for the rollback report.");
     else result.entries = directory.entries.filter(e => e.kind === "dir" || /\.(md|txt|json)$/i.test(e.name)).map(({ name, path, kind }) => ({ name, path, kind }));

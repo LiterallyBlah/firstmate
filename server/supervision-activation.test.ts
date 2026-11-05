@@ -376,6 +376,27 @@ it("the current first mate runs the reviewed handover and Attach, recorded as ma
     await expect(activation.attach({ ...input, opening: "different opening" }, api, successor)).rejects.toMatchObject({ code: "CONFLICT" });
   } finally { await activation.stop(); await runtime.stop(); }
 });
+it("a first-mate prepare re-checks its evidence without listing a data/ folder over the picker's 200-entry cap", async () => {
+  const mate = { kind: "mate-chat", id: "general", source: SUPERVISE_ACTOR_SOURCE } as const;
+  const { runtime } = await guided();
+  try {
+    // A real home's data/ holds well over 200 entries; the evidence folder is a smaller one inside it.
+    await Promise.all(Array.from({ length: 250 }, (_, i) => writeFile(join(home, `data/note-${i}.md`), "x")));
+    await mkdir(join(home, "data/handover"), { recursive: true });
+    await writeFile(join(home, "data/handover/rollback.md"), "Retained FirstMate build: isolated tested build.\nRecovery test: verified.\n");
+    const review = await activation.planHelp(prepare.homeId, "scheduler");
+    expect(review.problems).toEqual([]);
+    const evidence = await activation.evidence({ homeId: prepare.homeId, plan: "scheduler", folder: "data/handover", rollbackPath: "data/handover/rollback.md" });
+    expect(evidence.problems).toEqual([]);
+    const selected = { inventory: evidence.inventory!.hash, policy: evidence.policy!.hash, rollback: { path: evidence.rollback!.path, hash: evidence.rollback!.hash } };
+    const command = { ...prepare, scopeId: review.scopeId, projectId: review.projectId!, migrationId: review.migrationId, reviewHash: review.reviewHash,
+      evidence: selected, prerequisites: evidenceReferences(selected) };
+    // The real checks still hold: a changed rollback report is stale.
+    await expect(activation.migrate({ ...command, evidence: { ...selected, rollback: { ...selected.rollback, hash: "a".repeat(64) } } }, mate)).rejects.toMatchObject({ code: "STALE" });
+    const prepared = await activation.migrate(command, mate);
+    expect(prepared.migrations[0]).toMatchObject({ planId: "scheduler" });
+  } finally { await activation.stop(); await runtime.stop(); }
+});
 it("F6: a first mate replaced between migrate's entry and inner checks refuses before any write", async () => {
   const real = await readFirstmateConfig(); let reads = 0;
   activation = new SupervisionActivation(pluginDir(), { enabled: true, adapters: () => legacyAdapters(null, () => ledger.read()), receiver: () => receiver,
