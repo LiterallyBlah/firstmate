@@ -28,7 +28,12 @@ it("checked manual replacement retains task/workspace and original spend; retire
   const plan = (await f.store.read()).plans[0]!.plan;
   const input = await f.input(f.scope, { op: "replace", plan: "recover", node: "build", attempt: attempt.id, expected: plan.hash, kind: "promote", evidence: "Reviewed scout outcome promoted within existing budget", budget: plan.definition.budget });
   await expect(f.gateway.recoverPlan(input, f.scope.owner)).rejects.toThrow("stopped");
-  f.receiver.finish(worker.agentId); const replacement = await f.gateway.recoverPlan(input, f.scope.owner); expect(await f.gateway.recoverPlan(input, f.scope.owner)).toEqual(replacement);
+  // A local worker observed without its exact workspace is held too: the null-workspace allowance
+  // belongs only to label-bound remote observations, never to local recovery.
+  f.receiver.finish(worker.agentId); f.receiver.agents.get(worker.agentId)!.workspaceId = null;
+  await expect(f.gateway.recoverPlan(input, f.scope.owner)).rejects.toThrow("stopped");
+  f.receiver.agents.get(worker.agentId)!.workspaceId = worker.workspaceId;
+  const replacement = await f.gateway.recoverPlan(input, f.scope.owner); expect(await f.gateway.recoverPlan(input, f.scope.owner)).toEqual(replacement);
   const second = await f.gateway.startWorker(await f.input(f.scope, { op: "start", plan: "recover", node: "build" }), f.scope.owner);
   await f.gateway.dispatch(second.effects!.workspace); await f.gateway.dispatch(second.effects!.create); await f.gateway.verifyWorker(second.attemptId!); await f.gateway.dispatch(second.effects!.send);
   const s = await f.store.read(), next = s.attempts.find(a => a.id === second.attemptId)!;

@@ -234,8 +234,13 @@ export class SupervisionCommands {
       if (run.kind !== "run" || tasks.some(t => t.nodeId === run.id)) continue;
       const projects = [...new Set(applicableRules(status, { ...target, hostId: run.launch.host }).filter(r => r.effect === "allow").flatMap(r =>
         scope.projectIds.filter(id => r.selector.projectNames[id] === run.launch.project)))];
-      if (projects.length !== 1 || run.launch.host.trim().toLowerCase() !== "local") fail("UNKNOWN_OWNER", "A new corrective run requires one already authorized local scope project.");
-      const task = { id: scopedDecisionId(scope.id, planId, `task-${run.id}`), version: 1, ownerScopeId: scope.id, planId, nodeId: run.id, projectId: projects[0]!, hostId: "local", currentAttempt: null };
+      // A run registers only where policy already authorizes that host (applicableRules above
+      // is keyed by the run's host) and the admitted project owner's host equals the run's host in both directions.
+      const launchHost = run.launch.host.trim().toLowerCase() === "local" ? "local" : run.launch.host.trim();
+      const ownerHost = (status.projects?.projects.find(p => p.id === projects[0])?.owner?.hostId ?? "local").trim();
+      if (projects.length !== 1 || (launchHost === "local" ? ownerHost.toLowerCase() !== "local" : ownerHost.toLowerCase() === "local" || ownerHost.toLowerCase() !== launchHost.toLowerCase()))
+        fail("UNKNOWN_OWNER", "A new corrective run requires one already authorized scope project on the run's host.");
+      const task = { id: scopedDecisionId(scope.id, planId, `task-${run.id}`), version: 1, ownerScopeId: scope.id, planId, nodeId: run.id, projectId: projects[0]!, hostId: launchHost, currentAttempt: null };
       if (status.tasks.some(t => t.id === task.id || t.nodeId === task.nodeId && t.hostId === task.hostId)) fail("CONFLICT", "Corrective task identity is already retained; never borrow or rename it.");
       tasks.push(task); taskMutations.push({ kind: "task", value: task });
     }

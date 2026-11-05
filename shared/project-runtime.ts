@@ -9,6 +9,9 @@ const count = z.number().int().min(0).max(1_000_000);
 const Budget = z.object({ agents: count, turns: count }).strict();
 export const ProjectAdminSchema = z.discriminatedUnion("op", [
   z.object({ op: z.literal("admit"), registryDigest: SupervisionHash, name: z.string().min(1).max(200), aliases: z.array(z.string().min(1).max(200)).max(16),
+    /** Remote admission: the saved host's serverId and its declared project directory, chosen from the
+     * catalog's project/workspace rows and reviewed with this source. Absent means the local registry directory. */
+    hostId: z.string().min(1).max(256).optional(), directory: z.string().min(1).max(1024).optional(),
     source: PolicySourceSchema, budget: Budget, profile: AgentProfileSchema,
     limits: z.object({ supervisorSessions: count.min(1), supervisorTurns: count.min(1) }).strict() }).strict(),
   z.object({ op: z.literal("project"), projectId: SupervisionUuid, expectedVersion: count, state: z.enum(["admitted", "stopped"]), aliases: z.array(z.string().min(1).max(200)).max(16).optional(), budget: Budget.nullable(), sourceVector: z.array(SupervisionVersionRefSchema).min(1).max(64) }).strict(),

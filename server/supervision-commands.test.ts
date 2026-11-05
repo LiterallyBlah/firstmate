@@ -185,6 +185,42 @@ it("keeps an S03 delegated scout scope from becoming ship work through revision"
   await run({ op: "revise", definition: routine, expected: before.hash, reason: "Add a second in-scope scout" });
   expect((await store.read()).plans[0]!.plan.status).toBe("active");
 }, 15000);
+it("registers a non-local run only under policy for that host and a matching admitted project owner", async () => {
+  await draft();
+  commands = new SupervisionCommands(store, home, { enabled: true, registerTasks: true });
+  await changeRule({ selector: { ...rule.selector, hostIds: ["local", "srv_remote"] } });
+  await reviewHolds();
+  await mkdir(join(home, "data/remote-node")); await writeFile(join(home, "data/remote-node/brief.md"), "Synthetic checked brief.");
+  const before = (await store.read()).plans[0]!.plan, revised = structuredClone(before.definition), trial = revised.nodes[0]!;
+  if (trial.kind !== "run") throw new Error("fixture");
+  const remoteNode = structuredClone(trial);
+  remoteNode.id = "remote-node"; remoteNode.title = "Remote node"; remoteNode.launch.id = "remote-node";
+  remoteNode.launch.host = "srv_remote"; remoteNode.launch.brief.file = "data/remote-node/brief.md";
+  revised.nodes.push(remoteNode); revised.budget = { agents: 6, turns: 6 };
+  // Policy allows the host, but no admitted project owner is recorded for it yet.
+  await expect(run({ op: "revise", definition: revised, expected: before.hash, reason: "Add a remote run" })).rejects.toMatchObject({ code: "UNKNOWN_OWNER" });
+  const status = await store.read(), source = status.policySources[0]!, projectScope = randomUUID();
+  const project: SupervisionMutation[] = [
+    { kind: "scope", value: { id: projectScope, homeId: store.homeId, kind: "project", projectIds: [ids.project], sponsorId: null, version: 1, mode: "scoped", state: "active" } },
+    { kind: "project", value: { id: ids.project, version: 1, scopeId: projectScope, name: "scheduler", aliases: [],
+    state: "admitted", budget: { agents: 4, turns: 12 }, sourceVector: [policyRef("policy-source", source)], provenance: captain,
+    owner: { hostId: "srv_remote", directory: "/home/ariadne/work", registryDigest: hash, generalAgentId: mate.id,
+      profile: { provider: "codex/gpt-6.1-sol", modeId: "full-access" }, limits: { supervisorSessions: 1, supervisorTurns: 5 } } } } as SupervisionMutation];
+  await store.transact(expected(project), randomUUID(), project);
+  await run({ op: "revise", definition: revised, expected: before.hash, reason: "Add a remote run" });
+  expect((await store.read()).tasks.find(t => t.nodeId === "remote-node")).toMatchObject({ hostId: "srv_remote", projectId: ids.project, currentAttempt: null });
+  // The other direction holds too: with the project owner now recorded on the remote host, a new
+  // local run for that project is refused instead of resolving its declared directory locally.
+  await mkdir(join(home, "data/local-node")); await writeFile(join(home, "data/local-node/brief.md"), "Synthetic checked brief.");
+  const beforeLocal = (await store.read()).plans[0]!.plan, localRevised = structuredClone(beforeLocal.definition), localTrial = localRevised.nodes[0]!;
+  if (localTrial.kind !== "run") throw new Error("fixture");
+  const localNode = structuredClone(localTrial);
+  localNode.id = "local-node"; localNode.title = "Local node"; localNode.launch.id = "local-node";
+  localNode.launch.host = "local"; localNode.launch.brief.file = "data/local-node/brief.md";
+  localRevised.nodes.push(localNode); localRevised.budget = { agents: 7, turns: 7 };
+  await expect(run({ op: "revise", definition: localRevised, expected: beforeLocal.hash, reason: "Add a local run" })).rejects.toMatchObject({ code: "UNKNOWN_OWNER" });
+  expect((await store.read()).tasks.find(t => t.nodeId === "local-node")).toBeUndefined();
+}, 15000);
 it("keeps S03 Captain decision routes on both delegated consumers", async () => {
   const definition = workflowFixture();
   definition.ownership = { owner: "firstmate", evidence: "Captain delegates only after my gate" };

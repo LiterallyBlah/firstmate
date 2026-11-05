@@ -176,7 +176,7 @@ beforeEach(async () => {
   runtime = projectRuntimeFixture(data); receiver = new SyntheticReceiver(); receiver.supervisorRoot = data; service = make();
 });
 afterEach(async () => { await runtime?.stop(); });
-const make = (enabled = true) => new ProjectRuntime(runtime, { enabled, receiver: () => receiver });
+const make = (enabled = true, extra: Partial<ConstructorParameters<typeof ProjectRuntime>[1]> = {}) => new ProjectRuntime(runtime, { enabled, receiver: () => receiver, ...extra });
 async function admin(command: ProjectAdmin, requestId = randomUUID()) {
   return service.admin({ homeId: (await service.read()).homeId, requestId, actorId: "general", command });
 }
@@ -185,6 +185,29 @@ async function admit(name = "scheduler") {
   return admin({ op: "admit", name, aliases: [name + "-alias"], registryDigest: read.registryDigest!, source: { ...source, id: randomUUID() },
     profile: { provider: "codex/test", modeId: "full-access", thinkingOptionId: "xhigh" }, budget: { agents: 4, turns: 12 }, limits: { supervisorSessions: 1, supervisorTurns: 5 } });
 }
+it("remote admission: a declared host and directory are recorded without local resolution", async () => {
+  service = make(true, { remoteCatalog: async () => ({ version: 1, localServerId: "srv_local", syncedAt: null, syncError: null, hosts: [
+    { serverId: "srv_remote", label: "Remote", online: true, checkedAt: null, error: null,
+      projects: [{ projectId: "remote-project", path: "/home/ariadne/Projects/Aradne" }], workspaces: [], providers: [], workers: [] }] }) });
+  const read = await service.read();
+  const command = { op: "admit" as const, name: "remote", aliases: ["remote-alias"], registryDigest: read.registryDigest!, source: { ...source, id: randomUUID() },
+    profile: { provider: "codex/test", modeId: "full-access" }, budget: { agents: 4, turns: 12 }, limits: { supervisorSessions: 1, supervisorTurns: 5 } };
+  await expect(admin({ ...command, hostId: "srv_remote" })).rejects.toMatchObject({ code: "HELD", message: expect.stringContaining("declared directory") });
+  await expect(admin({ ...command, hostId: "srv_remote", directory: "relative/path" })).rejects.toMatchObject({ code: "HELD", message: expect.stringContaining("absolute path") });
+  await expect(admin({ ...command, hostId: "srv_unknown", directory: "/home/ariadne/Projects/Aradne" })).rejects.toMatchObject({ code: "HELD", message: expect.stringContaining("saved host") });
+  await expect(admin({ ...command, hostId: "srv_remote", directory: "/home/ariadne/Elsewhere" })).rejects.toMatchObject({ code: "HELD", message: expect.stringContaining("catalog rows") });
+  const admitted = await admin({ ...command, hostId: "srv_remote", directory: "/home/ariadne/Projects/Aradne" });
+  const row = admitted.projects.find(p => p.name === "remote")!;
+  expect(row).toMatchObject({ hostId: "srv_remote", directory: "/home/ariadne/Projects/Aradne", state: "admitted", reason: null });
+  expect(row.projectId).toBeTruthy();
+  const status = await runtime.read(home);
+  expect(status.projects?.projects.find(p => p.id === row.projectId)?.owner).toMatchObject({ hostId: "srv_remote", directory: "/home/ariadne/Projects/Aradne" });
+  // Provisioning its (local) Supervisor is reachable: the registry row is found by reviewed name,
+  // since a remote-derived projectId never appears in this machine's registry rows.
+  await service.provision({ homeId: admitted.homeId, requestId: randomUUID(), projectId: row.projectId!, projectVersion: row.version }, api);
+  expect(receiver.agents.size).toBe(1); expect(receiver.sends).toHaveLength(1);
+  expect((await service.read()).projects.find(p => p.name === "remote")).toMatchObject({ hostId: "srv_remote", sessions: 1, turns: 1 });
+});
 async function cutoverForAttach(projectId: string) {
   const { SupervisionActivation } = await import("./supervision-activation");
   const { legacyAdapters } = await import("./supervision-migrate");

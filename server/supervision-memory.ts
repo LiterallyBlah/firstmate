@@ -185,7 +185,9 @@ export async function readProjectContext(store: SupervisionStore, projectId: str
   if (entries.length > 32) refuse("HELD", "There are too many saved memory entries to include (over 32). Review the project's saved memory before resuming setup.");
   const conventions = [];
   const documentation = [];
-  if (project.owner) {
+  // A remote-owned project's files live on that host, not here: its declared directory is never
+  // read locally. Its context is the accepted memory below (plus the directory the opening names).
+  if (project.owner && project.owner.hostId === "local") {
     for (const path of ["AGENTS.md", "CLAUDE.md"]) {
       const file = await projectFile(project.owner.directory, path, PROJECT_CONVENTION_LIMIT);
       if (file) conventions.push(file);

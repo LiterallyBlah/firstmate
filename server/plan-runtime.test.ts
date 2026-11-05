@@ -26,6 +26,7 @@ import { WatchConfigStore } from "./watch-config";
 import { pluginDir } from "./data-dir";
 import { watchPolicyDigest } from "./supervision-source-state";
 import { cutoverGate } from "./supervision-gate";
+import { FakeCliBridge } from "../test/fake-remote-bridge";
 
 async function fixture(realOwners = false) {
   const f = await s04Fixture(), scopes: ScopeHandle[] = [];
@@ -242,6 +243,26 @@ it("production final admission rereads a bound PR and refuses a moved head befor
       attempt: started.attemptId!, state: "done", evidence: "Old-head report cannot earn completion" }), planRules: ruleRef(f.records[0]!), head: "a".repeat(40) })).rejects.toThrow("bound PR head");
     expect(f.receiver.calls).toHaveLength(0); await checked.stop();
   } finally { await f.service.stop(); await f.runtime.stop(); }
+});
+it("the worker project resolver refuses a host mismatch in both directions", async () => {
+  const f = await s04Fixture(), scope = await f.addScope(9, "resolver", ["node"], true, "srv_remote");
+  const s = await f.store.read(), projectScope = randomUUID();
+  const mutations: SupervisionMutation[] = [
+    { kind: "scope", value: { id: projectScope, version: 1, kind: "project", homeId: s.homeId, projectIds: [scope.projectId], sponsorId: null, mode: "scoped", state: "active" } },
+    { kind: "project", value: { id: scope.projectId, version: 1, scopeId: projectScope, name: scope.project, aliases: [], state: "admitted", budget: { agents: 6, turns: 6 },
+      sourceVector: [policyRef("policy-source", s.policySources[0]!)], provenance: captain,
+      owner: { hostId: "srv_remote", directory: "/home/ariadne/work", registryDigest: digest("registry"), generalAgentId: "general",
+        profile: { provider: "codex/gpt-6.1-sol", modeId: "full-access" }, limits: { supervisorSessions: 1, supervisorTurns: 5 } } } },
+  ]; await f.store.transact(expectedFor(s, mutations), randomUUID(), mutations);
+  const runtime = new SupervisionRuntime(join(f.home, "store"), () => f.store); await runtime.mutate(f.home, async () => {});
+  const service = new PlanRuntime(runtime, { enabled: true, config: async () => FirstmateConfigSchema.parse({ home: f.home, mateAgentId: "general" }), slots: 10 });
+  try {
+    service.useRemoteBridge(new FakeCliBridge());
+    const c = service.compose(f.store, f.home, "general", {} as PaseoApi);
+    const intent = { key: `ws-${randomUUID()}`, hostId: "local", project: scope.project, baseBranch: "main", branch: "fm/node", purpose: "worker" as const };
+    await expect(c.receiver.prepareWorkspace!(intent)).rejects.toMatchObject({ code: "UNKNOWN_OWNER" });
+    await expect(c.receiverFor("srv_remote")!.openWorkspace({ ...intent, hostId: "srv_remote" })).resolves.toMatchObject({ workspaceId: "wks_remote1", directory: "/home/ariadne/work" });
+  } finally { await service.stop(); await runtime.stop(); }
 });
 it("ordinary Plans routes to the scoped owner and exact accepted app replay survives later source drift", async () => {
   const f = await fixture();

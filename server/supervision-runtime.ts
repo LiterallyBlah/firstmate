@@ -53,13 +53,13 @@ export class SupervisionRuntime {
     finally { this.active.delete(owned.pending); owned.release(); }
   }
   /** Account for prior effects even while new work is off. No dispatch or inferred absence. */
-  async reconcile(home: string, receiver: GatewayReceiver, kinds: string[]) {
+  async reconcile(home: string, receiver: GatewayReceiver, kinds: string[], receiverFor?: (hostId: string) => GatewayReceiver | undefined) {
     const status = await this.read(home);
     const selected = status.effects.filter(e => ["dispatching", "accepted", "uncertain"].includes(e.state) &&
       status.scopes.some(s => s.id === e.scopeId && kinds.includes(s.kind))).slice(0, 32);
     if (status.freshness !== "current" || !selected.length) return;
     await this.mutate(home, async store => {
-      const gateway = new SupervisionGateway(store, new SupervisionCommands(store, home, { enabled: true }), home, receiver, { enabled: true });
+      const gateway = new SupervisionGateway(store, new SupervisionCommands(store, home, { enabled: true }), home, receiver, { enabled: true, ...(receiverFor ? { receiverFor } : {}) });
       await Promise.allSettled(selected.map(e => serialized(`${store.root}:reconcile:${e.id}`, () => gateway.reconcile(e.id))));
     });
   }

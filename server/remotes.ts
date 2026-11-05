@@ -65,7 +65,7 @@ export function commandArguments(args: string[], owner: string): string[] {
   if (options.some((arg, i) => (arg === "--label" && /^firstmate\.(?:owner|role)=/.test(options[i + 1] ?? "")) || /^--label=firstmate\.(?:owner|role)=/.test(arg))) throw new Error("Reserved ownership label");
   // The CLI's own --prompt-file would read any file the daemon can; the helper's reads only the home.
   if (options.some((arg) => /^--prompt-file(?:=|$)/.test(arg))) throw new Error("Use the helper's --prompt-file, which reads the file from the home");
-  if (command === "run") options.push("--background", "--label", "firstmate.role=crew", "--label", `firstmate.owner=${owner}`);
+  if (command === "run") options.push("--no-wait", "--label", "firstmate.role=crew", "--label", `firstmate.owner=${owner}`);
   if (command === "send") options.push("--no-wait");
   if (!options.includes("--json")) options.push("--json");
   return end < 0 ? options : [...options, ...args.slice(end)];
@@ -140,6 +140,10 @@ function connectionStatus(result: CliResult): Record<string, unknown> {
   }
   return {};
 }
+
+/** A refusal before any command was submitted: the host was not reached, so nothing changed remotely.
+ * Distinct from a failure after submission, whose outcome is uncertain and must never be resent. */
+export class RemoteConnectRefused extends Error {}
 
 export class RemoteService {
   private snapshot: RemoteSnapshot = empty();
@@ -228,11 +232,15 @@ export class RemoteService {
           continue;
         }
         this.preferred.set(host.serverId, connection.id);
+        if (typeof status.daemonVersion === "string" && status.daemonVersion.trim()) {
+          const entry = this.snapshot.hosts.find((candidate) => candidate.serverId === host.serverId);
+          if (entry) entry.daemonVersion = status.daemonVersion.trim().slice(0, 64);
+        }
         return connection;
       } catch (error) { reason = redact(error instanceof Error ? error.message : String(error), host); /* Only read-only probes retry another saved connection. */ }
     }
     if (/password|unauthori[sz]ed|authentication/i.test(reason)) reason = "authentication failed";
-    throw new Error(`Host unreachable or authentication failed; reconnect it in Paseo${reason ? ` (last attempt: ${reason.slice(0, 500)})` : ""}`);
+    throw new RemoteConnectRefused(`Host unreachable or authentication failed; reconnect it in Paseo${reason ? ` (last attempt: ${reason.slice(0, 500)})` : ""}`);
   }
   async request(selector: string, args: string[]): Promise<unknown> {
     await this.ready;
@@ -249,6 +257,27 @@ export class RemoteService {
       if (command[0] === "run") await this.measureClock(host, connection, result, sentAt, Date.now());
       return result;
     } finally { this.pollAt = 0; }
+  }
+  /** Owner-filtered label discovery for the remote worker receiver's reconcile. Daemon-side only:
+   * the service adds its own `firstmate.owner` filter, as `poll` does, so the caller-facing allowlist
+   * keeps refusing reserved labels. `-a` is required, or an archived duplicate is missed. Read-only. */
+  async discoverByAttempt(selector: string, attemptLabel: string): Promise<Record<string, unknown>[]> {
+    await this.ready;
+    if (!/^firstmate\.attempt=[0-9a-f-]{36}$/.test(attemptLabel)) throw new Error("Discovery needs one exact attempt label");
+    const matches = this.hosts.filter((host) => host.serverId === selector || host.label === selector);
+    if (matches.length !== 1) throw new Error("Host is unknown or its name is ambiguous; use its serverId from hosts");
+    const host = matches[0]!;
+    const connection = await this.connect(host);
+    return publicRows(await this.call(host, connection, ["ls", "-g", "-a", "--label", `firstmate.owner=${this.owner}`, "--label", attemptLabel, "--json"]),
+      ["id", "name", "status", "cwd", "provider"]);
+  }
+  /** The recorded catalog facts a receiver capability check needs, by serverId or label. Null when unknown. */
+  async hostInfo(selector: string): Promise<{ serverId: string; label: string; online: boolean; daemonVersion: string | null; clockSkewSeconds: number | null } | null> {
+    await this.ready;
+    const entry = this.snapshot.hosts.filter((host) => host.serverId === selector || host.label === selector);
+    if (entry.length !== 1) return null;
+    const host = entry[0]!;
+    return { serverId: host.serverId, label: host.label, online: host.online, daemonVersion: host.daemonVersion ?? null, clockSkewSeconds: host.clockSkew?.seconds ?? null };
   }
   /** A new agent's CreatedAt, on the host's clock, falls between sending its
    * `run` and the answer on ours; anything outside that window is the host's
@@ -376,8 +405,12 @@ export class RemoteService {
         } catch { next.online = false; next.error = "Cannot read this host. Reconnect it in Paseo; check its daemon and provider configuration."; }
         const index = this.snapshot.hosts.findIndex((entry) => entry.serverId === host.serverId);
         // A concurrent sync may have removed or replaced the profile.
-        // A run measured during this poll keeps its clock measurement.
-        if (index >= 0 && this.hosts.includes(host)) this.snapshot.hosts[index] = { ...next, clockSkew: this.snapshot.hosts[index]!.clockSkew ?? null };
+        // A run measured during this poll keeps its clock measurement, and the daemon version
+        // `connect` recorded on the live entry during this poll (a fresh value after an upgrade
+        // replaces the stale one `next` was copied from) is kept, never overwritten by the copy.
+        if (index >= 0 && this.hosts.includes(host)) this.snapshot.hosts[index] = { ...next,
+          clockSkew: this.snapshot.hosts[index]!.clockSkew ?? null,
+          daemonVersion: this.snapshot.hosts[index]!.daemonVersion ?? next.daemonVersion ?? null };
       });
       await this.publish();
       try { this.observedPoll?.(this.snapshot); } catch { console.error("[firstmate] attention observer could not queue a remote poll"); }

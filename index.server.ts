@@ -169,6 +169,7 @@ export default function contribute(server: PluginServerContext) {
     snapshot => { attention.catalog(snapshot); void plans.remote(snapshot).catch(error => console.error("[firstmate] scoped remote observations:", error)); },
   );
   remotes.start();
+  plans.useRemoteBridge(remotes);
   const decisions = new NeedsYouService({
     root: join(pluginDir(), "needs-you"),
     home: readConfiguredDecisionHome,

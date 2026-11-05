@@ -86,6 +86,18 @@ it("is disabled by default and writes nothing", async () => {
   expect((await store.read()).sequence).toBe(before);
 });
 
+it("a remote project owner is retained verbatim across versioned project updates", async () => {
+  const before = (await store.read()).projects!.projects.find(p => p.id === A)!;
+  const owner = { hostId: "srv_remote", directory: "/home/ariadne/Projects/Aradne", registryDigest: hash, generalAgentId: general.id,
+    profile: { provider: "codex/gpt-6.1-sol", modeId: "full-access" }, limits: { supervisorSessions: 1, supervisorTurns: 5 } };
+  const owned: SupervisionMutation[] = [{ kind: "project", value: { ...before, version: before.version + 1, owner } } as SupervisionMutation];
+  await store.transact(expected(owned, before.version), randomUUID(), owned);
+  await projects.recordProject(randomUUID(), captain, { projectId: A, expectedVersion: before.version + 1, scopeId: PA, name: "alpha",
+    aliases: ["alpha-remote"], state: "admitted", budget: { agents: 3, turns: 3 }, sourceVector: [policyRef("policy-source", source)] });
+  const after = (await store.read()).projects!.projects.find(p => p.id === A)!;
+  expect(after.owner).toEqual(owner);
+  expect(after.owner!.directory).toBe("/home/ariadne/Projects/Aradne"); // Declared remotely; never resolved on this machine.
+});
 it("two sponsor claims for one plan commit exactly one sponsor; the loser rereads, the winner replays its receipt", async () => {
   const both = { planScopeId: X, expectedVersion: 0, claims: [{ projectId: A, agents: 1, turns: 1, priority: 5 }, { projectId: B, agents: 1, turns: 1, priority: 5 }] };
   const winnerId = randomUUID();

@@ -17,9 +17,9 @@ import type { SupervisionActor, SupervisionAttempt, SupervisionEffect, Supervisi
 import type { PlanLaunch, WorkflowPlan } from "../shared/workflow-plans";
 import type { VersionRef } from "../shared/supervision-policy";
 import {
-  AgentProfileSchema, EffectCauseSchema, GatewayOperation, RELEASE_OPERATIONS, ReceiverCapabilitiesSchema, SCOPE_KIND_LABEL, SCOPE_LABELS, SUPERVISOR_ROLE, supervisorKind, supervisorRoleKind,
+  AgentProfileSchema, EffectCauseSchema, GatewayOperation, QUALIFIED_REMOTE_PAIRS, RELEASE_OPERATIONS, REMOTE_PROMPT_MAX_CHARS, ReceiverCapabilitiesSchema, SCOPE_KIND_LABEL, SCOPE_LABELS, SUPERVISOR_ROLE, qualifiedRemote, supervisorKind, supervisorRoleKind,
   WorkspaceReceiptSchema, type AgentObservation, type AgentProfile, type EffectCause, type GatewayReceiver,
-  type ReceiverCapabilities, type WorkspaceIntent, type WorkspaceReceipt,
+  type QualifiedRemotePair, type ReceiverCapabilities, type WorkspaceIntent, type WorkspaceReceipt,
 } from "../shared/supervision-effects";
 import { resolveInHome } from "./files";
 import { digest } from "./submissions";
@@ -103,6 +103,27 @@ export function verifyObservation(observed: AgentObservation | null, expected: {
   if (observed.status !== "idle" || observed.pendingPermissions > 0) return "The session is not idle and unprompted.";
   return null;
 }
+export const isLocalHost = (hostId: string) => hostId.trim().toLowerCase() === "local";
+const remotePath = (path: string) => path.replace(/\\/g, "/").replace(/\/+$/, "");
+/** The label-bound replacement for "idle and unprompted": the discovered identity, its reported
+ * profile and directory, parentless ancestry, and a creation time inside the submission window
+ * once the host's clock skew is removed. Labels are proved by the discovery filter, never read back. */
+export function verifyRemoteObservation(observed: AgentObservation | null, expected: { agentId: string; workspace: WorkspaceReceipt; profile: AgentProfile },
+  window: { sentAt: number; receivedAt: number }): string | null {
+  if (!observed) return "The discovered remote session is not visible; it stays uncertain, not missing.";
+  if (observed.id !== expected.agentId) return "The receiver returned a different identity.";
+  if (observed.archivedAt) return "The discovered remote session is archived.";
+  if (observed.workspaceId !== null && observed.workspaceId !== expected.workspace.workspaceId) return "The remote session is outside its reserved workspace.";
+  if (remotePath(observed.cwd) !== remotePath(expected.workspace.directory)) return "The remote session is outside its reserved workspace directory.";
+  if (observed.parentAgentId !== null && observed.parentAgentId !== undefined || observed.labels["paseo.parent-agent-id"]) return "The remote session has a native parent; independent ancestry is required.";
+  if (observed.provider !== expected.profile.provider || (observed.modeId ?? "") !== expected.profile.modeId ||
+    (expected.profile.thinkingOptionId && (observed.thinkingOptionId ?? "") !== expected.profile.thinkingOptionId)) return "The remote session settings differ from the reserved profile.";
+  const created = Date.parse(observed.createdAt ?? "");
+  if (Number.isNaN(created)) return "The remote session reports no creation time; its identity cannot be verified.";
+  const corrected = created - (observed.clockSkewSeconds ?? 0) * 1000;
+  if (corrected < window.sentAt || corrected > window.receivedAt) return "The remote session was not created inside this attempt's submission window.";
+  return null;
+}
 /** A send/interrupt/archive target re-observed by its exact identity just before the claim. */
 function exactTarget(observed: AgentObservation | null, agentId: string): AgentObservation {
   if (!observed || observed.id !== agentId) refuse("HELD", "The target is not observed under its exact identity; nothing is admitted.");
@@ -122,13 +143,17 @@ export interface GatewayOptions {
   /** External observations happen before the publication lock; returned validation runs in the claim. */
   prepareAdmission?: (effect: SupervisionEffect) => Promise<(status: SupervisionStatus) => void>;
   reserveStart?: <T>(run: () => Promise<T>) => Promise<T>;
+  /** The label-bound receiver for a non-local task host. Absent means remote work fails closed to local-only. */
+  receiverFor?: (hostId: string) => GatewayReceiver | undefined;
+  /** Exact qualified remote version pairs; defaults to the production table (currently empty: fail closed). Tests inject a fixture pair. */
+  remotePairs?: readonly QualifiedRemotePair[];
   beforeStart?: (status: SupervisionStatus, input: ScopedPlanCommand) => Promise<void>;
   startCheck?: (status: SupervisionStatus, input: ScopedPlanCommand) => void;
   recovery?: boolean;
 }
 export interface StartedAttempt { attemptId: string | null; effects: { workspace: string; create: string; send: string } | null }
 type Call = { run: () => Promise<string>; after?: (status: SupervisionStatus) => SupervisionMutation[] };
-interface Preflight { capabilities: ReceiverCapabilities; observed: AgentObservation | null; text: string | null; inventoryKey: string | null; validate?: ((status: SupervisionStatus) => void) | undefined;
+interface Preflight { capabilities: ReceiverCapabilities; receiver: GatewayReceiver; remote: boolean; observed: AgentObservation | null; text: string | null; inventoryKey: string | null; validate?: ((status: SupervisionStatus) => void) | undefined;
   reusedObserved?: AgentObservation | null | undefined;
   workspace?: { intentHash: string; start: () => Promise<WorkspaceReceipt> } | undefined }
 
@@ -136,9 +161,22 @@ export class SupervisionGateway {
   constructor(readonly store: SupervisionStore, readonly commands: SupervisionCommands, readonly home: string,
     readonly receiver: GatewayReceiver, private readonly options: GatewayOptions = {}) {}
   private enabled() { if (!this.options.enabled) refuse("UNSUPPORTED", "The S04 effect gateway is disabled."); }
+  private qualified(capabilities: ReceiverCapabilities) { return qualifiedRemote(capabilities, this.options.remotePairs ?? QUALIFIED_REMOTE_PAIRS); }
   private async accepted(requestId: string) { return (await this.store.read()).commands.some(c => c.id === requestId); }
-  async capabilities(): Promise<ReceiverCapabilities> {
-    const parsed = ReceiverCapabilitiesSchema.safeParse(await this.receiver.capabilities());
+  /** The receiver behind one task host: local work keeps the composed receiver; any other host needs its registered label-bound receiver, and without one remote work fails closed to local-only. */
+  private pick(hostId: string): GatewayReceiver {
+    if (isLocalHost(hostId)) return this.receiver;
+    return this.options.receiverFor?.(hostId) ?? refuse("UNSUPPORTED", `No qualified remote receiver is registered for host ${hostId}; remote work fails closed to local-only.`);
+  }
+  private effectHost(status: SupervisionStatus, effect: SupervisionEffect): string {
+    if (effect.attemptId === null) return "local";
+    const attempt = status.attempts.find(a => a.id === effect.attemptId);
+    return attempt?.worker?.hostId ?? status.tasks.find(t => t.id === attempt?.taskId)?.hostId ?? "local";
+  }
+  async capabilities(): Promise<ReceiverCapabilities> { return this.capabilitiesOf(this.receiver); }
+  private async capabilitiesFor(hostId: string): Promise<ReceiverCapabilities> { return this.capabilitiesOf(this.pick(hostId)); }
+  private async capabilitiesOf(receiver: GatewayReceiver): Promise<ReceiverCapabilities> {
+    const parsed = ReceiverCapabilitiesSchema.safeParse(await receiver.capabilities());
     // A newer receiver claiming U1/U3 or anything undeclared is refused, never silently downgraded.
     if (!parsed.success) refuse("UNSUPPORTED", "Receiver capabilities are not in the qualified S04 contract.");
     return parsed.data;
@@ -162,16 +200,22 @@ export class SupervisionGateway {
     if (previousNode?.workspaceId && previousNode.attempt && previousNode.agentId) {
       if (!this.options.recovery) refuse("UNSUPPORTED", "Workspace-preserving manual recovery is disabled.");
       const retained = before.attempts.find(a => a.id === previousNode.attempt);
-      const observed = await this.receiver.findAgent(previousNode.agentId);
+      const observed = await this.pick(retained?.worker?.hostId ?? "local").findAgent(previousNode.agentId);
       if (!retained?.worker || !observed || observed.id !== retained.worker.agentId || observed.workspaceId !== previousNode.workspaceId ||
         !["idle", "closed"].includes(observed.status) || observed.pendingPermissions || observed.labels["paseo.parent-agent-id"])
         refuse("HELD", "Replacement retains the exact workspace and needs its old worker observed stopped.");
       reusedWorkspace = { workspaceId: previousNode.workspaceId, directory: observed.cwd, priorAttemptId: retained.id };
     }
+    const planId0 = "plan" in command ? command.plan : null, nodeId0 = command.op === "implicit" ? command.launch.id : "node" in command ? command.node : null;
+    const hostId = command.op === "implicit" || command.op === "claim" ? command.launch.host :
+      before.tasks.find(t => t.ownerScopeId === input.scopeId && t.planId === planId0 && t.nodeId === nodeId0)?.hostId ?? "local";
+    const remote = !isLocalHost(hostId);
     let blob: { id: string; bytes: number } | null, briefBlob: { id: string; bytes: number } | null, capabilities: ReceiverCapabilities;
     try {
-      capabilities = await this.capabilities();
-      if (!capabilities.selectedAgentIds) refuse("UNSUPPORTED", "Receiver lacks caller-selected agent IDs; no legacy or fresh-ID fallback.");
+      capabilities = await this.capabilitiesFor(hostId);
+      if (remote) {
+        if (!this.qualified(capabilities)) refuse("UNSUPPORTED", "Remote reservation requires the qualified label-bound receiver on an exact qualified CLI and remote daemon version pair; it fails closed to local-only.");
+      } else if (!capabilities.selectedAgentIds) refuse("UNSUPPORTED", "Receiver lacks caller-selected agent IDs; no legacy or fresh-ID fallback.");
       const brief = await this.pinnedBrief(input);
       briefBlob = brief ? await this.store.putBlob(brief) : null;
       blob = briefBlob;
@@ -179,8 +223,11 @@ export class SupervisionGateway {
         const record = (await this.store.read()).planRules?.find(r => r.id === input.planRules!.id);
         if (!record || digest(record) !== input.planRules.digest) refuse("STALE", "Worker brief rules changed before pinning.");
         const text = `${Buffer.from(brief).toString("utf8")}\n\nPlan rules (cooperative, mandatory gates):\n${JSON.stringify(record)}\nEvery report records one biggest blocker or explicit none. Retain actual check/capture artifacts, exact build/head and independent verifier provenance. Heavy suites restore an isolated clean verified matching baseline and execute a fresh result for this attempt. Never claim success from an old attempt. The plan supervisor records verification through tools/scope.mjs.\n`;
+        if (remote && text.length > REMOTE_PROMPT_MAX_CHARS) refuse("UNSUPPORTED", `Remote brief plus appended plan rules exceeds ${REMOTE_PROMPT_MAX_CHARS} characters; refused before reservation, never truncated.`);
         blob = await this.store.putBlob(Buffer.from(text, "utf8"));
       }
+      if (remote && brief && blob === briefBlob && Buffer.from(brief).toString("utf8").length > REMOTE_PROMPT_MAX_CHARS)
+        refuse("UNSUPPORTED", `Remote brief exceeds ${REMOTE_PROMPT_MAX_CHARS} characters; refused before reservation, never truncated.`);
     } catch (error) {
       if (await this.accepted(input.requestId)) return this.replayStart(input, actor); // Accepted concurrently.
       throw error;
@@ -196,15 +243,18 @@ export class SupervisionGateway {
       const attemptId = event.attempt ?? (command.op === "claim" ? command.attempt : null);
       const briefHash = event.briefHash ?? (command.op === "claim" ? command.briefHash : null);
       if (!attemptId || !briefHash) return { expectedVersions: [], mutations: [] }; // Review posture: no attempt yet.
-      if (!capabilities.selectedAgentIds) refuse("UNSUPPORTED", "Receiver lacks caller-selected agent IDs; no legacy or fresh-ID fallback.");
+      if (remote ? !this.qualified(capabilities) : !capabilities.selectedAgentIds)
+        refuse("UNSUPPORTED", remote ? "Remote reservation requires the qualified label-bound receiver on an exact qualified CLI and remote daemon version pair; it fails closed to local-only." : "Receiver lacks caller-selected agent IDs; no legacy or fresh-ID fallback.");
       if (!blob || !briefBlob || briefBlob.id !== briefHash) refuse("STALE", "Brief changed between pinning and reservation.");
       const nodeId = command.op === "implicit" ? command.launch.id : (command as { node: string }).node;
       const scopeId = input.scopeId, planId = event.plan;
       const task = status.tasks.find(t => t.ownerScopeId === scopeId && t.planId === planId && t.nodeId === nodeId);
       const binding = status.bindings.find(b => b.scopeId === scopeId);
       if (!task || !binding) refuse("UNKNOWN_OWNER", "Register the exact task and owner binding before launch.");
-      if (task.hostId.trim().toLowerCase() !== "local" || binding.hostId.trim().toLowerCase() !== "local")
-        refuse("UNSUPPORTED", "S04 admits local isolated work only; remote lifecycle mutation is unsupported.");
+      // The Supervisor binding stays local in every mode; only its workers may run on a saved remote host.
+      if (!isLocalHost(binding.hostId)) refuse("UNSUPPORTED", "A remote Supervisor binding is unsupported; Supervisors stay local.");
+      if (isLocalHost(task.hostId) !== !remote || remote && task.hostId !== hostId)
+        refuse("STALE", "The task's host changed between preflight and reservation.");
       const launch: PlanLaunch | undefined = command.op === "implicit" || command.op === "claim" ? command.launch :
         event.launch ?? status.plans.find(p => p.plan.definition.id === planId)?.plan.definition.nodes.flatMap(n => n.kind === "run" && n.id === nodeId ? [n.launch] : [])[0];
       if (!launch) refuse("HELD", "A decision cannot launch a worker.");
@@ -284,26 +334,30 @@ export class SupervisionGateway {
     const fence = stopping ? undefined : await this.options.policyFence?.capture(effect);
     const operation = requireGatewayOperation(effect.operation);
     // Receiver and file reads happen before the writer lock; the claim then rechecks against them.
-    const capabilities = await this.capabilities(), target = targetOf(pre, effect, operation);
-    const observed = target ? await this.receiver.findAgent(target) : null;
+    const hostId = this.effectHost(pre, effect), remote = !isLocalHost(hostId), receiver = this.pick(hostId);
+    const capabilities = await this.capabilitiesOf(receiver), target = targetOf(pre, effect, operation);
+    const observed = target ? await receiver.findAgent(target) : null;
     const reusedAttempt = effect.reusedWorkspace ? pre.attempts.find(a => a.id === effect.reusedWorkspace!.priorAttemptId) : null;
-    const reusedObserved = reusedAttempt?.worker ? await this.receiver.findAgent(reusedAttempt.worker.agentId) : null;
-    const text = operation === "agent.send" ? await this.payload(effect) : null;
-    const inventoryKey = operation === "agent.archive" && target ? await this.checkInventory(capabilities, target, effect.receiverKey) : null;
+    const reusedObserved = reusedAttempt?.worker ? await this.pick(reusedAttempt.worker.hostId).findAgent(reusedAttempt.worker.agentId) : null;
+    // A label-bound create carries the sibling send effect's pinned brief: the remote CLI prompts at create.
+    const sendSibling = operation === "agent.create" && remote && effect.attemptId
+      ? pre.effects.find(e => e.attemptId === effect.attemptId && e.operation === "agent.send") : undefined;
+    const text = operation === "agent.send" ? await this.payload(effect) : sendSibling ? await this.payload(sendSibling) : null;
+    const inventoryKey = operation === "agent.archive" && target ? await this.checkInventory(capabilities, target, effect.receiverKey, receiver) : null;
     const validate = operation === "agent.interrupt" || operation === "agent.archive" ? undefined : await this.options.prepareAdmission?.(effect);
     // Production filesystem/project preparation can yield. Finish it before the fence,
     // then use only a native-initiating function under the claim/policy boundary.
     let workspace: Preflight["workspace"];
-    if (operation === "workspace.open" && !effect.reusedWorkspace && this.receiver.prepareWorkspace) {
+    if (operation === "workspace.open" && !effect.reusedWorkspace && receiver.prepareWorkspace) {
       const intent = effect.attemptId === null ? supervisorWorkspaceIntent(effect.scopeId, effect.epoch, effect.id) : workerIntentFor(pre, effect);
-      workspace = { intentHash: digest(intent), start: await this.receiver.prepareWorkspace(intent) };
+      workspace = { intentHash: digest(intent), start: await receiver.prepareWorkspace(intent) };
     }
     const claimAndStart = async () => {
       let claimed: SupervisionEffect | null = null, call: Call | null = null;
       await this.store.transactCommand(stableId("dispatch-claim", effect.id), digest({ claim: effect.id, version: effect.version }), GATEWAY, async status => {
         const current = status.effects.find(e => e.id === effect.id);
         if (!current || current.version !== effect.version || current.state !== "reserved") refuse("STALE", "The effect changed before its claim; reread.");
-        call = await this.admit(status, current, operation, { capabilities, observed, text, inventoryKey, validate, reusedObserved, workspace });
+        call = await this.admit(status, current, operation, { capabilities, receiver, remote, observed, text, inventoryKey, validate, reusedObserved, workspace });
         claimed = { ...current, state: "dispatching", version: current.version + 1 };
         const mutations: SupervisionMutation[] = [{ kind: "effect", value: claimed }];
         const plan = planOf(status, current);
@@ -338,7 +392,7 @@ export class SupervisionGateway {
     const scope = status.scopes.find(s => s.id === effect.scopeId), binding = status.bindings.find(b => b.scopeId === effect.scopeId);
     if (status.freshness !== "current" || status.storage.admissionsHeld) refuse("HELD", "Store is held; no new external effect.");
     if (!scope || !binding || binding.epoch !== effect.epoch || ["retired", "suspect"].includes(binding.state)) refuse("STALE", "The effect's owner epoch is no longer current.");
-    if (binding.hostId.trim().toLowerCase() !== "local") refuse("UNSUPPORTED", "S04 has no remote receiver adapter.");
+    if (!isLocalHost(binding.hostId)) refuse("UNSUPPORTED", "A remote Supervisor binding is unsupported; Supervisors stay local.");
     const supervisor = effect.attemptId === null, stopping = operation === "agent.interrupt" || operation === "agent.archive";
     if (!stopping) await this.options.admissionCheck?.(status, effect);
     if (!stopping) await this.options.rules?.effect(status, effect);
@@ -368,7 +422,11 @@ export class SupervisionGateway {
       refuse("HELD", "A plan backend owned by this scope is held, retired or not scoped.");
     const attempt = effect.attemptId ? status.attempts.find(a => a.id === effect.attemptId) : undefined;
     const task = attempt ? status.tasks.find(t => t.id === attempt.taskId) : undefined;
-    if (task && task.hostId.trim().toLowerCase() !== "local") refuse("UNSUPPORTED", "S04 has no remote worker adapter.");
+    if (task && !isLocalHost(task.hostId) !== fresh.remote) refuse("STALE", "The task's host changed since the receiver was selected.");
+    // The version-pair gate admits new work only. A safe stop of an already-created remote worker
+    // stays possible after a host upgrade moves it off the qualified pair.
+    if (!stopping && task && fresh.remote && !this.qualified(fresh.capabilities))
+      refuse("UNSUPPORTED", "The remote receiver is no longer on the qualified version pair; the reservation stays as it is.");
     let launch: PlanLaunch | null = null, plan: WorkflowPlan | null = null;
     if (!supervisor) {
       if (!attempt || !task || task.currentAttempt !== attempt.id) refuse("STALE", "The attempt is no longer current for its task.");
@@ -393,18 +451,23 @@ export class SupervisionGateway {
         if (effect.reusedWorkspace) return { run: async () => JSON.stringify({ workspaceId: effect.reusedWorkspace!.workspaceId, directory: effect.reusedWorkspace!.directory }) };
         const intent = supervisor ? supervisorWorkspaceIntent(scope.id, effect.epoch, effect.id) : workerIntentFor(status, effect);
         if (fresh.workspace && fresh.workspace.intentHash !== digest(intent)) refuse("STALE", "Workspace intent changed during preparation; no native call was started.");
-        return { run: async () => JSON.stringify(WorkspaceReceiptSchema.parse(await (fresh.workspace ? fresh.workspace.start() : this.receiver.openWorkspace(intent)))) };
+        return { run: async () => JSON.stringify(WorkspaceReceiptSchema.parse(await (fresh.workspace ? fresh.workspace.start() : fresh.receiver.openWorkspace(intent)))) };
       }
       case "agent.create": {
-        if (!fresh.capabilities.selectedAgentIds) refuse("UNSUPPORTED", "Receiver no longer supports caller-selected IDs; the reservation stays as it is.");
+        if (fresh.remote) {
+          if (!this.qualified(fresh.capabilities)) refuse("UNSUPPORTED", "The remote receiver is no longer on the qualified version pair; the reservation stays as it is.");
+        } else if (!fresh.capabilities.selectedAgentIds) refuse("UNSUPPORTED", "Receiver no longer supports caller-selected IDs; the reservation stays as it is.");
         const workspace = workspaceReceipt(sibling("workspace.open"));
         if (!workspace) refuse("HELD", "The workspace effect has not succeeded; creation waits for it.");
         if (supervisor && configuration?.workspace && !sameDirectory(workspace.directory, configuration.workspace.directory))
           refuse("STALE", "The created workspace differs from the qualified session directory; no agent is created.");
         const create = supervisor ? supervisorCreate(status, effect, workspace, await this.profile(binding.profileDigest), scope.kind) : workerCreate(status, effect, workspace);
+        // Label-bound: the reserved ID cannot be imposed; the brief rides the create and the returned
+        // identity is bound by receipt, then verified after creation against the discovery profile.
+        const intent = fresh.remote ? { ...create, initialPrompt: fresh.text ?? refuse("HELD", "Remote create has no pinned brief payload.") } : create;
         return { run: async () => {
-          const created = await this.receiver.createAgent(create);
-          if (created.agentId !== create.agentId) throw new Error("Receiver returned a different identity; treated as uncertain.");
+          const created = await fresh.receiver.createAgent(intent);
+          if (!fresh.remote && created.agentId !== create.agentId) throw new Error("Receiver returned a different identity; treated as uncertain.");
           return `agent:${created.agentId}`;
         } };
       }
@@ -414,19 +477,23 @@ export class SupervisionGateway {
         if (!target || !workspaceId || (!supervisor && attempt?.state !== "active")) refuse("HELD", "Send waits for verified, active identity.");
         // Final recipient recheck (S02 beginSend leaves idle to S04); workers were validated above with their policy.
         if (supervisor) await this.validatedRecipient(status, effect, fresh.observed);
-        return { run: async () => { await this.receiver.send(target, fresh.text!, effect.receiverKey!); return `message:${effect.receiverKey}`; },
+        // Label-bound: the brief was delivered by the create itself; the send effect settles on that
+        // delivery and is never resent as a second prompt.
+        if (fresh.remote) return { run: async () => `message:at-create:${target}`,
+          after: s => supervisor ? [] : promoteAttempt(s, effect.attemptId!, "prompted") };
+        return { run: async () => { await fresh.receiver.send(target, fresh.text!, effect.receiverKey!); return `message:${effect.receiverKey}`; },
           after: s => supervisor ? [] : promoteAttempt(s, effect.attemptId!, "prompted") };
       }
       case "agent.interrupt": {
         const target = attempt?.worker?.agentId ?? refuse("HELD", "Interrupt needs a verified current worker.");
         exactTarget(fresh.observed, target);
-        return { run: async () => { await this.receiver.interrupt(target); return `interrupted:${target}`; } };
+        return { run: async () => { await fresh.receiver.interrupt(target); return `interrupted:${target}`; } };
       }
       case "agent.archive": {
         const target = attempt?.worker?.agentId ?? refuse("HELD", "Archive needs a verified worker.");
         exactTarget(fresh.observed, target);
         if (fresh.inventoryKey === null || fresh.inventoryKey !== effect.receiverKey) refuse("STALE", "Inventory changed since the proposal.");
-        return { run: async () => `archived:${(await this.receiver.archive(target)).archivedAt}` };
+        return { run: async () => `archived:${(await fresh.receiver.archive(target)).archivedAt}` };
       }
     }
   }
@@ -450,7 +517,11 @@ export class SupervisionGateway {
         workspace: workspaceReceipt(status.effects.find(e => e.id === ids?.workspace)), profile: launch.agent, labels: workerLabels(effect.scopeId, task, attempt.id, launch) };
     }
     if (!expected.workspace || expected.workspace.workspaceId !== expected.workspaceId) refuse("HELD", "The recipient's verified workspace cannot be re-established; nothing was sent.");
-    const problem = verifyObservation(observed, { agentId: expected.agentId, workspace: expected.workspace, profile: expected.profile, labels: expected.labels });
+    const task = effect.attemptId === null ? undefined : status.tasks.find(t => t.id === status.attempts.find(a => a.id === effect.attemptId)?.taskId);
+    const problem = task && !isLocalHost(task.hostId)
+      ? verifyRemoteObservation(observed, { agentId: expected.agentId, workspace: expected.workspace, profile: expected.profile },
+        await this.pick(task.hostId).creationWindow?.(expected.agentId) ?? { sentAt: Date.parse(status.attempts.find(a => a.id === effect.attemptId)?.reservedAt ?? "") || 0, receivedAt: this.options.now?.() ?? Date.now() })
+      : verifyObservation(observed, { agentId: expected.agentId, workspace: expected.workspace, profile: expected.profile, labels: expected.labels });
     if (problem) refuse("HELD", `${problem} Nothing was sent.`);
     return { provider: observed!.provider, modeId: observed!.modeId ?? "", ...(observed!.thinkingOptionId ? { thinkingOptionId: observed!.thinkingOptionId } : {}) };
   }
@@ -515,10 +586,10 @@ export class SupervisionGateway {
     if (sha256(bytes) !== id) refuse("HELD", "Send payload is corrupt.");
     return bytes.toString("utf8");
   }
-  private async checkInventory(capabilities: ReceiverCapabilities, agentId: string, expected: string | null): Promise<string> {
+  private async checkInventory(capabilities: ReceiverCapabilities, agentId: string, expected: string | null, receiver: GatewayReceiver = this.receiver): Promise<string> {
     if (!capabilities.persistedInventory) refuse("UNSUPPORTED", "No complete persisted inventory; archive refused.");
     let children;
-    try { children = await this.receiver.inventory(agentId); }
+    try { children = await receiver.inventory(agentId); }
     catch (error) { refuse("HELD", `Archive inventory is incomplete; nothing was archived. ${error instanceof Error ? error.message : String(error)}`); }
     if (children.length) refuse("HELD", "The worker has live descendants; archive could cascade. Refused.");
     const key = `inventory:${digest(children)}`;
@@ -537,11 +608,11 @@ export class SupervisionGateway {
     if (status.freshness !== "current") refuse("HELD", "Recovery audit failed; no receiver lookup or effect reconciliation is admitted.");
     const effect = status.effects.find(e => e.id === effectId) ?? refuse("UNKNOWN_OWNER", "Unknown effect.");
     if (!["dispatching", "uncertain", "accepted"].includes(effect.state)) return effect;
-    const capabilities = await this.capabilities();
+    const receiver = this.pick(this.effectHost(status, effect)), capabilities = await this.capabilitiesOf(receiver);
     let found: string | null = null, notCreated = false;
     if (effect.operation === "workspace.open" && capabilities.workspaceIntentLookup) {
       const intent = effect.attemptId === null ? supervisorWorkspaceIntent(effect.scopeId, effect.epoch, effect.id) : workerIntentFor(status, effect);
-      const receipt = await this.receiver.findWorkspace(intent);
+      const receipt = await receiver.findWorkspace(intent);
       found = receipt ? JSON.stringify(WorkspaceReceiptSchema.parse(receipt)) : null;
       // Only an already-uncertain worker open earns the proof: a dispatching/in-flight effect
       // may still be creating, a supervisor or reused workspace already exists, and an effect
@@ -552,18 +623,32 @@ export class SupervisionGateway {
       // outstanding call for the effect and a minimum age since it was first seen uncertain
       // here; the receiver's proof covers the daemon's durable creation record.
       if (!found && effect.state === "uncertain" && effect.attemptId !== null && !effect.reusedWorkspace &&
-        capabilities.workspaceNotCreatedProof && this.receiver.proveWorkspaceNotCreated) {
+        capabilities.workspaceNotCreatedProof && receiver.proveWorkspaceNotCreated) {
         const track = effectTrackKey(this.store.root, effect.id), now = this.options.now?.() ?? Date.now();
         if (!uncertainSince.has(track)) uncertainSince.set(track, now);
         if (!inFlightEffects.has(track) && now - uncertainSince.get(track)! >= NOT_CREATED_PROOF_MIN_AGE_MS)
-          notCreated = await this.receiver.proveWorkspaceNotCreated(intent).catch(() => false);
+          notCreated = await receiver.proveWorkspaceNotCreated(intent).catch(() => false);
+      }
+    } else if (effect.operation === "agent.create" && capabilities.labelBoundIdentity && receiver.discoverAttemptAgentIds && effect.attemptId) {
+      // Label-bound reconcile: exactly one owner-filtered match binds that identity; zero stays
+      // uncertain and two or more is a held duplicate — never archived or relabelled automatically.
+      const ids = await receiver.discoverAttemptAgentIds(effect.attemptId);
+      found = ids.length === 1 ? `agent:${ids[0]}` : null;
+      // A duplicate is recorded as its own immutable observation, visibly distinct from zero
+      // matches: the captain can see why this attempt is held without reading code. It never
+      // occupies the effect's receiptRef, which the store keeps set-once for the real receipt.
+      if (ids.length > 1) {
+        const remoteDuplicate = { effectId: effect.id, attemptId: effect.attemptId, matches: ids.length,
+          reason: `Held duplicate: ${ids.length} remote sessions carry this attempt's labels; none is bound, archived or relabelled.` };
+        await this.store.transactCommand(stableId("remote-duplicate", effect.id, [...ids].sort()), digest({ remoteDuplicate }), GATEWAY,
+          async () => ({ mutations: [], expectedVersions: [], result: { planId: null, planHash: null, decisionId: null, outboxId: null, remoteDuplicate } }));
       }
     } else if (effect.operation === "agent.create" && capabilities.createReceiptLookup && effect.receiverKey) {
-      const observed = await this.receiver.findAgent(effect.receiverKey);
+      const observed = await receiver.findAgent(effect.receiverKey);
       found = observed?.id === effect.receiverKey ? `agent:${observed.id}` : null; // Late original creation binds here.
     } else if (effect.operation === "agent.archive") {
       const target = status.attempts.find(a => a.id === effect.attemptId)?.worker?.agentId;
-      const observed = target ? await this.receiver.findAgent(target) : null;
+      const observed = target ? await receiver.findAgent(target) : null;
       found = observed?.id === target && observed?.archivedAt ? `archived:${observed.archivedAt}` : null;
     } // Sends and interrupts have no receipt lookup (U1): they remain uncertain for deliberate review.
     const current = (await this.store.read()).effects.find(e => e.id === effectId)!;
@@ -581,17 +666,34 @@ export class SupervisionGateway {
     const status = await this.store.read(), attempt = status.attempts.find(a => a.id === attemptId) ?? refuse("UNKNOWN_OWNER", "Unknown attempt.");
     if (attempt.state !== "reserved") return attempt.state === "active" || attempt.state === "prompted" ? attempt : refuse("HELD", `Attempt is ${attempt.state}.`);
     const task = status.tasks.find(t => t.id === attempt.taskId)!;
-    if (task.hostId.trim().toLowerCase() !== "local") refuse("UNSUPPORTED", "Remote verification is unsupported.");
     if (task.currentAttempt !== attempt.id) refuse("STALE", "The attempt is no longer current.");
     const effects = effectsFor(status, attempt.id), create = status.effects.find(e => e.id === effects?.create);
     const workspace = workspaceReceipt(status.effects.find(e => e.id === effects?.workspace));
     if (create?.state !== "succeeded" || !workspace || !create.receiverKey) refuse("HELD", "Creation is not confirmed; verification waits.");
     const scope = status.scopes.find(s => s.id === task.ownerScopeId)!;
     const launch = launchFor(status, task);
-    const problem = verifyObservation(await this.receiver.findAgent(create.receiverKey), { agentId: create.receiverKey, workspace,
-      profile: launch.agent, labels: workerLabels(scope.id, task, attempt.id, launch) });
-    if (problem) refuse("HELD", `${problem} No brief was sent.`);
-    const next: SupervisionAttempt = { ...attempt, worker: { hostId: task.hostId, agentId: create.receiverKey, workspaceId: workspace.workspaceId }, state: "active", version: attempt.version + 1 };
+    const receiver = this.pick(task.hostId), remote = !isLocalHost(task.hostId);
+    // Label-bound identity comes from the create receipt (the discovered actual ID), never the reserved placeholder.
+    const agentId = remote ? create.receiptRef?.startsWith("agent:") ? create.receiptRef.slice("agent:".length) : "" : create.receiverKey;
+    if (!agentId) refuse("HELD", "The remote creation receipt binds no discovered identity; verification waits.");
+    const observed = await receiver.findAgent(agentId);
+    // Labels are not readable through inspect: for a label-bound identity, owner-filtered label
+    // discovery (archived included) is the only proof the labels landed and no duplicate exists.
+    // Exactly one match, equal to the create receipt's identity, or the attempt holds.
+    let labelProblem: string | null = null;
+    if (remote) {
+      const discovered = receiver.discoverAttemptAgentIds ? await receiver.discoverAttemptAgentIds(attempt.id) : null;
+      labelProblem = discovered === null ? "The remote receiver offers no attempt-label discovery; its identity cannot be verified." :
+        discovered.length === 0 ? "No remote session carries this attempt's labels; its identity cannot be verified." :
+        discovered.length > 1 ? `Held duplicate: ${discovered.length} remote sessions carry this attempt's labels; none is bound, archived or relabelled.` :
+        discovered[0] !== agentId ? "The one remote session carrying this attempt's labels is not the created identity." : null;
+    }
+    const problem = labelProblem ?? (remote
+      ? verifyRemoteObservation(observed, { agentId, workspace, profile: launch.agent },
+        await receiver.creationWindow?.(agentId) ?? { sentAt: Date.parse(attempt.reservedAt ?? "") || 0, receivedAt: this.options.now?.() ?? Date.now() })
+      : verifyObservation(observed, { agentId, workspace, profile: launch.agent, labels: workerLabels(scope.id, task, attempt.id, launch) }));
+    if (problem) refuse("HELD", remote ? `${problem} The brief was already delivered at create; the attempt is held, not resent.` : `${problem} No brief was sent.`);
+    const next: SupervisionAttempt = { ...attempt, worker: { hostId: task.hostId, agentId, workspaceId: workspace.workspaceId }, state: "active", version: attempt.version + 1 };
     const mutations: SupervisionMutation[] = [{ kind: "attempt", value: next }];
     await this.store.transact([...expectedFor(status, mutations), { kind: "task", id: task.id, version: task.version }], randomUUID(), mutations);
     return next;
@@ -612,13 +714,19 @@ export class SupervisionGateway {
         if (c.op === "replace") refuse("HELD", "A manual replacement requires an accounted worker and workspace.");
         const create = s.effects.find(e => e.id === a.launchEffectId);
         if (create?.state === "succeeded") {
-          const reserved = create.receiverKey ? await this.receiver.findAgent(create.receiverKey) : null;
-          if (!reserved || reserved.id !== create.receiverKey || !["idle", "closed"].includes(reserved.status) || reserved.pendingPermissions) refuse("HELD", "Retain the unverified created identity until exact stop evidence is observed.");
+          const host = s.tasks.find(t => t.id === a.taskId)?.hostId ?? "local";
+          const createdId = !isLocalHost(host) && create.receiptRef?.startsWith("agent:") ? create.receiptRef.slice("agent:".length) : create.receiverKey;
+          const reserved = createdId ? await this.pick(host).findAgent(createdId) : null;
+          if (!reserved || reserved.id !== createdId || !["idle", "closed"].includes(reserved.status) || reserved.pendingPermissions) refuse("HELD", "Retain the unverified created identity until exact stop evidence is observed.");
         }
         continue;
       }
-      const observed = await this.receiver.findAgent(a.worker.agentId);
-      if (!observed || observed.id !== a.worker.agentId || observed.workspaceId !== a.worker.workspaceId || !["idle", "closed"].includes(observed.status) || observed.pendingPermissions)
+      const observed = await this.pick(a.worker.hostId).findAgent(a.worker.agentId);
+      // Local workers keep their exact-workspace guarantee; only a label-bound remote observation
+      // may report no workspace id (the CLI's inspect carries none), and then it must not contradict.
+      const workspaceOk = isLocalHost(a.worker.hostId) ? observed?.workspaceId === a.worker.workspaceId :
+        observed !== null && observed !== undefined && (observed.workspaceId === null || observed.workspaceId === a.worker.workspaceId);
+      if (!observed || observed.id !== a.worker.agentId || !workspaceOk || !["idle", "closed"].includes(observed.status) || observed.pendingPermissions)
         refuse("HELD", "Observe the exact original worker stopped; missing or uncertain is held.");
     }
     return this.commands.planCommandWith(input, actor, "s04.checked-recovery/1", async current => {
@@ -633,13 +741,12 @@ export class SupervisionGateway {
     const operation = requireGatewayOperation(input.operation);
     if (operation !== "agent.interrupt" && operation !== "agent.archive") refuse("UNSUPPORTED", "Only interrupt and archive are proposed here.");
     const pre = await this.store.read(), replay = pre.commands.some(c => c.id === input.requestId);
-    if (!replay) {
-      const attempt = pre.attempts.find(a => a.id === input.attemptId), task = pre.tasks.find(t => t.id === attempt?.taskId);
-      if (task && task.hostId.trim().toLowerCase() !== "local") refuse("UNSUPPORTED", "Remote interrupt/archive proposals are unsupported.");
-    }
     const worker = pre.attempts.find(a => a.id === input.attemptId)?.worker?.agentId;
-    // Inventory is a mutable receiver read: an accepted proposal replays without it.
-    const inventoryKey = operation === "agent.archive" && worker && !replay ? await this.checkInventory(await this.capabilities(), worker, null) : null;
+    const task = pre.tasks.find(t => t.id === pre.attempts.find(a => a.id === input.attemptId)?.taskId);
+    const receiver = this.pick(task?.hostId ?? "local");
+    // Inventory is a mutable receiver read: an accepted proposal replays without it. A label-bound
+    // receiver declares no persisted inventory, so remote archive proposals refuse here.
+    const inventoryKey = operation === "agent.archive" && worker && !replay ? await this.checkInventory(await this.capabilitiesOf(receiver), worker, null, receiver) : null;
     const { receipt } = await this.store.transactCommand(input.requestId, digest({ propose: input }), actor, async status => {
       const scope = status.scopes.find(s => s.id === input.scopeId), binding = status.bindings.find(b => b.scopeId === input.scopeId);
       if (!scope || scope.state !== "active" || binding?.state !== "active" || binding.epoch !== input.epoch) refuse("STALE", "Owner epoch is not current.");

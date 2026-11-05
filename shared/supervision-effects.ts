@@ -31,8 +31,29 @@ export const ReceiverCapabilitiesSchema = z.object({
   persistedInventory: z.boolean(),
   sendReceiptLookup: z.literal(false),
   conditionalArchive: z.literal(false),
+  /** Qualified weaker remote identity: no caller-selected IDs; identity is bound by the reserved scope/attempt labels and reconciled by owner-filtered label discovery. Never an implicit fallback. Absent means not offered. */
+  labelBoundIdentity: z.boolean().optional(),
+  /** The exact version pair this receiver was qualified against; `daemonVersion` is "" until recorded. */
+  remoteVersions: z.object({ cliVersion: z.string().max(64), daemonVersion: z.string().max(64) }).strict().optional(),
 }).strict();
 export type ReceiverCapabilities = z.infer<typeof ReceiverCapabilitiesSchema>;
+/** The one CLI version the remote receiver surface was probed against (slice 0). */
+export const QUALIFIED_REMOTE_CLI_VERSION = "0.14.0";
+/** Exact `(cliVersion, remoteDaemonVersion)` pairs qualified by evidence for label-bound identity.
+ * The slice 0 probe never recorded a remote daemon version, so no pair is qualified yet: this table
+ * stays empty and remote reservation fails closed to local-only until a pair earns its place here
+ * from recorded probe evidence. A version is never invented to fill it. */
+export const QUALIFIED_REMOTE_PAIRS: readonly { cliVersion: string; daemonVersion: string }[] = [];
+export type QualifiedRemotePair = { cliVersion: string; daemonVersion: string };
+/** A remote `run` prompt travels on a command line; briefs plus appended rules beyond this are refused. */
+export const REMOTE_PROMPT_MAX_CHARS = 28000;
+/** Label-bound (remote) reservation is admitted only for an exact qualified pair from `pairs`
+ * (the production table by default; tests may inject a fixture pair). Anything else fails closed. */
+export function qualifiedRemote(capabilities: ReceiverCapabilities, pairs: readonly QualifiedRemotePair[] = QUALIFIED_REMOTE_PAIRS): boolean {
+  const versions = capabilities.remoteVersions;
+  return capabilities.labelBoundIdentity === true && capabilities.selectedAgentIds === false && !!versions &&
+    pairs.some((pair) => pair.cliVersion === versions.cliVersion && pair.daemonVersion === versions.daemonVersion);
+}
 
 export const WorkspaceIntentSchema = z.object({
   key: z.string().min(1).max(256), hostId: z.string().min(1).max(256), project: z.string().min(1).max(200),
@@ -47,6 +68,8 @@ export type AgentProfile = z.infer<typeof AgentProfileSchema>;
 export const AgentCreateIntentSchema = z.object({
   agentId: SupervisionUuid, workspaceId: z.string().min(1).max(256), cwd: z.string().min(1).max(700),
   profile: AgentProfileSchema, title: z.string().min(1).max(120), labels: z.record(z.string().max(128), z.string().max(256)),
+  /** Label-bound remote mode only: the pinned brief, delivered by the create itself (verify-after-create). */
+  initialPrompt: z.string().min(1).max(REMOTE_PROMPT_MAX_CHARS).optional(),
 }).strict();
 export type AgentCreateIntent = z.infer<typeof AgentCreateIntentSchema>;
 /** What a receiver reports about one exact agent identity. Never a negative-listing inference. */
@@ -54,6 +77,8 @@ export interface AgentObservation {
   id: string; workspaceId: string | null; cwd: string; labels: Record<string, string>;
   provider: string; modeId: string | null; thinkingOptionId: string | null;
   status: "initializing" | "idle" | "running" | "error" | "closed"; pendingPermissions: number; archivedAt: string | null;
+  /** Remote verification profile inputs, where the receiver can report them (CLI `inspect`). */
+  createdAt?: string | null; parentAgentId?: string | null; clockSkewSeconds?: number | null;
 }
 export interface InventoryChild { id: string; labels: Record<string, string>; workspaceId: string | null }
 
@@ -71,6 +96,10 @@ export interface GatewayReceiver {
   proveWorkspaceNotCreated?(intent: WorkspaceIntent): Promise<boolean>;
   createAgent(intent: AgentCreateIntent): Promise<{ agentId: string }>;
   findAgent(agentId: string): Promise<AgentObservation | null>;
+  /** Label-bound reconcile: every agent ID carrying this attempt's owner-filtered labels, archived included. */
+  discoverAttemptAgentIds?(attemptId: string): Promise<string[]>;
+  /** The local-clock window a label-bound create was submitted in, for CreatedAt verification. */
+  creationWindow?(agentId: string): Promise<{ sentAt: number; receivedAt: number } | null>;
   send(agentId: string, text: string, messageId: string): Promise<void>;
   interrupt(agentId: string): Promise<void>;
   archive(agentId: string): Promise<{ archivedAt: string }>;

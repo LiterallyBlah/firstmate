@@ -9,6 +9,8 @@ import { continuationId, deriveContinuation, recordContinuation, type Continuati
 import { acceptPolicyInventory } from "./supervision-policy";
 import { planSubjectHash } from "./workflow-plans";
 import { captain, planDefinition, s04Fixture, type NodeSpec, type S04Fixture, type ScopeHandle } from "../test/supervision-s04-fixture";
+import { verifyRemoteObservation } from "./supervision-effects";
+import type { AgentObservation } from "../shared/supervision-effects";
 
 async function result<T>(p: Promise<T>): Promise<{ accepted: boolean; code: string | undefined; error: string | null }> {
   try { await p; return { accepted: true, code: undefined, error: null }; } catch (e) { return { accepted: false, code: (e as { code?: string }).code, error: (e as Error).message }; }
@@ -251,5 +253,22 @@ describe("S04 correction closure: C1, C2, C3 and final-admission audit", { timeo
     await refusedWithoutEffect(fx, a2.effects!.workspace, "HELD"); // The rule-change hold commits first.
     await acceptPolicyInventory(fx.store, fx.home, randomUUID(), captain, { sources: [], rules: [], reviewedHolds: (await fx.store.read()).operationHolds.filter(h => h.state === "held").map(h => ({ id: h.id, version: h.version })) }, true);
     await refusedWithoutEffect(fx, a2.effects!.workspace, "STALE"); // Reviewed release does not readmit the old pinned vector.
+  });
+
+  it("C2 (remote profile): CreatedAt binds only inside the skew-corrected submission window, and parentage is refused", () => {
+    const sentAt = Date.parse("2026-11-04T11:28:40.000Z"), receivedAt = Date.parse("2026-11-04T11:28:50.000Z");
+    const workspace = { workspaceId: "wks_remote1", directory: "/home/ariadne/work" };
+    const profile = { provider: "codex/gpt-6.1-sol", modeId: "full-access", thinkingOptionId: "high" };
+    const base: AgentObservation = { id: "agent-1", workspaceId: "wks_remote1", cwd: "/home/ariadne/work", labels: {},
+      provider: "codex/gpt-6.1-sol", modeId: "full-access", thinkingOptionId: "high", status: "running",
+      pendingPermissions: 0, archivedAt: null, createdAt: "2026-11-04T11:28:43.252Z", parentAgentId: null, clockSkewSeconds: 0 };
+    expect(verifyRemoteObservation(base, { agentId: "agent-1", workspace, profile }, { sentAt, receivedAt })).toBeNull();
+    // One hour behind on the host clock: inside the window only once the recorded skew is removed.
+    const skewed = { ...base, createdAt: "2026-11-04T10:28:43.252Z", clockSkewSeconds: -3600 };
+    expect(verifyRemoteObservation(skewed, { agentId: "agent-1", workspace, profile }, { sentAt, receivedAt })).toBeNull();
+    expect(verifyRemoteObservation({ ...skewed, clockSkewSeconds: 0 }, { agentId: "agent-1", workspace, profile }, { sentAt, receivedAt })).toMatch(/submission window/);
+    expect(verifyRemoteObservation({ ...base, parentAgentId: "someone" }, { agentId: "agent-1", workspace, profile }, { sentAt, receivedAt })).toMatch(/native parent/);
+    expect(verifyRemoteObservation({ ...base, createdAt: null }, { agentId: "agent-1", workspace, profile }, { sentAt, receivedAt })).toMatch(/no creation time/);
+    expect(verifyRemoteObservation({ ...base, cwd: "/elsewhere" }, { agentId: "agent-1", workspace, profile }, { sentAt, receivedAt })).toMatch(/workspace/);
   });
 });

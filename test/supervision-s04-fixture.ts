@@ -22,10 +22,10 @@ const sha = (v: string) => createHash("sha256").update(v).digest("hex");
 const ORDERS = "Pilot implementation and isolated tests only.\n";
 export const BRIEF = "Synthetic checked brief.";
 export type NodeSpec = { id: string; kind?: "scout" | "ship"; after?: { node: string; on: "done" | "landed" | "answered" }[]; decision?: "owner" | "captain" };
-export interface ScopeHandle { id: string; projectId: string; project: string; planId: string; owner: SupervisionActor; nodes: string[] }
+export interface ScopeHandle { id: string; projectId: string; project: string; planId: string; owner: SupervisionActor; nodes: string[]; hostId: string }
 
-export function planDefinition(id: string, project: string, nodes: NodeSpec[], budget = 6, delegated = false): PlanDefinition {
-  const launch = (node: NodeSpec) => ({ id: node.id, title: `Run ${node.id}`, agentTitle: node.id, project, host: "local", baseBranch: "main",
+export function planDefinition(id: string, project: string, nodes: NodeSpec[], budget = 6, delegated = false, host = "local"): PlanDefinition {
+  const launch = (node: NodeSpec) => ({ id: node.id, title: `Run ${node.id}`, agentTitle: node.id, project, host, baseBranch: "main",
     kind: node.kind ?? "scout", mode: "reviewed-PR", brief: { file: `data/${node.id}/brief.md` },
     agent: { provider: "codex/gpt-6.1-sol", modeId: "full-access", thinkingOptionId: "high" }, backlog: { existing: "none" } });
   return PlanDefinitionSchema.parse({ format: "firstmate.plan/1", id, title: `Goal ${id}`, request: { text: `Deliver ${id} end to end.`, at: "2026-10-20T12:00:00Z" },
@@ -73,14 +73,14 @@ export async function s04Fixture(options: { capabilities?: Partial<ReceiverCapab
       constraints: { models: [], profileDigests: [], requireApproval: false, requireHead: false, requireChecks: false, independentReviews: 0, requiredReviewIds: [], availability: "always" }, expiresAt: null, supersedes: [] });
     await acceptPolicyInventory(store, home, randomUUID(), captain, { sources: state.sourceAccepted ? [] : [source], rules: [rule] }, true);
     state.sourceAccepted = true;
-    return { id, projectId, project, planId: plan, owner, nodes };
+    return { id, projectId, project, planId: plan, owner, nodes, hostId };
   }
   async function input(scope: ScopeHandle, command: WorkflowCommand): Promise<ScopedPlanCommand> {
     const s = await store.read(), p = s.plans.find(p => p.plan.definition.id === scope.planId)?.plan;
     const operation = command.op === "captain" ? command.action === "answer" ? "decision.answer" : ["hold", "decline"].includes(command.action) ? "plan.stop" : "plan.review" :
       command.op === "progress" && command.action === "answer" ? "decision.answer" :
       ["start", "claim", "implicit"].includes(command.op) ? "plan.start" : ["record", "invalidate", "validate", "close", "ack"].includes(command.op) ? "plan.record" : "plan.review";
-    const target = { scopeId: scope.id, planId: scope.planId, projectIds: [scope.projectId], hostId: "local", operation } as const;
+    const target = { scopeId: scope.id, planId: scope.planId, projectIds: [scope.projectId], hostId: scope.hostId, operation } as const;
     const node = "node" in command ? p?.definition.nodes.find(n => n.id === command.node) : undefined;
     const binding = s.bindings.find(b => b.scopeId === scope.id), own = s.scopes.find(x => x.id === scope.id)!;
     return { requestId: randomUUID(), homeId: store.homeId, scopeId: scope.id, epoch: binding?.epoch ?? 1, scopeVersion: own.version,
@@ -98,7 +98,7 @@ export async function s04Fixture(options: { capabilities?: Partial<ReceiverCapab
     return commands.planCommand(await input(scope, command), actor ?? await actorFor(scope));
   }
   async function draft(scope: ScopeHandle, nodes: NodeSpec[], delegated = false) {
-    await run(scope, { op: "draft", definition: planDefinition(scope.planId, scope.project, nodes, 6, delegated) });
+    await run(scope, { op: "draft", definition: planDefinition(scope.planId, scope.project, nodes, 6, delegated, scope.hostId) });
     const p = (await store.read()).plans.find(p => p.plan.definition.id === scope.planId)!.plan;
     if (p.status === "review") await run(scope, { op: "captain", plan: scope.planId, revision: p.revision, subjectHash: planSubjectHash(p), action: "approve", text: "Approve the bounded fixture plan." }, captain);
   }
