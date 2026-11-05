@@ -411,18 +411,35 @@ export class SupervisionStore {
   }
   async acquireCoordinator(): Promise<number> {
     this.writable();
+    const inspect = this.options.processIdentity ?? supervisionProcessIdentity;
+    // Probe identities before the publication lock: an OS probe can take seconds on a cold or stalled
+    // Windows host, and holding publication.active that long starves every read of this store. The
+    // locked claim below re-reads the chain and only uses a result probed for that exact record
+    // (matched by hash); anything that changed meanwhile is probed again inside. The exclusive
+    // generation publish still arbitrates, so two coordinators remain impossible.
+    let probedPrevious: { hash: string; state: ProcessIdentity } | null = null, probedSelf: ProcessIdentity | null = null;
+    if (!this.coordinator) {
+      let previous: Coordinator | undefined;
+      try {
+        previous = (await this.coordinators()).at(-1);
+        if (previous && !await this.released(previous)) probedPrevious = { hash: previous.hash, state: await inspect(previous.pid) };
+      } catch { /* The locked claim re-reads everything and reports the authoritative problem. */ }
+      const doomed = previous && probedPrevious && (probedPrevious.state.state === "unknown" ||
+        (probedPrevious.state.state === "alive" && probedPrevious.state.start === previous.start));
+      if (!doomed) try { probedSelf = await inspect(process.pid); } catch { /* Reprobed inside, where a failure is authoritative. */ }
+    }
     return this.locked(async () => {
       const snapshot = await this.scan();
       // A complete pending event can be published by recoverPublication after ownership is acquired.
       if (!snapshot.initialized || snapshot.problems.some(p => p !== "Final transaction awaits publication.")) fail("HELD", snapshot.problems.join(" ") || "Store is not initialized.");
       if (this.coordinator) { await this.assertCoordinator(); return this.coordinator.generation; }
       const previous = snapshot.coordinators.at(-1);
-      const inspect = this.options.processIdentity ?? supervisionProcessIdentity;
+      // `inspect` and the pre-lock probes are set up above, before locked().
       if (previous && !await this.released(previous)) {
-        const state = await inspect(previous.pid);
+        const state = probedPrevious?.hash === previous.hash ? probedPrevious.state : await inspect(previous.pid);
         if (state.state === "unknown" || (state.state === "alive" && state.start === previous.start)) fail("HELD", "The coordinator is alive or its termination is unknown; no timestamp takeover.");
       }
-      const self = await inspect(process.pid);
+      const self = probedSelf ?? await inspect(process.pid);
       if (self.state !== "alive") fail("UNSUPPORTED", "Cannot verify this process start identity.");
       const record = hashed({ format: "firstmate.supervision-coordinator/1" as const, homeId: this.homeId,
         generation: (previous?.generation ?? 0) + 1, previous: previous?.hash ?? null, pid: process.pid, start: self.start });

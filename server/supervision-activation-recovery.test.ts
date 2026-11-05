@@ -60,7 +60,7 @@ function nativeDaemon() {
     loseCreate: () => { loseCreate = true; }, visible: (value: boolean) => { visible = value; } };
 }
 let native: ReturnType<typeof nativeDaemon>;
-// As in the crash suite, pay the cold Windows host startup before the real, unchanged 5 s probes.
+// As in the crash suite, pay the cold Windows host startup before the real probes.
 beforeAll(async () => {
   if (process.platform === "win32") await warmWindowsIdentityProbe();
 }, WARMUP_TIMEOUT_MS + 10000);
