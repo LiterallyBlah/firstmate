@@ -15,12 +15,15 @@ const exec = promisify(execFile);
 const slugFor = (key: string, slug: string | undefined) =>
   slug === key || (slug?.startsWith(`${key}-`) === true && /^\d+$/.test(slug.slice(key.length + 1)));
 /** Errors known to be raised before the daemon admits a creation, so nothing was provisioned:
- * the client's own schema parse and in-flight key conflict, and the daemon's pre-admission codes. */
+ * the client's own schema parse, and the daemon's pre-admission codes in their exact forms only —
+ * the bare code, or its exact "Directory not found: …" message. A code word buried in a longer
+ * provisioning message proves nothing. Everything else (key conflicts included) must earn its
+ * rejection through git-level proof. */
 function preAdmissionRefusal(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
   if (error.name === "ZodError" && Array.isArray((error as { issues?: unknown }).issues)) return true;
-  if (error.message === "workspace_request_key_conflict") return true;
-  return error.message.split(/[^a-z_]+/).some(token => token === "directory_not_found" || token === "source_required");
+  const text = error.message.trim();
+  return text === "directory_not_found" || text === "source_required" || text.startsWith("Directory not found:");
 }
 /** Errors after which creation may still be running or may already have landed: connection loss,
  * the client's request timeout, and the daemon's own outcome-unknown marker. Always uncertain. */
@@ -114,7 +117,10 @@ export class SupervisionWorkerReceiver extends SupervisionUiReceiver {
   private async proveNotCreated(intent: WorkspaceIntent, project: string): Promise<boolean> {
     try {
       await this.git(project, ["rev-parse", "--path-format=absolute", "--git-common-dir"]); // git reads this repo at all
-      if (await this.git(project, ["rev-parse", "--verify", "--quiet", `refs/heads/${intent.branch}`]).then(() => true, () => false)) return false;
+      // Only exit 1 means "no such ref": a timeout, lock, spawn error or any other failure is doubt.
+      const ref = await this.git(project, ["rev-parse", "--verify", "--quiet", `refs/heads/${intent.branch}`])
+        .then(() => "present" as const, (error: { code?: unknown }) => error?.code === 1 ? "absent" as const : "doubt" as const);
+      if (ref !== "absent") return false;
       if (await this.branchWorktreePath(project, intent.branch)) return false;
       const root = join(paseoHome(), "worktrees");
       let hashes;

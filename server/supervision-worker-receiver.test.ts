@@ -18,7 +18,8 @@ const execute = promisify(execFile);
  * rejection is the legacy path. Provisioning failures (e.g. an invalid ref) surface as a plain
  * daemon error with the outcome unknown, never as a clean refusal. */
 type Behavior = "ok" | "slug-collision" | "slug-rewritten" | "slug-rewritten-alias" | "timeout-after-create" | "timeout" |
-  "outcome-unknown" | "half-built" | "half-built-dir" | "refuse" | "schema" | "daemon-error" | "lose-before-create";
+  "outcome-unknown" | "half-built" | "half-built-dir" | "refuse" | "schema" | "daemon-error" | "lose-before-create" |
+  "key-conflict" | "key-conflict-half-built" | "embedded-code-half-built" | "directory-message-half-built" | "corrupt-packed-refs";
 async function fixture(behavior: Behavior = "ok") {
   const root = join(process.env.PASEO_HOME!, randomUUID()), project = join(root, "project"), worktree = join(root, "isolated");
   await mkdir(project, { recursive: true });
@@ -28,6 +29,7 @@ async function fixture(behavior: Behavior = "ok") {
   const intent: WorkspaceIntent = { key: `ws-${randomUUID()}`, purpose: "worker", project: "fixture", hostId: "local", branch: `fm/${randomUUID()}`, baseBranch: "main" };
   const paseoId = `wks_${randomUUID().replace(/-/g, "").slice(0, 16)}`;
   const entries: { id: string; workspaceDirectory: string; worktreeSlug: string }[] = [];
+  let added = false;
   const agentCreate = vi.fn(async (i: { agentId: string }) => ({ id: i.agentId }));
   let handle = { id: paseoId, directory: worktree, refresh: async () => ({ id: paseoId, workspaceDirectory: worktree, worktreeSlug: intent.key }), agents: { create: agentCreate } };
   const timeout = () => Object.assign(new Error("Timeout waiting for message (60000ms)"), { code: "DAEMON_REQUEST_TIMEOUT" });
@@ -36,6 +38,8 @@ async function fixture(behavior: Behavior = "ok") {
     const claimed = options.workspaceId !== undefined
       ? z.string().regex(/^wks_[a-f0-9]{16}$/).parse(options.workspaceId) : paseoId;
     if (behavior === "refuse") throw new Error("directory_not_found");
+    if (behavior === "key-conflict") throw new Error("workspace_request_key_conflict");
+    if (behavior === "corrupt-packed-refs") { await writeFile(join(project, ".git", "packed-refs"), "garbage-line-not-a-ref\n"); throw new Error("workspace setup failed"); }
     if (behavior === "daemon-error") throw new Error("workspace setup failed");
     if (behavior === "timeout") throw timeout();
     if (behavior === "outcome-unknown") throw new Error("workspace_request_outcome_unknown");
@@ -44,8 +48,11 @@ async function fixture(behavior: Behavior = "ok") {
       await mkdir(join(process.env.PASEO_HOME!, "worktrees", "fixturehash", intent.key), { recursive: true });
       throw new Error("workspace provisioning failed");
     }
-    await git("worktree", "add", "-b", intent.branch, worktree, "main");
+    if (!added) { await git("worktree", "add", "-b", intent.branch, worktree, "main"); added = true; }
     if (behavior === "half-built") throw new Error("workspace provisioning failed"); // worktree+branch on disk, no registry row
+    if (behavior === "key-conflict-half-built") throw new Error("workspace_request_key_conflict");
+    if (behavior === "embedded-code-half-built") throw new Error("workspace provisioning failed: directory_not_found while seeding config");
+    if (behavior === "directory-message-half-built") throw new Error("Directory not found: /nope");
     const slug = behavior === "slug-collision" ? `${intent.key}-1` : behavior.startsWith("slug-rewritten") ? "rewritten-by-hook" : options.source.worktreeSlug!;
     // The daemon's spelling of the directory may differ from git's (junction here; Windows 8.3
     // short names on CI runners): only canonical-path comparison can still match the branch mark.
@@ -145,6 +152,35 @@ it("keeps a half-built worktree uncertain: branch and worktree exist with no reg
 it("keeps a half-built managed directory uncertain: the slug directory exists with no registry row", async () => {
   const f = await fixture("half-built-dir");
   await expect(f.receiver.openWorkspace(f.intent)).rejects.toThrow("provisioning failed");
+  await expect(f.receiver.openWorkspace(f.intent)).rejects.not.toBeInstanceOf(ReceiverRejected);
+  expect(await f.receiver.findWorkspace(f.intent)).toBeNull();
+}, 30000);
+it("settles a key conflict as rejected only with git-level proof nothing was created", async () => {
+  const f = await fixture("key-conflict");
+  await expect(f.receiver.openWorkspace(f.intent)).rejects.toBeInstanceOf(ReceiverRejected);
+  expect(await f.receiver.findWorkspace(f.intent)).toBeNull();
+}, 30000);
+it("keeps a key conflict with a half-built worktree uncertain: it must earn git proof like any error", async () => {
+  const f = await fixture("key-conflict-half-built");
+  await expect(f.receiver.openWorkspace(f.intent)).rejects.toThrow("workspace_request_key_conflict");
+  await expect(f.receiver.openWorkspace(f.intent)).rejects.not.toBeInstanceOf(ReceiverRejected);
+  expect(await f.receiver.findWorkspace(f.intent)).toBeNull();
+}, 30000);
+it("keeps an error merely mentioning a refusal code uncertain when a worktree exists", async () => {
+  const f = await fixture("embedded-code-half-built");
+  await expect(f.receiver.openWorkspace(f.intent)).rejects.toThrow("provisioning failed: directory_not_found");
+  await expect(f.receiver.openWorkspace(f.intent)).rejects.not.toBeInstanceOf(ReceiverRejected);
+  expect(await f.receiver.findWorkspace(f.intent)).toBeNull();
+}, 30000);
+it("settles the daemon's exact Directory not found message as rejected without git proof", async () => {
+  const f = await fixture("directory-message-half-built");
+  await expect(f.receiver.openWorkspace(f.intent)).rejects.toBeInstanceOf(ReceiverRejected);
+  await expect(f.receiver.openWorkspace(f.intent)).rejects.toThrow("Directory not found:");
+  expect(await f.receiver.findWorkspace(f.intent)).toBeNull();
+}, 30000);
+it("keeps a daemon error uncertain when git cannot answer the branch check (exit other than 1)", async () => {
+  const f = await fixture("corrupt-packed-refs");
+  await expect(f.receiver.openWorkspace(f.intent)).rejects.toThrow("workspace setup failed");
   await expect(f.receiver.openWorkspace(f.intent)).rejects.not.toBeInstanceOf(ReceiverRejected);
   expect(await f.receiver.findWorkspace(f.intent)).toBeNull();
 }, 30000);
