@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { join } from "node:path";
-import { writeFile } from "node:fs/promises";
+import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { expect, it, vi } from "vitest";
 import { s04Fixture, captain, type ScopeHandle } from "../test/supervision-s04-fixture";
 import { PlanRuntime } from "../server/plan-runtime";
@@ -183,6 +183,29 @@ it.each(["before-file", "before-supersede", "dispatch-file", "dispatch-supersede
   } finally { await runtime.stop(); }
 });
 
+it("F2: a cold start answers a pending scope read without lifecycle context or bootstrap configuration, deferring only host effects", async () => {
+  const f = await fixture();
+  // No remember, no register, no FIRSTMATE_PLAN_BOOTSTRAP_URL: a freshly started plugin's first tick.
+  const cold = new PlanRuntime(f.runtime, { enabled: true, config: async () => FirstmateConfigSchema.parse({ home: f.home, mateAgentId: "general" }), receiver: () => f.receiver, slots: 10 });
+  try {
+    const scope = f.scopes[0]!, epoch = (await f.store.read()).bindings.find(b => b.scopeId === scope.id)!.epoch;
+    const directory = join(f.home, "data", "scope-requests"); await mkdir(directory, { recursive: true });
+    const read = randomUUID(), start = randomUUID();
+    await writeFile(join(directory, `${read}.json`), JSON.stringify({ id: read, actor: scope.owner.id, kind: "read", input: { scopeId: scope.id, epoch, page: "state" } }));
+    await writeFile(join(directory, `${start}.json`), JSON.stringify({ id: start, actor: scope.owner.id, kind: "plan", input: await f.input(0) }));
+    await cold.tick();
+    expect(JSON.parse(await readFile(join(directory, `${read}.reply.json`), "utf8"))).toMatchObject({ ok: true, result: { freshness: "current", scope: { id: scope.id } } });
+    // The start needs the host's agents: it is neither refused nor reserved, and nothing reaches the receiver.
+    await expect(stat(join(directory, `${start}.reply.json`))).rejects.toMatchObject({ code: "ENOENT" });
+    expect((await f.store.read()).attempts).toEqual([]); expect(f.receiver.calls).toEqual([]);
+    await cold.tick(); await expect(stat(join(directory, `${start}.reply.json`))).rejects.toMatchObject({ code: "ENOENT" });
+    // Once an ordinary host handle exists, the deferred request is served exactly once by the gateway.
+    cold.remember(f.api); await cold.tick(); await cold.tick();
+    expect(JSON.parse(await readFile(join(directory, `${start}.reply.json`), "utf8"))).toMatchObject({ ok: true });
+    expect((await f.store.read()).attempts).toHaveLength(1);
+    expect(f.receiver.calls.filter(c => c.op === "createAgent")).toHaveLength(1); expect(f.receiver.sends).toHaveLength(1);
+  } finally { await cold.stop(); await f.service.stop(); await f.runtime.stop(); }
+});
 it("F2: a failed idle bootstrap retains the original reservation and backs off without a model event", async () => {
   const f = await fixture();
   try {

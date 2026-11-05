@@ -13,10 +13,14 @@ it("F2: explicit loopback bootstrap connects and reads General identity without 
   const connection = await connectPlanBootstrap(home, "general", { env: { FIRSTMATE_PLAN_BOOTSTRAP_URL: "ws://127.0.0.1:6767/ws", FIRSTMATE_PLAN_BOOTSTRAP_PASSWORD: "synthetic-secret" }, create: f.create! });
   expect(f.client.connect).toHaveBeenCalledOnce(); expect(f.client.agents.ref).toHaveBeenCalledExactlyOnceWith("general");
   expect(f.create).toHaveBeenCalledWith(expect.objectContaining({ password: "synthetic-secret", connectTimeoutMs: 5000 }));
-  await connection.close(); expect(f.client.close).toHaveBeenCalledOnce();
+  await connection!.close(); expect(f.client.close).toHaveBeenCalledOnce();
 });
-it.each([undefined, "ws://other-host:6767/ws", "ws://127.0.0.1:6767/ws?token=no", "ws://user:secret@127.0.0.1:6767/ws", "http://127.0.0.1:6767/ws"])("F2: missing or unqualified endpoint never creates a client (%s)", async url => {
-  const f = fixture("home"); await expect(connectPlanBootstrap("home", "general", { env: url ? { FIRSTMATE_PLAN_BOOTSTRAP_URL: url } : {}, create: f.create! })).rejects.toMatchObject({ code: "HELD" });
+it("F2: an unconfigured bootstrap is optional and never creates a client", async () => {
+  const f = fixture("home"); await expect(connectPlanBootstrap("home", "general", { env: {}, create: f.create! })).resolves.toBeNull();
+  expect(f.create).not.toHaveBeenCalled();
+});
+it.each(["not a url", "ws://other-host:6767/ws", "ws://127.0.0.1:6767/ws?token=no", "ws://user:secret@127.0.0.1:6767/ws", "http://127.0.0.1:6767/ws"])("F2: malformed or unqualified endpoint never creates a client (%s)", async url => {
+  const f = fixture("home"); await expect(connectPlanBootstrap("home", "general", { env: { FIRSTMATE_PLAN_BOOTSTRAP_URL: url }, create: f.create! })).rejects.toMatchObject({ code: "HELD" });
   expect(f.create).not.toHaveBeenCalled();
 });
 it.each([{ id: "wrong-general" }, { cwd: "wrong-home" }, { archivedAt: "2026-10-29T00:00:00Z" }])("F2: mismatched General/home refuses and closes before retained work (%j)", async override => {

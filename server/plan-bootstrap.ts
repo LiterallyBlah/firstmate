@@ -5,11 +5,13 @@ import { sameDirectory } from "./fleet";
 import { SupervisionError } from "./supervision-store";
 export interface PlanBootstrapConnection { paseo: ReturnType<typeof createPaseoClient>; close(): Promise<void> }
 export async function connectPlanBootstrap(home: string, generalId: string,
-  options: { env?: NodeJS.ProcessEnv; create?: typeof createPaseoClient } = {}): Promise<PlanBootstrapConnection> {
+  options: { env?: NodeJS.ProcessEnv; create?: typeof createPaseoClient } = {}): Promise<PlanBootstrapConnection | null> {
   const env = options.env ?? process.env;
+  // Optional: without it, store-only scope requests are still served and host effects wait for a host handle.
+  if (!env.FIRSTMATE_PLAN_BOOTSTRAP_URL) return null;
   let url: URL;
-  try { url = new URL(env.FIRSTMATE_PLAN_BOOTSTRAP_URL ?? ""); }
-  catch { throw new SupervisionError("HELD", "Idle plan startup requires an explicitly configured FIRSTMATE_PLAN_BOOTSTRAP_URL."); }
+  try { url = new URL(env.FIRSTMATE_PLAN_BOOTSTRAP_URL); }
+  catch { throw new SupervisionError("HELD", "FIRSTMATE_PLAN_BOOTSTRAP_URL is not a valid URL."); }
   if (!["ws:", "wss:"].includes(url.protocol) || !["127.0.0.1", "[::1]"].includes(url.hostname) || !url.port ||
     url.pathname !== "/ws" || url.username || url.password || url.search || url.hash)
     throw new SupervisionError("HELD", "Plan bootstrap needs an explicit loopback WebSocket endpoint ending in /ws, without URL credentials.");

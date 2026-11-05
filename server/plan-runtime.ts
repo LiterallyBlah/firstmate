@@ -21,7 +21,7 @@ import { SupervisionInbox } from "./supervision-inbox";
 import { SupervisorSessions } from "./supervisor-sessions";
 import { registerSupervisionLifecycle, SupervisionLifecycle } from "./supervision-lifecycle";
 import { ghPullRequestReader, registerScopedBoardIngress, ScopedBoardSteer, SupervisionSources, type PullRequestReader } from "./supervision-sources";
-import { processScopeRequests } from "./scope-requests";
+import { processScopeRequests, type ScopeHandlers } from "./scope-requests";
 import { workflowStore } from "./workflow-service";
 import { acceptPolicyInventory, currentPolicyVector } from "./supervision-policy";
 import { PlanRules } from "./plan-rules";
@@ -48,7 +48,7 @@ const Import = z.object({ sources: z.array(PolicySourceSchema).max(64), rules: z
   reviewedHolds: z.array(z.object({ id: z.uuid(), version: z.number().int().positive() }).strict()).max(64).optional() }).strict();
 export interface PlanRuntimeOptions { enabled?: boolean; config?: typeof readFirstmateConfig;
   receiver?: (paseo: PaseoApi, store: SupervisionStore) => GatewayReceiver; slots?: number; headroom?: number; readPr?: PullRequestReader;
-  bootstrap?: (home: string, generalId: string) => Promise<{ paseo: PaseoApi; close(): Promise<void> }> }
+  bootstrap?: (home: string, generalId: string) => Promise<{ paseo: PaseoApi; close(): Promise<void> } | null> }
 type Components = ReturnType<PlanRuntime["compose"]>;
 type LifecycleHook = (event: unknown, context: unknown) => unknown;
 export class PlanRuntime {
@@ -97,8 +97,17 @@ export class PlanRuntime {
     if (capability) await this.runtime.features?.check(home, capability);
   }
   private async capacity(home: string) { return this.runtime.features?.capacity(home) ?? { slots: this.options.slots ?? 4, generalHeadroom: this.options.headroom ?? 1 }; }
-  compose(store: SupervisionStore, home: string, generalId: string, paseo: PaseoApi) {
+  /** Store-only parts: everything a scope request needs except the host's agents. */
+  private hostFree(store: SupervisionStore, home: string, generalId: string) {
     const rules = new PlanRules(store, home);
+    const commands = new SupervisionCommands(store, home, { enabled: true, rules, recovery: true, registerTasks: true,
+      commandBoundary: run => this.runtime.features ? this.runtime.features.boundary(home, run) : run(), commandAdmission: async (_s, input) => {
+      await this.guard(home, generalId, ["record", "ack", "notified", "hold"].includes(input.command.op) ? false : "planSupervisors");
+    } });
+    return { rules, commands, sources: new SupervisionSources(store), inbox: new SupervisionInbox(store, { offers: true }), projectJudgments: new ProjectJudgments(store) };
+  }
+  compose(store: SupervisionStore, home: string, generalId: string, paseo: PaseoApi) {
+    const { rules, commands, sources, inbox, projectJudgments } = this.hostFree(store, home, generalId);
     const directory = async (name: string) => {
       const s = await store.read();
       const matches = s.projects?.projects.filter(p => p.state === "admitted" && [p.name, ...p.aliases].some(n => normalizedName(n) === normalizedName(name)));
@@ -107,15 +116,11 @@ export class PlanRuntime {
       return matches[0]!.owner!.directory;
     };
     const receiver = this.options.receiver?.(paseo, store) ?? new SupervisionWorkerReceiver(paseo, this.runtime.root, directory);
-    const commands = new SupervisionCommands(store, home, { enabled: true, rules, recovery: true, registerTasks: true,
-      commandBoundary: run => this.runtime.features ? this.runtime.features.boundary(home, run) : run(), commandAdmission: async (_s, input) => {
-      await this.guard(home, generalId, ["record", "ack", "notified", "hold"].includes(input.command.op) ? false : "planSupervisors");
-    } });
     const allocation = (s: SupervisionStatus, input: import("../shared/scoped-commands").ScopedPlanCommand) => {
       const c = input.command, node = c.op === "implicit" ? c.launch.id : "node" in c ? c.node : null;
       checkPlanAllocation(s, input.scopeId, true, s.tasks.find(t => t.ownerScopeId === input.scopeId && t.nodeId === node)?.projectId);
     };
-    const sources = new SupervisionSources(store), board = new ScopedBoardSteer(store, sources, undefined, { refuseDelivery: true });
+    const board = new ScopedBoardSteer(store, sources, undefined, { refuseDelivery: true });
     const admissionCheck = async (s: SupervisionStatus, scopeId: string) => {
       const scope = s.scopes.find(v => v.id === scopeId);
       await this.guard(home, generalId, scope?.kind === "project" ? "projectMates" : "planSupervisors");
@@ -185,7 +190,7 @@ export class PlanRuntime {
         if (!p?.owner) refuse("HELD", "Project provisioning limits are unavailable.");
         return p.owner.limits;
       }, reserveCheck: admissionCheck, globalMateId: async () => { await this.guard(home, generalId, false); return generalId; } });
-    const ingress = new SupervisionEvents(store), inbox = new SupervisionInbox(store, { offers: true });
+    const ingress = new SupervisionEvents(store);
     const lifecycle = new SupervisionLifecycle(store, ingress, inbox, sessions, gateway, { enabled: true, context: (s, scopeId) => ({
       helper: join(home, "tools", "scope.mjs"), guide: join(home, TEMPLATES.scopeGuide), scopeId, epoch: s.bindings.find(b => b.scopeId === scopeId)?.epoch,
       rules: s.planRules?.filter(r => r.scopeId === scopeId && s.plans.some(p => p.scopeId === scopeId && p.plan.revision === r.revision)).map(r => ({ ...ruleRef(r), revision: r.revision, nodes: r.nodes.map(n => n.nodeId) })),
@@ -206,7 +211,7 @@ export class PlanRuntime {
       }) as PluginServerContext["on"] };
       this.disposers.push(registerSupervisionLifecycle(registration, lifecycle), registerScopedBoardIngress(registration, board));
     }
-    return { rules, receiver, commands, sources, board, gateway, sessions, ingress, inbox, lifecycle, projectJudgments: new ProjectJudgments(store), recovered: false, recoveredAt: 0, routesHash: "" };
+    return { rules, receiver, commands, sources, board, gateway, sessions, ingress, inbox, lifecycle, projectJudgments, recovered: false, recoveredAt: 0, routesHash: "" };
   }
   async tick() {
     if ((!this.options.enabled && !this.runtime.features) || this.closed) return;
@@ -214,17 +219,31 @@ export class PlanRuntime {
     if (config.migration || config.mateLaunch || !config.mateAgentId) return;
     const read = await this.runtime.read(home);
     if (read.freshness !== "current" || !read.bindings.length) return;
-    if (!this.paseo) {
-      if (Date.now() - this.bootstrapAttemptAt < 60000) return;
+    // The host handle is optional for request processing. Paseo hands one to RPCs and lifecycle hooks only,
+    // so a fresh plugin with neither answers store-only scope requests now and defers host-dependent ones.
+    let bootstrapError: unknown = null;
+    if (!this.paseo && Date.now() - this.bootstrapAttemptAt >= 60000) {
       this.bootstrapAttemptAt = Date.now();
-      const connection = await (this.options.bootstrap ?? connectPlanBootstrap)(home, config.mateAgentId);
-      try { await this.guard(home, config.mateAgentId, false); }
-      catch (error) { await connection.close(); throw error; }
-      this.bootstrapConnection = connection;
-      // A lifecycle event may have supplied the host API while the connection was opening.
-      this.paseo ??= connection.paseo;
+      try {
+        const connection = await (this.options.bootstrap ?? connectPlanBootstrap)(home, config.mateAgentId);
+        if (connection) {
+          try { await this.guard(home, config.mateAgentId, false); }
+          catch (error) { await connection.close(); throw error; }
+          this.bootstrapConnection = connection;
+          // A lifecycle event may have supplied the host API while the connection was opening.
+          this.paseo ??= connection.paseo;
+        }
+      } catch (error) { bootstrapError = error; }
     }
     const paseo = this.paseo;
+    if (!paseo) {
+      await this.runtime.mutate(home, async store => {
+        await this.guard(home, config.mateAgentId, false);
+        await processScopeRequests(home, { ...this.scopeHandlers(store, home, config.mateAgentId, this.hostFree(store, home, config.mateAgentId)), gateway: null, deferHost: true });
+      });
+      if (bootstrapError) throw bootstrapError;
+      return;
+    }
     await this.runtime.mutate(home, async store => {
       await this.guard(home, config.mateAgentId, false);
       let c = this.components.get(store);
@@ -239,18 +258,7 @@ export class PlanRuntime {
         const temporary = join(directory, "scoped-routes.json.tmp"); await writeFile(temporary, JSON.stringify(routes)); await rename(temporary, join(directory, "scoped-routes.json"));
         c.routesHash = digest(routes);
       }
-      await processScopeRequests(home, { store, commands: c.commands, gateway: c.gateway, legacy: workflowStore(home), inbox: c.inbox, rules: c.rules,
-        globalMateId: async () => { await this.guard(home, config.mateAgentId, false); return config.mateAgentId; }, continuationsEnabled: true,
-        projectResult: (id, input, actor) => own.projectJudgments.handle(id, input, actor),
-        admin: async (kind, id, input, actor) => { await this.guard(home, config.mateAgentId);
-          if (kind === "rules") return own.rules.import(id, PlanRuleRecordSchema.parse(input), actor);
-          const data = Import.parse(input);
-          return acceptPolicyInventory(store, home, id, actor, { sources: data.sources, rules: data.rules, reviewedHolds: data.reviewedHolds ?? [] }, true); },
-        bindPr: async (requestId, input, actor) => {
-          const binding = z.object({ scopeId: z.uuid(), attemptId: z.uuid(), repository: z.string(), pr: z.number().int().positive() }).strict().parse(input);
-          const s = await store.read(); if (!s.bindings.some(b => b.scopeId === binding.scopeId && b.agentId === actor.id && b.state === "active")) refuse("UNKNOWN_OWNER", "PR binding requires this exact supervisor.");
-          return own.sources.bindPullRequest(binding, requestId);
-        } });
+      await processScopeRequests(home, { ...this.scopeHandlers(store, home, config.mateAgentId, c), gateway: c.gateway });
       const policy = await this.runtime.features?.read(home);
       if (policy && !policy.effective.planSupervisors) {
         await this.runtime.reconcile(home, c.receiver, ["project", "plan"]);
@@ -295,6 +303,20 @@ export class PlanRuntime {
         await c.sources.ingestPrSpool(join(pluginDir(), "watch-state", "pr-watch", "pr-observations"));
       }
     });
+  }
+  private scopeHandlers(store: SupervisionStore, home: string, generalId: string, own: ReturnType<PlanRuntime["hostFree"]>): Omit<ScopeHandlers, "gateway"> {
+    return { store, commands: own.commands, legacy: workflowStore(home), inbox: own.inbox, rules: own.rules,
+      globalMateId: async () => { await this.guard(home, generalId, false); return generalId; }, continuationsEnabled: true,
+      projectResult: (id, input, actor) => own.projectJudgments.handle(id, input, actor),
+      admin: async (kind, id, input, actor) => { await this.guard(home, generalId);
+        if (kind === "rules") return own.rules.import(id, PlanRuleRecordSchema.parse(input), actor);
+        const data = Import.parse(input);
+        return acceptPolicyInventory(store, home, id, actor, { sources: data.sources, rules: data.rules, reviewedHolds: data.reviewedHolds ?? [] }, true); },
+      bindPr: async (requestId, input, actor) => {
+        const binding = z.object({ scopeId: z.uuid(), attemptId: z.uuid(), repository: z.string(), pr: z.number().int().positive() }).strict().parse(input);
+        const s = await store.read(); if (!s.bindings.some(b => b.scopeId === binding.scopeId && b.agentId === actor.id && b.state === "active")) refuse("UNKNOWN_OWNER", "PR binding requires this exact supervisor.");
+        return own.sources.bindPullRequest(binding, requestId);
+      } };
   }
   async remote(snapshot: RemoteSnapshot) {
     if ((!this.options.enabled && !this.runtime.features) || this.closed) return;

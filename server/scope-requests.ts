@@ -43,6 +43,15 @@ export interface ScopeHandlers {
   admin?: (kind: "policy" | "rules", requestId: string, input: unknown, actor: SupervisionActor) => Promise<unknown>;
   bindPr?: (requestId: string, input: unknown, actor: SupervisionActor) => Promise<unknown>;
   projectResult?: (requestId: string, input: unknown, actor: SupervisionActor) => Promise<unknown>;
+  /** No host handle yet: leave requests that need the gateway unanswered for a later pass, never refused. */
+  deferHost?: boolean;
+}
+/** Whether a request can only be served through the S04 gateway's host-backed effects. */
+export function needsHost(request: z.infer<typeof ScopeRequestSchema>): boolean {
+  if (request.kind === "stop-worker") return true;
+  if (request.kind !== "plan") return false;
+  const parsed = ScopedPlanCommandSchema.safeParse(request.input);
+  return parsed.success && ["start", "implicit", "claim", "replace", "retire"].includes(parsed.data.command.op);
 }
 /** One request: guest scope principal, partition check, then the same checked S03/S04 paths. */
 export async function handleScopeRequest(request: z.infer<typeof ScopeRequestSchema>, handlers: ScopeHandlers): Promise<unknown> {
@@ -162,6 +171,7 @@ export async function processScopeRequests(home: string, handlers: ScopeHandlers
         if ((await stat(path)).size > 256000) throw new Error("Scope request too large.");
         const request = ScopeRequestSchema.parse(JSON.parse(await readFile(path, "utf8")));
         if (`${request.id}.json` !== name) throw new Error("Request identity mismatch.");
+        if (handlers.deferHost && !handlers.gateway && needsHost(request)) { processed--; continue; }
         result = { ok: true, result: await handleScopeRequest(request, handlers) };
         if (Buffer.byteLength(JSON.stringify(result)) > 512 * 1024) throw new SupervisionError("HELD", "Scope response exceeds 512 KiB; narrow the request or page its retained inputs.");
       } catch (error) {
