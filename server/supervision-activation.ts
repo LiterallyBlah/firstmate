@@ -41,6 +41,8 @@ import { digest } from "./submissions";
 import { checkPolicySource, policyRef, sameVector } from "./supervision-policy";
 import { planFinished, planOwner } from "../shared/workflow-plans";
 import { planBudgetUsed } from "../shared/workflow-plan-summary";
+import type { NeedsYouSnapshot } from "../shared/needs-you";
+import { SETTLING_PROBLEM } from "./needs-you-service";
 import { PlanHelpPreparations } from "./plan-help-preparations";
 import { handoverEvidence } from "./plan-help-evidence";
 import { workflowHomeId } from "./workflow-board";
@@ -141,9 +143,8 @@ export class SupervisionActivation {
     const sources = project ? status.policySources.filter(s => project.sourceVector.some(ref => sameVector([ref], [policyRef("policy-source", s)])) && !status.policySources.some(next => next.supersedes.includes(s.id))) : [];
     if (!sources.length || project && sources.length !== project.sourceVector.length) problems.push("The project's permission evidence is missing. Review its original permission sources before continuing.");
     for (const source of sources) try { await checkPolicySource(home, source); } catch { problems.push(`Permission evidence changed or is unavailable: ${source.path}. Review that source before continuing.`); }
-    const decisions = await this.options.adapters(home).decisions();
-    if (!decisions || decisions.freshness.status !== "fresh" || !decisions.homeId || decisions.quarantined?.length)
-      problems.push("Decisions haven't all been checked. Refresh Needs you and resolve any unchecked work before handing over this plan.");
+    problems.push(...decisionProblems(await this.options.adapters(home).decisions(),
+      [...plan.definition.nodes, ...(plan.removed ?? []).map(r => r.node)].flatMap(n => n.kind === "run" ? [n.id] : [])));
     const migration = status.migrations?.find(m => m.planId === planId), scopeId = migration?.scopeId ?? migrationUuid(homeId, planId, "plan-help-scope");
     const preparation = await this.preparations().read(home, planId);
     const freeze = await workflowStore(home).cutover(planId).catch(() => "damaged");
@@ -473,6 +474,24 @@ export class SupervisionActivation {
     });
   }
 }
+/** Why plan help can't rely on Needs you, naming the cause. The adapter has already observed and
+ * waited for the backlog to settle, so the captain is never asked to refresh. Like the cutover's own
+ * inventory, only a quarantine that may belong to this plan's tasks holds it. */
+export function decisionProblems(decisions: NeedsYouSnapshot | null, planTasks: readonly string[]): string[] {
+  if (!decisions || decisions.freshness.status === "disabled")
+    return ["Needs you is off, so this plan's decisions can't be checked. Turn Needs you back on before handing over this plan."];
+  if (!decisions.homeId || decisions.freshness.status !== "fresh") {
+    // A settling backlog also lists every row it would quarantine, most of them other plans'; the
+    // wait is the cause. Only a read that could not settle at all has its own problems to name.
+    if (decisions.freshness.problems.includes(SETTLING_PROBLEM) || !decisions.freshness.problems.length)
+      return ["The backlog is still being changed, so its decisions haven't settled yet. Try again in a few seconds."];
+    return [`Decisions couldn't be checked: ${decisions.freshness.problems.join(" ")}`];
+  }
+  // Each problem already names its line and task where the backlog has them.
+  return (decisions.quarantined ?? []).filter(q => q.taskId === null || planTasks.includes(q.taskId)).map(q =>
+    `Needs you can't check this plan's decisions until this is repaired: ${q.problem}`);
+}
+
 export function registerSupervisionActivation(server: Pick<PluginServerContext, "handle">, activation: SupervisionActivation) {
   server.handle(readSupervisorControls, (input, { paseo }) => activation.readControls(input, paseo));
   server.handle(readSupervisorList, () => activation.listSupervisors());

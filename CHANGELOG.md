@@ -166,6 +166,11 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Fixed
 
+- **Plan help no longer asks you to refresh Needs you.** It checks your decisions itself and waits a
+  few seconds for the backlog to settle. The first mate recording workers, start dates, tags and notes
+  in the backlog no longer keeps it from settling; adding, moving or changing a task still restarts the
+  short wait. A damaged or missing row holds the handover only when it belongs to that plan (current or
+  removed steps) or has no readable task id, and the message quotes the row's own problem and line.
 - **The shark keeps you on deck.** Clicking its body or speech bubble, or choosing its keyboard Focus action,
   zooms to the selected worker and opens the crew focus panel in place.
 

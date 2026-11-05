@@ -243,7 +243,7 @@ export class SupervisionMigrator {
     const config = await adapters.config(), queue = await adapters.watchQueue(), decisions = await adapters.decisions();
     // Decision answers are imperative. Without a current ledger for this home there is no proof none was sent.
     if (!decisions || decisions.homeId === null || decisions.freshness.status !== "fresh")
-      fail("HELD", `The Needs-you ledger is ${decisions ? decisions.freshness.status : "unavailable"}; a cutover cannot prove which answers were sent. Enable and refresh it first.`);
+      fail("HELD", `The Needs-you ledger is ${decisions ? decisions.freshness.status : "unavailable"}; a cutover cannot prove which answers were sent. ${decisions?.freshness.status === "disabled" ? "Turn Needs you on first." : "Wait for the backlog to stop changing, then try again."}`);
     if ((decisions.quarantined ?? []).some(q => q.taskId === null || tokens.tasks.some(t => t.task === q.taskId)))
       fail("HELD", "A quarantined Needs-you row may belong to this plan; repair it before the cutover.");
     const claims = await gate.claims(), armed = await gate.armed(), preexisting = new Set(armed?.preexisting ?? []);

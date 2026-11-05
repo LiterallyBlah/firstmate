@@ -176,7 +176,7 @@ export default function contribute(server: PluginServerContext) {
     runtime: supervisionRuntime,
     backupSettings: new MigrationSettings(pluginDir(), readFirstmateConfig().then(c => ({ homeId: workflowHomeIdentity(resolveHome(c)),
       destination: legacyEnvironment.FIRSTMATE_MIGRATION_BACKUP_ROOT ?? "", retention: legacyEnvironment.FIRSTMATE_MIGRATION_RETENTION ?? "" }))),
-    adapters: () => legacyAdapters(watches.runner, () => decisions.read()),
+    adapters: () => legacyAdapters(watches.runner, () => decisions.settled()),
   });
   registerSupervisionActivation(server, activation);
   registerProjectRuntime(server, projects);

@@ -422,6 +422,13 @@ task ids, appear in the drawer and indicator description, and unreadable holds l
 Every decision count, including the Deck legend, uses the server total and labels stale/unavailable
 data. `local` resolves without a catalog; the saved local host label comes from registry sync and is
 retained across restart. Ambiguous labels stay unresolved. See `docs/needs-you-foundation.md`.
+Stability is judged on the detected sources, quarantines and problems, never the file's bytes, so a
+busy first mate's agent/since edits elsewhere cannot keep it stale. Plan help and the cutover read
+through `NeedsYouService.settled()` (a fresh observation, bounded wait), and plan help's
+`decisionProblems` names the cause and, like the cutover inventory, holds only on this plan's quarantines
+(current and removed run steps, or no task id). A `settled()` wait that runs out is not repeated for
+15 s, so one prepare (review, evidence, inventory, all under the activation lock) waits about 4 s once,
+not three times.
 
 The decision drawer marks a visible open question Seen through the revision-bound RPC; this never
 reduces the action count. `Mark as new` is an explicit menu action. Its session order is append-only,

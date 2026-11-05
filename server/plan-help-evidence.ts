@@ -7,7 +7,7 @@ import { listDirectory, readTextFile } from "./files";
 import { digest } from "./submissions";
 import { checkPolicySource, policyRef, sameVector } from "./supervision-policy";
 import { SupervisionMigrator, type LegacyDeliveryAdapters } from "./supervision-migrate";
-import { SupervisionStore } from "./supervision-store";
+import { SupervisionError, SupervisionStore } from "./supervision-store";
 import { workflowStore } from "./workflow-service";
 /** Presentation only: never infer handling from a send receipt or change a disposition. */
 function deliveryExplanation(d: LegacyDeliveryDisposition, plan: string, work?: string): string {
@@ -77,6 +77,10 @@ export async function handoverEvidence(root: string, home: string, review: PlanH
       "Messages whose result is unknown stay paused for review. Nothing will be sent again."],
       // Retain exact diagnostic data and guard inputs; only the client disclosure renders them.
       details: dry.dispositions.map(d => `${d.source} · ${d.id}\n${JSON.stringify(d.original)}\n${d.reason}`), problems: dry.problems };
-  } catch { result.problems.push("Pending deliveries couldn't all be checked. Refresh Needs you, then check this evidence again before handover."); }
+  } catch (error) {
+    // The cutover's own refusals (a stale ledger, a quarantine of this plan's) are worded for the captain.
+    result.problems.push(error instanceof SupervisionError ? `Pending deliveries couldn't all be checked: ${error.message}`
+      : "Pending deliveries couldn't all be checked. Check this evidence again before handover.");
+  }
   return result;
 }

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import {
   mkdir,
   mkdtemp,
@@ -142,6 +143,66 @@ describe("service persistence and observation", () => {
     const good = after.requests.find(r => r.source.taskId === "good")!;
     const acted = await instance.mutate({ homeId: after.homeId!, id: good.id, revision: good.revision }, { kind: "seen" });
     expect(acted.requests.find(r => r.id === snoozed.requests[0]!.id)).toEqual(snoozed.requests[0]);
+  });
+
+  it("settles while busy workers rewrite runtime parts of the backlog, but a gate edit restarts the wait", async () => {
+    const path = join(home, "data", "backlog.md"), instance = service();
+    await instance.read();
+    for (let turn = 0; turn < 3; turn++) {
+      // The first mate records a worker, and when it started between reads; no gate changes.
+      await writeFile(path, document(`(hold: Decide?) (agent: worker-${turn}) (since: 2026-11-0${turn + 1})`));
+      now += 2000;
+      expect((await instance.read()).freshness.status).toBe("fresh");
+    }
+    await writeFile(path, document("(hold: Decide something else?) (agent: worker-2)"));
+    now += 2000;
+    expect((await instance.read()).freshness).toMatchObject({ status: "stale", problems: ["Waiting for a stable backlog observation."] });
+    now += 2000;
+    expect(await instance.read()).toMatchObject({ freshness: { status: "fresh" }, requests: [{ revision: 2, source: { ask: "Decide something else?" } }] });
+  });
+
+  it("a changed quarantine restarts the wait even when the healthy gates are unchanged", async () => {
+    const path = join(home, "data", "backlog.md"), instance = service();
+    const broken = (id: string) => document().replace("## Done", `- [ ] ${id} - Broken (broken:
+## Done`);
+    await writeFile(path, broken("first"));
+    expect(await settle(instance)).toMatchObject({ freshness: { status: "fresh" }, quarantined: [{ taskId: "first" }] });
+    await writeFile(path, broken("second"));
+    now += 2000;
+    expect((await instance.read()).freshness).toMatchObject({ status: "stale", problems: expect.arrayContaining(["Waiting for a stable backlog observation."]) });
+    now += 2000;
+    expect(await instance.read()).toMatchObject({ freshness: { status: "fresh" }, quarantined: [{ taskId: "second" }] });
+  });
+
+  it("settled() returns at once while disabled or stopped, and does not wait the whole budget twice in a row", async () => {
+    let enabled = false;
+    const off = service({ now: Date.now, stableMs: 200, enabled: () => enabled });
+    let started = Date.now();
+    expect((await off.settled(5000)).freshness.status).toBe("disabled");
+    enabled = true;
+    await off.stop();
+    expect((await off.settled(5000)).freshness.status).toBe("disabled");
+    expect(Date.now() - started).toBeLessThan(1000);
+    const churning = service({ root: join(scratch, "churn-ledgers"), now: Date.now, stableMs: 40,
+      readSource: async () => ({ markdown: document(`(hold: ${randomUUID()}?)`), problem: null }) });
+    started = Date.now();
+    await churning.settled(400);
+    expect(Date.now() - started).toBeGreaterThanOrEqual(270);
+    started = Date.now();
+    expect((await churning.settled(400)).freshness.status).not.toBe("fresh");
+    expect(Date.now() - started).toBeLessThan(90);
+  });
+
+  it("settled() observes again and waits for a stable read instead of returning the cold snapshot", async () => {
+    const instance = service({ now: Date.now, stableMs: 40 });
+    expect((await instance.read()).freshness.status).not.toBe("fresh");
+    const settled = await instance.settled(1000);
+    expect(settled).toMatchObject({ actionCount: 1, freshness: { status: "fresh" } });
+    // Bounded: a backlog that never settles returns its stale snapshot within the budget.
+    const unsettled = service({ root: join(scratch, "unsettled-ledgers"), now: Date.now, stableMs: 40, readSource: async () => ({ markdown: document(`(hold: ${randomUUID()}?)`), problem: null }) });
+    const started = Date.now();
+    expect((await unsettled.settled(300)).freshness.status).not.toBe("fresh");
+    expect(Date.now() - started).toBeLessThan(1000);
   });
 
   it("requires stable reads, silently baselines, and leaves every authored byte unchanged", async () => {
