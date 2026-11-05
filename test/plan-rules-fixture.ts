@@ -45,5 +45,5 @@ export async function ruleFixture() {
     return commands.planCommand({ ...await f.input(scope, { op: "record", plan: "rules", node: "build", attempt: attemptId, state: "done", evidence: "Verified CI artifact and independent report." }),
       planRules: ruleRef(record), head }, scope.owner);
   }
-  return { ...f, scope, rules, record, commands, gateway, input, start, artifact, report, complete };
+  return { ...f, scope, rules, record, commands, gateway, input, commandInput: f.input, start, artifact, report, complete };
 }

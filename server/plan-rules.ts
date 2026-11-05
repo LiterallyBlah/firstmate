@@ -87,6 +87,18 @@ export class PlanRules {
       return { expectedVersions: expected(s, mutations), mutations, result: { ...result, planId: record.planId, planHash: p.hash, outboxId: requestId } };
     });
   }
+  /** A revision that leaves every run's work untouched (decisions added, gates reordered) keeps its effective
+   * rules: the previous revision's record, unchanged but for its revision and identity, written in the
+   * revision's own transaction. A run added, removed or changed still needs an explicit import. Ordering
+   * (`after`) is the plan's own review; the rules cover what a run does, not when it may start. */
+  carryForward(s: SupervisionStatus, scopeId: string, previous: WorkflowPlan | null, next: WorkflowPlan): SupervisionMutation[] {
+    if (!previous || next.revision === previous.revision) return [];
+    const prior = s.planRules?.find(r => r.homeId === s.homeId && r.scopeId === scopeId && r.planId === next.definition.id && r.revision === previous.revision);
+    const runs = (p: WorkflowPlan) => digest(p.definition.nodes.flatMap(n => n.kind === "run" ? [(({ after: _after, ...work }) => work)(n)] : []).sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+    const id = stable("plan-rules", s.homeId, next.definition.id, next.revision);
+    if (!prior || runs(previous) !== runs(next) || s.planRules?.some(r => r.id === id)) return [];
+    return [{ kind: "plan-rules", value: PlanRuleRecordSchema.parse({ ...prior, id, version: 1, revision: next.revision }) }];
+  }
   async evidence(requestId: string, kind: "rule-verification" | "rule-failure", raw: unknown, actor: SupervisionActor) {
     const value = kind === "rule-verification" ? RuleVerificationSchema.parse(raw) : RuleFailureSchema.parse(raw);
     return this.store.transactCommand(requestId, digest({ kind, value }), actor, async s => {
