@@ -32,6 +32,9 @@ import { maintenanceAnswerContext, maintenanceCaptainDecision } from "./maintena
 import { planBudgetException } from "../shared/plan-supervisor-limits";
 import { workflowHomeIdentity } from "./workflow-ownership";
 
+/** The freshness problem of a valid read still waiting for a second equal one. */
+export const SETTLING_PROBLEM = "Waiting for a stable backlog observation.";
+
 /** Process-local proof from this service's durable ledger, never an RPC input or a persisted ID. */
 export interface DecisionHomeBridge { readonly legacyHomeId: string; readonly scopedHomeId: string }
 const issuedHomeBridges = new WeakSet<DecisionHomeBridge>();
@@ -140,6 +143,9 @@ export async function readDecisionBacklog(
   }
 }
 
+/** How long after a `settled()` wait runs out later callers skip waiting again. */
+const SETTLE_RETRY_MS = 15_000;
+
 interface ServiceOptions {
   root: string;
   home: () => Promise<string>;
@@ -172,6 +178,7 @@ export class NeedsYouService {
   private pollPending: Promise<NeedsYouSnapshot> | null = null;
   private lastSnapshot: NeedsYouSnapshot | null = null;
   private lastCatalog: HostCatalog = null;
+  private settleGaveUpAt: number | null = null;
   private readonly now: () => number;
   readonly readSource: (home: string) => Promise<BacklogObservation>;
 
@@ -283,11 +290,16 @@ export class NeedsYouService {
   async settled(withinMs = 6000): Promise<NeedsYouSnapshot> {
     const pause = (this.options.stableMs ?? 2000) + 50;
     let snapshot = await this.read();
-    for (let waited = 0; waited + pause <= withinMs && !this.stopped &&
+    // One handover step reads this several times in a row (review, evidence, inventory). Once a wait
+    // has just run out, the next callers read once instead of each waiting the whole budget again.
+    const recentlyGaveUp = this.settleGaveUpAt !== null && this.now() - this.settleGaveUpAt < SETTLE_RETRY_MS;
+    for (let waited = 0; !recentlyGaveUp && waited + pause <= withinMs && !this.stopped &&
       (snapshot.freshness.status === "stale" || snapshot.freshness.status === "unknown"); waited += pause) {
       await new Promise(resolve => setTimeout(resolve, pause));
       snapshot = await this.read();
     }
+    if (snapshot.freshness.status === "fresh") this.settleGaveUpAt = null;
+    else if (!recentlyGaveUp && snapshot.freshness.status !== "disabled") this.settleGaveUpAt = this.now();
     return snapshot;
   }
 
@@ -423,7 +435,7 @@ export class NeedsYouService {
     else
       stable = now - state.candidate.since >= (this.options.stableMs ?? 2000);
     if (detection.valid && !stable)
-      problems.push("Waiting for a stable backlog observation.");
+      problems.push(SETTLING_PROBLEM);
     try {
       const ledger = await state.store.transact((previous) => {
         return stable && detection.valid

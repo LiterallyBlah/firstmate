@@ -161,6 +161,38 @@ describe("service persistence and observation", () => {
     expect(await instance.read()).toMatchObject({ freshness: { status: "fresh" }, requests: [{ revision: 2, source: { ask: "Decide something else?" } }] });
   });
 
+  it("a changed quarantine restarts the wait even when the healthy gates are unchanged", async () => {
+    const path = join(home, "data", "backlog.md"), instance = service();
+    const broken = (id: string) => document().replace("## Done", `- [ ] ${id} - Broken (broken:
+## Done`);
+    await writeFile(path, broken("first"));
+    expect(await settle(instance)).toMatchObject({ freshness: { status: "fresh" }, quarantined: [{ taskId: "first" }] });
+    await writeFile(path, broken("second"));
+    now += 2000;
+    expect((await instance.read()).freshness).toMatchObject({ status: "stale", problems: expect.arrayContaining(["Waiting for a stable backlog observation."]) });
+    now += 2000;
+    expect(await instance.read()).toMatchObject({ freshness: { status: "fresh" }, quarantined: [{ taskId: "second" }] });
+  });
+
+  it("settled() returns at once while disabled or stopped, and does not wait the whole budget twice in a row", async () => {
+    let enabled = false;
+    const off = service({ now: Date.now, stableMs: 200, enabled: () => enabled });
+    let started = Date.now();
+    expect((await off.settled(5000)).freshness.status).toBe("disabled");
+    enabled = true;
+    await off.stop();
+    expect((await off.settled(5000)).freshness.status).toBe("disabled");
+    expect(Date.now() - started).toBeLessThan(1000);
+    const churning = service({ root: join(scratch, "churn-ledgers"), now: Date.now, stableMs: 40,
+      readSource: async () => ({ markdown: document(`(hold: ${randomUUID()}?)`), problem: null }) });
+    started = Date.now();
+    await churning.settled(400);
+    expect(Date.now() - started).toBeGreaterThanOrEqual(270);
+    started = Date.now();
+    expect((await churning.settled(400)).freshness.status).not.toBe("fresh");
+    expect(Date.now() - started).toBeLessThan(90);
+  });
+
   it("settled() observes again and waits for a stable read instead of returning the cold snapshot", async () => {
     const instance = service({ now: Date.now, stableMs: 40 });
     expect((await instance.read()).freshness.status).not.toBe("fresh");

@@ -42,6 +42,7 @@ import { checkPolicySource, policyRef, sameVector } from "./supervision-policy";
 import { planFinished, planOwner } from "../shared/workflow-plans";
 import { planBudgetUsed } from "../shared/workflow-plan-summary";
 import type { NeedsYouSnapshot } from "../shared/needs-you";
+import { SETTLING_PROBLEM } from "./needs-you-service";
 import { PlanHelpPreparations } from "./plan-help-preparations";
 import { handoverEvidence } from "./plan-help-evidence";
 import { workflowHomeId } from "./workflow-board";
@@ -143,7 +144,7 @@ export class SupervisionActivation {
     if (!sources.length || project && sources.length !== project.sourceVector.length) problems.push("The project's permission evidence is missing. Review its original permission sources before continuing.");
     for (const source of sources) try { await checkPolicySource(home, source); } catch { problems.push(`Permission evidence changed or is unavailable: ${source.path}. Review that source before continuing.`); }
     problems.push(...decisionProblems(await this.options.adapters(home).decisions(),
-      plan.definition.nodes.flatMap(n => n.kind === "run" ? [n.id] : [])));
+      [...plan.definition.nodes, ...(plan.removed ?? []).map(r => r.node)].flatMap(n => n.kind === "run" ? [n.id] : [])));
     const migration = status.migrations?.find(m => m.planId === planId), scopeId = migration?.scopeId ?? migrationUuid(homeId, planId, "plan-help-scope");
     const preparation = await this.preparations().read(home, planId);
     const freeze = await workflowStore(home).cutover(planId).catch(() => "damaged");
@@ -480,12 +481,15 @@ export function decisionProblems(decisions: NeedsYouSnapshot | null, planTasks: 
   if (!decisions || decisions.freshness.status === "disabled")
     return ["Needs you is off, so this plan's decisions can't be checked. Turn Needs you back on before handing over this plan."];
   if (!decisions.homeId || decisions.freshness.status !== "fresh") {
-    const why = decisions.freshness.problems.filter(p => p !== "Waiting for a stable backlog observation.");
-    return [why.length ? `Decisions couldn't be checked: ${why.join(" ")}`
-      : "The backlog is still being changed, so its decisions haven't settled yet. Try again in a few seconds."];
+    // A settling backlog also lists every row it would quarantine, most of them other plans'; the
+    // wait is the cause. Only a read that could not settle at all has its own problems to name.
+    if (decisions.freshness.problems.includes(SETTLING_PROBLEM) || !decisions.freshness.problems.length)
+      return ["The backlog is still being changed, so its decisions haven't settled yet. Try again in a few seconds."];
+    return [`Decisions couldn't be checked: ${decisions.freshness.problems.join(" ")}`];
   }
+  // Each problem already names its line and task where the backlog has them.
   return (decisions.quarantined ?? []).filter(q => q.taskId === null || planTasks.includes(q.taskId)).map(q =>
-    `Needs you can't check ${q.taskId === null ? "a backlog row" : `task ${q.taskId}`}${q.line > 0 ? ` at backlog line ${q.line}` : ""}: ${q.problem}`);
+    `Needs you can't check this plan's decisions until this is repaired: ${q.problem}`);
 }
 
 export function registerSupervisionActivation(server: Pick<PluginServerContext, "handle">, activation: SupervisionActivation) {

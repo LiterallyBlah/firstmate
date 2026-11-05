@@ -57,7 +57,7 @@ function make(enabled?: boolean) { return new SupervisionActivation(pluginDir(),
 const api = { providers: { listAvailable: async () => ({ providers: [{ provider: "codex", available: true }] }),
   listModels: async () => ({ models: [{ id: "gpt-6.1-sol", label: "Sol", thinkingOptions: [] }] }),
   listModes: async () => ({ modes: [{ id: "full-access", label: "Full access" }] }) } } as unknown as PaseoApi;
-async function guided() {
+async function guided(decisions: () => Promise<NeedsYouSnapshot> = () => ledger.read()) {
   await activation.stop();
   const backupSettings = new MigrationSettings(pluginDir()), runtime = new SupervisionRuntime(pluginDir());
   const actor = { kind: "captain-ui", id: "fixture", source: "isolated-test" } as const;
@@ -74,7 +74,7 @@ async function guided() {
       scopeId, name: "scheduler", aliases: [], state: "admitted", budget: { agents: 2, turns: 2 }, sourceVector: [policyRef("policy-source", source)] });
   });
   activation = new SupervisionActivation(pluginDir(), { enabled: true, runtime, backupSettings,
-    adapters: () => legacyAdapters(null, () => ledger.read()), receiver: () => receiver });
+    adapters: () => legacyAdapters(null, decisions), receiver: () => receiver });
   const destination = join(process.env.PASEO_HOME!, "independent-backups"); await mkdir(destination);
   await activation.saveBackup({ homeId: prepare.homeId, expectedRevision: 0, requestId: randomUUID(), backup: { destination, retention: "Retain for 30 days; operator-managed." } });
   return { runtime, backupSettings };
@@ -106,8 +106,9 @@ it("a changed reviewed source/backup or incomplete decision census holds guided 
   try {
     const review = await activation.planHelp(prepare.homeId, "scheduler");
     const command = { ...prepare, scopeId: review.scopeId, projectId: review.projectId!, migrationId: review.migrationId, reviewHash: review.reviewHash };
-    vi.spyOn(ledger, "read").mockResolvedValueOnce(null as never);
-    expect((await activation.planHelp(prepare.homeId, "scheduler")).problems.join(" ")).toContain("Needs you is off");
+    const fresh = await ledger.read();
+    vi.spyOn(ledger, "read").mockResolvedValueOnce({ ...fresh, freshness: { ...fresh.freshness, status: "stale", problems: ["Waiting for a stable backlog observation."] } });
+    expect((await activation.planHelp(prepare.homeId, "scheduler")).problems.join(" ")).toContain("The backlog is still being changed");
     await activation.saveBackup({ homeId: prepare.homeId, requestId: randomUUID(), expectedRevision: 1, backup: { destination: (await activation.readBackup(prepare.homeId)).backup!.destination, retention: "Keep indefinitely" } });
     await expect(activation.migrate(command)).rejects.toMatchObject({ code: "STALE" });
     expect(await workflowStore(home).cutover("scheduler")).toBe(null);
@@ -479,6 +480,29 @@ it("strict RPCs accept no actor/source and no attach operation exists on migrati
   for (const file of ["server/scope-requests.ts", "server/workflow-service.ts", "server/cli.ts", "index.client.tsx"])
     expect(await readFile(file, "utf8")).not.toMatch(/attach-ui|attachSupervisorFromUi|attachFromUnverifiedUi/);
 });
+it("plan help observes Needs you itself through settled(), holding only on this plan's quarantined rows", async () => {
+  const backlog = (rows: string[]) => writeFile(join(home, "data/backlog.md"),
+    ["# Backlog", "## In flight", ...rows, "## Queued", "## Done", ""].join("\n"));
+  await backlog(["- [ ] other - Other plan's task (broken:"]);
+  // A cold service, as after a daemon restart: nothing has observed this backlog yet.
+  const live = new NeedsYouService({ root: join(process.env.PASEO_HOME!, "live-ledger"), home: readConfiguredDecisionHome,
+    catalog: async () => null, enabled: () => true, stableMs: 40 });
+  const { runtime } = await guided(() => live.settled(1000));
+  try {
+    expect((await activation.planHelp(prepare.homeId, "scheduler")).problems).toEqual([]);
+    await backlog(["- [ ] other - Other plan's task (broken:", "- [ ] trial - Database trial (broken:"]);
+    const held = (await activation.planHelp(prepare.homeId, "scheduler")).problems;
+    expect(held).toEqual([expect.stringMatching(/^Needs you can't check this plan's decisions until this is repaired: Line 4, task trial: /)]);
+    expect(held.join(" ")).not.toMatch(/refresh|task other/i);
+    // A removed run step's task still holds the plan, as the cutover's inventory counts it.
+    const plan = (await workflowStore(home).read()).plans.find(p => p.definition.id === "scheduler")!;
+    await workflowStore(home).execute({ op: "revise", expected: plan.hash, reason: "Drop the build and its decision",
+      definition: { ...plan.definition, nodes: plan.definition.nodes.filter(n => n.id === "trial") } }, randomUUID(), "general");
+    expect((await workflowStore(home).read()).plans.find(p => p.definition.id === "scheduler")!.removed?.map(r => r.node.id)).toEqual(expect.arrayContaining(["build"]));
+    await backlog(["- [ ] build - Build the scheduler (broken:"]);
+    expect((await activation.planHelp(prepare.homeId, "scheduler")).problems).toEqual([expect.stringContaining("task build: ")]);
+  } finally { await activation.stop(); await runtime.stop(); await live.stop(); }
+});
 it("plan help names why Needs you can't vouch for its decisions, and only this plan's quarantines hold it", () => {
   const snapshot = (freshness: Partial<NeedsYouSnapshot["freshness"]>, quarantined: NeedsYouSnapshot["quarantined"] = []) =>
     ({ homeId: "home", quarantined, freshness: { status: "fresh", asOf: 1, checkedAt: 1, problems: [], ...freshness } }) as NeedsYouSnapshot;
@@ -488,11 +512,15 @@ it("plan help names why Needs you can't vouch for its decisions, and only this p
   expect(decisionProblems(snapshot({ status: "stale", problems: ["Backlog is missing its ## Done section."] }), []))
     .toEqual(["Decisions couldn't be checked: Backlog is missing its ## Done section."]);
   const missing = { line: 0, taskId: "gone", key: null, hasHold: true, problem: "Task gone is missing. Restore its backlog record before answering it." };
-  const broken = { line: 12, taskId: "scheduler-run", key: null, hasHold: false, problem: "Unreadable fields." };
+  const broken = { line: 12, taskId: "scheduler-run", key: null, hasHold: false, problem: "Line 12, task scheduler-run: Could not read metadata." };
   expect(decisionProblems(snapshot({}, [missing]), ["scheduler-run"])).toEqual([]);
   expect(decisionProblems(snapshot({}, [missing, broken]), ["scheduler-run"]))
-    .toEqual(["Needs you can't check task scheduler-run at backlog line 12: Unreadable fields."]);
-  expect(decisionProblems(snapshot({}, [{ ...broken, taskId: null }]), [])).toEqual([expect.stringContaining("a backlog row at backlog line 12")]);
+    .toEqual(["Needs you can't check this plan's decisions until this is repaired: Line 12, task scheduler-run: Could not read metadata."]);
+  expect(decisionProblems(snapshot({}, [{ ...broken, taskId: null, problem: "Line 12: Could not read metadata." }]), []))
+    .toEqual([expect.stringContaining("repaired: Line 12: Could not read metadata.")]);
+  // A settling read lists every detected quarantine, including other plans'; the wait is the cause.
+  expect(decisionProblems(snapshot({ status: "stale", problems: ["Line 7, task other: Could not read metadata.", "Waiting for a stable backlog observation."] }), []))
+    .toEqual(["The backlog is still being changed, so its decisions haven't settled yet. Try again in a few seconds."]);
   expect(decisionProblems(snapshot({}), ["scheduler-run"])).toEqual([]);
   for (const text of decisionProblems(snapshot({ status: "stale", problems: ["Waiting for a stable backlog observation."] }), []))
     expect(text).not.toMatch(/refresh/i);
