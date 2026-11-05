@@ -98,6 +98,28 @@ reconciles managed Take-the-Initiative, and records retirement only for an exact
 observed disabled with evidence. It changes no timer itself. Automatic cleanup stays visibly held by G8;
 no executor or corrective-plan dispatch ships here. See `docs/scoped-supervision/build-d.md`.
 
+Remote-host Supervisors slice 1 keeps the plan Supervisor local and runs its workers on a saved remote
+host. A project owner may record `hostId = <serverId>` with a declared remote directory (the admission
+input's `hostId`/`directory`, chosen from the catalog's project and workspace rows and reviewed with its
+source; never realpath'd locally, and the worker project resolver returns it as written). Plan help's host
+check compares run hosts to that owner unchanged. `server/supervision-remote-receiver.ts` is the
+label-bound `GatewayReceiver` over `RemoteService`: `workspace create` (branch-off, slug), then
+`run --workspace` with the scope/attempt labels and the pinned brief, so verification is
+verify-after-create against `inspect` (provider/model/mode/thinking/cwd, `ParentAgentId === null`,
+`CreatedAt` inside the submission window corrected by the host's `clockSkew`); the send effect settles
+on that at-create delivery and is never resent. Identity is a qualified weaker mode in
+`ReceiverCapabilities` (`selectedAgentIds: false`, `labelBoundIdentity: true`): reservation requires the
+exact probed pair (CLI 0.14.0 and the catalog's recorded `daemonVersion`, kept by `connect`'s `status`
+probe) and fails closed to local-only otherwise, and a brief plus appended rules over 28,000 characters
+refuses before reservation. Reconcile is `RemoteService.discoverByAttempt` (the service adds its own
+owner filter to `ls -g -a`; the caller-facing allowlist still refuses reserved labels): exactly one binds,
+zero stays uncertain, duplicates are held, never archived or relabelled. A connect refusal is a definite
+`ReceiverRejected`; a post-submit failure is uncertain, spend retained. `interrupt` is `stop`; archive and
+persisted inventory are refused (`persistedInventory: false`). Remote worker attempts take no local
+General slot (`server/supervision-headroom.ts` counts local occupancy only); the Supervisor's own local
+turns still count. The bridge appends `--no-wait`, not the deprecated `--background`, to remote runs.
+The gateway picks its receiver by the task's host (`receiverFor`); a remote Supervisor binding is refused.
+
 Plans (workflows slice 1) are additive. `shared/workflow-plans.ts` owns strict one-step `task@1` and
 `scout@1` contracts, dependency reasons, bounds and posture. `server/workflow-plans.ts` owns the
 hash-linked, exclusive-link event log under `workflow-plans/`, revisions, start intents, projections
@@ -314,6 +336,7 @@ installed version, listed by digest in `REVIEWED_READER_RUNS` (the S11 smoke run
 | `server/mate.ts`              | Launching, adopting and releasing the first mate; carrying the captain's words to it.      |
 | `server/crew.ts`              | Steer, interrupt, end, relaunch one crewmate; the relay that tells the first mate about a steer. |
 | `server/supervision-sources.ts`, `server/supervision-source-state.ts`, `shared/supervision-sources.ts` | S08 PR/remote/board observation adapters and their journal row checks. Unwired; see `docs/scoped-supervision/S08.md`. |
+| `server/supervision-remote-receiver.ts` | The label-bound remote worker receiver over `RemoteService`: workspace create, prompted `run`, owner-filtered label reconcile, the remote verification profile, `stop`; archive/inventory refused. |
 | `server/crew-seen.ts`         | Clears a crewmate's "finished" flag once a later first-mate turn has completed.            |
 | `server/watches.ts`           | The watch runner: the minute timer, runs, the queue, `<firstmate-watch>` notes, `watches.json`. |
 | `server/watch-service.ts`     | The runner wired to Paseo: the kept Paseo handle, delivery to the first mate, the on/off switch. |

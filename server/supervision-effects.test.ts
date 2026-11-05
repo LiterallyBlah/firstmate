@@ -1,5 +1,5 @@
-import { randomUUID } from "node:crypto";
-import { readdir } from "node:fs/promises";
+import { createHash, randomUUID } from "node:crypto";
+import { readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { NOT_CREATED_PROOF_MIN_AGE_MS, SupervisionGateway, effectLogicalKey, requireGatewayOperation } from "./supervision-effects";
@@ -8,6 +8,8 @@ import { recordContinuation } from "./supervision-continuation";
 import { oneAtATime } from "./mate";
 import { planSubjectHash } from "./workflow-plans";
 import { captain, s04Fixture, type S04Fixture, type ScopeHandle } from "../test/supervision-s04-fixture";
+import { SupervisionRemoteReceiver } from "./supervision-remote-receiver";
+import { FakeCliBridge, REMOTE_CWD, REMOTE_HOST } from "../test/fake-remote-bridge";
 
 async function ready(fx: S04Fixture, n = 1, prefix = "a") {
   const scope = await fx.addScope(n, `plan-${prefix}`, [`${prefix}-trial`, `${prefix}-build`]);
@@ -332,6 +334,112 @@ describe("S04 effect gateway (synthetic receiver)", { timeout: 60000 }, () => {
     expect(fx.receiver.sends).toHaveLength(2);
     expect(fx.receiver.calls.every(c => c.target !== "general-first-mate")).toBe(true);
     release(); await general;
+  });
+});
+describe("label-bound remote worker receiver (fake CLI bridge, probe shapes)", { timeout: 60000 }, () => {
+  async function remoteReady(fx: S04Fixture, bridge: FakeCliBridge, cliVersion = "0.14.0") {
+    const scope = await fx.addScope(3, "plan-r", ["r-trial", "r-build"], true, REMOTE_HOST);
+    await fx.draft(scope, [{ id: "r-trial" }, { id: "r-build", kind: "ship", after: [{ node: "r-trial", on: "done" }] }]);
+    const receiver = new SupervisionRemoteReceiver(bridge, REMOTE_HOST, async () => REMOTE_CWD, { cliVersion: async () => cliVersion });
+    const gateway = new SupervisionGateway(fx.store, fx.commands, fx.home, fx.receiver,
+      { enabled: true, receiverFor: (host) => host === REMOTE_HOST ? receiver : undefined });
+    return { scope, receiver, gateway };
+  }
+  const startRemote = async (fx: S04Fixture, gateway: SupervisionGateway, scope: ScopeHandle) =>
+    gateway.startWorker(await fx.input(scope, { op: "start", plan: scope.planId, node: "r-trial" }), await fx.actorFor(scope));
+
+  it("creates at the prompt, verifies after create, settles the send at-create, and interrupts via stop; archive is refused", async () => {
+    const fx = await s04Fixture(), bridge = new FakeCliBridge(), { scope, gateway } = await remoteReady(fx, bridge);
+    const started = await startRemote(fx, gateway, scope);
+    await gateway.dispatch(started.effects!.workspace);
+    await gateway.dispatch(started.effects!.create);
+    const active = await gateway.verifyWorker(started.attemptId!);
+    const agentId = [...bridge.agents.keys()][0]!;
+    expect(active.worker).toEqual({ hostId: REMOTE_HOST, agentId, workspaceId: "wks_remote1" });
+    expect((await gateway.dispatch(started.effects!.send)).receiptRef).toBe(`message:at-create:${agentId}`);
+    expect(bridge.runs()).toHaveLength(1);
+    expect(bridge.runs()[0]).toContain(`firstmate.attempt=${started.attemptId}`);
+    expect(bridge.runs()[0]!.at(-1)).toBe("Synthetic checked brief.");
+    expect(bridge.calls.filter((args) => args[0] === "send")).toEqual([]);
+    expect(await attempt(fx, started.attemptId!)).toMatchObject({ state: "prompted", spentAgents: 1 });
+    const owner = await fx.actorFor(scope);
+    const stop = await gateway.propose({ scopeId: scope.id, epoch: 1, attemptId: started.attemptId!, operation: "agent.interrupt", causation: "test-stop", requestId: randomUUID() }, owner);
+    expect((await gateway.dispatch(stop.id)).state).toBe("succeeded");
+    expect(bridge.calls.filter((args) => args[0] === "stop")).toEqual([["stop", agentId]]);
+    await expect(gateway.propose({ scopeId: scope.id, epoch: 1, attemptId: started.attemptId!, operation: "agent.archive", causation: "test-archive", requestId: randomUUID() }, owner))
+      .rejects.toMatchObject({ code: "UNSUPPORTED" });
+  });
+
+  it("an uncertain create is never resent; label discovery binds exactly one, and a duplicate stays held", async () => {
+    const fx = await s04Fixture(), bridge = new FakeCliBridge(), { scope, gateway } = await remoteReady(fx, bridge);
+    const started = await startRemote(fx, gateway, scope);
+    await gateway.dispatch(started.effects!.workspace);
+    bridge.fault = "lose-run";
+    expect((await gateway.dispatch(started.effects!.create)).state).toBe("uncertain");
+    await expect(gateway.dispatch(started.effects!.create)).rejects.toMatchObject({ code: "UNCERTAIN" });
+    expect(bridge.runs()).toHaveLength(1);
+    // A second same-label agent is a held duplicate: reconcile binds nothing and touches nothing.
+    const [agentId] = [...bridge.agents.keys()];
+    bridge.byAttempt.set(started.attemptId!, [agentId!, randomUUID()]);
+    expect((await gateway.reconcile(started.effects!.create)).state).toBe("uncertain");
+    expect(bridge.calls.filter((args) => ["archive", "stop"].includes(args[0]!))).toEqual([]);
+    bridge.byAttempt.set(started.attemptId!, [agentId!]);
+    const settled = await gateway.reconcile(started.effects!.create);
+    expect(settled).toMatchObject({ state: "succeeded", receiptRef: `agent:${agentId}` });
+    await gateway.verifyWorker(started.attemptId!);
+    await gateway.dispatch(started.effects!.send);
+    expect(bridge.runs()).toHaveLength(1);
+    expect(await attempt(fx, started.attemptId!)).toMatchObject({ state: "prompted", spentAgents: 1, spentTurns: 1 });
+  });
+
+  it("connect refused settles failed with siblings cancelled, unlike a post-submit timeout's uncertainty", async () => {
+    const fx = await s04Fixture(), bridge = new FakeCliBridge(), { scope, gateway } = await remoteReady(fx, bridge);
+    const started = await startRemote(fx, gateway, scope);
+    bridge.fault = "connect";
+    expect((await gateway.dispatch(started.effects!.workspace)).state).toBe("failed");
+    expect((await effect(fx, started.effects!.create)).state).toBe("cancelled");
+    expect((await effect(fx, started.effects!.send)).state).toBe("cancelled");
+    expect(bridge.calls.filter((args) => args[0] === "run")).toEqual([]);
+    expect(await attempt(fx, started.attemptId!)).toMatchObject({ spentAgents: 1, spentTurns: 1 });
+  });
+
+  it("a verification mismatch holds the attempt; nothing further is dispatched", async () => {
+    const fx = await s04Fixture(), bridge = new FakeCliBridge(), { scope, gateway } = await remoteReady(fx, bridge);
+    const started = await startRemote(fx, gateway, scope);
+    await gateway.dispatch(started.effects!.workspace);
+    await gateway.dispatch(started.effects!.create);
+    bridge.tamperInspect = (detail) => { detail.Model = "another-model"; };
+    await expect(gateway.verifyWorker(started.attemptId!)).rejects.toMatchObject({ code: "HELD" });
+    await expect(gateway.dispatch(started.effects!.send)).rejects.toMatchObject({ code: "HELD" });
+    expect((await attempt(fx, started.attemptId!)).state).toBe("reserved");
+    expect(bridge.calls.filter((args) => args[0] === "send")).toEqual([]);
+  });
+
+  it("an unqualified version pair refuses reservation and writes no attempt", async () => {
+    const fx = await s04Fixture(), bridge = new FakeCliBridge(), { scope, gateway } = await remoteReady(fx, bridge, "0.13.0");
+    const before = await fx.store.read();
+    await expect(startRemote(fx, gateway, scope)).rejects.toMatchObject({ code: "UNSUPPORTED" });
+    const after = await fx.store.read();
+    expect(after.attempts).toHaveLength(before.attempts.length);
+    expect(after.effects).toHaveLength(before.effects.length);
+    const fx2 = await s04Fixture(), bridge2 = new FakeCliBridge();
+    bridge2.daemonVersion = null;
+    const second = await remoteReady(fx2, bridge2);
+    await expect(startRemote(fx2, second.gateway, second.scope)).rejects.toMatchObject({ code: "UNSUPPORTED" });
+  });
+
+  it("an oversized brief is refused before reservation, never truncated", async () => {
+    const fx = await s04Fixture(), bridge = new FakeCliBridge(), { scope, gateway } = await remoteReady(fx, bridge);
+    const big = "x".repeat(28001);
+    await writeFile(join(fx.home, "data/r-trial/brief.md"), big);
+    const input = { ...await fx.input(scope, { op: "start", plan: scope.planId, node: "r-trial" }),
+      briefHash: createHash("sha256").update(big).digest("hex") };
+    const before = await fx.store.read();
+    await expect(gateway.startWorker(input, await fx.actorFor(scope))).rejects.toThrow(/28000/);
+    const after = await fx.store.read();
+    expect(after.attempts).toHaveLength(before.attempts.length);
+    expect(after.effects).toHaveLength(before.effects.length);
+    expect(bridge.calls).toEqual([]);
   });
 });
 export type { ScopeHandle };

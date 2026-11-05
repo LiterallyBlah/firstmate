@@ -9,7 +9,7 @@ const home = dirname(dirname(fileURLToPath(import.meta.url)));
 // A whole Windows command line holds about 32,000 characters.
 const MAX_PROMPT_CHARS = 28000;
 // Options of `paseo run` and `paseo send` that take no value; any other option takes the next argument.
-const FLAGS = new Set(["-d", "--background", "--json", "-q", "--quiet", "--no-headers", "--no-color", "--no-wait", "-h", "--help", "-v", "--version"]);
+const FLAGS = new Set(["--json", "-q", "--quiet", "--no-headers", "--no-color", "--no-wait", "-h", "--help", "-v", "--version"]);
 // Clock warnings the plugin attached to its answers, printed once each to stderr.
 const warnings = new Set();
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

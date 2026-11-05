@@ -16,6 +16,7 @@ import type { SupervisionStore } from "./supervision-store";
 import { SupervisionCommands } from "./supervision-commands";
 import { SupervisionGateway, effectsFor, refuse, stableId } from "./supervision-effects";
 import { SupervisionWorkerReceiver } from "./supervision-worker-receiver";
+import { SupervisionRemoteReceiver, type RemoteBridge } from "./supervision-remote-receiver";
 import { SupervisionEvents } from "./supervision-events";
 import { SupervisionInbox } from "./supervision-inbox";
 import { SupervisorSessions } from "./supervisor-sessions";
@@ -66,6 +67,9 @@ export class PlanRuntime {
       throw new Error("Plan slots must leave at least one configured General slot.");
   }
   remember(paseo: PaseoApi) { if ((this.options.enabled || this.runtime.features) && !this.closed) this.paseo = paseo; }
+  private remoteBridge: RemoteBridge | null = null;
+  /** The saved-host bridge behind label-bound remote worker receivers; read lazily at dispatch. */
+  useRemoteBridge(bridge: RemoteBridge) { this.remoteBridge = bridge; }
   private config() { return (this.options.config ?? readFirstmateConfig)(); }
   register(server: PluginServerContext) {
     if (!this.options.enabled && !this.runtime.features) return;
@@ -111,11 +115,19 @@ export class PlanRuntime {
     const directory = async (name: string) => {
       const s = await store.read();
       const matches = s.projects?.projects.filter(p => p.state === "admitted" && [p.name, ...p.aliases].some(n => normalizedName(n) === normalizedName(name)));
-      if (s.freshness !== "current" || matches?.length !== 1 || !matches[0]!.owner || matches[0]!.owner!.hostId !== "local")
-        refuse("UNKNOWN_OWNER", "Worker project needs one admitted canonical local directory.");
+      // A remote owner's directory is declared at admission and returned as written; only the local receiver realpaths it, and the gateway never routes a remote task there.
+      if (s.freshness !== "current" || matches?.length !== 1 || !matches[0]!.owner)
+        refuse("UNKNOWN_OWNER", "Worker project needs one admitted project directory.");
       return matches[0]!.owner!.directory;
     };
     const receiver = this.options.receiver?.(paseo, store) ?? new SupervisionWorkerReceiver(paseo, this.runtime.root, directory);
+    const remoteReceivers = new Map<string, SupervisionRemoteReceiver>();
+    const receiverFor = (hostId: string) => {
+      if (!this.remoteBridge) return undefined;
+      let remote = remoteReceivers.get(hostId);
+      if (!remote) { remote = new SupervisionRemoteReceiver(this.remoteBridge, hostId, directory); remoteReceivers.set(hostId, remote); }
+      return remote;
+    };
     const allocation = (s: SupervisionStatus, input: import("../shared/scoped-commands").ScopedPlanCommand) => {
       const c = input.command, node = c.op === "implicit" ? c.launch.id : "node" in c ? c.node : null;
       checkPlanAllocation(s, input.scopeId, true, s.tasks.find(t => t.ownerScopeId === input.scopeId && t.nodeId === node)?.projectId);
@@ -127,7 +139,7 @@ export class PlanRuntime {
       if (scope?.projectIds.some(id => s.projects?.projects.find(p => p.id === id)?.state === "stopped")) refuse("HELD", "This project's new effects are stopped.");
       if (scope?.kind === "plan") await checkPlanSupervisorAuthority(home, s, scopeId);
     };
-    const gateway = new SupervisionGateway(store, commands, home, receiver, { enabled: true, rules, recovery: true,
+    const gateway = new SupervisionGateway(store, commands, home, receiver, { enabled: true, rules, recovery: true, receiverFor,
       featurePolicy: async () => this.runtime.features?.reservation(home, "planSupervisors"),
       policyFence: this.runtime.features?.gateway(home, async e => (await store.read()).scopes.find(s => s.id === e.scopeId)?.kind === "project" ? "projectMates" : "planSupervisors", () => store.read()),
       reserveStart: run => withScopeAdmission(store.homeId, run),
@@ -211,7 +223,7 @@ export class PlanRuntime {
       }) as PluginServerContext["on"] };
       this.disposers.push(registerSupervisionLifecycle(registration, lifecycle), registerScopedBoardIngress(registration, board));
     }
-    return { rules, receiver, commands, sources, board, gateway, sessions, ingress, inbox, lifecycle, projectJudgments, recovered: false, recoveredAt: 0, routesHash: "" };
+    return { rules, receiver, receiverFor, commands, sources, board, gateway, sessions, ingress, inbox, lifecycle, projectJudgments, recovered: false, recoveredAt: 0, routesHash: "" };
   }
   async tick() {
     if ((!this.options.enabled && !this.runtime.features) || this.closed) return;
@@ -261,7 +273,7 @@ export class PlanRuntime {
       await processScopeRequests(home, { ...this.scopeHandlers(store, home, config.mateAgentId, c), gateway: c.gateway });
       const policy = await this.runtime.features?.read(home);
       if (policy && !policy.effective.planSupervisors) {
-        await this.runtime.reconcile(home, c.receiver, ["project", "plan"]);
+        await this.runtime.reconcile(home, c.receiver, ["project", "plan"], c.receiverFor);
         if (policy.effective.projectMates) {
           for (const scope of (await store.read()).scopes.filter(s => s.kind === "project" && s.state === "active"))
             await c.lifecycle.wake(scope.id, "heartbeat").catch(() => undefined);

@@ -84,7 +84,8 @@ function planAssociations(status: SupervisionStatus, legacy: readonly WorkflowPl
       projectIds: scope?.projectIds ?? [], sponsorScopeId: sponsor?.sponsorScopeId ?? null, ownerScopeId: scopeId };
   }), ...legacy.filter(p => !scoped.has(p.definition.id)).map(plan => ({ id: plan.definition.id, title: plan.definition.title, backend: "legacy" as const,
     state: "Pending migration; project oversight only", projectIds: [...new Set(plan.definition.nodes.flatMap(n => n.kind === "run" ? rows.filter(r => r.projectId &&
-      [r.name, ...(status.projects?.projects.filter(p => p.id === r.projectId).flatMap(p => [p.name, ...p.aliases]) ?? [])].some(name => normalizedName(name) === normalizedName(n.launch.project)) && n.launch.host.trim().toLowerCase() === "local").map(r => r.projectId!) : []))],
+      [r.name, ...(status.projects?.projects.filter(p => p.id === r.projectId).flatMap(p => [p.name, ...p.aliases]) ?? [])].some(name => normalizedName(name) === normalizedName(n.launch.project)) &&
+      n.launch.host.trim().toLowerCase() === (status.projects?.projects.find(p => p.id === r.projectId)?.owner?.hostId ?? "local").trim().toLowerCase()).map(r => r.projectId!) : []))],
     sponsorScopeId: null, ownerScopeId: null }))];
 }
 export interface ProjectRuntimeOptions {
@@ -175,19 +176,19 @@ export class ProjectRuntime {
       general: { agentId: config.mateAgentId || null, scopeId: status.scopes.find(s => s.kind === "general")?.id ?? null,
         headroom: capacity.generalHeadroom, slots: capacity.slots, providerAvailability: "unknown" },
       projects: rows.map(row => {
-        const project = status.projects?.projects.find(p => p.id === row.projectId), scope = status.scopes.find(s => s.id === project?.scopeId),
+        const project = status.projects?.projects.find(p => p.id === row.projectId) ?? (row.projectId ? undefined : status.projects?.projects.find(p => p.owner && p.owner.hostId !== "local" && normalizedName(p.name) === normalizedName(row.name))), scope = status.scopes.find(s => s.id === project?.scopeId),
           binding = status.bindings.find(b => b.scopeId === scope?.id), spend = scope ? supervisorSpend(status, scope.id) : { sessions: 0, turns: 0, uncertain: 0 };
         const effects = binding ? activationEffects(status, binding.scopeId, binding.epoch) : null;
         const provisionRecord = project ? recordedProvisionRecord(status, project.id) : null, provisionInput = provisionRecord?.input ?? null;
         const provisionOriginName = provisionRecord ? isSuperviseMateActor(provisionRecord.actor) ? "first-mate" as const : "app" as const : null;
         const stopped = binding?.state === "suspect" || !!provisionInput && status.commands.some(c => c.id === stableId("project-provision-abort", provisionInput.requestId));
         const aliasKnown = !project || [project.name, ...project.aliases].some(name => normalizedName(name) === normalizedName(row.name));
-        const reason = row.reason ?? (!aliasKnown ? "Registry name changed; record a reviewed alias before provisioning." : !project ? "Awaiting reviewed admission and allocation." : !project.owner ? "Durable profile and caps are missing." :
+        const reason = (project?.owner && project.owner.hostId !== "local" ? null : row.reason) ?? (!aliasKnown ? "Registry name changed; record a reviewed alias before provisioning." : !project ? "Awaiting reviewed admission and allocation." : !project.owner ? "Durable profile and caps are missing." :
           binding?.state === "retired" ? "Supervisor retired; identity, spend and history retained. The project stays as context." :
           stopped ? "Provisioning stopped; identity and spend retained. Inspect any uncertain operation." :
           !binding ? provisionInput ? "Provisioning incomplete; inspect and resume the recorded request." : null : binding.state !== "active" || effects?.send?.state !== "succeeded" ? "Provisioning incomplete; inspect and resume the recorded request." : null);
-        return { name: row.name, directory: row.directory, registryLocation: row.location, hostId: project?.owner?.hostId ?? (row.directory ? "local" : null), projectId: row.projectId, scopeId: project?.scopeId ?? row.scopeId,
-          reason, state: row.reason ? "held" : project?.state ?? "unadmitted", version: project?.version ?? 0, aliases: project?.aliases ?? [],
+        return { name: row.name, directory: project?.owner?.directory ?? row.directory, registryLocation: row.location, hostId: project?.owner?.hostId ?? (row.directory ? "local" : null), projectId: project?.id ?? row.projectId, scopeId: project?.scopeId ?? row.scopeId,
+          reason, state: row.reason && !(project?.owner && project.owner.hostId !== "local") ? "held" : project?.state ?? "unadmitted", version: project?.version ?? 0, aliases: project?.aliases ?? [],
           agentId: binding?.agentId ?? null, workspaceId: binding?.workspaceId ?? null, provisionRequestId: effects?.create?.requestId ?? provisionInput?.requestId ?? null, provisionInput, provisionOrigin: provisionOriginName,
           ...spend, profile: project?.owner?.profile ?? null, limits: project?.owner?.limits ?? null,
           memoryPending: status.projects?.memoryProposals.filter(p => p.projectId === project?.id && p.state === "proposed").length ?? 0,
@@ -295,7 +296,16 @@ export class ProjectRuntime {
   private async admit(home: string, store: SupervisionStore, requestId: string, actor: SupervisionActor, input: Extract<ProjectAdmin, { op: "admit" }>, generalId: string, app = false) {
     const catalog = await registry(home);
     if (catalog.digest !== input.registryDigest) refuse("STALE", "Project registry changed; review the current census.");
-    const entry = catalog.rows.find(p => normalizedName(p.name) === normalizedName(input.name));
+    const declared = catalog.rows.find(p => normalizedName(p.name) === normalizedName(input.name));
+    // A remote owner is declared with the reviewed admission: a saved host's serverId and the directory
+    // chosen from that host's catalog rows. It is never resolved or realpath'd on this machine.
+    const remote = input.hostId !== undefined && input.hostId.trim().toLowerCase() !== "local";
+    if (remote !== (input.directory !== undefined)) refuse("HELD", "Remote admission needs both the saved host and its declared directory.");
+    if (remote && (!/^(?:\/|[A-Za-z]:[\\/])/.test(input.directory!) || /[\x00-\x1f\x7f]/.test(input.directory!))) refuse("HELD", "The declared remote directory must be an absolute path on that host.");
+    const entry = !remote ? declared : declared && catalog.rows.filter(p => normalizedName(p.name) === normalizedName(input.name)).length === 1
+      ? { ...declared, directory: input.directory!, projectId: projectRowId("registry", workflowHomeIdentity(home), input.hostId!, input.directory!),
+          scopeId: projectRowId("project-scope", projectRowId("registry", workflowHomeIdentity(home), input.hostId!, input.directory!)), reason: null }
+      : declared;
     if (!entry || entry.reason || !entry.projectId || !entry.scopeId || !entry.directory) refuse("HELD", entry?.reason ?? "Project is not in the current registry.");
     if (digest(input.source.provenance) !== digest(actor)) refuse("CONFLICT", "Reviewed source must retain its adapter provenance.");
     await acceptPolicyInventory(store, home, stableId("project-source", requestId), actor, { sources: [input.source], rules: [], reviewedHolds: [] }, true, app);
@@ -317,7 +327,7 @@ export class ProjectRuntime {
       await this.checkedConfig(store.homeId, generalId);
       const project = status.projects!.projects.find(p => p.id === entry.projectId)!;
       if (project.owner) refuse("CONFLICT", "This project already has durable ownership; use versioned allocation commands.");
-      const value: ProjectRecord = { ...project, version: project.version + 1, owner: { directory: entry.directory!, hostId: "local", registryDigest: catalog.digest,
+      const value: ProjectRecord = { ...project, version: project.version + 1, owner: { directory: entry.directory!, hostId: remote ? input.hostId! : "local", registryDigest: catalog.digest,
         generalAgentId: generalId, profile: input.profile, limits: input.limits } };
       const mutations = [{ kind: "project" as const, value }]; return { mutations, expectedVersions: expected(status, mutations), result };
     });
@@ -389,7 +399,8 @@ export class ProjectRuntime {
           return { mutations: [], expectedVersions: [], result: { ...result, projectProvision: input } };
         });
       const catalog = await registry(home), entry = catalog.rows.find(p => p.projectId === project.id);
-      if (!entry || entry.reason || entry.directory !== project.owner.directory || ![project.name, ...project.aliases].some(name => normalizedName(name) === normalizedName(entry.name))) refuse("HELD", "Current registry identity or reviewed alias does not match admitted ownership.");
+      // A remote owner's directory is declared at admission, not resolved from this registry; only its reviewed name is rechecked here.
+      if (!entry || (project.owner.hostId === "local" && (entry.reason || entry.directory !== project.owner.directory)) || ![project.name, ...project.aliases].some(name => normalizedName(name) === normalizedName(entry.name))) refuse("HELD", "Current registry identity or reviewed alias does not match admitted ownership.");
       const receiver = this.options.receiver?.(paseo) ?? new SupervisionUiReceiver(paseo, this.runtime.root, { projectMates: true });
       const commands = new SupervisionCommands(store, home, { enabled: true }), gateway = new SupervisionGateway(store, commands, home, receiver, { enabled: true, policyFence: this.runtime.features?.gateway(home, "projectMates", () => store.read()),
         admissionCheck: async (current, effect) => {
@@ -404,7 +415,7 @@ export class ProjectRuntime {
           const capacity = await this.capacity(home);
           await checkGeneralHeadroom(current, receiver, capacity.slots, capacity.generalHeadroom, effect.id);
           const live = (await registry(home)).rows.find(r => r.projectId === project.id);
-          if (!live || live.reason || live.directory !== project.owner!.directory) refuse("HELD", "Registry ownership changed before dispatch.");
+          if (!live || (project.owner!.hostId === "local" && (live.reason || live.directory !== project.owner!.directory))) refuse("HELD", "Registry ownership changed before dispatch.");
         } });
       // A reviewed profile is pinned to the exact host catalog and policy, as plan Attach pins its own.
       // Older requests replay the retired project-setup review's configuration, when one was recorded.

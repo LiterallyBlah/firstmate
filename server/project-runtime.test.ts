@@ -185,6 +185,19 @@ async function admit(name = "scheduler") {
   return admin({ op: "admit", name, aliases: [name + "-alias"], registryDigest: read.registryDigest!, source: { ...source, id: randomUUID() },
     profile: { provider: "codex/test", modeId: "full-access", thinkingOptionId: "xhigh" }, budget: { agents: 4, turns: 12 }, limits: { supervisorSessions: 1, supervisorTurns: 5 } });
 }
+it("remote admission: a declared host and directory are recorded without local resolution", async () => {
+  const read = await service.read();
+  const command = { op: "admit" as const, name: "remote", aliases: ["remote-alias"], registryDigest: read.registryDigest!, source: { ...source, id: randomUUID() },
+    profile: { provider: "codex/test", modeId: "full-access" }, budget: { agents: 4, turns: 12 }, limits: { supervisorSessions: 1, supervisorTurns: 5 } };
+  await expect(admin({ ...command, hostId: "srv_remote" })).rejects.toMatchObject({ code: "HELD", message: expect.stringContaining("declared directory") });
+  await expect(admin({ ...command, hostId: "srv_remote", directory: "relative/path" })).rejects.toMatchObject({ code: "HELD", message: expect.stringContaining("absolute path") });
+  const admitted = await admin({ ...command, hostId: "srv_remote", directory: "/home/ariadne/Projects/Aradne" });
+  const row = admitted.projects.find(p => p.name === "remote")!;
+  expect(row).toMatchObject({ hostId: "srv_remote", directory: "/home/ariadne/Projects/Aradne", state: "admitted", reason: null });
+  expect(row.projectId).toBeTruthy();
+  const status = await runtime.read(home);
+  expect(status.projects?.projects.find(p => p.id === row.projectId)?.owner).toMatchObject({ hostId: "srv_remote", directory: "/home/ariadne/Projects/Aradne" });
+});
 async function cutoverForAttach(projectId: string) {
   const { SupervisionActivation } = await import("./supervision-activation");
   const { legacyAdapters } = await import("./supervision-migrate");

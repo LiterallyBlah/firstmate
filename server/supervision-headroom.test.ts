@@ -1,7 +1,9 @@
 import { expect, it, vi } from "vitest";
 import { s04Fixture, type ScopeHandle } from "../test/supervision-s04-fixture";
 import { SupervisionCommands } from "./supervision-commands";
-import { checkGeneralHeadroom } from "./supervision-headroom";
+import { checkGeneralHeadroom, pluginOccupancy } from "./supervision-headroom";
+import { SupervisionGateway } from "./supervision-effects";
+import { SyntheticReceiver } from "../test/synthetic-receiver";
 
 async function fixture() {
   const f = await s04Fixture(), scopes: ScopeHandle[] = [];
@@ -36,6 +38,28 @@ it("F5: checked uncreated release frees headroom for independent B without remov
   expect(after.attempts.find(a => a.id === attempt.id)).toEqual(attempt);
   expect(after.attempts.reduce((sum, a) => sum + a.spentAgents, 0)).toBe(2);
   expect(f.receiver.calls).toEqual([]);
+});
+
+it("remote worker attempts take no local General slot, while the local Supervisor's binding still counts", async () => {
+  const f = await s04Fixture();
+  const local = await f.addScope(1, "capacity-local", ["build-l"]);
+  const remote = await f.addScope(2, "capacity-remote", ["build-r"], true, "srv_remote");
+  for (const scope of [local, remote]) {
+    await f.draft(scope, [{ id: scope.nodes[0]! }], true);
+    f.receiver.agents.set(scope.owner.id, { id: scope.owner.id, workspaceId: "supervisor-ws", cwd: f.home, labels: {},
+      provider: "codex/gpt-6.1-sol", modeId: "full-access", thinkingOptionId: "high", status: "running", pendingPermissions: 0, archivedAt: null });
+  }
+  await f.start(local, local.nodes[0]!);
+  const remoteReceiver = new SyntheticReceiver({ selectedAgentIds: false, createReceiptLookup: false, labelBoundIdentity: true,
+    remoteVersions: { cliVersion: "0.14.0", daemonVersion: "0.14.0" } });
+  const gateway = new SupervisionGateway(f.store, f.commands, f.home, f.receiver,
+    { enabled: true, receiverFor: (host) => host === "srv_remote" ? remoteReceiver : undefined });
+  const started = await gateway.startWorker(await f.input(remote, { op: "start", plan: remote.planId, node: remote.nodes[0]! }), await f.actorFor(remote));
+  const status = await f.store.read();
+  // Two running Supervisor bindings + one reserved local worker = 3; the reserved remote worker adds none.
+  expect(await pluginOccupancy(status, f.receiver)).toBe(3);
+  await expect(checkGeneralHeadroom(status, f.receiver, 4, 1)).rejects.toThrow("capacity");
+  await expect(checkGeneralHeadroom(status, f.receiver, 5, 1, started.effects!.create)).resolves.toBeUndefined();
 });
 
 it.each(["reserved", "uncertain", "created", "running"])("F5: %s work keeps its physical slot and cannot be inferred released", async state => {

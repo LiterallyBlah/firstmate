@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SavedHosts, type RemoteProfile } from "../shared/remotes";
-import { commandArguments, connectionTarget, redact, remoteEnvironment, remoteError, RemoteService } from "./remotes";
+import { commandArguments, connectionTarget, redact, remoteEnvironment, remoteError, RemoteConnectRefused, RemoteService } from "./remotes";
 import { fill, readTemplate, TEMPLATES } from "./templates";
 
 const run = promisify(execFile);
@@ -144,7 +144,7 @@ describe("independent remote access", () => {
     expect(JSON.stringify(snapshot)).not.toContain("discard");
   });
   it("keeps a prompt after -- out of the option checks and injects flags before it", () => {
-    expect(commandArguments(["run", "--cwd", "C:\\repo", "--", "--home is a word in this brief"], "owner")).toEqual(["run", "--cwd", "C:\\repo", "--background", "--label", "firstmate.role=crew", "--label", "firstmate.owner=owner", "--json", "--", "--home is a word in this brief"]);
+    expect(commandArguments(["run", "--cwd", "C:\\repo", "--", "--home is a word in this brief"], "owner")).toEqual(["run", "--cwd", "C:\\repo", "--no-wait", "--label", "firstmate.role=crew", "--label", "firstmate.owner=owner", "--json", "--", "--home is a word in this brief"]);
     expect(commandArguments(["send", "agent", "--", "- guidance"], "owner")).toEqual(["send", "agent", "--no-wait", "--json", "--", "- guidance"]);
     expect(() => commandArguments(["send", "agent", "--prompt-file", "C:\\anywhere.txt"], "owner")).toThrow("helper's --prompt-file");
     expect(() => commandArguments(["run", "--host", "x", "--", "brief"], "owner")).toThrow("overridden");
@@ -169,6 +169,25 @@ describe("independent remote access", () => {
     const { service } = await fixture(async () => ({ code: 1, stdout: "", stderr: JSON.stringify({ error: { message: "connect ECONNREFUSED 10.0.0.2:6767" } }) }));
     await expect(service.request("Remote", ["ls"])).rejects.toThrow("(last attempt: connect ECONNREFUSED 10.0.0.2:6767)");
   });
+  it("records the remote daemon version, discovers by owner-filtered attempt label including archived, and marks connect refusals definite", async () => {
+    const calls: string[][] = [];
+    const attempt = "30000000-0000-4000-8000-000000000003";
+    const { service } = await fixture(async (args) => {
+      calls.push(args);
+      if (args[0] === "status") return success({ serverId: remote.serverId, connectedDaemon: "reachable", daemonVersion: "0.14.0" });
+      if (args[0] === "ls") return success([{ id: "worker-1", name: "Probe", status: "closed", cwd: "/home/ariadne/work", provider: "claude/claude-haiku-4-5", secret: "discard" }]);
+      return success({});
+    });
+    const rows = await service.discoverByAttempt("Remote", `firstmate.attempt=${attempt}`);
+    expect(rows).toEqual([{ id: "worker-1", name: "Probe", status: "closed", cwd: "/home/ariadne/work", provider: "claude/claude-haiku-4-5" }]);
+    const listing = calls.find((args) => args[0] === "ls")!;
+    expect(listing).toEqual(["ls", "-g", "-a", "--label", "firstmate.owner=local-test:firstmate", "--label", `firstmate.attempt=${attempt}`, "--json"]);
+    expect((await service.hostInfo("Remote"))?.daemonVersion).toBe("0.14.0");
+    await expect(service.discoverByAttempt("Remote", "firstmate.owner=someone")).rejects.toThrow("exact attempt label");
+    await expect(service.request("Remote", ["ls", "-g", "-a", "--label", "firstmate.owner=local-test:firstmate"])).rejects.toThrow("Reserved");
+    const refused = await fixture(async () => ({ code: 1, stdout: "", stderr: JSON.stringify({ error: { code: "DAEMON_UNREACHABLE", message: "connect ECONNREFUSED" } }) }));
+    await expect(refused.service.request("Remote", ["run", "brief"])).rejects.toBeInstanceOf(RemoteConnectRefused);
+  });
   it("sends a brief from a home file, shows pending tool calls, and prints times as reported", async () => {
     const calls: string[][] = [];
     const { directory, home, service } = await fixture(async (args) => {
@@ -192,7 +211,7 @@ describe("independent remote access", () => {
     await writeFile(join(home, "data", "task", "brief.md"), `\uFEFF${brief}`);
     const cwd = "C:\\Users\\captain\\repo";
     await run(process.execPath, [helper, remote.serverId, "run", "--prompt-file", "data/task/brief.md", "--cwd", cwd, "--provider", "claude/opus"], { cwd: home, timeout: 10000 });
-    expect(calls.at(-1)).toEqual(["run", "--cwd", cwd, "--provider", "claude/opus", "--background", "--label", "firstmate.role=crew", "--label", "firstmate.owner=local-test:firstmate", "--json", "--", brief]);
+    expect(calls.at(-1)).toEqual(["run", "--cwd", cwd, "--provider", "claude/opus", "--no-wait", "--label", "firstmate.role=crew", "--label", "firstmate.owner=local-test:firstmate", "--json", "--", brief]);
     await writeFile(join(home, "data", "task", "send.json"), JSON.stringify({ host: "Remote", args: ["send", "agent-1", "--prompt-file", join(home, "data", "task", "brief.md")] }));
     await run(process.execPath, [helper, "--request-file", join(home, "data", "task", "send.json")], { cwd: home, timeout: 10000 });
     expect(calls.at(-1)).toEqual(["send", "agent-1", "--no-wait", "--json", "--", brief]);

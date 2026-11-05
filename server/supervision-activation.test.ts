@@ -101,6 +101,22 @@ it("guided preview and backup configuration start no session; reviewed handover 
     expect(attached.audits[0]?.source).toBe("client UI (unverified)");
   } finally { await activation.stop(); await runtime.stop(); }
 });
+it("plan help keys its host check to the admitted project owner, a remote owner included", async () => {
+  const { runtime } = await guided();
+  try {
+    expect((await activation.planHelp(prepare.homeId, "scheduler")).problems.join(" ")).not.toContain("host doesn't match");
+    await runtime.mutate(home, async store => {
+      const s = await store.read(), p = s.projects!.projects[0]!;
+      await store.transact([{ kind: "project", id: p.id, version: p.version }], randomUUID(),
+        [{ kind: "project", value: { ...p, version: p.version + 1, owner: { hostId: "srv_remote", directory: "/home/ariadne/work",
+          registryDigest: "0".repeat(64), generalAgentId: "general", profile: { provider: "codex/gpt-6.1-sol", modeId: "full-access" },
+          limits: { supervisorSessions: 1, supervisorTurns: 5 } } } }] as never);
+    });
+    // The plan's runs are local; a remote owner no longer matches them, with no change to the check itself.
+    expect((await activation.planHelp(prepare.homeId, "scheduler")).problems.join(" ")).toContain("host doesn't match");
+    expect(receiver.calls).toEqual([]);
+  } finally { await activation.stop(); await runtime.stop(); }
+});
 it("a changed reviewed source/backup or incomplete decision census holds guided handover before freeze", async () => {
   const { runtime } = await guided();
   try {
