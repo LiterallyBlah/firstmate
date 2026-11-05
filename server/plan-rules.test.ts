@@ -1,8 +1,13 @@
 import { randomUUID } from "node:crypto";
-import { expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { captain } from "../test/supervision-s04-fixture";
 import { PlanRules, ruleRef, snapshotKey } from "./plan-rules";
-import { SupervisionGateway } from "./supervision-effects";
+import { stableId, SupervisionGateway } from "./supervision-effects";
+import { SupervisionCommands } from "./supervision-commands";
+import { planSupervisorAuthority } from "./plan-supervisor-authority";
+import type { PlanRuleRecord } from "../shared/plan-rules";
+import type { SupervisionStatus } from "../shared/supervision";
+import type { PlanDefinition, WorkflowPlan } from "../shared/workflow-plans";
 import { digest } from "./submissions";
 
 import { ruleFixture as fixture } from "../test/plan-rules-fixture";
@@ -137,4 +142,75 @@ it("refuses an unreproduced live failure on the next changed attempt, and never 
     head: "a".repeat(40), at: new Date().toISOString(), category: "product", description: "Live crash", evidence, caseId: null, reproduction: null }, f.scope.owner);
   await expect(f.gateway.startWorker(started.i, f.scope.owner)).resolves.toMatchObject({ attemptId: started.attemptId });
   await expect(f.rules.command(await f.store.read(), { ...await f.input(), requestId: randomUUID() })).rejects.toThrow("reproduced regression");
+});
+
+describe("rules carried across a plan revision", () => {
+  type F = Awaited<ReturnType<typeof fixture>>;
+  const plan = async (f: F) => (await f.store.read()).plans[0]!.plan;
+  const decision = (id: string, authority: "owner" | "captain" = "captain") => ({ kind: "decision" as const, id, title: `Decide ${id}`, summary: "Choose.", after: [], authority,
+    options: [{ id: "yes", label: "Yes", consequence: "Proceed." }, { id: "no", label: "No", consequence: "Stop." }], recommendation: "yes", rationale: "Bounded." });
+  /** Gate every run on every decision, as a decision must gate some run. */
+  const gated = (definition: PlanDefinition) => {
+    const decisions = definition.nodes.filter(n => n.kind === "decision").map(n => ({ node: n.id, on: "answered" as const, reason: "decision" as const }));
+    for (const n of definition.nodes) if (n.kind === "run") n.after = [...n.after.filter(e => !definition.nodes.some(d => d.kind === "decision" && d.id === e.node)), ...decisions];
+    return definition;
+  };
+  async function revise(f: F, edit: (d: PlanDefinition) => void, actor = f.scope.owner, commands = f.commands) {
+    const p = await plan(f), definition = structuredClone(p.definition); edit(definition); gated(definition);
+    await commands.planCommand(await f.commandInput(f.scope, { op: "revise", definition, expected: p.hash, reason: "Fixture revision" }), actor);
+    const s = await f.store.read(), next = s.plans[0]!.plan; expect(next.revision).toBe(p.revision + 1);
+    return { s, next, record: s.planRules!.find(r => r.revision === next.revision) };
+  }
+  const carried = (f: F, r: { s: SupervisionStatus; next: WorkflowPlan; record?: PlanRuleRecord | undefined }) => {
+    expect(r.record).toMatchObject({ id: stableId("plan-rules", r.s.homeId, "rules", r.next.revision), version: 1, sources: f.record.sources, supervisorLimits: f.record.supervisorLimits, nodes: f.record.nodes });
+    expect(planSupervisorAuthority(r.s, f.scope.id).id).toBe(r.record!.id);
+  };
+  const required = (f: F, r: { s: SupervisionStatus; record?: PlanRuleRecord | undefined }) => {
+    expect(r.record).toBeUndefined();
+    expect(() => planSupervisorAuthority(r.s, f.scope.id)).toThrow("Effective supervisor rule authority is unavailable.");
+  };
+  it("carries across consecutive decision-only revisions", async () => {
+    const f = await fixture();
+    carried(f, await revise(f, d => { d.nodes.push(decision("first")); }));
+    carried(f, await revise(f, d => { d.nodes.push(decision("second")); }));
+  });
+  it("needs explicit rules when a run's work changes", async () => {
+    const f = await fixture();
+    required(f, await revise(f, d => { d.nodes.push(decision("first")); const run = d.nodes.find(n => n.id === "build")!; run.summary = "A different bounded build."; }));
+  });
+  it("needs explicit rules when the budget changes", async () => {
+    const f = await fixture();
+    required(f, await revise(f, d => { d.nodes.push(decision("first")); d.budget = { agents: d.budget.agents + 1, turns: d.budget.turns + 1 }; }));
+  });
+  it("needs explicit rules when a decision is removed", async () => {
+    const f = await fixture();
+    carried(f, await revise(f, d => { d.nodes.push(decision("first", "owner"), decision("second", "owner")); }));
+    required(f, await revise(f, d => { d.nodes = d.nodes.filter(n => n.id !== "second"); }));
+  });
+  it("needs explicit rules when a run is added or removed", async () => {
+    const f = await fixture(), commands = new SupervisionCommands(f.store, f.home, { enabled: true, rules: f.rules, registerTasks: true });
+    const added = await revise(f, d => { const run = d.nodes.find(n => n.id === "build")!; if (run.kind !== "run") throw new Error("fixture run");
+      d.nodes.push({ ...structuredClone(run), id: "extra", title: "Extra", launch: { ...run.launch, id: "extra", brief: { file: "data/extra/brief.md" } } }); }, f.scope.owner, commands);
+    required(f, added);
+    await f.rules.import(randomUUID(), { ...f.record, id: stableId("plan-rules", added.s.homeId, "rules", added.next.revision), revision: added.next.revision,
+      nodes: [...f.record.nodes, { ...f.record.nodes[0]!, nodeId: "extra" }] }, captain);
+    required(f, await revise(f, d => { d.nodes = d.nodes.filter(n => n.id !== "extra"); }, f.scope.owner, commands));
+  });
+  it("needs explicit rules for a captain-owned plan", async () => {
+    const f = await fixture(false);
+    required(f, await revise(f, d => { d.nodes.push(decision("first")); }));
+  });
+  it("does not carry rules across an attempt replacement", async () => {
+    const f = await fixture(), commands = new SupervisionCommands(f.store, f.home, { enabled: true, rules: f.rules, recovery: true });
+    const gateway = new SupervisionGateway(f.store, commands, f.home, f.receiver, { enabled: true, rules: f.rules, recovery: true });
+    const started = await f.start(), worker = (await f.store.read()).attempts.find(a => a.id === started.attemptId)!.worker!;
+    await f.rules.evidence(randomUUID(), "rule-verification", await f.report(started.attemptId!), f.scope.owner);
+    await f.complete(started.attemptId!); f.receiver.finish(worker.agentId);
+    const p = await plan(f);
+    await gateway.recoverPlan({ ...await f.commandInput(f.scope, { op: "replace", plan: "rules", node: "build", attempt: started.attemptId!, expected: p.hash, kind: "relaunch",
+      evidence: "Relaunch within the existing budget", budget: p.definition.budget }), planRules: ruleRef(f.record) }, f.scope.owner);
+    const s = await f.store.read(), next = s.plans[0]!.plan;
+    expect(next.revision).toBe(p.revision + 1);
+    required(f, { s, record: s.planRules!.find(r => r.revision === next.revision) });
+  });
 });

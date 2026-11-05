@@ -8,9 +8,9 @@ import { policyRef } from "../server/supervision-policy";
 import { digest } from "../server/submissions";
 import { expected } from "./supervision-fixture";
 
-export async function ruleFixture() {
+export async function ruleFixture(delegated = true) {
   const f = await s04Fixture(), scope = await f.addScope(1, "rules", ["build"]);
-  await f.draft(scope, [{ id: "build", kind: "ship" }], true);
+  await f.draft(scope, [{ id: "build", kind: "ship" }], delegated);
   const rules = new PlanRules(f.store, f.home), s = await f.store.read(), plan = s.plans[0]!.plan;
   const na = { applies: false as const, reason: "This bounded server-only fixture does not change design, product performance or run a heavy suite." };
   const record = PlanRuleRecordSchema.parse({ format: "firstmate.plan-rules/1", id: stableId("plan-rules", s.homeId, "rules", plan.revision), version: 1,
@@ -45,5 +45,5 @@ export async function ruleFixture() {
     return commands.planCommand({ ...await f.input(scope, { op: "record", plan: "rules", node: "build", attempt: attemptId, state: "done", evidence: "Verified CI artifact and independent report." }),
       planRules: ruleRef(record), head }, scope.owner);
   }
-  return { ...f, scope, rules, record, commands, gateway, input, start, artifact, report, complete };
+  return { ...f, scope, rules, record, commands, gateway, input, commandInput: f.input, start, artifact, report, complete };
 }

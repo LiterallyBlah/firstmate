@@ -281,6 +281,8 @@ export class SupervisionCommands {
     if (problems.length) fail("HELD", problems.join("\n"));
     const mutations: SupervisionMutation[] = [{ kind: "workflow", scopeId: scope.id, event }, ...this.options.rules?.factual(status, input, factual) ?? []];
     mutations.push(...taskMutations);
+    // A replacement resets a run's attempt; its rules stay the explicit delegated-repair/reviewed import.
+    if (c.op !== "replace") mutations.push(...this.options.rules?.carryForward(status, scope.id, previous, next) ?? []);
     if (c.op === "release") {
       const attempt = status.attempts.find(a => a.id === c.attempt)!;
       mutations.push({ kind: "attempt", value: { ...attempt, state: "released-uncreated", version: attempt.version + 1 } });

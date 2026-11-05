@@ -10,6 +10,7 @@ import { PlanRuntime } from "./plan-runtime";
 import { SupervisionRuntime } from "./supervision-runtime";
 import type { PaseoApi } from "./host-types";
 import { PlanRules, ruleRef } from "./plan-rules";
+import { planSupervisorAuthority } from "./plan-supervisor-authority";
 import { policyRef } from "./supervision-policy";
 import { digest } from "./submissions";
 import { expectedFor, stableId } from "./supervision-effects";
@@ -193,6 +194,38 @@ it("a delegated owner adds an authorized corrective run and stricter checks with
     await f.service.tick(); expect(await f.result(start)).toMatchObject({ ok: true });
     expect((await f.store.read()).tasks.find(t => t.nodeId === "corrective")?.ownerScopeId).toBe(scope.id);
     expect(f.receiver.calls.filter(c => c.op === "createAgent")).toHaveLength(1);
+  } finally { await f.service.stop(); await f.runtime.stop(); }
+});
+it("a decision-only revision keeps its rules; a revision adding a run still needs an explicit import", async () => {
+  const f = await fixture();
+  try {
+    const scope = f.scopes[0]!, plan = async () => (await f.store.read()).plans.find(p => p.scopeId === scope.id)!.plan;
+    const decided = structuredClone((await plan()).definition), gated = decided.nodes.find(n => n.id === scope.nodes[0])!;
+    decided.nodes.push({ kind: "decision", id: "launch-blocked", title: "Launch is blocked", summary: "Proceed?", after: [], authority: "captain",
+      options: [{ id: "yes", label: "Yes", consequence: "Proceed." }, { id: "no", label: "No", consequence: "Stop." }], recommendation: "yes", rationale: "Bounded." });
+    gated.after = [{ node: "launch-blocked", on: "answered", reason: "decision" }];
+    const decision = await f.queue(scope, "plan", await f.input(scope, { op: "revise", definition: decided, expected: (await plan()).hash, reason: "Ask the captain first" }));
+    await f.service.tick(); expect(await f.result(decision)).toMatchObject({ ok: true });
+    const two = await plan(), carried = (await f.store.read()).planRules!.find(r => r.scopeId === scope.id && r.revision === two.revision);
+    expect(carried).toMatchObject({ id: stableId("plan-rules", f.store.homeId, scope.planId, two.revision), version: 1, nodes: f.records[0]!.nodes, supervisorLimits: f.records[0]!.supervisorLimits });
+    expect(planSupervisorAuthority(await f.store.read(), scope.id).id).toBe(carried!.id);
+
+    const added = structuredClone(two.definition), run = added.nodes.find(n => n.kind === "run")!; if (run.kind !== "run") throw new Error("fixture run");
+    added.nodes.push({ ...run, id: "corrective", title: "Diagnose recurring blocker", after: added.nodes.flatMap(n => n.kind === "run" ? n.after : []),
+      launch: { ...run.launch, id: "corrective", brief: { file: "data/corrective/brief.md" } } });
+    await mkdir(join(f.home, "data/corrective")); await writeFile(join(f.home, "data/corrective/brief.md"), "Synthetic checked brief.");
+    const revise = await f.queue(scope, "plan", await f.input(scope, { op: "revise", definition: added, expected: two.hash, reason: "Within existing delegated scope and cumulative budget" }));
+    await f.service.tick(); expect(await f.result(revise)).toMatchObject({ ok: true });
+    const three = await plan();
+    expect((await f.store.read()).planRules!.some(r => r.scopeId === scope.id && r.revision === three.revision)).toBe(false);
+    const s3 = await f.store.read();
+    expect(() => planSupervisorAuthority(s3, scope.id)).toThrow("Effective supervisor rule authority is unavailable.");
+    const refused = await f.queue(scope, "plan", { ...await f.input(scope, { op: "start", plan: scope.planId, node: "corrective" }), planRules: ruleRef(carried!) });
+    await f.service.tick(); expect(await f.result(refused)).toMatchObject({ ok: false, error: expect.stringContaining("current source-bound rule record and digest required") });
+    const record = { ...carried!, revision: three.revision, id: stableId("plan-rules", f.store.homeId, scope.planId, three.revision), version: 1,
+      nodes: [...carried!.nodes, { ...carried!.nodes[0]!, nodeId: "corrective" }] };
+    const rules = await f.queue(scope, "rules", record); await f.service.tick(); expect(await f.result(rules)).toMatchObject({ ok: true });
+    expect(planSupervisorAuthority(await f.store.read(), scope.id)).toEqual(ruleRef(record));
   } finally { await f.service.stop(); await f.runtime.stop(); }
 });
 it("production final admission rereads a bound PR and refuses a moved head before creating a worktree", async () => {
