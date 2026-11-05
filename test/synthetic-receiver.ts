@@ -8,10 +8,10 @@ import {
 
 /** lose: the receiver admits and performs the request, then the reply is lost (ambiguous).
  * reject: definite refusal before admission. hide: performed, but invisible to lookups until revealed. */
-export type Fault = "lose" | "reject" | "capacity" | "hide";
+export type Fault = "lose" | "reject" | "capacity" | "hide" | "fail";
 export type Operation = "openWorkspace" | "createAgent" | "send" | "interrupt" | "archive";
 export const fullCapabilities: ReceiverCapabilities = { version: 1, receiver: "synthetic/1", qualification: "synthetic-fixture",
-  selectedAgentIds: true, createReceiptLookup: true, workspaceIntentLookup: false, persistedInventory: true,
+  selectedAgentIds: true, createReceiptLookup: true, workspaceIntentLookup: false, workspaceNotCreatedProof: false, persistedInventory: true,
   sendReceiptLookup: false, conditionalArchive: false };
 
 export class SyntheticReceiver implements GatewayReceiver {
@@ -33,6 +33,8 @@ export class SyntheticReceiver implements GatewayReceiver {
   afterAdmission: (() => void) | null = null;
   /** When set, an admitted request waits here before replying (models a slow reply in flight). */
   gate: Promise<void> | null = null;
+  /** Awaited before the request is performed (models a creation still running, nothing landed yet). */
+  beforePerform: (() => Promise<void>) | null = null;
   capabilityValue: unknown;
   constructor(capabilities: Partial<ReceiverCapabilities> = {}, private readonly root = "C:/synthetic") {
     this.capabilityValue = { ...fullCapabilities, ...capabilities };
@@ -41,9 +43,11 @@ export class SyntheticReceiver implements GatewayReceiver {
   private fault(op: Operation) { return this.faults[op]?.shift(); }
   private async perform<T>(op: Operation, target: string, act: () => T): Promise<T> {
     this.calls.push({ op, target });
+    if (this.beforePerform) await this.beforePerform();
     const fault = this.fault(op);
     if (fault === "reject") throw new ReceiverRejected(`${op} refused`, "invalid");
     if (fault === "capacity") throw new ReceiverRejected(`${op}: provider capacity unavailable`, "capacity");
+    if (fault === "fail") throw new Error(`${op} failed before anything was created`);
     const result = act();
     if (fault === "hide") this.hidden.add(target);
     this.afterAdmission?.();
@@ -60,6 +64,14 @@ export class SyntheticReceiver implements GatewayReceiver {
     });
   }
   async findWorkspace(intent: WorkspaceIntent) { return this.hidden.has(intent.key) ? null : this.workspaces.get(intent.key) ?? null; }
+  /** The synthetic not-created proof answer, beside the registry: a workspace in the map
+   * (even hidden from lookups) is a registry row, so it defeats the proof. */
+  workspaceNotCreated = false;
+  proofCalls: string[] = [];
+  async proveWorkspaceNotCreated(intent: WorkspaceIntent) {
+    this.proofCalls.push(intent.key);
+    return this.workspaceNotCreated && !this.workspaces.has(intent.key);
+  }
   createAgent(intent: AgentCreateIntent) {
     return this.perform("createAgent", intent.agentId, () => {
       if (this.agents.has(intent.agentId)) return { agentId: intent.agentId }; // Exact-intent receipt, never a duplicate.

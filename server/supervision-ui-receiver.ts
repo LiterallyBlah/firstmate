@@ -10,7 +10,7 @@ import { sendWithoutInterrupting } from "./send";
 export class SupervisionUiReceiver implements GatewayReceiver {
   constructor(private readonly paseo: PaseoApi, private readonly root: string, private readonly options: { projectMates?: boolean; maintenanceMates?: boolean; beforeSend?: (agentId: string) => Promise<void> } = {}) {}
   async capabilities() { return { version: 1 as const, receiver: "paseo-sdk/cooperative-attach", qualification: "cooperative-paseo" as const,
-    selectedAgentIds: true, createReceiptLookup: true, workspaceIntentLookup: false, persistedInventory: false,
+    selectedAgentIds: true, createReceiptLookup: true, workspaceIntentLookup: false, workspaceNotCreatedProof: false, persistedInventory: false,
     sendReceiptLookup: false as const, conditionalArchive: false as const }; }
   async openWorkspace(intent: WorkspaceIntent) {
     return (await this.prepareWorkspace(intent))();

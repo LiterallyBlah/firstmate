@@ -37,6 +37,14 @@ type Code = "STALE" | "HELD" | "UNKNOWN_OWNER" | "UNSUPPORTED" | "UNCERTAIN" | "
 export function refuse(code: Code, message: string): never { throw new SupervisionError(code, message); }
 const sha256 = (bytes: Uint8Array | string) => createHash("sha256").update(bytes).digest("hex");
 const GATEWAY: SupervisionActor = { kind: "system", id: "s04-gateway", source: "dispatch-claim" };
+/** Effects whose native call is outstanding in this process, and when each effect was first
+ * observed `uncertain` here. The not-created proof needs both: never while a call may still
+ * land, and only once the uncertainty is old enough that a creation the reply lost track of
+ * (timeout, lost connection, another process) has had time to become visible or finish. */
+const inFlightEffects = new Set<string>();
+const uncertainSince = new Map<string, number>();
+export const NOT_CREATED_PROOF_MIN_AGE_MS = 120_000;
+const effectTrackKey = (root: string, effectId: string) => `${root}:${effectId}`;
 const TERMINAL_NODE = ["done", "landed", "failed", "cancelled"];
 /** A stable UUID-shaped identity from durable content, so a replay reuses the same reservation. */
 export function stableId(...parts: unknown[]): string {
@@ -304,9 +312,15 @@ export class SupervisionGateway {
       // A replayed claim means an earlier dispatcher already crossed (or may have crossed) the boundary.
       if (!claimed || !call) refuse("UNCERTAIN", "This effect was already claimed for dispatch; reconcile it, never resend.");
       const admitted: Call = call;
+      const track = effectTrackKey(this.store.root, effect.id);
+      inFlightEffects.add(track);
       const pending = admitted.run(); // New-work calls initiate the native API before their first await.
       // Attach a handler before releasing the fence; settlement below owns the outcome.
-      void pending.catch(() => undefined);
+      // The minimum-age clock restarts when the call ends: one marked uncertain mid-flight by a
+      // concurrent reconcile and then timing out long after starts its age at the timeout —
+      // when the daemon may still be creating — not at the mid-flight mark.
+      const ended = () => { inFlightEffects.delete(track); if (operation === "workspace.open") uncertainSince.set(track, this.options.now?.() ?? Date.now()); };
+      void pending.then(ended, ended);
       return { claimed, admitted, pending };
     };
     const { claimed, admitted, pending } = this.options.policyFence && !stopping
@@ -483,6 +497,9 @@ export class SupervisionGateway {
     const mutations: SupervisionMutation[] = [{ kind: "effect", value: next }, ...ended.map(e => ({ kind: "effect" as const, value: { ...e, state: "cancelled" as const, version: e.version + 1 } })),
       ...(outcome.state === "succeeded" ? after?.(status) ?? [] : [])];
     await this.store.transact(expectedFor(status, mutations), randomUUID(), mutations);
+    const track = effectTrackKey(this.store.root, current.id);
+    if (outcome.state === "uncertain") { if (!uncertainSince.has(track)) uncertainSince.set(track, this.options.now?.() ?? Date.now()); }
+    else uncertainSince.delete(track);
     return next;
   }
   /** The binding's profile digest is the canonical blob identity of the reserved profile. */
@@ -509,7 +526,11 @@ export class SupervisionGateway {
     return key;
   }
 
-  /** Exact identity lookup only. A negative or misbound answer never proves anything; nothing is resent. */
+  /** Exact identity lookup only; nothing is resent. A negative or misbound answer never proves
+   * anything — one exception: an uncertain worker `workspace.open` whose lookup found nothing
+   * may settle `failed` (not created) on the receiver's full absence proof — never while its
+   * own call is in flight or its uncertainty is younger than `NOT_CREATED_PROOF_MIN_AGE_MS` —
+   * cancelling its still-reserved siblings through `settle` and keeping spend. Inconclusive stays uncertain. */
   async reconcile(effectId: string): Promise<SupervisionEffect> {
     this.enabled();
     const status = await this.store.audit();
@@ -517,11 +538,26 @@ export class SupervisionGateway {
     const effect = status.effects.find(e => e.id === effectId) ?? refuse("UNKNOWN_OWNER", "Unknown effect.");
     if (!["dispatching", "uncertain", "accepted"].includes(effect.state)) return effect;
     const capabilities = await this.capabilities();
-    let found: string | null = null;
+    let found: string | null = null, notCreated = false;
     if (effect.operation === "workspace.open" && capabilities.workspaceIntentLookup) {
       const intent = effect.attemptId === null ? supervisorWorkspaceIntent(effect.scopeId, effect.epoch, effect.id) : workerIntentFor(status, effect);
       const receipt = await this.receiver.findWorkspace(intent);
       found = receipt ? JSON.stringify(WorkspaceReceiptSchema.parse(receipt)) : null;
+      // Only an already-uncertain worker open earns the proof: a dispatching/in-flight effect
+      // may still be creating, a supervisor or reused workspace already exists, and an effect
+      // with no real lookup has no registry absence to stand on. The proof is read-only.
+      // `uncertain` alone does not mean nothing is in flight: a concurrent reconcile can mark
+      // an in-flight call uncertain, and a timeout or lost connection leaves one uncertain
+      // while the daemon may still be creating. So the proof also waits out this process's
+      // outstanding call for the effect and a minimum age since it was first seen uncertain
+      // here; the receiver's proof covers the daemon's durable creation record.
+      if (!found && effect.state === "uncertain" && effect.attemptId !== null && !effect.reusedWorkspace &&
+        capabilities.workspaceNotCreatedProof && this.receiver.proveWorkspaceNotCreated) {
+        const track = effectTrackKey(this.store.root, effect.id), now = this.options.now?.() ?? Date.now();
+        if (!uncertainSince.has(track)) uncertainSince.set(track, now);
+        if (!inFlightEffects.has(track) && now - uncertainSince.get(track)! >= NOT_CREATED_PROOF_MIN_AGE_MS)
+          notCreated = await this.receiver.proveWorkspaceNotCreated(intent).catch(() => false);
+      }
     } else if (effect.operation === "agent.create" && capabilities.createReceiptLookup && effect.receiverKey) {
       const observed = await this.receiver.findAgent(effect.receiverKey);
       found = observed?.id === effect.receiverKey ? `agent:${observed.id}` : null; // Late original creation binds here.
@@ -533,6 +569,8 @@ export class SupervisionGateway {
     const current = (await this.store.read()).effects.find(e => e.id === effectId)!;
     if (current.version !== effect.version) return current;
     if (found) return this.settle(current, { state: "succeeded", receiptRef: found });
+    if (notCreated && current.state === "uncertain")
+      return this.settle(current, { state: "failed", receiptRef: "rejected:not-created:no registry workspace, branch, worktree or managed directory for the reserved intent" });
     if (current.state === "uncertain") return current;
     return this.settle(current, { state: "uncertain", receiptRef: null });
   }

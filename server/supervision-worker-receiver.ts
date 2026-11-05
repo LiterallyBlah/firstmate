@@ -1,8 +1,9 @@
 /** Local cooperative SDK worker receiver. No parent, archive, release or remote effects. */
 import { execFile } from "node:child_process";
+import { createHash } from "node:crypto";
 import { promisify } from "node:util";
-import { readdir, realpath } from "node:fs/promises";
-import { join } from "node:path";
+import { readdir, readFile, realpath } from "node:fs/promises";
+import { isAbsolute, join } from "node:path";
 import type { AgentCreateIntent, WorkspaceIntent, WorkspaceReceipt } from "../shared/supervision-effects";
 import type { PaseoApi } from "./host-types";
 import { paseoHome } from "./data-dir";
@@ -35,7 +36,7 @@ export class SupervisionWorkerReceiver extends SupervisionUiReceiver {
     super(api, root, { projectMates: true });
   }
   override async capabilities() {
-    return { ...await super.capabilities(), receiver: "paseo-sdk/cooperative-local-worker", workspaceIntentLookup: true };
+    return { ...await super.capabilities(), receiver: "paseo-sdk/cooperative-local-worker", workspaceIntentLookup: true, workspaceNotCreatedProof: true };
   }
   override async prepareWorkspace(intent: WorkspaceIntent) {
     if (intent.purpose === "supervisor") return super.prepareWorkspace(intent);
@@ -68,6 +69,18 @@ export class SupervisionWorkerReceiver extends SupervisionUiReceiver {
       return { workspaceId: workspace.id, directory: path };
     };
   }
+  /** The reconcile-time twin of the dispatch proof: no registry row for the intent's marks
+   * (the lookup, re-run here so the proof stands alone), no live daemon creation record, and git-level absence — no branch
+   * (rev-parse exit 1 only), no worktree on it, no managed directory. Any doubt is false.
+   * Worker intents only; supervisor workspaces have no git proof. Read-only. */
+  async proveWorkspaceNotCreated(intent: WorkspaceIntent): Promise<boolean> {
+    if (intent.purpose !== "worker" || intent.hostId !== "local" || !/^ws-[0-9a-f-]{36}$/.test(intent.key) || !/^fm\/[a-z0-9][a-z0-9-]*$/.test(intent.branch)) return false;
+    try {
+      const directory = await realpath(await this.projectDirectory(intent.project));
+      if (await this.lookupWorkspace(intent, directory) !== null) return false;
+      return await this.proveNotCreated(intent, directory);
+    } catch { return false; }
+  }
   override async findWorkspace(intent: WorkspaceIntent) {
     if (intent.purpose === "supervisor") return super.findWorkspace(intent);
     return this.lookupWorkspace(intent, await this.projectDirectory(intent.project));
@@ -81,9 +94,14 @@ export class SupervisionWorkerReceiver extends SupervisionUiReceiver {
     let cursor: string | undefined;
     do {
       const page = await this.api.workspaces.list({ sort: [{ key: "name", direction: "asc" }], page: { limit: 200, ...(cursor ? { cursor } : {}) } });
-      for (const entry of page.entries)
+      for (const entry of page.entries) {
+        // A registry row carrying the intent's slug or id but no directory yet is a candidate
+        // that cannot be verified (a creation may still be registering it): doubt, not absence.
+        if (!entry.workspaceDirectory && (slugFor(intent.key, entry.worktreeSlug) || entry.id === intent.key))
+          throw new Error("A workspace registry row matches the reserved intent but has no directory; retain uncertainty.");
         if (entry.workspaceDirectory && !entries.some(e => e.id === entry.id))
           entries.push({ id: entry.id, workspaceDirectory: entry.workspaceDirectory, worktreeSlug: entry.worktreeSlug });
+      }
       cursor = page.pageInfo.nextCursor ?? undefined;
     } while (cursor);
     const branchPath = await this.branchWorktreePath(project, intent.branch).catch(() => null);
@@ -109,8 +127,9 @@ export class SupervisionWorkerReceiver extends SupervisionUiReceiver {
     if (verified.length > 1) throw new Error("More than one workspace matches the reserved intent; retain uncertainty.");
     throw failure;
   }
-  /** Git-level proof that a failed create left nothing behind: no branch ref, no worktree for it,
-   * and no managed worktree directory named for the intent. Any doubt returns false (uncertain). */
+  /** Proof that a failed create left nothing behind: no branch ref, no worktree for it,
+   * no managed worktree directory named for the intent (under the daemon's configured
+   * worktrees root), and no live durable creation record for its key. Any doubt is false. */
   private async proveNotCreated(intent: WorkspaceIntent, project: string): Promise<boolean> {
     try {
       await this.git(project, ["rev-parse", "--path-format=absolute", "--git-common-dir"]); // git reads this repo at all
@@ -119,10 +138,13 @@ export class SupervisionWorkerReceiver extends SupervisionUiReceiver {
         .then(() => "present" as const, (error: { code?: unknown }) => error?.code === 1 ? "absent" as const : "doubt" as const);
       if (ref !== "absent") return false;
       if (await this.branchWorktreePath(project, intent.branch)) return false;
-      const root = join(paseoHome(), "worktrees");
+      if (await this.creationLive(intent)) return false;
+      const base = await this.worktreesRoot();
+      if (!base) return false;
+      const root = base.root;
       let hashes;
       try { hashes = await readdir(root, { withFileTypes: true }); }
-      catch (error) { return (error as { code?: unknown }).code === "ENOENT"; }
+      catch (error) { return !base.custom && (error as { code?: unknown }).code === "ENOENT"; }
       for (const hash of hashes) {
         if (!hash.isDirectory()) continue;
         const names = await readdir(join(root, hash.name)).catch(() => null);
@@ -130,6 +152,39 @@ export class SupervisionWorkerReceiver extends SupervisionUiReceiver {
       }
       return true;
     } catch { return false; }
+  }
+  /** The daemon's durable per-key creation record, read directly at its fixed name
+   * `creations/<sha256(JSON.stringify(["workspace", key]))>.json` (snapshot
+   * `idempotencyKey`/`workspace.worktreeSlug` carrying the intent key, `phase` its outcome).
+   * True — doubt — for anything at that name other than a parsed record for this key with
+   * phase `failed` (an in-flight write with a null snapshot included): `completed`
+   * means a workspace was created, and any other or unreadable shape may still be in flight
+   * in another process. No record at that name means no record to be live. */
+  private async creationLive(intent: WorkspaceIntent): Promise<boolean> {
+    const name = createHash("sha256").update(JSON.stringify(["workspace", intent.key])).digest("hex");
+    let text: string;
+    try { text = await readFile(join(paseoHome(), "creations", `${name}.json`), "utf8"); }
+    catch (error) { return (error as { code?: unknown }).code !== "ENOENT"; }      
+    let record: { snapshot?: { idempotencyKey?: unknown; phase?: unknown; workspace?: { worktreeSlug?: unknown } } | null };
+    try { record = JSON.parse(text); } catch { return true; }
+    const snapshot = record.snapshot;
+    if (!snapshot || (snapshot.idempotencyKey !== intent.key && !slugFor(intent.key, typeof snapshot.workspace?.worktreeSlug === "string" ? snapshot.workspace.worktreeSlug : undefined))) return true;
+    return snapshot.phase !== "failed";
+  }
+  /** The daemon's managed-worktree root: `worktrees.root` from `$PASEO_HOME/config.json`
+   * (relative to the Paseo home), defaulting to `$PASEO_HOME/worktrees`. Null is doubt:
+   * an unreadable or malformed config, or a set root of the wrong shape. A missing config
+   * file is the default, as it is for the daemon. */
+  private async worktreesRoot(): Promise<{ root: string; custom: boolean } | null> {
+    const home = paseoHome(), fallback = { root: join(home, "worktrees"), custom: false };
+    let text: string;
+    try { text = await readFile(join(home, "config.json"), "utf8"); }
+    catch (error) { return (error as { code?: unknown }).code === "ENOENT" ? fallback : null; }
+    let root: unknown;
+    try { root = (JSON.parse(text) as { worktrees?: { root?: unknown } }).worktrees?.root; } catch { return null; }
+    if (root === undefined || root === null || root === "") return fallback;
+    if (typeof root !== "string") return null;
+    return { root: isAbsolute(root) ? root : join(home, root), custom: true };
   }
   private async branchWorktreePath(project: string, branch: string): Promise<string | null> {
     const out = await this.git(project, ["worktree", "list", "--porcelain"], false);
