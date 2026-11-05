@@ -255,6 +255,21 @@ describe("scoped transaction authority", () => {
     await expect(store.transact([{ kind: "scope", id: ids.scope, version: 1 }], randomUUID(), [{ kind: "scope", value: { ...scope(store.homeId), version: 2 } }])).rejects.toMatchObject({ code: "HELD" });
     expect((await reused.read()).attempts[0]?.spentAgents).toBe(1);
   });
+  it("probes process identity before the publication lock, so reads are not starved during a claim", async () => {
+    const base = join(process.env.PASEO_HOME!, randomUUID());
+    let releaseProbe!: () => void, probeEntered!: () => void;
+    const entered = new Promise<void>(resolve => { probeEntered = resolve; }), gate = new Promise<void>(resolve => { releaseProbe = resolve; });
+    const slow = new SupervisionStore(join(base, "data"), join(base, "home"), { writable: true,
+      processIdentity: async () => { probeEntered(); await gate; return { state: "alive" as const, start: "slow-fixture-process" }; } });
+    await slow.initialize();
+    const claim = slow.acquireCoordinator();
+    try {
+      await entered; // The identity probe is now running.
+      const readOutcome = await Promise.race([slow.read().then(() => "read"), new Promise<string>(resolve => { setTimeout(() => resolve("starved"), 3000); })]);
+      expect(readOutcome).toBe("read"); // With the probe inside locked(), this read waits on publication.active.
+    } finally { releaseProbe(); }
+    await expect(claim).resolves.toBe(1);
+  });
   it("never treats a different lexical home as compatible with persisted scope authority", async () => {
     const foreign = { ...scope(store.homeId), homeId: `${store.homeId}-moved` };
     await expect(commit([{ kind: "scope", value: foreign }])).rejects.toMatchObject({ code: "CONFLICT" });

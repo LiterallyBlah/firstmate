@@ -7,6 +7,7 @@ import { SupervisionStore } from "./supervision-store";
 import { SupervisionStatusReader } from "./supervision-status-reader";
 import { workflowHomeIdentity } from "./workflow-ownership";
 import { serialized } from "./serialize";
+import { primeSupervisionSelfIdentity } from "./supervision-process";
 
 export class SupervisionRuntime {
   private readonly writers = new Map<string, SupervisionStore>();
@@ -17,6 +18,9 @@ export class SupervisionRuntime {
   constructor(readonly root: string, private readonly create = (root: string, home: string) =>
     new SupervisionStore(root, home, { writable: true, actor: { kind: "system", id: "scoped-runtime", source: "owned-plugin-runtime" } }), readonly features?: FeaturePolicyRuntime) {
     this.reader = new SupervisionStatusReader(root); this.lock = `firstmate.runtime:${root}`;
+    // Verify this process's identity now, outside every lock, so the first coordinator claim finds it
+    // cached instead of paying a cold OS probe while holding the runtime serialization. Never rejects.
+    void primeSupervisionSelfIdentity().catch(() => {});
   }
   read(home: string, options?: { settleAfterMs?: number }) {
     return this.writers.get(workflowHomeIdentity(home))?.read(options) ?? this.reader.read(home, options);
