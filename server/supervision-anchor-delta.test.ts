@@ -254,7 +254,7 @@ it("rolls a migrated journal back to a form a pre-/2 reader accepts", async () =
   const migrator = new SupervisionStore(data, home, { writable: true, processIdentity: identity });
   await migrator.acquireCoordinator();
   await expect(migrator.migrateAnchors()).resolves.toMatchObject({ migrated: 16, held: false });
-  await expect(migrator.rollbackAnchors()).resolves.toEqual({ restored: 16, sequence: 8 });
+  await expect(migrator.rollbackAnchors()).resolves.toEqual({ restored: 16, sequence: 8, converted: 0 });
   const names = await readdir(store.root);
   expect(names).not.toContain("anchor-migration.json");
   expect(names).not.toContain("anchor-backup");
@@ -380,23 +380,48 @@ it("never serves a forged restart cache whose frames do not hash to the witnesse
   expect((await new SupervisionStore(data, home).read()).scopes.map(s => s.projectIds)).toEqual(truth.scopes.map(s => s.projectIds));
 }, 300_000);
 
-it("catches a forged cached transaction index in the audit and refuses writes on top of it", async () => {
+it("never serves a forged cached transaction index and never acts on it (R2/R2b)", async () => {
+  const { store, home, data } = await journal(24, false, true);
+  const truth = await store.read();
+  await store.releaseCoordinator();
+  const claimer = new SupervisionStore(data, home, { writable: true, processIdentity: identity });
+  await claimer.acquireCoordinator(); await claimer.releaseCoordinator();
+  // Forge: the cached index claims transaction 3 was request X with the hash of a request
+  // the captain is about to submit (the matching-hash replay trap). The anchors witnessed
+  // otherwise, so the whole cache is rejected at load and the index is never served.
+  const futureId = randomUUID();
+  const mutation = [{ kind: "scope" as const, value: { ...scope(store.homeId), id: randomUUID(), version: 1 } }];
+  const futureHash = digest({ actor: { kind: "system", id: "s01-fixture", source: "unwired-storage" }, expectedVersions: expected(mutation, 0), mutations: mutation });
+  await forgeCache(store.root, cache => { cache.transactions[2].requestId = futureId; cache.transactions[2].requestHash = futureHash; });
+  const victim = new SupervisionStore(data, home);
+  expect(await victim.read()).toEqual(truth);
+  const page = await victim.historyPage({ after: 0, limit: 100 });
+  expect(page.events.map(e => e.requestId)).not.toContain(futureId);
+  // Submitting that very request commits it honestly (sequence advances); it is neither
+  // refused as a conflict nor answered with a phantom replay receipt.
+  const writer = new SupervisionStore(data, home, { writable: true, processIdentity: identity });
+  await writer.acquireCoordinator();
+  const receipt = await writer.transact(expected(mutation, 0), futureId, mutation);
+  expect(receipt.sequence).toBe(truth.sequence + 1);
+  expect((await writer.read()).sequence).toBe(truth.sequence + 1);
+  await writer.releaseCoordinator();
+}, 300_000);
+
+it("ignores a forged cached projection vector instead of committing on it (R4)", async () => {
   const { store, home, data } = await journal(24, false, true);
   await store.releaseCoordinator();
   const claimer = new SupervisionStore(data, home, { writable: true, processIdentity: identity });
   await claimer.acquireCoordinator(); await claimer.releaseCoordinator();
-  await forgeCache(store.root, cache => { cache.transactions[2].requestId = randomUUID(); });
-  const victim = new SupervisionStore(data, home);
-  await victim.read();
-  // The index is not covered by the frame projection; the audit compares the SERVED index
-  // against the replayed journal and must poison every instance when they diverge.
-  expect(await untilHeld(victim)).toBe(true);
+  await forgeCache(store.root, cache => { cache.projectionVector = "ff".repeat(128); });
   const writer = new SupervisionStore(data, home, { writable: true, processIdentity: identity });
-  // Even the coordinator claim is refused while the divergence stands: no write path opens.
-  await expect(writer.acquireCoordinator()).rejects.toMatchObject({ code: "HELD" });
+  await writer.acquireCoordinator();
   const mutation = [{ kind: "scope" as const, value: { ...scope(store.homeId), id: randomUUID(), version: 1 } }];
-  await expect(writer.transact(expected(mutation, 0), randomUUID(), mutation)).rejects.toThrow();
-  await writer.releaseCoordinator().catch(() => {});
+  await writer.transact(expected(mutation, 0), randomUUID(), mutation);
+  await writer.releaseCoordinator();
+  // The write recorded the true set hash (vector recomputed from frames): a cold full
+  // validation stays current instead of holding the journal at a real transaction.
+  const cold = await new SupervisionStore(data, home).read();
+  expect(cold).toMatchObject({ freshness: "current", sequence: 25 });
 }, 300_000);
 
 it("finishes the restart audit under steady writes and surfaces damage below the cache", async () => {
@@ -455,38 +480,87 @@ it("treats a held post-claim migration like a failure: claim released, writer no
   } catch (error) { await runtime.stop().catch(() => {}); throw error; }
 }, 120_000);
 
-it("keeps the rollback window genuinely open: post-migration records stay /1 until the backup is discarded", async () => {
+it("rolls back across post-migration writes by converting the tail to /1 form", async () => {
   const { store, home, data } = await journal(6, true, true);
   await store.releaseCoordinator();
   const migrator = new SupervisionStore(data, home, { writable: true, processIdentity: identity });
   await migrator.acquireCoordinator();
   await migrator.migrateAnchors();
-  // Appends while the backup is retained are /1 records an older plugin can read.
+  // New records are always /2 now; nothing is pinned to the old format for rollback's sake.
   for (let i = 0; i < 3; i++) {
     const mutation = [{ kind: "scope" as const, value: { ...scope(store.homeId), id: randomUUID(), version: 1 } }];
     await migrator.transact(expected(mutation, 0), randomUUID(), mutation);
   }
   const appended = JSON.parse(await readFile(join(store.root, "transactions", fileName(9, "event")), "utf8"));
-  expect(appended.format).toBe("firstmate.supervision-transaction/1");
-  const headBeforeRollback = await migrator.read();
-  expect(headBeforeRollback).toMatchObject({ freshness: "current", sequence: 9 });
-  // A later writer does not silently convert the tail and close the window.
-  await expect(migrator.migrateAnchors()).resolves.toMatchObject({ migrated: 0, held: false });
-  // Rollback is available across the window's writes and restores an all-/1 journal.
-  await expect(migrator.rollbackAnchors()).resolves.toMatchObject({ restored: 12, sequence: 9 });
+  expect(appended.format).toBe("firstmate.supervision-transaction/2");
+  const beforeRollback = await migrator.read();
+  expect(beforeRollback).toMatchObject({ freshness: "current", sequence: 9 });
+  // Rollback restores the migrated prefix from backups and converts the /2 tail itself.
+  await expect(migrator.rollbackAnchors()).resolves.toMatchObject({ restored: 12, sequence: 9, converted: 3 });
+  for (const seq of [1, 6, 7, 9]) {
+    const event = JSON.parse(await readFile(join(store.root, "transactions", fileName(seq, "event")), "utf8"));
+    const tip = JSON.parse(await readFile(join(store.root, "transactions", fileName(seq, "tip")), "utf8"));
+    expect(event.format).toBe("firstmate.supervision-transaction/1");
+    expect(tip.format).toBe("firstmate.supervision-tip/1");
+    expect(tip.ownership.scopes.length).toBeGreaterThan(0);
+  }
   const rolledBack = await new SupervisionStore(data, home, { legacyFormat: true }).read();
   expect(rolledBack.freshness).toBe("current");
   expect(rolledBack.sequence).toBe(9);
-  expect(rolledBack.scopes).toEqual(headBeforeRollback.scopes);
+  expect(rolledBack.scopes).toEqual(beforeRollback.scopes);
   await migrator.releaseCoordinator();
-  // Discard is the point of no return: writing flips to /2.
+  // Re-migrate and discard: the backup is gone and rollback no longer exists to take.
   const second = new SupervisionStore(data, home, { writable: true, processIdentity: identity });
   await second.acquireCoordinator();
   await second.migrateAnchors();
   await second.discardAnchorBackup();
+  await expect(second.rollbackAnchors()).rejects.toMatchObject({ code: "HELD" });
   const mutation = [{ kind: "scope" as const, value: { ...scope(store.homeId), id: randomUUID(), version: 1 } }];
   await second.transact(expected(mutation, 0), randomUUID(), mutation);
-  const flipped = JSON.parse(await readFile(join(store.root, "transactions", fileName(10, "event")), "utf8"));
-  expect(flipped.format).toBe("firstmate.supervision-transaction/2");
+  const after = JSON.parse(await readFile(join(store.root, "transactions", fileName(10, "event")), "utf8"));
+  expect(after.format).toBe("firstmate.supervision-transaction/2");
   await second.releaseCoordinator();
+}, 300_000);
+
+it("catches an off-stride rewrite of a record written after migration (R8)", async () => {
+  const { store, home, data } = await journal(8, true, true);
+  await store.releaseCoordinator();
+  const migrator = new SupervisionStore(data, home, { writable: true, processIdentity: identity });
+  await migrator.acquireCoordinator();
+  await migrator.migrateAnchors();
+  for (let i = 0; i < 8; i++) {
+    const mutation = [{ kind: "scope" as const, value: { ...scope(store.homeId), id: randomUUID(), version: 1, projectIds: Array.from({ length: 32 }, () => randomUUID()) } }];
+    await migrator.transact(expected(mutation, 0), randomUUID(), mutation);
+  }
+  await migrator.releaseCoordinator();
+  // Self-consistent rewrite from a post-migration sequence (chain, anchors and checkpoint
+  // all re-derived); the per-transaction set hash on the /2 records catches it at replay.
+  await rewriteFrom(store.root, 16, 10, events => { events[10].projectionHash = digest("forged-projection"); });
+  const held = await new SupervisionStore(data, home).read();
+  expect(held.freshness).toBe("held");
+}, 300_000);
+
+it("expires the anchor backup a week after migration on a verified writer", async () => {
+  const { store, home, data } = await journal(6, true, true);
+  await store.releaseCoordinator();
+  const migrator = new SupervisionStore(data, home, { writable: true, processIdentity: identity });
+  await migrator.acquireCoordinator();
+  await migrator.migrateAnchors();
+  await migrator.releaseCoordinator();
+  expect(await readdir(store.root)).toContain("anchor-backup");
+  // Not yet a week old: a fresh writer keeps the backup.
+  const early = new SupervisionStore(data, home, { writable: true, processIdentity: identity });
+  await early.acquireCoordinator(); await early.migrateAnchors(); await early.releaseCoordinator();
+  expect(await readdir(store.root)).toContain("anchor-backup");
+  // Age the receipt past the TTL (rehashed, as an old receipt legitimately looks).
+  const receiptPath = join(store.root, "anchor-migration.json");
+  const receipt = JSON.parse(await readFile(receiptPath, "utf8"));
+  receipt.createdAt = new Date(Date.now() - 8 * 24 * 3600 * 1000).toISOString();
+  const { hash: _hash, ...unsigned } = receipt; receipt.hash = digest(unsigned);
+  await writeFile(receiptPath, `${canonical(receipt)}\n`);
+  const later = new SupervisionStore(data, home, { writable: true, processIdentity: identity });
+  await later.acquireCoordinator(); await later.migrateAnchors(); await later.releaseCoordinator();
+  expect(await readdir(store.root)).not.toContain("anchor-backup");
+  expect(await readdir(store.root)).not.toContain("anchor-migration.json");
+  expect((await new SupervisionStore(data, home).read()).freshness).toBe("current");
 }, 300_000);

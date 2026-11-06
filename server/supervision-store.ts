@@ -155,6 +155,7 @@ const isAnchor2 = (anchor: AnyAnchor): anchor is Anchor2 => anchor.format.endsWi
  * and both prefix digests, so an interrupted migration is verifiable and resumable at any point. */
 const AnchorMigrationSchema = z.object({ format: z.literal("firstmate.supervision-anchor-migration/1"), homeId: z.string(),
   sequence: positive, headHash: SupervisionHash, oldPrefixDigest: SupervisionHash, newPrefixDigest: SupervisionHash,
+  createdAt: z.string(),
   old: z.array(z.object({ sequence: positive, tip: SupervisionHash, publication: SupervisionHash }).strict()),
   next: z.array(z.object({ sequence: positive, tip: SupervisionHash, publication: SupervisionHash }).strict()), hash: SupervisionHash }).strict();
 type AnchorMigration = z.infer<typeof AnchorMigrationSchema>;
@@ -213,6 +214,8 @@ function auditFor(root: string): StoreAudit {
 }
 /** Sentinel: journal metadata moved while a warm read was checking it. */
 const changedDuringRead = new Error("Supervision journal changed during a warm read.");
+/** A week after migration the /1 anchor backup (about a journal's worth) expires on the next verified writer. */
+const ANCHOR_BACKUP_TTL_MS = 7 * 24 * 3600 * 1000;
 const emptyPrefix = digest({ format: "firstmate.supervision-prefix/1" });
 const extendPrefix = (previous: string, event: Pick<Transaction, "sequence" | "hash">, tip: AnyAnchor, marker: AnyAnchor) => digest({ previous,
   sequence: event.sequence, event: event.hash, tip: tip.hash, publication: marker.hash });
@@ -484,7 +487,6 @@ export class SupervisionStore {
   private projectionCacheTried = false;
   private coldCacheTail = false;
 
-  private formatPinnedLegacy: boolean | null = null;
   private cacheServed: { sequence: number; hash: string | null; prefixDigest: string; projection: string;
     transactionsDigest: string; ownershipDigest: string; framesDigest: string } | null = null;
   private shared: { epoch: number; scan: Promise<Scan> } | null = null;
@@ -654,6 +656,17 @@ export class SupervisionStore {
     catch { return { migrated: 0, sequence: this.cached?.scan.sequence ?? 0, held: true }; }
     if (!this.coordinator && !receipt) return { migrated: 0, sequence: this.cached?.scan.sequence ?? 0, held: false };
     if (this.coordinator) await this.assertCoordinator();
+    if (receipt && this.coordinator && Date.now() - Date.parse(receipt.createdAt) > ANCHOR_BACKUP_TTL_MS && await this.anchorBackupRetained()) {
+      // Automatic expiry: a verified journal a week past migration no longer keeps the
+      // journal-sized /1 backup (or the downgrade it enables). discardAnchorBackup stays
+      // the deliberate early path. Anything short of a clean full audit keeps the backup.
+      const audited = await this.scanFull({ verifyAllProjections: true });
+      if (!audited.problems.length && !audited.legacyAnchors && audited.transactions[receipt.sequence - 1]?.hash === receipt.headHash) {
+        await rm(join(this.root, "anchor-migration.json"), { force: true });
+        await rm(join(this.root, "anchor-backup"), { recursive: true, force: true });
+        receipt = null;
+      }
+    }
     if (this.cached && !this.cached.scan.problems.length && this.cached.scan.legacyAnchors === 0)
       return { migrated: 0, sequence: this.cached.scan.sequence, held: false };
     const current = await this.scan();
@@ -662,13 +675,6 @@ export class SupervisionStore {
     // migration failure: the ordinary held/recovery machinery owns them, and writer creation
     // must not strand crash recovery by treating them as an unfinished upgrade.
     if (current.problems.length && !receipt) return { migrated: 0, sequence: current.sequence, held: current.legacyAnchors > 0 };
-    if (receipt && !current.problems.length && current.transactions[receipt.sequence - 1]?.hash === receipt.headHash &&
-      current.transactions.every(tx => !tx.format.endsWith("/2")) && await this.anchorBackupRetained()) {
-      // Migration complete, rollback window open: /1 records beyond the migration point are
-      // deliberate. Converting them now would silently close the way back to an older plugin.
-      this.formatPinnedLegacy = true;
-      return { migrated: 0, sequence: current.sequence, held: false };
-    }
     if (!current.legacyAnchors && !current.problems.length) {
       // Completed (possibly long ago and since grown): the checked scan already validated the
       // checkpoint over the current anchors; verify the receipt still binds its head.
@@ -702,6 +708,7 @@ export class SupervisionStore {
         if (digest(checkpoint) !== digest(await this.checkpointFor(snapshot))) return { migrated: 0, sequence: snapshot.sequence, held: false };
       } catch { return { migrated: 0, sequence: snapshot.sequence, held: true }; }
       receipt = AnchorMigrationSchema.parse(hashed({ format: "firstmate.supervision-anchor-migration/1" as const, homeId: this.homeId,
+        createdAt: new Date().toISOString(),
         sequence: snapshot.sequence, headHash: snapshot.hash!, oldPrefixDigest: snapshot.prefixDigest, newPrefixDigest,
         old: anchorPlan.map(entry => ({ sequence: entry.sequence, tip: entry.oldTipHash, publication: entry.oldPublicationHash })),
         next: anchorPlan.map(entry => ({ sequence: entry.sequence, tip: entry.nextTip.hash, publication: entry.nextPublication.hash })) }));
@@ -754,15 +761,16 @@ export class SupervisionStore {
       // resumable state. Report held; never strand the caller with a thrown upgrade.
       return { migrated, sequence: snapshot.sequence, held: true };
     }
-    this.formatPinnedLegacy = await this.anchorBackupRetained();
     return { migrated, sequence: snapshot.sequence, held: false };
   }
-  /** Supported way back: restore the backed-up /1 anchors and remove every trace a pre-/2
-   * plugin would refuse (the receipt and the backup directory), then rebuild the derived
-   * checkpoint over the restored prefix. Refused once any /2 transaction exists - either
-   * appended after migration or already present before it - because an older plugin cannot
-   * read /2 events at all; rolling back then needs those transactions reconciled deliberately. */
-  async rollbackAnchors(): Promise<{ restored: number; sequence: number }> {
+  /** Supported way back to an older plugin: restore the backed-up /1 anchors over the
+   * migrated prefix, CONVERT the post-migration tail (events and anchors rewritten in /1
+   * form, whole ownership re-derived from replay - an older plugin cannot read /2 events),
+   * remove every /2 trace (receipt, backups, restart cache), then rebuild the checkpoint.
+   * Bodies and request identities never change; converted transaction hashes do, so
+   * receipts already issued for converted transactions stop matching the journal - the
+   * deliberate, reported cost of a downgrade (`converted` in the result). */
+  async rollbackAnchors(): Promise<{ restored: number; sequence: number; converted: number }> {
     this.writable();
     return this.locked(async () => {
       await this.assertCoordinator();
@@ -770,8 +778,8 @@ export class SupervisionStore {
       if (!receipt) fail("HELD", "No anchor migration receipt; nothing to roll back.");
       const snapshot = await this.scanFull();
       if (snapshot.problems.length) fail("HELD", `Anchor rollback needs a validated journal first: ${snapshot.problems.join(" | ")}`);
-      if (snapshot.transactions.some(t => t.format.endsWith("/2")) || snapshot.transactions[receipt.sequence - 1]?.hash !== receipt.headHash)
-        fail("HELD", "/2 transactions exist (or history moved at the migration point); an older plugin could not read them, so anchor rollback is refused.");
+      if (snapshot.transactions[receipt.sequence - 1]?.hash !== receipt.headHash)
+        fail("HELD", "History moved at the migration point; anchor rollback is refused.");
       let restored = 0;
       for (const row of receipt.old) {
         for (const [kind, expected] of [["tip", row.tip], ["publication", row.publication]] as const) {
@@ -783,20 +791,42 @@ export class SupervisionStore {
           await this.replaceFile(path, backup); restored++;
         }
       }
+      let converted = 0;
+      if (snapshot.sequence > receipt.sequence) {
+        let frames = new Map<string, Frame>(), previous: string | null = null;
+        for (let seq = 1; seq <= snapshot.sequence; seq++) {
+          const event = verifyHash(TransactionSchema.parse(await readCanonical(this.file(seq, "event"))));
+          frames = this.apply(frames, event.body).frames;
+          if (seq <= receipt.sequence || !event.format.endsWith("/2")) { previous = event.hash; continue; }
+          const convertedEvent: Transaction = hashed({ format: "firstmate.supervision-transaction/1" as const, homeId: this.homeId,
+            sequence: seq, previous, generation: event.generation, coordinatorHash: event.coordinatorHash,
+            requestId: event.requestId, requestHash: event.requestHash, at: event.at, body: event.body,
+            changes: event.changes, projectionHash: frameDigest(frames), outbox: event.outbox });
+          const capsuleBase = { homeId: this.homeId, sequence: seq, previous, transactionHash: convertedEvent.hash,
+            requestId: event.requestId, requestHash: event.requestHash, generation: event.generation };
+          const own = ownership(frames);
+          await this.replaceFile(this.file(seq, "event"), convertedEvent);
+          await this.replaceFile(this.file(seq, "tip"), hashed({ format: "firstmate.supervision-tip/1" as const, ...capsuleBase, ownership: own }));
+          await this.replaceFile(this.file(seq, "publication"), hashed({ format: "firstmate.supervision-publication/1" as const, ...capsuleBase, ownership: own }));
+          previous = convertedEvent.hash; converted++;
+        }
+      }
       await rm(join(this.root, "anchor-migration.json"), { force: true });
       await rm(join(this.root, "anchor-backup"), { recursive: true, force: true });
       this.cached = null;
       await rm(join(this.root, "projection-cache.json"), { force: true });
       const restoredScan = await this.scanFull();
-      if (restoredScan.problems.length || await this.prefixAt(restoredScan, receipt.sequence) !== receipt.oldPrefixDigest)
+      if (restoredScan.problems.length || await this.prefixAt(restoredScan, receipt.sequence) !== receipt.oldPrefixDigest ||
+        restoredScan.transactions.some(t => t.format.endsWith("/2")) || restoredScan.legacyAnchors !== restoredScan.sequence)
         fail("HELD", "Restored anchors do not revalidate against the pre-migration prefix; reconcile deliberately.");
       await this.saveCheckpoint(restoredScan);
-      return { restored, sequence: restoredScan.sequence };
+      return { restored, sequence: restoredScan.sequence, converted };
     });
   }
   /** Drop the /1 backups and the migration receipt once the journal is verified healthy on
-   * /2 anchors. This is the point of no return for rollbackAnchors; nothing calls it
-   * automatically, so backups survive until an operator discards them deliberately. */
+   * /2 anchors. This is the point of no return for rollbackAnchors. The backup also
+   * expires automatically a week after migration on the next verified writer; this is
+   * the deliberate early path. */
   async discardAnchorBackup(): Promise<void> {
     this.writable();
     await this.locked(async () => {
@@ -806,8 +836,6 @@ export class SupervisionStore {
       const snapshot = await this.scan();
       if (snapshot.problems.length || snapshot.transactions[receipt.sequence - 1]?.hash !== receipt.headHash)
         fail("HELD", "Anchor backup discard needs a verified journal bound to the migration receipt.");
-      // Point of no return: writing flips to /2 and any /1 tail migrates on the next writer.
-      this.formatPinnedLegacy = false;
       await rm(join(this.root, "anchor-migration.json"), { force: true });
       await rm(join(this.root, "anchor-backup"), { recursive: true, force: true });
       this.cached = null;
@@ -1663,7 +1691,11 @@ export class SupervisionStore {
       // and the ownership digest from the loaded frames and bind them to the checkpoint.
       // A forged or edited cache file whose frames do not hash to the witnessed projection
       // is rejected here and never served (the ordinary full scan decides instead).
-      const recomputedSet = projectionSetHash(projectionAccOf(scan.frames));
+      const recomputedAcc = projectionAccOf(scan.frames);
+      const recomputedSet = projectionSetHash(recomputedAcc);
+      // Never use the stored vector: the next write would record a projection hash derived
+      // from it. The accumulator recomputed from the frames is the only trusted one.
+      scan.projectionVector = recomputedAcc.vector.toString("hex");
       const v2Head = file.sequence > 0 && scan.transactions[file.sequence - 1]!.format.endsWith("/2");
       const recomputedProjection = file.sequence === 0 ? emptyFrameDigest : v2Head ? recomputedSet : frameDigest(scan.frames);
       if (recomputedSet !== file.projectionSet || recomputedProjection !== file.projection ||
@@ -1673,6 +1705,12 @@ export class SupervisionStore {
       {
         let prefix = emptyPrefix, ok = true;
         const txs = scan.transactions;
+        // The cached index and retained ownership are witnessed here too: every index
+        // entry must match its hash-verified tip, and every retained capsule's digest must
+        // appear as some anchor's recorded ownership digest, or the cache is rejected whole.
+        const capsuleDigests = new Set(scan.ownership.map(capsule => ownershipDigest(capsule)));
+        const witnessed = new Set<string>();
+        let headOwnershipDigest: string | null = null;
         for (let at = 0; at < txs.length && ok; at += 64) {
           const batch = await Promise.all(txs.slice(at, at + 64).flatMap(tx => (["tip", "publication"] as const).map(async kind => {
             const raw = JSON.parse(await readFile(this.file(tx.sequence, kind), "utf8")) as AnyAnchor;
@@ -1680,9 +1718,18 @@ export class SupervisionStore {
             if (raw.homeId !== this.homeId || raw.sequence !== tx.sequence || !raw.format.includes(kind)) fail("HELD", "Restart cache anchor mismatch.");
             return raw;
           })));
-          for (let i = 0; i < batch.length; i += 2) prefix = extendPrefix(prefix, txs[at + i / 2]!, batch[i]!, batch[i + 1]!);
+          for (let i = 0; i < batch.length; i += 2) {
+            const tx = txs[at + i / 2]!, tip = batch[i]!;
+            if (tip.transactionHash !== tx.hash || tip.requestId !== tx.requestId || tip.requestHash !== tx.requestHash || tip.generation !== tx.generation) { ok = false; break; }
+            const tipDigest = isAnchor2(tip) ? tip.ownershipDigest : ownershipDigest((tip as Anchor).ownership);
+            if (capsuleDigests.has(tipDigest)) witnessed.add(tipDigest);
+            headOwnershipDigest = tipDigest;
+            prefix = extendPrefix(prefix, tx, tip, batch[i + 1]!);
+          }
         }
-        if (prefix !== file.prefixDigest) return false;
+        if (!ok || prefix !== file.prefixDigest) return false;
+        if (witnessed.size !== capsuleDigests.size) return false;
+        if (file.sequence > 0 && headOwnershipDigest !== file.ownershipDigest) return false;
       }
       const receipt = await this.readAnchorMigration().catch(() => null);
       if (receipt && receipt.sequence <= file.sequence && scan.transactions[receipt.sequence - 1]?.hash !== receipt.headHash) return false;
@@ -1948,6 +1995,13 @@ export class SupervisionStore {
     return { requestId: event.requestId, requestHash: event.requestHash, sequence: event.sequence, hash: event.hash,
       generation: event.generation, versions: structuredClone(event.changes) };
   }
+  /** Index/ownership-derived reads, replay lookups and every write wait for a running
+   * restart audit - before the store lock, so a first write never freezes reads behind it. */
+  private async awaitAudit(): Promise<void> {
+    const state = auditFor(this.root);
+    if (state.promise) await state.promise;
+    if (state.failure) fail("HELD", 'Restart audit failed: ' + state.failure.join(' '));
+  }
   async transact(expectedVersions: SupervisionExpected[], requestId: string, mutations: StoreMutation[], actorInput: SupervisionActor = this.actor): Promise<SupervisionReceipt> {
     SupervisionUuid.parse(requestId);
     const input = { actor: actorInput, expectedVersions, mutations }, body = structuredClone(BodySchema.parse(input));
@@ -1955,6 +2009,7 @@ export class SupervisionStore {
     if (digest(input) !== digest(body)) fail("CONFLICT", "Submit the complete canonical mutation contract, including workflow defaults.");
     checkInboxRequest(body.mutations, requestId);
     const requestHash = digest(body);
+    await this.awaitAudit();
     return this.locked(async () => {
       const snapshot = await this.scan();
       if (snapshot.problems.length) fail("HELD", snapshot.problems.join(" "));
@@ -1991,6 +2046,7 @@ export class SupervisionStore {
   ): Promise<{ receipt: SupervisionReceipt; result: ScopedCommandResult }> {
     SupervisionUuid.parse(requestId); SupervisionHash.parse(inputHash);
     const actor = structuredClone(SupervisionActorSchema.parse(actorInput));
+    await this.awaitAudit();
     return this.locked(async () => {
       const snapshot = await this.scan();
       if (snapshot.problems.length) fail("HELD", snapshot.problems.join(" "));
@@ -2011,14 +2067,8 @@ export class SupervisionStore {
     });
   }
   private async commit(snapshot: Scan, body: z.infer<typeof BodySchema>, requestId: string, requestHash: string): Promise<SupervisionReceipt> {
-      // A write never lands on top of unverified cache contents: wait out a running
-      // restart audit first (a failed audit then holds this commit through scan()).
-      const pendingAudit = auditFor(this.root).promise;
-      if (pendingAudit) {
-        await pendingAudit;
-        const auditFailure = auditFor(this.root).failure;
-        if (auditFailure) fail("HELD", `Restart audit failed: ${auditFailure.join(" ")}`);
-      }
+      // Callers (transact/transactCommand) already waited out any restart audit before
+      // taking the lock; a write never lands on unverified cache contents.
       // Both transaction entry points must publish a replay marker for this exact request.
       checkInboxRequest(body.mutations, requestId);
       this.writable();
@@ -2040,11 +2090,7 @@ export class SupervisionStore {
       const oldPending = inboxProjection(snapshot.frames).assignments.filter(a => a.primaryEventId === a.id && !terminal(a)).length;
       if (pending > oldPending && pending > (this.options.maxPendingEvents ?? INBOX_LIMITS.pending)) fail("HELD", "Pending event alarm; ingress baseline has not advanced.");
       await this.checkBlobs(body.mutations);
-      // While the migration backup is retained, new records stay in /1 form: the rollback
-      // window (an older plugin reading this journal again) stays genuinely open until an
-      // operator discards the backup, which flips writing to /2 for good.
-      if (this.formatPinnedLegacy === null) this.formatPinnedLegacy = await this.anchorBackupRetained();
-      const version: 1 | 2 = this.options.legacyFormat || this.formatPinnedLegacy ? 1 : 2;
+      const version: 1 | 2 = this.options.legacyFormat ? 1 : 2;
       const nextProjectionAcc = advanceProjection({ vector: Buffer.from(snapshot.projectionVector, "hex"), count: snapshot.frames.size }, snapshot.frames, next.frames, next.changes);
       const projectionSet = projectionSetHash(nextProjectionAcc);
       const event = hashed({ format: version === 2 ? "firstmate.supervision-transaction/2" as const : "firstmate.supervision-transaction/1" as const, homeId: this.homeId,
@@ -2167,6 +2213,7 @@ export class SupervisionStore {
   async historyPage(input: { after: number; limit?: number; hash?: string | null }) {
     const limit = input.limit ?? 50;
     if (!Number.isSafeInteger(input.after) || input.after < 0 || !Number.isSafeInteger(limit) || limit < 1 || limit > 100) fail("CONFLICT", "Invalid history page bounds.");
+    await this.awaitAudit();
     return this.reading(async () => {
       const snapshot = await this.sharedScan();
       if (snapshot.problems.length) fail("HELD", snapshot.problems.join(" "));
