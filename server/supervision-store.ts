@@ -1365,11 +1365,13 @@ export class SupervisionStore {
         for (const name of tipNames) bySequence.set(Number(basename(name).slice(0, 12)), { ...bySequence.get(Number(basename(name).slice(0, 12))), tip: name });
         for (const name of publicationNames) bySequence.set(Number(basename(name).slice(0, 12)), { ...bySequence.get(Number(basename(name).slice(0, 12))), publication: name });
         const ordered = [...bySequence.entries()].sort(([a], [b]) => a - b).flatMap(([, pair]) => [pair.tip, pair.publication].filter((name): name is string => !!name));
-        let position = 0;
+        let cursor = 0;
         for (const [, pair] of [...bySequence.entries()].sort(([a], [b]) => a - b)) {
-          for (const name of [pair.tip, pair.publication]) {
+          const pairNames = [pair.tip, pair.publication].filter((name): name is string => !!name);
+          for (let j = 0; j < pairNames.length; j++) {
+            const name = pairNames[j]!;
             if (!name) continue;
-            aheadAnchors(ordered, position++);
+            aheadAnchors(ordered, cursor + j);
             const saved = { acc: anchorState.acc && cloneOwnershipAcc(anchorState.acc), lastFull: anchorState.lastFull, accDigest: anchorState.accDigest, broken: anchorState.broken,
               retained: result.ownership.length, digests: new Set(retainedDigests) };
             try {
@@ -1383,6 +1385,7 @@ export class SupervisionStore {
               result.problems.push(`Damaged retained ownership ${name}: ${String(error)}`);
             }
           }
+          cursor += pairNames.length;
         }
       };
       try {

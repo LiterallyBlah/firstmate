@@ -303,6 +303,18 @@ it("releases the coordinator claim when migration fails after claiming", async (
   } finally { await runtime.stop(); }
 }, 120_000);
 
+it("retains ownership from the publication when a late tip is damaged", async () => {
+  const { store, home, data } = await journal(24, false, true);
+  await store.releaseCoordinator();
+  // Damage a tip well past the fallback readahead window; its mirrored publication must
+  // stand in at its own sequence, so every later reservation is still retained.
+  await writeFile(join(store.root, "transactions", fileName(20, "tip")), "{damaged");
+  const held = await new SupervisionStore(data, home).read();
+  expect(held.freshness).toBe("held");
+  expect(held.retainedOwnership).toHaveLength(24);
+  expect(held.retainedOwnership[23]!.scopes).toHaveLength(24);
+}, 180_000);
+
 it("serves a restart from the verified projection cache and catches later tampering", async () => {
   const { store, home, data } = await journal(48, false, true);
   const expectedStatus = await store.read();
