@@ -106,6 +106,37 @@ export function helperMutationTarget(command: string[]): string | null {
   if (!FULL_AGENT_ID.test(target)) throw new Error(`Name the remote agent by its full ID: "${target.slice(0, 64)}" is not one (prefixes and names are refused here)`);
   return target;
 }
+/** The subcommands the helper may send; anything else (`project delete`, `help`, a future one) is refused. */
+const HELPER_SUBCOMMANDS: Record<string, readonly string[]> = {
+  workspace: ["ls", "create", "rename", "setup", "archive"], project: ["ls", "create", "rename"],
+  permit: ["ls", "allow", "deny"], provider: ["ls", "models", "diagnostic"],
+};
+/** One option's value, in either spelling, or undefined; given twice it is refused, as ambiguous. */
+function optionValue(options: string[], flag: string): string | undefined {
+  const values = options.flatMap((arg, i) => arg === flag ? [options[i + 1] ?? ""] : arg.startsWith(`${flag}=`) ? [arg.slice(flag.length + 1)] : []);
+  if (values.length > 1) throw new Error(`${flag} is given more than once`);
+  return values[0];
+}
+/** Everything a helper-queue command can reach that a scoped worker might hold: the agent it acts on,
+ * the workspace it archives, sets up, renames or adds an agent to, and the directory a new agent or
+ * workspace opens in. Reads and the remaining creations reach none. Refuses what cannot be checked:
+ * `project delete` (it deletes the project's workspaces), unknown subcommands, an option before a
+ * workspace ID. The scoped guards are then asked about each target. */
+export function helperTargets(command: string[]): { agent: string | null; workspace: string | null; path: string | null } {
+  const name = command[0] ?? "", end = command.indexOf("--");
+  const options = end < 0 ? command : command.slice(0, end), sub = options[1] ?? "";
+  const allowed = HELPER_SUBCOMMANDS[name];
+  if (name === "project" && sub === "delete") throw new Error("project delete is refused here: it deletes the project's workspaces, which can hold a scoped supervisor's worktree");
+  if (allowed && !allowed.includes(sub)) throw new Error(`"${name} ${sub}" is not a command the helper sends; name the subcommand straight after "${name}"`);
+  let workspace: string | null = null, path: string | null = null;
+  if (name === "workspace" && ["archive", "setup", "rename"].includes(sub)) {
+    workspace = options[2] ?? "";
+    if (!workspace || workspace.startsWith("-")) throw new Error(`Name the remote workspace by its ID straight after "workspace ${sub}", before any option`);
+  }
+  if (name === "run") { workspace = optionValue(options, "--workspace") ?? null; path = optionValue(options, "--cwd") ?? null; }
+  if (name === "workspace" && sub === "create") path = optionValue(options, "--path") ?? null;
+  return { agent: helperMutationTarget(command), workspace, path };
+}
 const MAX_ERROR_CHARS = 1500;
 /** More than a few minutes: the delay of a remote run can never account for it. */
 const CLOCK_WARNING_SECONDS = 180;
@@ -201,6 +232,8 @@ export class RemoteService {
     private readonly observedPoll?: (snapshot: RemoteSnapshot) => void,
     /** Refuses helper-queue mutations of scoped workers; absent means no scoped journal is wired. */
     private readonly scopedGuard?: (serverId: string, agentId: string) => Promise<void>,
+    /** Refuses helper-queue workspace changes that could reach a scoped worker's worktree; absent, every such change refuses. */
+    private readonly workspaceGuard?: (serverId: string, target: { workspaceId?: string; path?: string }) => Promise<void>,
   ) { this.ready = this.load(); }
   private async load() {
     await mkdir(pluginDir(), { recursive: true });
@@ -289,8 +322,14 @@ export class RemoteService {
     if (matches.length !== 1) throw new Error("Host is unknown or its name is ambiguous; use its serverId from hosts");
     const host = matches[0]!;
     const command = commandArguments(args, this.owner);
-    const target = origin?.helper ? helperMutationTarget(command) : null;
-    if (target !== null) await this.scopedGuard?.(host.serverId, target);
+    if (origin?.helper) {
+      const targets = helperTargets(command);
+      if (targets.agent !== null) await this.scopedGuard?.(host.serverId, targets.agent);
+      if (targets.workspace !== null || targets.path !== null) {
+        if (!this.workspaceGuard) throw new Error("Remote workspace changes cannot be checked against scoped worktrees here, so they are refused");
+        await this.workspaceGuard(host.serverId, { ...(targets.workspace !== null ? { workspaceId: targets.workspace } : {}), ...(targets.path !== null ? { path: targets.path } : {}) });
+      }
+    }
     const connection = await this.connect(host);
     // Exactly one attempt once a command may change remote state. A timeout
     // is uncertain; never retry creation automatically.

@@ -184,7 +184,12 @@ brief as its prompt), and report back through the poll as observations that wake
 Do not steer, interrupt, end or answer permissions for a scoped remote worker from here: this
 helper's `send`, `stop`, `archive` and `permit allow|deny` refuse a scoped worker exactly as the
 board does. Name the agent by its full ID straight after the command, with options after it: a
-prefix, a name, an option before the ID, and `stop --all` or `stop --cwd` are refused. The Supervisor answers its worker's permissions itself through
+prefix, a name, an option before the ID, and `stop --all` or `stop --cwd` are refused. A scoped
+worker's worktree is the Supervisor's too: `workspace archive`, `setup` and `rename` of it, and a
+`run --workspace`, `run --cwd` or `workspace create --path` into it, are refused, and so is any of these
+while one of its worktrees is still being created (an absolute `--cwd` elsewhere still works).
+`project delete` is refused outright, since it deletes the project's workspaces; so is a `workspace` or
+`project` subcommand the helper does not list. The Supervisor answers its worker's permissions itself through
 `tools/scope.mjs permit-worker` — one exact request, deny with words or allow a Claude question
 only, judged from the tool name, `recentTools` and logs because the CLI passes no request input.
 

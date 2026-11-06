@@ -10,7 +10,7 @@ import { expected, seed } from "../test/supervision-fixture";
 import { inboxFixture, ids, now, second, timelinePage } from "../test/supervision-inbox-fixture";
 import { supervisionInboxStatus } from "./supervision-status";
 import {
-  ScopedBoardSteer, SupervisionSources, ghPullRequestReader, normalizePullRequest, prReadiness, refuseScopedRemoteMutation, remoteCoverage, scopedRemoteGuard, remoteFingerprint,
+  ScopedBoardSteer, SupervisionSources, ghPullRequestReader, normalizePullRequest, prReadiness, refuseScopedRemoteMutation, refuseScopedRemoteWorkspace, remoteCoverage, scopedRemoteGuard, scopedRemoteWorkspaceGuard, remoteFingerprint,
 } from "./supervision-sources";
 import { SupervisionStore, type SupervisionMutation } from "./supervision-store";
 import type { PaseoApi } from "./host-types";
@@ -266,6 +266,46 @@ describe("S08 remote catalog observation", () => {
     const s = await f.store.read();
     expect(() => refuseScopedRemoteMutation(s, "SRV-REMOTE", "remote-a")).toThrow(/stay disabled/);
     expect(() => refuseScopedRemoteMutation(s, "srv-remote", "legacy-crew")).not.toThrow();
+  });
+
+  it("a workspace change that could reach a scoped worker's worktree is refused; one that cannot be checked is refused too", async () => {
+    const f = await fixture(), r = await withRemote(f);
+    const base = await f.store.read();
+    const open = (extra: Record<string, unknown>) => ({ ...base, effects: [...base.effects,
+      { attemptId: r.attempt, operation: "workspace.open", state: "succeeded", receiverKey: "slug-1", receiptRef: null, ...extra }] } as typeof base);
+    const dir = "/home/ariadne/.paseo/worktrees/h1/slug-1";
+    const s = open({ receiptRef: JSON.stringify({ workspaceId: "wks_open", directory: dir }) });
+    const refused = (status: typeof base, target: { workspaceId?: string; path?: string }, host = "SRV-REMOTE") => {
+      try { refuseScopedRemoteWorkspace(status, host, target); return null; } catch (error) { return (error as { code: string }).code; }
+    };
+    // By workspace ID: the verified worker's workspace and the settled open's receipt.
+    expect(refused(s, { workspaceId: "remote-workspace" })).toBe("UNSUPPORTED");
+    expect(refused(s, { workspaceId: "wks_open" })).toBe("UNSUPPORTED");
+    expect(refused(s, { workspaceId: "wks_other" })).toBeNull();
+    expect(refused(s, { workspaceId: "wks_open" }, "srv-other")).toBeNull();
+    // By directory: the worktree itself and anything under it, however spelled; relative paths cannot be checked.
+    for (const path of [dir, `${dir}/`, `${dir}/src`, "/home/ariadne/.paseo/worktrees/h1/x/../slug-1"]) expect(refused(s, { path }), path).toBe("UNSUPPORTED");
+    for (const path of ["/home/ariadne/work", "/home/ariadne/.paseo/worktrees/h1", `${dir}-2`]) expect(refused(s, { path }), path).toBeNull();
+    expect(refused(s, { path: "work/slug-1" })).toBe("UNSUPPORTED");
+    // A Windows host's worktree: drive paths compare without case or separator style.
+    const win = open({ receiptRef: JSON.stringify({ workspaceId: "wks_win", directory: "C:\\Users\\ari\\.paseo\\worktrees\\h1\\slug-1" }) });
+    expect(refused(win, { path: "c:/users/ARI/.paseo/worktrees/h1/slug-1/src" })).toBe("UNSUPPORTED");
+    expect(refused(win, { path: "C:\\Users\\ari\\repo" })).toBeNull();
+    // An open still uncertain: its workspace ID is unknown, so every ID refuses; a path through its slug refuses.
+    const uncertain = open({ state: "uncertain", receiverKey: "slug-2" });
+    expect(refused(uncertain, { workspaceId: "wks_other" })).toBe("HELD");
+    expect(refused(uncertain, { path: "/home/ariadne/.paseo/worktrees/h9/slug-2" })).toBe("HELD");
+    expect(refused(uncertain, { path: "/home/ariadne/work" })).toBeNull();
+    expect(refused(uncertain, { workspaceId: "wks_other" }, "srv-other")).toBeNull();
+    // A receipt that does not parse makes the host unknown.
+    expect(refused(open({ receiptRef: "not json" }), { path: "/home/ariadne/work" })).toBe("HELD");
+    // The guard fails closed on an unreadable journal, like the agent guard.
+    const quiet = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      await expect(scopedRemoteWorkspaceGuard(async () => { throw new Error("journal corrupt"); }, "helper")("srv-remote", { workspaceId: "wks_other" }))
+        .rejects.toMatchObject({ code: "HELD", message: expect.stringMatching(/could not be read/) });
+      await expect(scopedRemoteWorkspaceGuard(async () => s, "helper")("srv-remote", { workspaceId: "wks_other" })).resolves.toBeUndefined();
+    } finally { quiet.mockRestore(); }
   });
 
   it("a prefix of a scoped worker's ID is refused like the full ID, in any case", async () => {

@@ -19,7 +19,7 @@ afterEach(async () => {
   if (root) await rm(root, { recursive: true, force: true });
   root = ""; vi.unstubAllEnvs();
 });
-async function fixture(execute: ConstructorParameters<typeof RemoteService>[0], tasks?: ConstructorParameters<typeof RemoteService>[1], scopedGuard?: ConstructorParameters<typeof RemoteService>[3]) {
+async function fixture(execute: ConstructorParameters<typeof RemoteService>[0], tasks?: ConstructorParameters<typeof RemoteService>[1], scopedGuard?: ConstructorParameters<typeof RemoteService>[3], workspaceGuard?: ConstructorParameters<typeof RemoteService>[4]) {
   root = await mkdtemp(join(tmpdir(), "firstmate-remotes-"));
   vi.stubEnv("PASEO_HOME", root);
   await writeFile(join(root, "server-id"), local.serverId);
@@ -29,7 +29,7 @@ async function fixture(execute: ConstructorParameters<typeof RemoteService>[0], 
   await mkdir(join(home, "tools"));
   await writeFile(join(home, "AGENTS.md"), "# Isolated fixture\n");
   await writeFile(join(directory, "config.json"), JSON.stringify({ home }));
-  service = new RemoteService(execute, tasks, undefined, scopedGuard);
+  service = new RemoteService(execute, tasks, undefined, scopedGuard, workspaceGuard);
   await service.sync([local, remote]);
   return { directory, home, service };
 }
@@ -226,7 +226,7 @@ describe("independent remote access", () => {
       if (args[0] === "logs") return { code: 0, stdout: "[Read] notes.md\n[Shell] npm test -- --run\n", stderr: "" };
       if (args[0] === "inspect") return success({ Id: "agent-1", UpdatedAt: "2026-10-08T09:09:42.199Z", Name: "2026-10-08T09:09:42.199Z is a title" });
       return success({ ok: true });
-    });
+    }, undefined, undefined, async () => {}); // No scoped worktrees here; the guards are covered below.
     const helper = join(home, "tools", "remote.mjs");
     await writeFile(helper, fill(await readTemplate(TEMPLATES.remoteHelper), { remoteQueueJson: JSON.stringify(join(directory, "remote-requests")) }));
     // This test counts helper commands, not the independent background collector.
@@ -422,6 +422,47 @@ describe("independent remote access", () => {
     expect(calls.find((args) => args[0] === "archive")).toEqual(["archive", CREW, "--force", "--json"]);
     // The gateway's own receiver (no helper origin) keeps its forms.
     await expect(service.request("Remote", ["stop", "--json", SCOPED])).resolves.toEqual({ ok: true });
+  });
+  it("guards every helper command that can reach a scoped worker's workspace; project delete and unknown subcommands refuse", async () => {
+    const calls: string[][] = [], checked: { workspaceId?: string; path?: string }[] = [];
+    const scopedWorktree = "/home/ariadne/.paseo/worktrees/h1/slug-1";
+    const { service } = await fixture(async (args) => {
+      calls.push(args);
+      return args[0] === "status" ? success({ serverId: remote.serverId, connectedDaemon: "reachable" }) : success({ ok: true });
+    }, undefined, async () => {}, async (_serverId, target) => {
+      checked.push(target);
+      // The real check reads the journal (supervision-sources.test.ts); here one workspace and its directory are scoped.
+      if (target.workspaceId === "wks_scoped" || target.path?.startsWith(scopedWorktree)) throw new Error("belongs to a scoped supervisor");
+    });
+    // Each command that archives, sets up, renames or adds an agent or workspace to a scoped worktree refuses before connecting.
+    for (const args of [["workspace", "archive", "wks_scoped"], ["workspace", "setup", "wks_scoped"], ["workspace", "rename", "wks_scoped", "x"],
+      ["run", "--workspace", "wks_scoped", "--provider", "claude", "--", "brief"], ["run", "--workspace=wks_scoped", "--", "brief"],
+      ["run", "--cwd", scopedWorktree, "--", "brief"], ["run", `--cwd=${scopedWorktree}/src`, "--", "brief"],
+      ["workspace", "create", "--isolation", "local", "--path", scopedWorktree]])
+      await expect(service.request("Remote", args, { helper: true }), args.join(" ")).rejects.toThrow("scoped supervisor");
+    // project delete deletes the project's workspaces; unknown subcommands and an option before the workspace ID cannot be checked.
+    await expect(service.request("Remote", ["project", "delete", "prj_any"], { helper: true })).rejects.toThrow("project delete is refused");
+    for (const args of [["workspace", "help"], ["workspace", "--json", "archive", "wks_scoped"], ["project", "remove", "prj_any"], ["permit", "approve", "a", "b"], ["provider", "set", "claude"]])
+      await expect(service.request("Remote", args, { helper: true }), args.join(" ")).rejects.toThrow("not a command the helper sends");
+    for (const args of [["workspace", "archive", "--json", "wks_scoped"], ["workspace", "archive"]])
+      await expect(service.request("Remote", args, { helper: true }), args.join(" ")).rejects.toThrow("before any option");
+    await expect(service.request("Remote", ["run", "--workspace", "a", "--workspace", "wks_scoped", "--", "brief"], { helper: true })).rejects.toThrow("more than once");
+    expect(calls).toEqual([]);
+    // Unscoped workspaces and directories, reads and plain creations pass; reads are not checked at all.
+    checked.length = 0;
+    for (const args of [["workspace", "archive", "wks_crew"], ["run", "--cwd", "/home/ariadne/work", "--new-workspace", "worktree", "--", "brief"],
+      ["workspace", "ls"], ["project", "ls"], ["project", "create", "/home/ariadne/new"], ["provider", "ls"], ["permit", "ls"], ["ls", "-g"], ["run", "--provider", "claude", "--", "brief"]])
+      await expect(service.request("Remote", args, { helper: true }), args.join(" ")).resolves.toEqual({ ok: true });
+    expect(checked).toEqual([{ workspaceId: "wks_crew" }, { path: "/home/ariadne/work" }]);
+  });
+  it("refuses helper workspace changes outright when no workspace guard is wired", async () => {
+    const calls: string[][] = [];
+    const { service } = await fixture(async (args) => { calls.push(args); return args[0] === "status" ? success({ serverId: remote.serverId, connectedDaemon: "reachable" }) : success({ ok: true }); });
+    for (const args of [["workspace", "archive", "wks_any"], ["run", "--cwd", "/home/ariadne/work", "--", "brief"]])
+      await expect(service.request("Remote", args, { helper: true }), args.join(" ")).rejects.toThrow("cannot be checked");
+    expect(calls).toEqual([]);
+    // The checked gateway's own receiver (no helper origin) is not affected.
+    await expect(service.request("Remote", ["workspace", "create", "--isolation", "worktree", "--path", "/home/ariadne/work"])).resolves.toEqual({ ok: true });
   });
   it("executes a native terminal helper through the daemon queue", async () => {
     const { directory, home, service } = await fixture(async (args) => args[0] === "status" ? success({ serverId: remote.serverId, connectedDaemon: "reachable" }) : success([{ projectId: "remote-project" }]));

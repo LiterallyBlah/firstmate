@@ -10,7 +10,7 @@ import { execFile } from "node:child_process";
 import { capacityHeld } from "../shared/supervision-capacity";
 import { createHash, randomUUID } from "node:crypto";
 import { lstat, readdir, readFile, rm } from "node:fs/promises";
-import { join } from "node:path";
+import { join, posix } from "node:path";
 import type { PluginLifecycleEvents, PluginLifecycleRegistration } from "@getpaseo/plugin/server";
 import type { z } from "zod";
 import { CAPTAIN_STEER_MESSAGE_ID_PREFIX } from "../shared/fleet";
@@ -595,6 +595,70 @@ function mayNameScopedSourceWorker(status: SupervisionStatus, hostId: string, to
 export function refuseScopedRemoteMutation(status: SupervisionStatus, serverId: string, agentId: string): void {
   if (mayNameScopedSourceWorker(status, serverId, agentId)) throw new SupervisionError("UNSUPPORTED",
     "This remote worker belongs to a scoped supervisor. Remote steer, interrupt, end and permission answers stay disabled here; they are the Supervisor's through the checked gateway.");
+}
+/** The worktrees scoped (or, on a held journal, possibly scoped) attempts hold on a host: verified
+ * workers, settled `workspace.open` receipts and reused workspaces. An open still in flight or uncertain
+ * has no workspace ID yet, only its intent key, which is the worktree's slug (`pending`); a receipt
+ * that does not parse makes the whole host `unknown`. */
+function scopedRemoteWorkspaces(status: SupervisionStatus, hostId: string): { ids: Set<string>; directories: string[]; pending: string[]; unknown: boolean } {
+  const host = normalHost(hostId), ids = new Set<string>(), directories: string[] = [], pending: string[] = [];
+  let unknown = false;
+  for (const s of [{ attempts: status.attempts, tasks: status.tasks, effects: status.effects }, ...status.retainedOwnership]) {
+    for (const a of s.attempts) {
+      const task = s.tasks.find(t => t.id === a.taskId);
+      if (!task || normalHost(task.hostId) !== host) continue;
+      if (status.scopes.find(scope => scope.id === task.ownerScopeId)?.mode !== "scoped" && status.freshness !== "held") continue;
+      if (a.worker) ids.add(a.worker.workspaceId);
+      for (const e of s.effects.filter(e => e.attemptId === a.id && e.operation === "workspace.open")) {
+        if (e.reusedWorkspace) { ids.add(e.reusedWorkspace.workspaceId); directories.push(e.reusedWorkspace.directory); }
+        if (e.state === "succeeded" && e.receiptRef) {
+          try { const r = JSON.parse(e.receiptRef) as { workspaceId?: unknown; directory?: unknown };
+            if (typeof r.workspaceId !== "string" || typeof r.directory !== "string") throw new Error("receipt");
+            ids.add(r.workspaceId); directories.push(r.directory);
+          } catch { unknown = true; }
+        } else if (["dispatching", "accepted", "uncertain"].includes(e.state)) { if (e.receiverKey) pending.push(e.receiverKey); else unknown = true; }
+      }
+    }
+  }
+  return { ids, directories, pending, unknown };
+}
+/** A remote workspace change (archive, setup, rename, a new agent or workspace in a directory) that could
+ * reach a scoped worker's worktree is refused; one that cannot be checked is refused too. */
+export function refuseScopedRemoteWorkspace(status: SupervisionStatus, serverId: string, target: { workspaceId?: string; path?: string }): void {
+  const held = scopedRemoteWorkspaces(status, serverId);
+  const refuse = (code: "UNSUPPORTED" | "HELD", why: string) => { throw new SupervisionError(code, why); };
+  const unsettled = "A scoped supervisor's worktree on this host is still being created or is uncertain, so this remote workspace change cannot be checked and is refused until it settles.";
+  if (held.unknown) refuse("HELD", unsettled);
+  if (target.workspaceId !== undefined) {
+    // The unsettled worktree's ID is not known yet, so no workspace ID can be shown not to be it.
+    if (held.pending.length) refuse("HELD", unsettled);
+    if (held.ids.has(target.workspaceId))
+      refuse("UNSUPPORTED", "This remote workspace belongs to a scoped supervisor's worker. Archiving, setting up, renaming or adding an agent to it stays disabled here.");
+  }
+  if (target.path !== undefined) {
+    // A remote host may be POSIX or Windows (drive or UNC paths, compared without case); relative paths cannot be checked.
+    const comparable = (p: string) => /^(?:[A-Za-z]:[\\/]|\\\\)/.test(p) ? posix.normalize(p.replace(/\\/g, "/")).replace(/\/+$/, "").toLowerCase()
+      : p.startsWith("/") ? posix.normalize(p).replace(/\/+$/, "") || "/" : null;
+    const path = comparable(target.path);
+    if (path === null) return refuse("UNSUPPORTED", "Name a remote directory by its absolute path here, so it can be checked against scoped worktrees.");
+    if (held.directories.some(d => { const dir = comparable(d); return dir !== null && (path === dir || path.startsWith(`${dir}/`)); }))
+      refuse("UNSUPPORTED", "This remote directory is a scoped supervisor's worktree. New agents and workspaces there stay disabled here.");
+    // An unsettled worktree's directory ends in its slug: any path through a segment of that name may be it.
+    if (path.split("/").some(segment => held.pending.includes(segment))) refuse("HELD", unsettled);
+  }
+}
+/** The mate helper's guard on a remote workspace change; fail closed like `scopedRemoteGuard`. */
+export function scopedRemoteWorkspaceGuard(read: () => Promise<SupervisionStatus>, origin: string) {
+  return async (serverId: string, target: { workspaceId?: string; path?: string }): Promise<void> => {
+    let status: SupervisionStatus;
+    try { status = await read(); }
+    catch (error) {
+      console.error(`[firstmate] supervision status unavailable for the ${origin} scoped-workspace guard:`, error);
+      throw new SupervisionError("HELD",
+        "The supervision journal could not be read, so whether this remote workspace belongs to a scoped supervisor is unknown. Remote workspace changes are refused until it can be read.");
+    }
+    refuseScopedRemoteWorkspace(status, serverId, target);
+  };
 }
 /** The board's and the mate helper's guard on a remote mutation, reading the journal through `read`.
  * Fail closed: a journal that cannot be read cannot say the worker is not scoped, so nothing passes. */

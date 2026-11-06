@@ -5,7 +5,8 @@ import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
-const captured = vi.hoisted(() => ({ helper: [] as ((serverId: string, agentId: string) => Promise<void>)[], board: [] as unknown[] }));
+const captured = vi.hoisted(() => ({ helper: [] as ((serverId: string, agentId: string) => Promise<void>)[],
+  workspace: [] as ((serverId: string, target: { workspaceId?: string; path?: string }) => Promise<void>)[], board: [] as unknown[] }));
 vi.mock("./remotes", async (original) => {
   const real = await original<typeof import("./remotes")>();
   // The class syntax is test-only; the plugin's own bundles never carry it.
@@ -13,6 +14,7 @@ vi.mock("./remotes", async (original) => {
     constructor(...args: ConstructorParameters<typeof real.RemoteService>) {
       super(...args);
       if (args[3]) captured.helper.push(args[3]);
+      if (args[4]) captured.workspace.push(args[4]);
     }
   }
   return { ...real, RemoteService: CapturingRemoteService };
@@ -33,7 +35,7 @@ import { SupervisionRuntime } from "./supervision-runtime";
 
 vi.setConfig({ testTimeout: 60000 });
 beforeEach(() => writeFile(join(process.env.PASEO_HOME!, "server-id"), "isolated-remote-guard-wiring"));
-afterEach(() => { vi.restoreAllMocks(); captured.helper.length = 0; captured.board.length = 0; });
+afterEach(() => { vi.restoreAllMocks(); captured.helper.length = 0; captured.workspace.length = 0; captured.board.length = 0; });
 
 it("the helper queue's guard and the board's remote guard both refuse while the journal cannot be read", async () => {
   vi.spyOn(globalThis, "setInterval").mockReturnValue({ unref() {} } as any);
@@ -46,6 +48,10 @@ it("the helper queue's guard and the board's remote guard both refuse while the 
     expect(captured.helper).toHaveLength(1);
     await expect(captured.helper[0]!("srv_remote", "8552861a-dee4-4771-9968-a494a64d1a79")).rejects.toMatchObject(held);
     await expect(captured.helper[0]!("srv_remote", "8552861")).rejects.toMatchObject(held);
+    // The helper's workspace guard (workspace archive/setup/rename, run --workspace/--cwd, workspace create --path).
+    expect(captured.workspace).toHaveLength(1);
+    await expect(captured.workspace[0]!("srv_remote", { workspaceId: "wks_any" })).rejects.toMatchObject({ code: "HELD", message: expect.stringMatching(/could not be read/) });
+    await expect(captured.workspace[0]!("srv_remote", { path: "/home/ariadne/work" })).rejects.toMatchObject({ code: "HELD" });
     const target = { serverId: "srv_remote", agentId: "8552861a-dee4-4771-9968-a494a64d1a79" };
     await expect(handlers.get("firstmate.remote-crew.steer")!({ ...target, text: "hello" }, { paseo: {} })).rejects.toMatchObject(held);
     await expect(handlers.get("firstmate.remote-crew.interrupt")!(target, { paseo: {} })).rejects.toMatchObject(held);

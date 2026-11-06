@@ -127,7 +127,12 @@ branch, so `findWorkspace` never rediscovers a worktree and an uncertain open st
 and the guard refuses any ID prefix of a scoped worker. The helper queue's mutations take a strict form
 (`helperMutationTarget`): the full agent ID straight after `send`/`stop`/`archive` (or `permit allow|deny`),
 no option before it, no prefix or name, and no `stop --all`/`--cwd`, so the guard sees exactly the agent the
-host acts on. A brief plus appended rules over 28,000 characters
+host acts on. `helperTargets` also names the workspace (`workspace archive|setup|rename`, `run --workspace`)
+and directory (`run --cwd`, `workspace create --path`) a helper command reaches; `scopedRemoteWorkspaceGuard`
+refuses a scoped attempt's worktree (verified worker, `workspace.open` receipt, reused workspace), any workspace
+ID while a scoped open is unsettled, a path through an unsettled open's slug, relative paths and an unreadable
+journal. `project delete` and unlisted subcommands refuse on the helper path, and with no workspace guard wired
+every workspace change refuses. A brief plus appended rules over 28,000 characters
 refuses before reservation. Reconcile is `RemoteService.discoverByAttempt` (the service adds its own
 owner filter to `ls -g -a`; the caller-facing allowlist still refuses reserved labels): exactly one binds,
 zero stays uncertain, duplicates are held with a recorded `remoteDuplicate` reason, never archived or

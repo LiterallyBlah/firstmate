@@ -48,7 +48,7 @@ import { readTimerInventory } from "./server/watch-service";
 import { WatchConfigStore } from "./server/watch-config";
 import { legacyAdapters } from "./server/supervision-migrate";
 import { supervisionInboxStatus, hasScopedWorker } from "./server/supervision-status";
-import { isScopedSourceWorker, scopedRemoteGuard } from "./server/supervision-sources";
+import { isScopedSourceWorker, scopedRemoteGuard, scopedRemoteWorkspaceGuard } from "./server/supervision-sources";
 import { readSupervisionInbox } from "./shared/supervision-rpc";
 import { registerScopeRpcs } from "./server/scope-rpc";
 import { ScopeRuntime } from "./server/scope-runtime";
@@ -174,6 +174,8 @@ export default function contribute(server: PluginServerContext) {
     // so steer/stop/permit/archive of a Supervisor's worker cannot bypass the checked gateway.
     // An unreadable journal refuses too: it cannot say the worker is not scoped.
     scopedRemoteGuard(() => readSupervision(undefined, true), "helper"),
+    // And a workspace archive, setup, rename or new agent or workspace that could reach a scoped worktree.
+    scopedRemoteWorkspaceGuard(() => readSupervision(undefined, true), "helper"),
   );
   remotes.start();
   plans.useRemoteBridge(remotes);
