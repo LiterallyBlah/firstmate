@@ -27,6 +27,7 @@ import { pageTimeline, registerReceiptObservers } from "./server/receipt-observe
 import { newAction, receiptJournal } from "./server/receipts";
 import { AttentionObserver } from "./server/attention";
 import { NeedsYouService, readConfiguredDecisionHome } from "./server/needs-you-service";
+import { needsYouSnapshot } from "./server/needs-you-ledger";
 import { registerNeedsYouRpc } from "./server/needs-you-rpc";
 import { answerDecision } from "./server/decision-answer";
 import { submitDecisionAnswer } from "./shared/needs-you";
@@ -194,26 +195,43 @@ export default function contribute(server: PluginServerContext) {
     const results = await Promise.allSettled([projects.processRequests(), supervise.processRequests(), plans.tick(), maintenance.tick()]);
     for (const result of results) if (result.status === "rejected") console.error("[firstmate] scoped clock:", result.reason);
   });
+  // One end-to-end deadline for the whole combined read - the ledger read before the plan
+  // snapshot and the scoped reads after it included - so a slow start anywhere still answers
+  // (incomplete) inside the host's 30 s RPC limit instead of timing out with no answer. The
+  // plan budget is what the ledger left of the 20 s deadline; a 2 s floor may spend up to a
+  // 24 s hard cap, and the tail reads race whatever of that cap remains.
+  const NEEDS_READ_HARD_CAP_MS = NEEDS_READ_DEADLINE_MS + 4_000;
+  const stillLoading = (snapshot: Awaited<ReturnType<typeof decisions.read>>) => ({ ...snapshot,
+    planProblems: ["Plans are still loading. Existing captain decisions remain available; the total is incomplete."],
+    scopedComplete: false, scopedProblems: ["Scoped decisions are still loading. Existing decisions remain available; the total is incomplete."] });
   const readCombinedNeeds = async (given?: Awaited<ReturnType<typeof decisions.read>>) => {
     const started = Date.now();
-    const snapshot = given ?? await decisions.read();
+    const left = (cap: number) => Math.max(0, cap - (Date.now() - started));
+    const race = async <T>(work: Promise<T>, ms: number): Promise<T | null> => {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try { return await Promise.race([work, new Promise<null>(done => { timer = setTimeout(() => done(null), ms); })]); }
+      finally { if (timer) clearTimeout(timer); }
+    };
+    const snapshot = given ?? await race(decisions.read(), left(NEEDS_READ_DEADLINE_MS));
+    if (!snapshot) return stillLoading(needsYouSnapshot(null, { status: "unknown", asOf: null,
+      checkedAt: Date.now(), problems: ["Decisions are still loading."] }));
     const config = await readFirstmateConfig(), home = resolveHome(config);
-    // One deadline for the whole read: the plan snapshot gets only what the ledger read left
-    // of it, so a slow start anywhere still answers (incomplete) inside the host's RPC limit.
-    const remaining = Math.max(2_000, Math.min(PLAN_READ_BUDGET_MS, NEEDS_READ_DEADLINE_MS - (Date.now() - started)));
-    const workflow = await workflowSnapshotWithin(home, remaining);
-    if (!workflow) return { ...snapshot, planProblems: ["Plans are still loading. Existing captain decisions remain available; the total is incomplete."],
-      scopedComplete: false, scopedProblems: ["Scoped decisions are still loading. Existing decisions remain available; the total is incomplete."] };
-    const base = await withWorkflowNeeds(snapshot, home, workflow);
-    try {
-      const status = await readSupervision(home);
-      const combined = status.scopes.length || status.problems.length ? withScopedNeedsYou(base, status, await decisions.homeBridge(base, home)) : base;
-      const policy = await features.read(home);
-      return { ...(policy.effective.scopeUi ? withScopeInboxContext(combined, status, workflow.plans, (await remotes.read()).localServerId ?? "local") : combined),
-        scopedAnswersEnabled: policy.effective.scopeExecution, maintenanceAnswersEnabled: policy.effective.maintenance };
-    } catch {
-      return { ...base, scopedComplete: false, scopedProblems: ["Scoped decisions unavailable. Existing decisions remain available; the total is incomplete."] };
-    }
+    const budget = Math.min(PLAN_READ_BUDGET_MS, Math.max(left(NEEDS_READ_DEADLINE_MS), Math.min(2_000, left(NEEDS_READ_HARD_CAP_MS))));
+    const workflow = budget > 0 ? await workflowSnapshotWithin(home, budget) : null;
+    if (!workflow) return stillLoading(snapshot);
+    const tail = await race((async () => {
+      const base = await withWorkflowNeeds(snapshot, home, workflow);
+      try {
+        const status = await readSupervision(home);
+        const combined = status.scopes.length || status.problems.length ? withScopedNeedsYou(base, status, await decisions.homeBridge(base, home)) : base;
+        const policy = await features.read(home);
+        return { ...(policy.effective.scopeUi ? withScopeInboxContext(combined, status, workflow.plans, (await remotes.read()).localServerId ?? "local") : combined),
+          scopedAnswersEnabled: policy.effective.scopeExecution, maintenanceAnswersEnabled: policy.effective.maintenance };
+      } catch {
+        return { ...base, scopedComplete: false, scopedProblems: ["Scoped decisions unavailable. Existing decisions remain available; the total is incomplete."] };
+      }
+    })(), left(NEEDS_READ_HARD_CAP_MS));
+    return tail ?? stillLoading(snapshot);
   };
   registerNeedsYouRpc(server, decisions, readCombinedNeeds);
   // Startup controls are independent. Enabling UI or restoring a view creates no resources.

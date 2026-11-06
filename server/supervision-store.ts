@@ -951,7 +951,7 @@ export class SupervisionStore {
           await this.checkBlobs(event.body.mutations);
           checkInboxRequest(event.body.mutations, event.requestId);
           const next = this.apply(result.frames, event.body);
-          if (digest(next.changes) !== digest(event.changes) || ownershipDigestOf(next.frames) !== ownershipDigest((rawTip as Anchor).ownership)) fail("HELD", "Transaction projection or retained ownership mismatch.");
+          if (digest(next.changes) !== digest(event.changes) || ownershipDigestOf(next.frames) !== ownershipDigest((rawTip as Anchor).ownership) || (sequence % 64 === 0 && frameDigest(next.frames) !== event.projectionHash)) fail("HELD", "Transaction projection or retained ownership mismatch.");
           if (!durableNames.has(`${pad(sequence)}.publication.json`)) {
             if (index !== sequences.length - 1) fail("HELD", "Unpublished transaction precedes later history.");
             result.pending = { event, tip }; fail("HELD", "Final transaction awaits publication.");
@@ -965,7 +965,8 @@ export class SupervisionStore {
         }
         // The projection hash binds the whole replayed frame set, so checking it per transaction
         // hashed the entire projection text once per transaction (over 1 GB hashed at 2k
-        // transactions). Replay is deterministic and every event - including its recorded
+        // transactions). Every 64th transaction is still spot-checked above, and replay is
+        // deterministic with every event - including its recorded
         // projectionHash - is hash-chained and anchor-verified, so hashing the head projection
         // once (the same value the checkpoint binds) pins what these frames replayed to. The
         // bounded warm tail (at most 32) keeps its per-transaction check.

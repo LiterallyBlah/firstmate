@@ -751,7 +751,9 @@ export class WorkflowPlanStore {
       } else if (command.op === "implicit") briefHash = (await this.brief({ kind: "run", id, title: command.launch.title, summary: command.launch.title, after: [], workflow: command.launch.kind === "scout" ? "scout@1" : "task@1", launch: command.launch })).hash;
       const event: Event = { version: 1, home: resolve(this.home), plan: id, sequence: events.length, previous: previous?.hash ?? null, requestId, requestHash: digest(command), at: new Date().toISOString(), by, command,
         ...(briefHash && !(command.op === "implicit" && postureSource?.posture === "review") ? { briefHash, attempt: command.op === "start" ? previous?.nodes[command.node]?.attempt ?? randomUUID() : randomUUID() } : {}), ...(launch ? { launch } : {}), ...(postureSource ? { postureSource } : {}), hash: "" };
-      event.hash = checksum(event); const next = reduce(previous, event);
+      // Plain digest on the write path: the event holds the caller's command object, which
+      // canonicalCached must never see (it is only exact for values never mutated afterwards).
+      const { hash: _unsigned, ...unsignedEvent } = event; event.hash = digest(unsignedEvent); const next = reduce(previous, event);
       if (command.op === "captain" && command.action === "edit") {
         const changedHosts = next.definition.nodes.filter(n => n.kind === "run" && previous?.definition.nodes.some(old => old.id === n.id && old.kind === "run" && old.launch.host !== n.launch.host)).map(ownershipScope);
         if (quarantined.some(q => changedHosts.some(candidate => q.inventory.scopes.some(held => held.node === candidate.node && (held.host === null || held.host === candidate.host))))) throw new Error("Cannot establish task ownership for the edited host; its task scope is quarantined.");
