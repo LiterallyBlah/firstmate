@@ -12,10 +12,16 @@ export class SupervisionStatusReader {
     (root, home) => new SupervisionStore(root, home)) {
     this.dataRoot = resolve(dataRoot);
   }
-  async read(home: string, options?: { settleAfterMs?: number }) {
+  /** The one store for this home, for read-only uses that need more than a status
+   * (`readBlob`, project context). A new instance would re-validate the whole journal.
+   */
+  storeFor(home: string): SupervisionStore {
     const homeId = workflowHomeIdentity(home);
     let store = this.stores.get(homeId);
     if (!store) { store = this.create(this.dataRoot, home); this.stores.set(homeId, store); }
-    return store.read(options);
+    return store;
+  }
+  async read(home: string, options?: { settleAfterMs?: number }) {
+    return this.storeFor(home).read(options);
   }
 }

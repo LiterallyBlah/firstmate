@@ -2,9 +2,8 @@ import { randomUUID } from "node:crypto";
 import { mkdir, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { SupervisionStore, type SupervisionMutation } from "./supervision-store";
+import { SupervisionStore, supervisionDigestStats, type SupervisionMutation } from "./supervision-store";
 import { canonical, digest } from "./submissions";
-import * as submissions from "./submissions";
 import * as filesystem from "node:fs/promises";
 import { workflowHomeIdentity } from "./workflow-ownership";
 import { expected, hash, ids, scope, seed } from "../test/supervision-fixture";
@@ -52,30 +51,28 @@ describe("scoped transaction authority", () => {
     spy.mockImplementation(async (...args) => { if (String(args[0]) === event) await rm(event); return original(...args); });
     try { expect((await store.read()).freshness).toBe("held"); } finally { spy.mockReset(); spy.mockImplementation(original); }
   });
-  it("hashes retained capsules linearly on a cold scan without caching or losing ownership history", async () => {
+  it("hashes retained capsules linearly on a cold scan without losing ownership history", async () => {
     const count = 12, ids: string[] = [];
     for (let n = 0; n < count; n++) {
       const id = randomUUID(); ids.push(id);
       await commit([{ kind: "scope", value: { ...scope(store.homeId), id } }]);
     }
-    const original = submissions.digest, spy = vi.spyOn(submissions, "digest");
-    let ownershipHashes = 0;
-    spy.mockImplementation(value => {
-      if (value && typeof value === "object" && ["scopes", "tasks", "attempts", "effects", "backends", "workflows"].every(k => k in value)) ownershipHashes++;
-      return original(value);
-    });
-    try {
-      const snapshot = await new SupervisionStore(dataRoot, home).read();
-      expect(snapshot.freshness).toBe("current"); expect(snapshot.sequence).toBe(count);
-      expect(snapshot.retainedOwnership).toHaveLength(count);
-      expect(snapshot.retainedOwnership.map(o => o.scopes).sort((a, b) => a.length - b.length)).toEqual(ids.map((_id, i) => ids.slice(0, i + 1)));
-      // Two retained anchors plus the projection/expected-tip comparison per event. No timing threshold.
-      expect(ownershipHashes).toBe(count * 4);
-      // A later damaged anchor is reread and fails closed, even after a successful cold read.
-      const reader = new SupervisionStore(dataRoot, home); await reader.read();
-      await writeFile(file(count, "publication"), "{damaged");
-      expect((await reader.read()).freshness).toBe("held");
-    } finally { spy.mockRestore(); }
+    const digestsBefore = { ...supervisionDigestStats };
+    const snapshot = await new SupervisionStore(dataRoot, home).read();
+    expect(snapshot.freshness).toBe("current"); expect(snapshot.sequence).toBe(count);
+    expect(snapshot.retainedOwnership).toHaveLength(count);
+    expect(snapshot.retainedOwnership.map(o => o.scopes).sort((a, b) => a.length - b.length)).toEqual(ids.map((_id, i) => ids.slice(0, i + 1)));
+    // Linear hash work: each tip capsule hashed once when retained, each publication hashed
+    // once against it, one projection comparison per event - and the whole-projection digest
+    // only at the head, never once per transaction. No timing threshold.
+    const ownershipHashes = supervisionDigestStats.ownershipCalls - digestsBefore.ownershipCalls;
+    expect(ownershipHashes).toBeGreaterThanOrEqual(count);
+    expect(ownershipHashes).toBeLessThanOrEqual(count * 3 + 4);
+    expect(supervisionDigestStats.frameCalls - digestsBefore.frameCalls).toBeLessThanOrEqual(3);
+    // A later damaged anchor is reread and fails closed, even after a successful cold read.
+    const reader = new SupervisionStore(dataRoot, home); await reader.read();
+    await writeFile(file(count, "publication"), "{damaged");
+    expect((await reader.read()).freshness).toBe("held");
   });
   it("keeps disabled/uninitialized reads inert and never creates a store on render/read", async () => {
     const absent = new SupervisionStore(join(dataRoot, "absent"), home);

@@ -116,10 +116,13 @@ export async function handleScopeRequest(request: z.infer<typeof ScopeRequestSch
     }
     if (input.page === "state") {
       const ownTasks = status.tasks.filter(t => t.ownerScopeId === input.scopeId);
-      const entries = ownTasks.slice(input.after, input.after + 8);
+      const entries = ownTasks.slice(input.after, input.after + 8), attempts = status.attempts.filter(a => entries.some(t => t.id === a.taskId));
       return { freshness: status.freshness, homeId: status.homeId, scope: status.scopes.find(s => s.id === input.scopeId), binding,
         plans: status.plans.filter(p => p.scopeId === input.scopeId), rules: status.planRules?.filter(r => r.scopeId === input.scopeId),
-        tasks: entries, attempts: status.attempts.filter(a => entries.some(t => t.id === a.taskId)),
+        tasks: entries, attempts,
+        // An attempt row is not rewritten when reconcile settles its launch; its effects carry that outcome.
+        effects: status.effects.filter(e => e.scopeId === input.scopeId && attempts.some(a => a.id === e.attemptId)).map(e =>
+          ({ id: e.id, attemptId: e.attemptId, operation: e.operation, state: e.state, version: e.version, receiptRef: e.receiptRef })),
         policyRules: status.policyRules.filter(r => r.selector.scopeIds.includes(input.scopeId)),
         policySources: status.policySources.filter(source => status.policyRules.some(rule => rule.selector.scopeIds.includes(input.scopeId) && rule.sources.some(ref => ref.id === source.id))), evidence: status.policyEvidence.filter(e => e.scopeId === input.scopeId),
         project: status.projects?.projects.find(p => p.scopeId === input.scopeId),

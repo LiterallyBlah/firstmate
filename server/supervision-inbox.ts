@@ -57,7 +57,8 @@ export class SupervisionInbox {
     SupervisionUuid.parse(scopeId);
     return serialized(`${this.store.root}:inbox:${scopeId}`, () => inboxTransaction(this.store, requestId, input, build));
   }
-  async prepare(scopeId: string, epoch: number, ownerIdle: boolean, requestId = randomUUID()): Promise<InboxCommit> {
+  /** `wrapperBytes` is the delivery's own share of the page: the page's events must fit beside it. */
+  async prepare(scopeId: string, epoch: number, ownerIdle: boolean, requestId = randomUUID(), wrapperBytes = 2048): Promise<InboxCommit> {
     // Internal fixture gate only. No env/config/RPC can enable offers in S02.
     return this.command(scopeId, requestId, { op: "prepare", scopeId, epoch, ownerIdle }, s => {
       if (!this.options.offers) throw new SupervisionError("UNSUPPORTED", "Mailbox offers are disabled; S06 activation is separate.");
@@ -68,7 +69,8 @@ export class SupervisionInbox {
       const selected: InboxAssignment[] = [];
       for (const row of waiting.slice(0, INBOX_LIMITS.pageItems)) {
         const events = [...selected, row].map(a => s.inbox.events.find(e => e.id === a.id)!);
-        if (Buffer.byteLength(JSON.stringify(events)) > INBOX_LIMITS.pageBytes - 2048) break;
+        // Measured as delivered: the wake escapes `<`, which only grows the text.
+        if (Buffer.byteLength(JSON.stringify(events).replace(/</g, "\\u003c")) > INBOX_LIMITS.pageBytes - Math.max(2048, wrapperBytes)) break;
         selected.push(row);
       }
       if (!selected.length) throw new SupervisionError("HELD", "No bounded assigned page is ready for this scope.");

@@ -6,8 +6,8 @@ import { PlanRules } from "./server/plan-rules";
 import { planSupervisorGatewayLimits } from "./shared/plan-supervisor-limits";
 import { WatchSupervisors } from "./server/watch-supervisors";
 import type { PluginServerContext } from "@getpaseo/plugin/server";
-import { startWorkflowService, workflowStore, queuePlanNotes } from "./server/workflow-service";
-import { shareScopedStatusReader, workflowHomeId, workflowSnapshot, workflowSnapshotWithin, withWorkflowNeeds, withWorkflowFleet } from "./server/workflow-board";
+import { shareLegacyRouteStore, startWorkflowService, workflowStore, queuePlanNotes } from "./server/workflow-service";
+import { shareScopedStatusReader, workflowHomeId, workflowSnapshot, workflowSnapshotWithin, PLAN_READ_BUDGET_MS, NEEDS_READ_DEADLINE_MS, withWorkflowNeeds, withWorkflowFleet } from "./server/workflow-board";
 import { readWorkflowPlans, actOnWorkflowPlan } from "./shared/workflow-rpc";
 import { ensureSharedTerminal as ensureSharedTerminalRpc } from "./shared/native-tools";
 import { ensureSharedTerminal } from "./server/native-tools";
@@ -27,6 +27,7 @@ import { pageTimeline, registerReceiptObservers } from "./server/receipt-observe
 import { newAction, receiptJournal } from "./server/receipts";
 import { AttentionObserver } from "./server/attention";
 import { NeedsYouService, readConfiguredDecisionHome } from "./server/needs-you-service";
+import { needsYouSnapshot } from "./server/needs-you-ledger";
 import { registerNeedsYouRpc } from "./server/needs-you-rpc";
 import { answerDecision } from "./server/decision-answer";
 import { submitDecisionAnswer } from "./shared/needs-you";
@@ -147,6 +148,8 @@ export default function contribute(server: PluginServerContext) {
     supervisionRuntime.read(home ?? resolveHome(await readFirstmateConfig()), newest ? {} : { settleAfterMs: 750 });
   // Every plan snapshot reads scoped plans through this runtime's warm projection, never a fresh full validation.
   const unshareScopedReader = shareScopedStatusReader(home => supervisionRuntime.read(home));
+  // The legacy writer's route check reads the journal through the same current store.
+  const unshareLegacyRouteStore = shareLegacyRouteStore(home => supervisionRuntime.readStore(home));
   server.handle(readSupervisionInbox, async input => supervisionInboxStatus(await readSupervision(), input));
   server.handle(ensureSharedTerminalRpc, ({ workspaceId }, { paseo }) => ensureSharedTerminal(paseo, workspaceId));
   const updates = new UpdateService();
@@ -192,23 +195,43 @@ export default function contribute(server: PluginServerContext) {
     const results = await Promise.allSettled([projects.processRequests(), supervise.processRequests(), plans.tick(), maintenance.tick()]);
     for (const result of results) if (result.status === "rejected") console.error("[firstmate] scoped clock:", result.reason);
   });
+  // One end-to-end deadline for the whole combined read - the ledger read before the plan
+  // snapshot and the scoped reads after it included - so a slow start anywhere still answers
+  // (incomplete) inside the host's 30 s RPC limit instead of timing out with no answer. The
+  // plan budget is what the ledger left of the 20 s deadline; a 2 s floor may spend up to a
+  // 24 s hard cap, and the tail reads race whatever of that cap remains.
+  const NEEDS_READ_HARD_CAP_MS = NEEDS_READ_DEADLINE_MS + 4_000;
+  const stillLoading = (snapshot: Awaited<ReturnType<typeof decisions.read>>) => ({ ...snapshot,
+    planProblems: ["Plans are still loading. Existing captain decisions remain available; the total is incomplete."],
+    scopedComplete: false, scopedProblems: ["Scoped decisions are still loading. Existing decisions remain available; the total is incomplete."] });
   const readCombinedNeeds = async (given?: Awaited<ReturnType<typeof decisions.read>>) => {
-    const snapshot = given ?? await decisions.read();
+    const started = Date.now();
+    const left = (cap: number) => Math.max(0, cap - (Date.now() - started));
+    const race = async <T>(work: Promise<T>, ms: number): Promise<T | null> => {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try { return await Promise.race([work, new Promise<null>(done => { timer = setTimeout(() => done(null), ms); })]); }
+      finally { if (timer) clearTimeout(timer); }
+    };
+    const snapshot = given ?? await race(decisions.read(), left(NEEDS_READ_DEADLINE_MS));
+    if (!snapshot) return stillLoading(needsYouSnapshot(null, { status: "unknown", asOf: null,
+      checkedAt: Date.now(), problems: ["Decisions are still loading."] }));
     const config = await readFirstmateConfig(), home = resolveHome(config);
-    // Bounded: a cold start must not hold the decisions read past the host's RPC limit (see workflowSnapshotWithin).
-    const workflow = await workflowSnapshotWithin(home);
-    if (!workflow) return { ...snapshot, planProblems: ["Plans are still loading after a restart. Existing captain decisions remain available; the total is incomplete."],
-      scopedComplete: false, scopedProblems: ["Scoped decisions are still loading after a restart. Existing decisions remain available; the total is incomplete."] };
-    const base = await withWorkflowNeeds(snapshot, home, workflow);
-    try {
-      const status = await readSupervision(home);
-      const combined = status.scopes.length || status.problems.length ? withScopedNeedsYou(base, status, await decisions.homeBridge(base, home)) : base;
-      const policy = await features.read(home);
-      return { ...(policy.effective.scopeUi ? withScopeInboxContext(combined, status, workflow.plans, (await remotes.read()).localServerId ?? "local") : combined),
-        scopedAnswersEnabled: policy.effective.scopeExecution, maintenanceAnswersEnabled: policy.effective.maintenance };
-    } catch {
-      return { ...base, scopedComplete: false, scopedProblems: ["Scoped decisions unavailable. Existing decisions remain available; the total is incomplete."] };
-    }
+    const budget = Math.min(PLAN_READ_BUDGET_MS, Math.max(left(NEEDS_READ_DEADLINE_MS), Math.min(2_000, left(NEEDS_READ_HARD_CAP_MS))));
+    const workflow = budget > 0 ? await workflowSnapshotWithin(home, budget) : null;
+    if (!workflow) return stillLoading(snapshot);
+    const tail = await race((async () => {
+      const base = await withWorkflowNeeds(snapshot, home, workflow);
+      try {
+        const status = await readSupervision(home);
+        const combined = status.scopes.length || status.problems.length ? withScopedNeedsYou(base, status, await decisions.homeBridge(base, home)) : base;
+        const policy = await features.read(home);
+        return { ...(policy.effective.scopeUi ? withScopeInboxContext(combined, status, workflow.plans, (await remotes.read()).localServerId ?? "local") : combined),
+          scopedAnswersEnabled: policy.effective.scopeExecution, maintenanceAnswersEnabled: policy.effective.maintenance };
+      } catch {
+        return { ...base, scopedComplete: false, scopedProblems: ["Scoped decisions unavailable. Existing decisions remain available; the total is incomplete."] };
+      }
+    })(), left(NEEDS_READ_HARD_CAP_MS));
+    return tail ?? stillLoading(snapshot);
   };
   registerNeedsYouRpc(server, decisions, readCombinedNeeds);
   // Startup controls are independent. Enabling UI or restoring a view creates no resources.
@@ -471,6 +494,7 @@ export default function contribute(server: PluginServerContext) {
     unregisterSupervise();
     unregisterMaintenance();
     unshareScopedReader();
+    unshareLegacyRouteStore();
     await stopWorkflows();
     unregisterRelay();
     unregisterCrewSeen();

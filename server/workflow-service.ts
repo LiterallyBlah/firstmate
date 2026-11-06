@@ -14,7 +14,8 @@ import { message, TEMPLATES } from "./templates";
 import { randomUUID } from "node:crypto";
 import type { ScopedPlanCommand, SupervisionCommands } from "./supervision-commands";
 import type { SupervisionActor } from "../shared/supervision";
-import { SupervisionStore } from "./supervision-store";
+import type { SupervisionStore } from "./supervision-store";
+import { SupervisionStatusReader } from "./supervision-status-reader";
 import { legacyRoute } from "./supervision-routing";
 import { CutoverRefusal, cutoverGate, legacyWorkflowRoot } from "./supervision-gate";
 import { LegacyCutoverError } from "./workflow-plans";
@@ -26,8 +27,27 @@ export function executeScopedWorkflow(commands: SupervisionCommands, input: Scop
 }
 
 export const WorkflowRequestSchema = z.object({ id: z.uuid(), actor: z.string().min(1), command: WorkflowCommandSchema }).strict();
+/** The route check's journal reader. A fresh store per legacy mutation re-validated the whole
+ * scoped journal (tens of seconds on a large home) inside the writer's lock, on every plan
+ * write; the check only reads, so it shares one warm instance. In the daemon the plugin hands
+ * in its runtime's store, which its own commits keep current; a merely-warm reader that fell
+ * behind a burst of scoped transactions would otherwise pay a full re-validation mid-write.
+ * Tests and tools without a runtime fall back to one read-only reader per data root.
+ */
+let sharedRouteStore: ((home: string) => SupervisionStore) | null = null;
+export function shareLegacyRouteStore(get: (home: string) => SupervisionStore): () => void {
+  sharedRouteStore = get;
+  return () => { if (sharedRouteStore === get) sharedRouteStore = null; };
+}
+let legacyRouteReader: { root: string; reader: SupervisionStatusReader } | null = null;
+function legacyRouteStore(home: string): SupervisionStore {
+  if (sharedRouteStore) return sharedRouteStore(home);
+  const root = pluginDir();
+  if (legacyRouteReader?.root !== root) legacyRouteReader = { root, reader: new SupervisionStatusReader(root) };
+  return legacyRouteReader.reader.storeFor(home);
+}
 export function workflowStore(home: string) { return new WorkflowPlanStore(legacyWorkflowRoot(home), home,
-  command => legacyRoute(new SupervisionStore(pluginDir(), home), command)); }
+  command => legacyRoute(legacyRouteStore(home), command)); }
 export async function authorizeWorkflowActor(home: string, actor: string): Promise<void> {
   const live = await readFirstmateConfig();
   if (!live.mateAgentId || live.mateAgentId !== actor || resolveHome(live) !== home || live.migration || live.mateLaunch) throw new Error("Current first-mate role required.");

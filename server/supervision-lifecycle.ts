@@ -17,12 +17,15 @@ import type { SupervisionStore } from "./supervision-store";
 import { serialized } from "./serialize";
 import { digest } from "./submissions";
 import type { PaseoApi } from "./host-types";
-import { message, TEMPLATES } from "./templates";
+import { message, TEMPLATES, type TemplatePath } from "./templates";
 import { INBOX_LIMITS } from "../shared/supervision-inbox";
 import { observeWithin, RECOVERY_OBSERVATION_TIMEOUT_MS } from "./supervision-observation";
 
 const ACTOR: SupervisionActor = { kind: "system", id: "supervision-lifecycle", source: "plugin/checked-owner-turn" };
 const PENDING = ["reserved", "dispatching", "uncertain", "accepted"];
+/** Room beyond the measured empty wake for escaped characters in a page's events. */
+const WRAPPER_SLACK = 512;
+const CONTEXT_OMITTED = "Owner context omitted to keep this page bounded; read the scope guide and page state with tools/scope.mjs read.";
 export type ReconcileTrigger = "event" | "turn-end" | "restart" | "heartbeat";
 export interface ScopeWake {
   scopeId: string; state: "idle" | "held" | "accepted" | "uncertain" | "awaiting-owner";
@@ -109,14 +112,27 @@ export class SupervisionLifecycle {
       }
       if (observed?.id !== binding.agentId || observed.archivedAt || observed.status !== "idle" || observed.pendingPermissions)
         return result("held", "Wait for this exact owner to be idle; General's turn is irrelevant.");
+      // The wake's text is one bounded page. Without owner context a prepared page always fits, so an
+      // oversized wake drops that optional context instead of being refused forever: the facts stay owed.
+      const render = async (template: TemplatePath, body: Record<string, unknown>, refusal: string) => {
+        for (const context of [outboxContext, { outboxIds: [], pendingOutboxes: outboxes.length, ownerContextOmitted: CONTEXT_OMITTED }]) {
+          const text = await message(template, { contextJson: JSON.stringify({ ...body, ...context }).replace(/</g, "\\u003c") });
+          if (Buffer.byteLength(text) <= INBOX_LIMITS.pageBytes) return text;
+        }
+        return refuse("HELD", refusal);
+      };
+      const factsBody = (offerId: string, events: unknown[]) => ({ kind: "scoped-facts", scopeId, epoch: binding.epoch, offerId, events });
       if (!offer && s.inbox.assignments.some(a => a.scopeId === scopeId && a.state === "assigned")) {
-        const prepared = await this.inbox.prepare(scopeId, binding.epoch, true);
+        // Size the page to leave room for this wake's own wording and owner context.
+        const wrapper = Buffer.byteLength(await message(TEMPLATES.scopeFacts, { contextJson: JSON.stringify({ ...factsBody(randomUUID(), []), ...outboxContext }) }));
+        // Context too large to share a page would starve it; that page goes without the context instead.
+        const reserve = wrapper + WRAPPER_SLACK <= INBOX_LIMITS.pageBytes / 2 ? wrapper + WRAPPER_SLACK : 2048;
+        const prepared = await this.inbox.prepare(scopeId, binding.epoch, true, randomUUID(), reserve);
         s = await this.store.read(); offer = s.inbox.offers.find(o => o.id === prepared.resultIds[0]);
       }
       if (offer) {
-        const page = offer, text = await message(TEMPLATES.scopeFacts, { contextJson: JSON.stringify({ kind: "scoped-facts", scopeId, epoch: binding.epoch,
-          offerId: page.id, events: page.eventIds.map(id => s.inbox.events.find(e => e.id === id)), ...outboxContext }).replace(/</g, "\\u003c") });
-        if (Buffer.byteLength(text) > INBOX_LIMITS.pageBytes) refuse("HELD", "Owner context exceeds its bounded page; all facts remain retained.");
+        const page = offer, text = await render(TEMPLATES.scopeFacts, factsBody(page.id, page.eventIds.map(id => s.inbox.events.find(e => e.id === id))),
+          "Owner context exceeds its bounded page; all facts remain retained.");
         const cause = offerCause(page);
         const effectId = await this.sessions.reserveTurnWith({ requestId: stableId("mailbox-turn", cause), scopeId, epoch: binding.epoch, causation: cause, text }, ACTOR, current => {
           const row = current.inbox.offers.find(o => o.id === page.id);
@@ -132,9 +148,9 @@ export class SupervisionLifecycle {
       const cause = planGoal ? `continuation:${goal.wakeKey}` : `project-judgment:${digest(outboxes.map(o => [o.id, o.subjectHash]))}`,
         prior = sends.find(e => e.logicalKey === turnKey(scopeId, binding.epoch, cause));
       if (prior) return result("awaiting-owner", "This semantic generation was already offered; an unchanged retry is not progress. The unfinished obligation remains due.", prior.id);
-      const text = await message(binding.purpose === "discussion" ? TEMPLATES.scopeFacts : TEMPLATES.scopeContinuation, { contextJson: JSON.stringify({ kind: binding.purpose === "discussion" ? "discussion-outbox" : "unfinished-goal", scopeId, epoch: binding.epoch,
-        planId: goal.planId, inputVersion: goal.inputVersion, nextNodes: goal.nextNodes, disposition: goal.disposition, reason: goal.reason, ...outboxContext }).replace(/</g, "\\u003c") });
-      if (Buffer.byteLength(text) > INBOX_LIMITS.pageBytes) refuse("HELD", "Owner context exceeds its bounded page; the obligation remains due.");
+      const text = await render(binding.purpose === "discussion" ? TEMPLATES.scopeFacts : TEMPLATES.scopeContinuation, { kind: binding.purpose === "discussion" ? "discussion-outbox" : "unfinished-goal", scopeId, epoch: binding.epoch,
+        planId: goal.planId, inputVersion: goal.inputVersion, nextNodes: goal.nextNodes, disposition: goal.disposition, reason: goal.reason },
+        "Owner context exceeds its bounded page; the obligation remains due.");
       const effectId = await this.sessions.reserveTurnWith({ requestId: stableId("continuation-turn", cause), scopeId, epoch: binding.epoch, causation: cause, text }, ACTOR, current => {
         if (planGoal ? continuationInputVersion(current, scopeId, goal.planId) !== goal.inputVersion : digest(current.outbox.filter(o => o.ownerScopeId === scopeId && o.state === "pending" &&
           current.commands.some(c => c.id === o.causationId && c.actor.kind !== "agent")).map(o => [o.id, o.subjectHash])) !== digest(outboxes.map(o => [o.id, o.subjectHash]))) refuse("STALE", "Relevant facts changed before this owner pass was reserved.");
