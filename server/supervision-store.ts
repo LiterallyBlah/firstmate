@@ -160,7 +160,7 @@ const AnchorMigrationSchema = z.object({ format: z.literal("firstmate.supervisio
   next: z.array(z.object({ sequence: positive, tip: SupervisionHash, publication: SupervisionHash }).strict()), hash: SupervisionHash }).strict();
 type AnchorMigration = z.infer<typeof AnchorMigrationSchema>;
 const AnchorRollbackSchema = z.object({ format: z.literal("firstmate.supervision-anchor-rollback/1"), homeId: z.string(),
-  migrationSequence: positive, headSequence: positive, createdAt: z.string(),
+  migrationSequence: positive, headSequence: positive, oldPrefixDigest: SupervisionHash, createdAt: z.string(),
   files: z.array(z.object({ sequence: positive, kind: z.enum(["event", "tip", "publication"]), before: SupervisionHash, after: SupervisionHash }).strict()),
   hash: SupervisionHash }).strict();
 type AnchorRollback = z.infer<typeof AnchorRollbackSchema>;
@@ -796,19 +796,22 @@ export class SupervisionStore {
   async rollbackAnchors(): Promise<{ restored: number; sequence: number; converted: number }> {
     this.writable();
     return this.locked(async () => {
-      const receipt = await this.readAnchorMigration();
-      if (!receipt) fail("HELD", "No anchor migration receipt; nothing to roll back.");
       let plan = await this.readAnchorRollback();
+      const receipt = await this.readAnchorMigration();
+      // A surviving conversion receipt is enough to finish: cleanup deletes the
+      // migration receipt before it, so a crash there must not strand the journal.
+      if (!plan && !receipt) fail("HELD", "No anchor migration receipt; nothing to roll back.");
       // A fresh rollback needs the coordinator; resuming an interrupted one must not:
       // mid-swap the checkpoint is stale, so no claim could ever be taken to finish it
       // (the same reason migration resume runs pre-claim).
       if (!plan || this.coordinator) await this.assertCoordinator();
-      if (plan && plan.migrationSequence !== receipt.sequence)
+      if (plan && receipt && plan.migrationSequence !== receipt.sequence)
         fail("HELD", "Anchor rollback receipt does not bind this migration; reconcile deliberately.");
       if (!plan) {
+        if (!receipt) fail("HELD", "No anchor migration receipt; nothing to roll back.");
         const snapshot = await this.scanFull();
         if (snapshot.problems.length) fail("HELD", `Anchor rollback needs a validated journal first: ${snapshot.problems.join(" | ")}`);
-        if (snapshot.transactions[receipt.sequence - 1]?.hash !== receipt.headHash)
+        if (snapshot.transactions[receipt!.sequence - 1]?.hash !== receipt!.headHash)
           fail("HELD", "History moved at the migration point; anchor rollback is refused.");
         const staged: AnchorRollback["files"] = [];
         await rm(join(this.root, "anchor-rollback-staging"), { recursive: true, force: true });
@@ -849,7 +852,7 @@ export class SupervisionStore {
           }
         }
         plan = AnchorRollbackSchema.parse(hashed({ format: "firstmate.supervision-anchor-rollback/1" as const, homeId: this.homeId,
-          migrationSequence: receipt.sequence, headSequence: snapshot.sequence, createdAt: new Date().toISOString(), files: staged }));
+          migrationSequence: receipt.sequence, headSequence: snapshot.sequence, oldPrefixDigest: receipt.oldPrefixDigest, createdAt: new Date().toISOString(), files: staged }));
         await this.publish(join(this.root, "anchor-rollback.json"), plan, "anchor-rollback");
       } else {
         // Resume: the journal must not have grown past the planned head meanwhile.
@@ -870,17 +873,23 @@ export class SupervisionStore {
       }
       const restored = plan.files.filter(f => f.sequence <= plan.migrationSequence).length;
       const converted = new Set(plan.files.filter(f => f.sequence > plan.migrationSequence).map(f => f.sequence)).size;
-      await rm(join(this.root, "anchor-migration.json"), { force: true });
-      await rm(join(this.root, "anchor-backup"), { recursive: true, force: true });
-      await rm(join(this.root, "anchor-rollback.json"), { force: true });
-      await rm(join(this.root, "anchor-rollback-staging"), { recursive: true, force: true });
+      // Write the new checkpoint BEFORE deleting anything, and delete the rollback
+      // receipt LAST: a crash anywhere in cleanup then leaves either a journal whose
+      // checkpoint already binds the /1 form, or a surviving conversion receipt from
+      // which a retry finishes - even if the migration receipt is already gone.
       this.cached = null;
-      await rm(join(this.root, "projection-cache.json"), { force: true });
       const restoredScan = await this.scanFull();
-      if (restoredScan.problems.length || await this.prefixAt(restoredScan, receipt.sequence) !== receipt.oldPrefixDigest ||
+      if (restoredScan.problems.length || await this.prefixAt(restoredScan, plan.migrationSequence) !== plan.oldPrefixDigest ||
         restoredScan.transactions.some(t => t.format.endsWith("/2")) || restoredScan.legacyAnchors !== restoredScan.sequence)
         fail("HELD", "Restored anchors do not revalidate against the pre-migration prefix; reconcile deliberately.");
       await this.saveCheckpoint(restoredScan);
+      await this.boundary("anchor-rollback:checkpoint");
+      await rm(join(this.root, "projection-cache.json"), { force: true });
+      await rm(join(this.root, "anchor-backup"), { recursive: true, force: true });
+      await rm(join(this.root, "anchor-migration.json"), { force: true });
+      await rm(join(this.root, "anchor-rollback-staging"), { recursive: true, force: true });
+      await this.boundary("anchor-rollback:cleanup");
+      await rm(join(this.root, "anchor-rollback.json"), { force: true });
       return { restored, sequence: restoredScan.sequence, converted };
     });
   }

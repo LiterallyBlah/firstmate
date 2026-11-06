@@ -210,7 +210,9 @@ Git repository or local directory; it is marked private to prevent accidental np
   anchors rewritten /1, whole ownership re-derived from replay; converted transaction
   hashes change, so receipts already issued for them stop matching — reported in the
   result). The rollback itself is crash-safe: replacements are staged and a conversion
-  receipt published before any swap, so an interrupted rollback resumes and finishes
+  receipt published before any swap, the new checkpoint written before anything is
+  deleted and the conversion receipt deleted last, so an interrupted rollback — even
+  one interrupted during cleanup, after the migration receipt is gone — resumes and finishes
   instead of stranding a half-converted journal. New records are always /2; nothing is
   pinned to the old format. The backup (about a journal's worth of /1 originals) expires
   automatically a week after migration on the next verified writer, or earlier by

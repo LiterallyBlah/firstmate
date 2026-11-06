@@ -636,3 +636,63 @@ it("gates receipt lookups on the restart audit (R2c)", async () => {
   await expect(victim.workflowRequest("any-plan", event.requestId)).rejects.toMatchObject({ code: "HELD" });
   expect(truth.freshness).toBe("current");
 }, 300_000);
+
+it("finishes a rollback interrupted after the migration receipt was deleted", async () => {
+  const { store, home, data } = await journal(6, true, true);
+  await store.releaseCoordinator();
+  const migrator = new SupervisionStore(data, home, { writable: true, processIdentity: identity });
+  await migrator.acquireCoordinator();
+  await migrator.migrateAnchors();
+  for (let i = 0; i < 2; i++) {
+    const mutation = [{ kind: "scope" as const, value: { ...scope(store.homeId), id: randomUUID(), version: 1 } }];
+    await migrator.transact(expected(mutation, 0), randomUUID(), mutation);
+  }
+  const before = await migrator.read();
+  // Crash inside cleanup: checkpoint already written, migration receipt + backup +
+  // staging already deleted, rollback receipt not yet. Only it can guide a retry.
+  await migrator.releaseCoordinator();
+  const crashing = new SupervisionStore(data, home, { writable: true, processIdentity: identity,
+    boundary: async name => { if (name === "anchor-rollback:cleanup") throw new Error("crash during cleanup"); } });
+  await crashing.acquireCoordinator();
+  await expect(crashing.rollbackAnchors()).rejects.toThrow("crash during cleanup");
+  expect(await readdir(store.root)).not.toContain("anchor-migration.json");
+  expect(await readdir(store.root)).toContain("anchor-rollback.json");
+  await crashing.releaseCoordinator().catch(() => {});
+  const resumer = new SupervisionStore(data, home, { writable: true, processIdentity: identity });
+  await expect(resumer.rollbackAnchors()).resolves.toMatchObject({ restored: 12, sequence: 8, converted: 2 });
+  expect(await readdir(store.root)).not.toContain("anchor-rollback.json");
+  const rolledBack = await new SupervisionStore(data, home, { legacyFormat: true }).read();
+  expect(rolledBack.freshness).toBe("current");
+  expect(rolledBack.scopes).toEqual(before.scopes);
+  await migrator.releaseCoordinator().catch(() => {});
+}, 300_000);
+
+it("finishes a rollback interrupted after cleanup but at the checkpoint write", async () => {
+  const { store, home, data } = await journal(6, true, true);
+  await store.releaseCoordinator();
+  const migrator = new SupervisionStore(data, home, { writable: true, processIdentity: identity });
+  await migrator.acquireCoordinator();
+  await migrator.migrateAnchors();
+  for (let i = 0; i < 2; i++) {
+    const mutation = [{ kind: "scope" as const, value: { ...scope(store.homeId), id: randomUUID(), version: 1 } }];
+    await migrator.transact(expected(mutation, 0), randomUUID(), mutation);
+  }
+  const before = await migrator.read();
+  await migrator.releaseCoordinator();
+  // Crash as the new checkpoint is being written (swap complete, nothing deleted yet):
+  // the stale checkpoint still binds the /2 form, so only the conversion receipt can
+  // guide a retry to a consistent journal.
+  let armed = false;
+  const crashing = new SupervisionStore(data, home, { writable: true, processIdentity: identity,
+    boundary: async name => { if (armed && name === "checkpoint:written") throw new Error("crash at checkpoint"); } });
+  await crashing.acquireCoordinator();
+  armed = true;
+  await expect(crashing.rollbackAnchors()).rejects.toThrow("crash at checkpoint");
+  await crashing.releaseCoordinator().catch(() => {});
+  const resumer = new SupervisionStore(data, home, { writable: true, processIdentity: identity });
+  await expect(resumer.rollbackAnchors()).resolves.toMatchObject({ restored: 12, sequence: 8, converted: 2 });
+  const rolledBack = await new SupervisionStore(data, home, { legacyFormat: true }).read();
+  expect(rolledBack.freshness).toBe("current");
+  expect(rolledBack.scopes).toEqual(before.scopes);
+  expect(await readdir(store.root)).not.toContain("anchor-rollback.json");
+}, 300_000);
