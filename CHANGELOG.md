@@ -166,6 +166,13 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Fixed
 
+- **A plan Supervisor no longer sits idle after a worker finishes.** When enough facts piled up for
+  one page, the page plus the Supervisor's own context came to more than the 24 KiB a wake may carry,
+  and every wake from then on — restarts included — was refused, so the Supervisor waited until
+  someone nudged it. Pages now leave room for the wake's wording, and a page that still does not fit
+  is delivered without the optional context instead of not at all. A Supervisor's state read now
+  shows its workers' launch effects, so a launch that reconcile settled as failed is visible, and a
+  wait for someone to settle a launch that has already ended is refused rather than recorded.
 - **A Supervisor's question for you now shows in Needs you.** Home's List and Board counted a plan
   Supervisor's decisions and paused plans in "Needs you · N" but never drew them, so the count was one
   higher than the list and the question could only be found under the decision drawer's All. They are
