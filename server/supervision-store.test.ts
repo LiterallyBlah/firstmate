@@ -295,10 +295,13 @@ describe("scoped transaction authority", () => {
     expect(size).toHaveBeenCalled();
     size.mockClear();
     const second = await store.read();
-    expect(second).toEqual(first); expect(second).not.toBe(first);
+    expect(second).toBe(first); // The frozen memoised master itself, no per-read clone.
     expect(size, "unchanged read re-serialised the whole projection").not.toHaveBeenCalled();
-    // A caller mutating its returned status cannot poison the cached projection (clone kept).
-    second.sequence = -1; second.scopes.length = 0;
+    // A caller mutating its returned status throws instead of poisoning the cached projection.
+    expect(Object.isFrozen(second)).toBe(true); expect(Object.isFrozen(second.scopes)).toBe(true);
+    expect(Object.isFrozen(second.scopes[0])).toBe(true); expect(Object.isFrozen(second.storage)).toBe(true);
+    expect(() => { second.sequence = -1; }).toThrow(TypeError);
+    expect(() => { second.scopes.length = 0; }).toThrow(TypeError);
     const third = await store.read();
     expect(third.sequence).toBe(first.sequence); expect(third.scopes).toHaveLength(first.scopes.length);
     expect(size).not.toHaveBeenCalled();
@@ -309,6 +312,33 @@ describe("scoped transaction authority", () => {
     expect(size).toHaveBeenCalled();
     expect(after.sequence).toBe(first.sequence + 1);
     expect(after.scopes.find(s => s.id === ids.scope)?.version).toBe(2);
+  });
+  it("an unchanged warm read serves from the stat fingerprint without re-listing or re-reading the journal", async () => {
+    await store.enableLongLived();
+    await commit([{ kind: "scope", value: scope(store.homeId) }]);
+    const reader = new SupervisionStore(dataRoot, home);
+    await reader.read(); // Cold validation.
+    const warm = await reader.read(); // Full warm validation; establishes the fingerprint.
+    const directories = vi.spyOn(reader as unknown as Record<string, unknown>, "directories" as never) as unknown as ReturnType<typeof vi.fn>;
+    const anchor = vi.spyOn(reader as unknown as Record<string, unknown>, "anchorHash" as never) as unknown as ReturnType<typeof vi.fn>;
+    const clone = vi.spyOn(globalThis, "structuredClone");
+    try {
+      const fast = await reader.read();
+      expect(fast).toBe(warm); expect(fast.freshness).toBe("current");
+      expect(directories, "unchanged read re-listed every journal file").not.toHaveBeenCalled();
+      expect(anchor, "unchanged read re-read the head anchor").not.toHaveBeenCalled();
+      expect(clone, "unchanged read deep-cloned the status").not.toHaveBeenCalled();
+    } finally { clone.mockRestore(); }
+    // A write by the other (writer) instance is seen on the reader's very next read.
+    await store.transact([{ kind: "scope", id: ids.scope, version: 1 }], randomUUID(),
+      [{ kind: "scope", value: { ...scope(store.homeId), version: 2 } }]);
+    const advanced = await reader.read();
+    expect(advanced.sequence).toBe(warm.sequence + 1);
+    expect(advanced.scopes.find(s => s.id === ids.scope)?.version).toBe(2);
+    // Tampering with the head anchor after the fingerprint is established still holds.
+    await reader.read();
+    await writeFile(file(advanced.sequence, "publication"), "{damaged");
+    expect((await reader.read()).freshness).toBe("held");
   });
   it("retains checked ownership capsules when coordinator authority is corrupt", async () => {
     await commit(seed(store.homeId));

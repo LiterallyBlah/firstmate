@@ -39,7 +39,7 @@ it.each([11, 176])("warm reads at %i transactions replay no historical reducers 
   for (let n = 0; n < 5; n++) { const start = performance.now(); expect(await f.store.read()).toMatchObject({ freshness: "current", sequence: history }); readMs.push(performance.now() - start); }
   expect(scan).not.toHaveBeenCalled(); expect(apply).not.toHaveBeenCalled();
   bounds.push({ history, readMs, fullScans: scan.mock.calls.length, historicalReducerCalls: apply.mock.calls.length });
-  const status = await f.store.read(); status.scopes[0]!.state = "retired";
+  const status = await f.store.read(); expect(() => { status.scopes[0]!.state = "retired"; }).toThrow(TypeError); // Frozen master, no per-caller copy.
   expect((await f.store.read()).scopes[0]!.state).not.toBe("retired");
 }, 60_000);
 it("launch work stays bounded after 176 transactions instead of replaying the prefix for each step", async () => {
@@ -185,9 +185,9 @@ it("an overlapped display read settles on its committed head only past its budge
   const overlapped = async (options: { settleAfterMs?: number }) => {
     let entered!: () => void, resume!: () => void, paused = true;
     const atAnchor = new Promise<void>(resolve => { entered = resolve; }), gate = new Promise<void>(resolve => { resume = resolve; });
-    const original = (reader as any).anchorHash.bind(reader);
-    const spy = vi.spyOn(reader as any, "anchorHash").mockImplementation(async (...args: unknown[]) => {
-      if (paused) { paused = false; entered(); await gate; } return original(args[0] as number);
+    const original = (reader as any).journalFingerprint.bind(reader);
+    const spy = vi.spyOn(reader as any, "journalFingerprint").mockImplementation(async (...args: unknown[]) => {
+      if (paused) { paused = false; entered(); await gate; } return original(...args);
     });
     try {
       const reading = reader.read(options); await atAnchor;
@@ -196,7 +196,7 @@ it("an overlapped display read settles on its committed head only past its budge
   };
   expect(await overlapped({})).toMatchObject({ freshness: "current", sequence: 2 });
   expect(await overlapped({ settleAfterMs: 60_000 })).toMatchObject({ freshness: "current", sequence: 3 });
-  expect(await overlapped({ settleAfterMs: 0 })).toMatchObject({ freshness: "current", sequence: 3 }); // Its own validated head.
+  expect(await overlapped({ settleAfterMs: 0 })).toMatchObject({ freshness: "current", sequence: 4 }); // A committed head: the fingerprint moved, so its retry validated the newer checkpoint.
   expect(await reader.read({ settleAfterMs: 0 })).toMatchObject({ freshness: "current", sequence: 4 });
 });
 it("concurrent status reads share one validation", async () => {
@@ -204,7 +204,8 @@ it("concurrent status reads share one validation", async () => {
   const reader = new SupervisionStore(f.data, f.home), scan = vi.spyOn(reader as any, "scan");
   const reads = await Promise.all(Array.from({ length: 5 }, () => reader.read()));
   expect(scan).toHaveBeenCalledTimes(1); expect(reads.every(r => r.freshness === "current" && r.sequence === 1)).toBe(true);
-  reads[0]!.scopes.length = 0; expect(reads[1]!.scopes).toHaveLength(1); // Each caller owns its copy.
+  expect(reads[1]).toBe(reads[0]); // Every caller gets the same frozen status.
+  expect(() => { reads[0]!.scopes.length = 0; }).toThrow(TypeError); expect(reads[1]!.scopes).toHaveLength(1);
 });
 it.each(["checkpoint:written", "checkpoint:synced", "checkpoint:replaced"])("interruption at %s preserves the request and recovers only the index", async point => {
   const f = await fixture(); f.fault(point);

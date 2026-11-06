@@ -19,7 +19,7 @@ async function fixture() {
       observation: { state: "dormant" as const, at } } },
   ];
   await f.store.transact(expected(mutations), randomUUID(), mutations);
-  const current = { status: await f.store.read() };
+  const current = { status: structuredClone(await f.store.read()) }; // The fixture's own mutable double; store statuses are frozen.
   const agent = (status: PaseoAgent["status"] = "idle") => ({ id: "project-mate", workspaceId: "project-workspace", status, archivedAt: null });
   const refresh = vi.fn(async (): Promise<{ agent: ReturnType<typeof agent> } | null> => ({ agent: agent() }));
   const send = vi.fn(), reload = vi.fn(), ref = vi.fn((_id: string) => ({ refresh, send, reload }));
