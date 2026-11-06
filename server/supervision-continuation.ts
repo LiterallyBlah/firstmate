@@ -207,6 +207,9 @@ function waitProblem(status: SupervisionStatus, scopeId: string, derivedWaits: r
   w: ContinuationWait, now: number, recording: boolean): string | null {
   const plans = status.plans.map(p => p.plan);
   if (BOUNDED.includes(w.kind)) {
+    // Waiting for someone to settle a launch that has already ended waits on nothing; the next step is the owner's.
+    if (w.kind === "prerequisite" && status.attempts.some(a => a.id === w.id && status.tasks.some(t => t.id === a.taskId && t.ownerScopeId === scopeId)) && launchEnded(status, w.id))
+      return `Attempt ${w.id}'s launch has already ended (a failed or cancelled effect); reread state and plan around it.`;
     const until = w.until ? Date.parse(w.until) : NaN;
     if (!(until > now) || (recording && until - now > MAX_BACKOFF_MS)) return `A ${w.kind} wait needs a bounded backoff (until, at most seven days ahead).`;
     return null;
