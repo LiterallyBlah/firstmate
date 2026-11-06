@@ -124,9 +124,10 @@ upgrade on either side, fails closed to local-only until re-probed. On 0.13.0 `w
 branch, so `findWorkspace` never rediscovers a worktree and an uncertain open stays uncertain; a
 `permit deny --interrupt` leaves the worker in `error`. The mate helper's and the board's remote guards
 (`scopedRemoteGuard`) refuse while the supervision journal cannot be read, unowned remote crew included,
-and the guard refuses any ID prefix of a scoped worker; the helper queue also resolves a mutation's ID
-prefix to one worker of the host's last poll and sends the full ID, refusing names, unknown and ambiguous
-prefixes. A brief plus appended rules over 28,000 characters
+and the guard refuses any ID prefix of a scoped worker. The helper queue's mutations take a strict form
+(`helperMutationTarget`): the full agent ID straight after `send`/`stop`/`archive` (or `permit allow|deny`),
+no option before it, no prefix or name, and no `stop --all`/`--cwd`, so the guard sees exactly the agent the
+host acts on. A brief plus appended rules over 28,000 characters
 refuses before reservation. Reconcile is `RemoteService.discoverByAttempt` (the service adds its own
 owner filter to `ls -g -a`; the caller-facing allowlist still refuses reserved labels): exactly one binds,
 zero stays uncertain, duplicates are held with a recorded `remoteDuplicate` reason, never archived or

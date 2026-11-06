@@ -33,7 +33,7 @@ async function fixture(execute: ConstructorParameters<typeof RemoteService>[0], 
   await service.sync([local, remote]);
   return { directory, home, service };
 }
-const SCOPED = "8552861a-dee4-4771-9968-a494a64d1a79", CREW = "c0ffee00-1111-4111-8111-111111111111", TWIN = "c0ffee00-2222-4222-8222-222222222222";
+const SCOPED = "8552861a-dee4-4771-9968-a494a64d1a79", CREW = "c0ffee00-1111-4111-8111-111111111111";
 const success = (value: unknown) => ({ code: 0, stdout: JSON.stringify(value), stderr: "" });
 
 describe("independent remote access", () => {
@@ -392,34 +392,36 @@ describe("independent remote access", () => {
     await expect(service.request("Remote", ["inspect", SCOPED], { helper: true })).resolves.toEqual({ ok: true });
     expect(guarded).toHaveLength(6); // Only the crew send added a guard check after the refusals.
   });
-  it("resolves a helper's ID prefix to one polled worker before guarding; a scoped prefix, a name or an unknown prefix refuses", async () => {
+  it("guards exactly the agent a helper mutation reaches: full ID first, no option before it, no stop --all or --cwd", async () => {
     const calls: string[][] = [], guarded: string[] = [];
     const { service } = await fixture(async (args) => {
       calls.push(args);
       return args[0] === "status" ? success({ serverId: remote.serverId, connectedDaemon: "reachable" }) : success({ ok: true });
     }, undefined, async (_serverId, agentId) => {
       guarded.push(agentId);
-      // The real guard refuses any prefix of a scoped worker's ID (supervision-sources.test.ts).
+      // The real guard also refuses any prefix of a scoped worker's ID (supervision-sources.test.ts).
       if (SCOPED.startsWith(agentId.toLowerCase())) throw new Error("This remote worker belongs to a scoped supervisor.");
     });
-    // What the last poll found on the host (the poll itself is covered above).
-    const worker = (id: string) => ({ id, name: "Crew worker", status: "idle", updatedAt: "2026-11-06T00:00:00.000Z", permissions: 0, output: "" });
-    (service as any).snapshot.hosts.find((host: { serverId: string }) => host.serverId === remote.serverId).workers = [worker(SCOPED), worker(CREW), worker(TWIN)];
-    // A scoped worker's prefix refuses before resolution, before any connection.
-    for (const args of [["send", SCOPED.slice(0, 7), "--", "steer"], ["stop", SCOPED.slice(0, 8).toUpperCase()], ["archive", SCOPED.slice(0, 7)],
-      ["permit", "allow", SCOPED.slice(0, 7), "req-1"], ["permit", "deny", SCOPED.slice(0, 7), "req-1", "--message", "No."]])
-      await expect(service.request("Remote", args, { helper: true })).rejects.toThrow("scoped supervisor");
-    // A name, an unknown prefix and an ambiguous one cannot be checked, so they refuse too.
-    await expect(service.request("Remote", ["archive", "Crew worker"], { helper: true })).rejects.toThrow("full ID");
-    await expect(service.request("Remote", ["stop", "0000000"], { helper: true })).rejects.toThrow("matches no worker");
-    await expect(service.request("Remote", ["stop", "c0ffee00"], { helper: true })).rejects.toThrow("more than one");
+    // An option before the target would put the agent where the guard did not look: refused, unguarded.
+    for (const args of [["send", "--json", SCOPED, "--", "steer"], ["archive", "--force", SCOPED], ["stop", "--json", SCOPED],
+      ["stop", "-q", SCOPED], ["archive", "-o", "json", SCOPED], ["stop"], ["send", "--", "steer"]])
+      await expect(service.request("Remote", args, { helper: true }), args.join(" ")).rejects.toThrow("before any option");
+    // stop --all and stop --cwd reach agents without naming them, in either spelling and position.
+    for (const args of [["stop", "--all"], ["stop", "--cwd", "/home/ariadne/work"], ["stop", "--cwd=/home/ariadne/work"], ["stop", CREW, "--all"], ["stop", "--all=true"]])
+      await expect(service.request("Remote", args, { helper: true }), args.join(" ")).rejects.toThrow("stop --all and stop --cwd are refused");
+    // Prefixes and names are refused outright, a scoped prefix included; only a full ID is acted on.
+    for (const args of [["send", SCOPED.slice(0, 7), "--", "steer"], ["stop", CREW.slice(0, 8)], ["archive", "c"], ["archive", "Crew worker"],
+      ["permit", "allow", CREW.slice(0, 7), "req-1"], ["permit", "deny", SCOPED.slice(0, 7), "req-1", "--message", "No."], ["stop", `${CREW}x`]])
+      await expect(service.request("Remote", args, { helper: true }), args.join(" ")).rejects.toThrow("full ID");
+    expect(guarded).toEqual([]);
     expect(calls).toEqual([]);
-    // Own crew by prefix: guarded as typed and as resolved, and sent with the full ID.
-    guarded.length = 0;
-    await expect(service.request("Remote", ["send", CREW.slice(0, 10), "--", "hi"], { helper: true })).resolves.toEqual({ ok: true });
-    expect(guarded).toEqual([CREW.slice(0, 10), CREW]);
-    expect(calls.find((args) => args[0] === "send")).toEqual(expect.arrayContaining(["send", CREW, "--", "hi"]));
-    expect(calls.find((args) => args[0] === "send")).not.toContain(CREW.slice(0, 10));
+    // The full ID of a scoped worker, in any case, is still refused by the guard; own crew passes with its options after.
+    await expect(service.request("Remote", ["stop", SCOPED.toUpperCase(), "--json"], { helper: true })).rejects.toThrow("scoped supervisor");
+    await expect(service.request("Remote", ["archive", CREW, "--force"], { helper: true })).resolves.toEqual({ ok: true });
+    expect(guarded).toEqual([SCOPED.toUpperCase(), CREW]);
+    expect(calls.find((args) => args[0] === "archive")).toEqual(["archive", CREW, "--force", "--json"]);
+    // The gateway's own receiver (no helper origin) keeps its forms.
+    await expect(service.request("Remote", ["stop", "--json", SCOPED])).resolves.toEqual({ ok: true });
   });
   it("executes a native terminal helper through the daemon queue", async () => {
     const { directory, home, service } = await fixture(async (args) => args[0] === "status" ? success({ serverId: remote.serverId, connectedDaemon: "reachable" }) : success([{ projectId: "remote-project" }]));

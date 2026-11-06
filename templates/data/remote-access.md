@@ -183,8 +183,8 @@ identity than a local reserved ID — the CLI takes no caller-chosen ID and crea
 brief as its prompt), and report back through the poll as observations that wake their Supervisor.
 Do not steer, interrupt, end or answer permissions for a scoped remote worker from here: this
 helper's `send`, `stop`, `archive` and `permit allow|deny` refuse a scoped worker exactly as the
-board does. Name the agent by its full ID there: a shorter prefix is accepted only when it matches
-exactly one worker in the host's last poll, and a name is refused. The Supervisor answers its worker's permissions itself through
+board does. Name the agent by its full ID straight after the command, with options after it: a
+prefix, a name, an option before the ID, and `stop --all` or `stop --cwd` are refused. The Supervisor answers its worker's permissions itself through
 `tools/scope.mjs permit-worker` — one exact request, deny with words or allow a Claude question
 only, judged from the tool name, `recentTools` and logs because the CLI passes no request input.
 

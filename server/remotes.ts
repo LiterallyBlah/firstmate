@@ -90,14 +90,21 @@ function remoteMutationIndex(args: string[]): number | null {
   return at !== null && args[at] && !args[at]!.startsWith("-") ? at : null;
 }
 const FULL_AGENT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-/** The full agent ID a helper mutation names. The CLI also takes a unique ID prefix (and, for
- * `archive`, a name), which the scoped-worker guard could not compare; a prefix is resolved against
- * the host's last poll and must name exactly one worker there, and anything else is refused. */
-export function resolveMutationTarget(token: string, workers: readonly { id: string }[]): string {
-  if (FULL_AGENT_ID.test(token)) return token;
-  const matches = workers.filter((worker) => worker.id.toLowerCase().startsWith(token.toLowerCase()));
-  if (matches.length === 1) return matches[0]!.id;
-  throw new Error(`Name the remote agent by its full ID: "${token.slice(0, 64)}" is not one, and ${matches.length ? "matches more than one" : "matches no"} worker in the last poll of that host`);
+/** The one agent a helper-queue mutation acts on, so the scoped-worker guard sees exactly what the host
+ * will. Null for reads and creations. The CLI parses options anywhere and takes a unique ID prefix (or,
+ * for `archive`, a name), so the helper's form is strict: the full agent ID straight after the command,
+ * no option before it, and no `stop --all` or `--cwd`, which reach agents without naming them. */
+export function helperMutationTarget(command: string[]): string | null {
+  const name = command[0] ?? "", end = command.indexOf("--");
+  const options = end < 0 ? command : command.slice(0, end);
+  const at = ["send", "stop", "archive"].includes(name) ? 1 : name === "permit" && (command[1] === "allow" || command[1] === "deny") ? 2 : null;
+  if (at === null) return null;
+  if (name === "stop" && options.some((arg) => /^--(?:all|cwd)(?:=|$)/.test(arg)))
+    throw new Error("stop --all and stop --cwd are refused here; stop one agent by its full ID");
+  const target = options[at];
+  if (!target || target.startsWith("-")) throw new Error(`Name the remote agent by its full ID straight after "${command.slice(0, at).join(" ")}", before any option`);
+  if (!FULL_AGENT_ID.test(target)) throw new Error(`Name the remote agent by its full ID: "${target.slice(0, 64)}" is not one (prefixes and names are refused here)`);
+  return target;
 }
 const MAX_ERROR_CHARS = 1500;
 /** More than a few minutes: the delay of a remote run can never account for it. */
@@ -282,15 +289,8 @@ export class RemoteService {
     if (matches.length !== 1) throw new Error("Host is unknown or its name is ambiguous; use its serverId from hosts");
     const host = matches[0]!;
     const command = commandArguments(args, this.owner);
-    const target = origin?.helper ? remoteMutationIndex(command) : null;
-    if (target !== null) {
-      // The token as given is checked first (the guard refuses a prefix of any scoped worker), then the
-      // full ID it resolves to, which replaces it so the host acts on exactly the agent that was checked.
-      const token = command[target]!;
-      await this.scopedGuard?.(host.serverId, token);
-      const full = resolveMutationTarget(token, this.snapshot.hosts.find((entry) => entry.serverId === host.serverId)?.workers ?? []);
-      if (full !== token) { await this.scopedGuard?.(host.serverId, full); command[target] = full; }
-    }
+    const target = origin?.helper ? helperMutationTarget(command) : null;
+    if (target !== null) await this.scopedGuard?.(host.serverId, target);
     const connection = await this.connect(host);
     // Exactly one attempt once a command may change remote state. A timeout
     // is uncertain; never retry creation automatically.

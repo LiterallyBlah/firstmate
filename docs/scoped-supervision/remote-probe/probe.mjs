@@ -166,8 +166,9 @@ function surfaceProbe() {
     record(`${label}:send`, remote(["send", created.janitor, "--", `Run exactly this one Bash command, with no other tool, then reply with its output and stop:\n${command}`]));
     const request = awaitPermission(`${label}:requested`, created.janitor, "Bash");
     // The CLI labels a Claude Bash call `[Shell]` in its tool summary.
-    const shown = (request.recentTools ?? []).map((t) => String(t).replace(/^\[(?:Bash|Shell)\]\s*/, ""));
-    if (!shown.includes(command)) {
+    // Only the newest entry is the pending call; an older matching command proves nothing about it.
+    const shown = String((request.recentTools ?? []).at(-1) ?? "").replace(/^\[(?:Bash|Shell)\]\s*/, "");
+    if (shown !== command) {
       record(`${label}:refused`, remote(["permit", "deny", created.janitor, request.id, "--message", "Not the exact command.", "--interrupt"]));
       fail(`${label}: the pending Bash request is not exactly the command`);
     }
