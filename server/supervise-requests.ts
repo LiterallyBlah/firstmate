@@ -89,11 +89,16 @@ export class SuperviseRequests {
     await serialized(directory, async () => {
       let names: string[];
       try { names = await readdir(directory); } catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return; throw error; }
+      const listed = new Set(names);
       let processed = 0;
       for (const name of names.filter(n => /^[0-9a-f-]{36}\.json$/.test(n)).sort()) {
-        const relative = `data/supervise-requests/${name}`, reply = (await resolveInHome(home, relative.replace(/\.json$/, ".reply.json"))).absolute;
-        try { await stat(reply); continue; } catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
+        const relative = `data/supervise-requests/${name}`;
+        // Answered requests are retained and replies publish only under this serialized pass,
+        // so the listing above is authoritative here; stat-ing every reply made each pass's
+        // cost grow with the unpruned directory (thousands of pairs on a busy home).
+        if (listed.has(name.replace(/\.json$/, ".reply.json"))) continue;
         if (processed++ >= 20) break;
+        const reply = (await resolveInHome(home, relative.replace(/\.json$/, ".reply.json"))).absolute;
         let response;
         try {
           const path = (await resolveInHome(home, relative)).absolute;

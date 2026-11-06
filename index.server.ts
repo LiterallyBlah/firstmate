@@ -206,7 +206,7 @@ export default function contribute(server: PluginServerContext) {
   const stopWorkflows = startWorkflowService(async () => {
     const results = await Promise.allSettled([projects.processRequests(), supervise.processRequests(), plans.tick(), maintenance.tick()]);
     for (const result of results) if (result.status === "rejected") console.error("[firstmate] scoped clock:", result.reason);
-  }, () => plans.processRequests());
+  }, [() => plans.processRequests(), () => supervise.processRequests()]);
   // One end-to-end deadline for the whole combined read - the ledger read before the plan
   // snapshot and the scoped reads after it included - so a slow start anywhere still answers
   // (incomplete) inside the host's 30 s RPC limit instead of timing out with no answer. The
