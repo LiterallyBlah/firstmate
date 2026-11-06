@@ -5,6 +5,8 @@ import { join } from "node:path";
 import { beforeEach, expect, it, vi } from "vitest";
 import { SuperviseRequestSchema } from "../shared/supervise";
 import { updateFirstmateConfig } from "./config";
+import { resolveInHome } from "./files";
+import { serialized } from "./serialize";
 import { SuperviseRequests } from "./supervise-requests";
 import { workflowHomeIdentity } from "./workflow-ownership";
 import type { PaseoApi } from "./host-types";
@@ -127,4 +129,27 @@ it("a pass skips retained answered requests from its listing, without stat-ing e
   expect(calls.filter(c => c.name === "read")).toHaveLength(1);
   for (const [id, reply] of answered) expect(await readFile(join(directory, `${id}.reply.json`), "utf8")).toBe(reply);
   expect(vi.mocked(fs.stat).mock.calls.map(call => String(call[0])).filter(path => path.endsWith(".reply.json"))).toEqual([]);
+});
+it("an idle pass takes no directory lock when only retained answered requests are waiting", async () => {
+  const supervise = service(), directory = join(home, "data/supervise-requests");
+  await mkdir(directory, { recursive: true });
+  const answered = randomUUID();
+  await writeFile(join(directory, `${answered}.json`), JSON.stringify({ id: answered, actor: "general", command: { op: "activation" } }));
+  await writeFile(join(directory, `${answered}.reply.json`), JSON.stringify({ ok: true, result: "retained" }));
+  // Hold the pass's own per-directory serialization: an idle pass must finish from its
+  // cheap listing alone, never queueing behind (or taking) that lock, and run no checked path.
+  let release!: () => void, held!: () => void;
+  const entered = new Promise<void>(done => { held = done; }), gate = new Promise<void>(done => { release = done; });
+  const { absolute } = await resolveInHome(home, "data/supervise-requests");
+  const holding = serialized(absolute, async () => { held(); await gate; });
+  try {
+    await entered;
+    const outcome = await Promise.race([
+      supervise.processRequests().then(() => "done" as const),
+      new Promise<"blocked">(done => setTimeout(() => done("blocked"), 1000)),
+    ]);
+    expect(outcome, "idle supervise pass queued behind the directory lock").toBe("done");
+    expect(calls).toEqual([]);
+    expect(await readFile(join(directory, `${answered}.reply.json`), "utf8")).toBe(JSON.stringify({ ok: true, result: "retained" }));
+  } finally { release(); await holding; }
 });
