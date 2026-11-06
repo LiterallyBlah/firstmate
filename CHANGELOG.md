@@ -177,6 +177,22 @@ Git repository or local directory; it is marked private to prevent accidental np
   checked copy and read it alongside the plans. Measured on a copy of a large home: the startup
   decisions read answers in about 6 seconds instead of timing out at 10, and a later read takes half
   a second instead of three.
+- **Needs you stops reporting "some plans unavailable" long after a restart, and in the middle of
+  ordinary plan work.** Checking the Supervisor journal from scratch had become the slow part of a
+  decisions read: replay copied and re-serialized the whole projection once per transaction, the plugin
+  paid that full check several times at startup (its status reader, its writer, and again after the
+  writer claimed its coordinator), and every legacy plan write paid it once more inside the writer's
+  lock. On a large home each check took tens of seconds on the one thread, so Needs you answered with
+  an incomplete count, Supervisor questions showed "Some work couldn't be checked", and
+  `firstmate.scope.needs` could take 25 s or time out on a warm process while plan writes were under
+  way. Replay now replaces rows instead of copying them and reuses each unchanged row's canonical
+  bytes, anchors verified in a scan are not re-read by the same scan, the runtime's writer adopts its
+  reader's completed check (and absorbs its own coordinator claim), plan writes and read-only views
+  share warm readers, legacy plans read a few at a time, and the decisions read's plan budget is 15 s
+  of the host's 30 s. Replay hash work is now linear in the bytes it reads: the whole-projection hash is checked at the head and every 64th transaction (the value the checkpoint binds) instead of re-hashing the whole projection per transaction, ownership hashes reuse each row's cached bytes, capsules are collected during the chain walk with a fallback pass only on failure, publications are pinned to their checked tip without a second schema walk, every read-only view shares the runtime's one current store, directory signatures use durable names instead of Windows-flappy write times, and the combined decisions read has one end-to-end deadline. Measured on a copy of the large home at 2,271 journal transactions: one
+  full journal check takes about 8.6 s (about 200 MB peak heap for the check) instead of 50–58 s and about a gigabyte on the previous code, and runs once per start instead of three
+  times; a warm plan write takes about half a second instead of paying a full check; the first
+  decisions read still answers honestly as "still loading" only while that one check runs.
 - **Plan Supervisors are answered straight after a plugin restart or install.** A freshly started
   plugin used to leave an attached Supervisor's scope requests — even a read — unanswered until some
   unrelated agent event arrived, unless `FIRSTMATE_PLAN_BOOTSTRAP_URL` was configured. The scoped

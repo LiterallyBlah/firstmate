@@ -6,7 +6,7 @@ import { dirname, join, resolve } from "node:path";
 import { z } from "zod";
 import { PlanId, PlanLaunchSchema, PlanDefinitionSchema, PlanPostureSourceSchema, WorkflowCommandSchema, captainReviewRequired, decisionOwner, planOwner, planMode, planEscalate, planLiveSteps, modeOwner, planModeLabel, quotes, sameWords, type PlanMode, planAwaitingReview, planFinished, planPosture, planProblems, planSpent, planWorstCase, type AgendaItem, type PlanDefinition, type WorkflowCommand, type WorkflowPlan, type PlanNode } from "../shared/workflow-plans";
 import { readPlanPosture } from "./workflow-posture";
-import { digest, publish } from "./submissions";
+import { digest, digestCached, publish } from "./submissions";
 import { serialized } from "./serialize";
 import { CutoverGate } from "./supervision-gate";
 import { resolveInHome } from "./files";
@@ -26,7 +26,10 @@ export type WorkflowEvent = z.infer<typeof WorkflowEventSchema>;
 type Event = WorkflowEvent;
 const RecoverySchema = z.object({ version: z.literal(1), home: z.string(), plan: PlanId, sequence: z.number().int().nonnegative(),
   orphanHash: z.string().length(64), previous: z.string().length(64).nullable(), revision: z.number().int().positive(), at: z.iso.datetime(), hash: z.string().length(64) }).strict();
-const checksum = ({ hash: _hash, ...event }: Event) => digest(event);
+// The event rest-object and its command are freshly parsed/built per check and never mutated
+// between the checksum and the requestHash check beside it, so the identity-keyed cache lets
+// the second digest reuse the first walk instead of re-serializing the command per event.
+const checksum = ({ hash: _hash, ...event }: Event) => digestCached(event);
 /** How many events of one plan log are read ahead of the in-order checks. */
 const EVENT_READ_AHEAD = 32;
 type Settled<T> = { value: T } | { error: unknown };
@@ -429,7 +432,7 @@ export class WorkflowPlanStore {
         if ((await stat(join(this.directory(id), name))).size > 512000) break;
         const raw = JSON.parse(await readFile(join(this.directory(id), name), "utf8")), event = EventSchema.parse(raw);
         const tip = JSON.parse(await readFile(join(this.tips(id), name), "utf8"));
-        if (checksum(raw) !== raw.hash || raw.requestHash !== digest(raw.command) || workflowHomeIdentity(event.home) !== workflowHomeIdentity(this.home) || event.plan !== id || event.sequence !== (prefix ? prefix.sequence + 1 : 0) || event.previous !== (prefix?.hash ?? null) || tip.hash !== event.hash || tip.sequence !== event.sequence) break;
+        if (checksum(raw) !== raw.hash || raw.requestHash !== digestCached(raw.command) || workflowHomeIdentity(event.home) !== workflowHomeIdentity(this.home) || event.plan !== id || event.sequence !== (prefix ? prefix.sequence + 1 : 0) || event.previous !== (prefix?.hash ?? null) || tip.hash !== event.hash || tip.sequence !== event.sequence) break;
         prefix = reduce(prefix, event); inventories.push(planOwnership(prefix));
       } catch { break; }
     }
@@ -482,7 +485,7 @@ export class WorkflowPlanStore {
       if (taken(read.size) > 512000) throw new Error("Plan event too large.");
       // Hash the committed bytes' object before schema defaults/transforms are applied.
       const raw = JSON.parse(taken(read.event)!);
-      if (checksum(raw) !== raw.hash || raw.requestHash !== digest(raw.command)) throw new Error(`Plan log ${id} failed its home identity or hash chain.`);
+      if (checksum(raw) !== raw.hash || raw.requestHash !== digestCached(raw.command)) throw new Error(`Plan log ${id} failed its home identity or hash chain.`);
       const event = EventSchema.parse(raw);
       const tip = JSON.parse(taken(read.tip));
       if (tip.publication === 1 && !published.includes(name) && !allowUnpublished) throw new Error(`Plan log ${id} publication is incomplete; retry its original mutation.`);
@@ -607,23 +610,40 @@ export class WorkflowPlanStore {
       try { for (const id of await readdir(join(this.root, directory))) consider(id); } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") return { plans, problems: [String(e)], warnings, quarantined, unavailable: true }; }
     }
     const folders = await this.cutoverFolders();
-    for (const id of ids) {
-      try {
-        const plan = await this.get(id);
-        const stage = plan ? await this.cutover(id, folders) : null;
-        if (stage) warnings.push(`Plan ${id} ${stage === "committed" ? "now belongs to its scoped supervisor" : "is held in a scoped cutover"}; its legacy history is read-only.`);
-        if (plan) plans.push(plan);
-        else {
-          const recovered = await this.recoveries(id);
-          if (!recovered.length || recovered.some(r => r.sequence !== 0 || r.previous !== null)) throw new Error("Empty or stray plan entry.");
+    // Plans are independent reads (each fold is already shared and cached per plan in get());
+    // walking 150+ of them strictly one at a time left a cold or warm read at seconds of file
+    // latency. A small pool overlaps that latency; outcomes are merged in id order below, so
+    // plans, problems, warnings and quarantines keep exactly their previous order.
+    const idList = [...ids];
+    const outcomes = new Array<{ plan?: WorkflowPlan; warning?: string; held?: QuarantinedWorkflow; problem?: string }>(idList.length);
+    let cursor = 0;
+    const worker = async () => {
+      while (cursor < idList.length) {
+        const index = cursor++, id = idList[index]!;
+        try {
+          const plan = await this.get(id);
+          const stage = plan ? await this.cutover(id, folders) : null;
+          const warning = stage ? `Plan ${id} ${stage === "committed" ? "now belongs to its scoped supervisor" : "is held in a scoped cutover"}; its legacy history is read-only.` : undefined;
+          if (plan) outcomes[index] = { plan, ...(warning ? { warning } : {}) };
+          else {
+            const recovered = await this.recoveries(id);
+            if (!recovered.length || recovered.some(r => r.sequence !== 0 || r.previous !== null)) throw new Error("Empty or stray plan entry.");
+            outcomes[index] = {};
+          }
+        } catch (error) {
+          const problem = `Plan ${id}: ${error instanceof Error ? error.message : String(error)}`;
+          outcomes[index] = { held: await this.quarantine(id, problem), problem };
         }
       }
-      catch (error) {
-        const problem = `Plan ${id}: ${error instanceof Error ? error.message : String(error)}`;
-        const held = await this.quarantine(id, problem);
-        quarantined.push(held);
-        if (held.retirement) warnings.push(`Retired quarantine ${id}: ${held.retirement.evidence} Task reservations remain held.`);
-        else problems.push(problem);
+    };
+    await Promise.all(Array.from({ length: Math.min(4, idList.length) }, worker));
+    for (const [index, outcome] of outcomes.entries()) {
+      if (outcome.warning) warnings.push(outcome.warning);
+      if (outcome.plan) plans.push(outcome.plan);
+      if (outcome.held) {
+        quarantined.push(outcome.held);
+        if (outcome.held.retirement) warnings.push(`Retired quarantine ${idList[index]}: ${outcome.held.retirement.evidence} Task reservations remain held.`);
+        else problems.push(outcome.problem!);
       }
     }
     return { plans: plans.sort((a, b) => a.definition.id.localeCompare(b.definition.id)), problems, warnings, quarantined };
@@ -731,7 +751,9 @@ export class WorkflowPlanStore {
       } else if (command.op === "implicit") briefHash = (await this.brief({ kind: "run", id, title: command.launch.title, summary: command.launch.title, after: [], workflow: command.launch.kind === "scout" ? "scout@1" : "task@1", launch: command.launch })).hash;
       const event: Event = { version: 1, home: resolve(this.home), plan: id, sequence: events.length, previous: previous?.hash ?? null, requestId, requestHash: digest(command), at: new Date().toISOString(), by, command,
         ...(briefHash && !(command.op === "implicit" && postureSource?.posture === "review") ? { briefHash, attempt: command.op === "start" ? previous?.nodes[command.node]?.attempt ?? randomUUID() : randomUUID() } : {}), ...(launch ? { launch } : {}), ...(postureSource ? { postureSource } : {}), hash: "" };
-      event.hash = checksum(event); const next = reduce(previous, event);
+      // Plain digest on the write path: the event holds the caller's command object, which
+      // canonicalCached must never see (it is only exact for values never mutated afterwards).
+      const { hash: _unsigned, ...unsignedEvent } = event; event.hash = digest(unsignedEvent); const next = reduce(previous, event);
       if (command.op === "captain" && command.action === "edit") {
         const changedHosts = next.definition.nodes.filter(n => n.kind === "run" && previous?.definition.nodes.some(old => old.id === n.id && old.kind === "run" && old.launch.host !== n.launch.host)).map(ownershipScope);
         if (quarantined.some(q => changedHosts.some(candidate => q.inventory.scopes.some(held => held.node === candidate.node && (held.host === null || held.host === candidate.host))))) throw new Error("Cannot establish task ownership for the edited host; its task scope is quarantined.");

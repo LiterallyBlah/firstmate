@@ -371,7 +371,7 @@ export class ProjectRuntime {
     const config = await this.config(), home = resolveHome(config);
     if (input.homeId !== workflowHomeIdentity(home)) refuse("STALE", "Home changed.");
     // Borrow an inert reader, never mutate/initialize on a context view.
-    const reader = new SupervisionStore(this.runtime.root, home), context = await readProjectContext(reader, input.projectId), status = await reader.read();
+    const reader = this.runtime.inertStore(home), context = await readProjectContext(reader, input.projectId), status = await reader.read();
     const pending = status.projects?.memoryProposals.filter(p => p.projectId === input.projectId && p.state === "proposed") ?? [];
     if (pending.length > 32) refuse("HELD", "Memory review exceeds its 32-proposal snapshot bound.");
     let bytes = Buffer.byteLength(JSON.stringify(context));

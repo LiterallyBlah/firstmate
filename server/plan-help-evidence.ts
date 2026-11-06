@@ -33,7 +33,7 @@ function deliveryExplanation(d: LegacyDeliveryDisposition, plan: string, work?: 
   }
 }
 /** `folder` is the picker's listing; null skips it (a re-check needs only the report, policy and inventory). */
-export async function handoverEvidence(root: string, home: string, review: PlanHelpReview, status: SupervisionStatus,
+export async function handoverEvidence(store: SupervisionStore, home: string, review: PlanHelpReview, status: SupervisionStatus,
   adapters: LegacyDeliveryAdapters, folder: string | null, rollbackPath?: string): Promise<HandoverEvidenceReview> {
   const result: HandoverEvidenceReview = { homeId: review.homeId, plan: review.plan, reviewHash: review.reviewHash,
     folder: folder ?? "", entries: [], inventory: null, policy: null, rollback: null, problems: [] };
@@ -64,7 +64,7 @@ export async function handoverEvidence(root: string, home: string, review: PlanH
   } catch { result.problems.push("The accepted permission sources need a fresh review. Open project setup in FirstMate settings before continuing; this handover cannot create permission evidence."); }
   if (!result.policy) result.problems.push("Accepted project permissions are missing. Open project setup in FirstMate settings and review its original permission sources first.");
   if (review.projectId && !status.migrations?.some(m => m.planId === review.plan)) try {
-    const dry = await new SupervisionMigrator({ home, store: new SupervisionStore(root, home), legacy: workflowStore(home), adapters, enabled: true }).dryRun({
+    const dry = await new SupervisionMigrator({ home, store, legacy: workflowStore(home), adapters, enabled: true }).dryRun({
       plan: review.plan, scopeId: review.scopeId, projectId: review.projectId, migrationId: review.migrationId,
       prerequisites: { inventory: "Read-only preview; not accepted", policy: "Read-only preview; not accepted", rollbackBuild: "Read-only preview; not accepted" } });
     const plan = await workflowStore(home).get(review.plan);

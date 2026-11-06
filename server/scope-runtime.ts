@@ -139,6 +139,6 @@ export class ScopeRuntime {
     };
     // General's ordinary conversation must not wait for scoped writer/coordinator recovery.
     // Its thread transport writes only on explicit Send, and project context still fails closed.
-    return scopeId === "general" ? compose(new SupervisionStore(this.runtime.root, home)) : this.runtime.mutate(home, compose);
+    return scopeId === "general" ? compose(this.runtime.inertStore(home)) : this.runtime.mutate(home, compose);
   }
 }
