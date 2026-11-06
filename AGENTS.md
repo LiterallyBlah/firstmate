@@ -47,6 +47,8 @@ call Attach or provisioning captain-app-only describe the builds as first shippe
 `PlanRuntime.tick`'s slow tail of PR polls and recovery, which once answered them only in 5–6 minute sweeps.
 An idle beat on either fast lane stops at a cheap unanswered-request listing — no journal read, no
 runtime or directory lock while nothing waits — since a warm journal read costs real CPU every call.
+That read's status projection is memoised on the validated scan's identity (a write publishes a fresh
+scan), so unchanged reads still re-validate anchors but do not re-serialise the whole projection.
 
 Build A overlays the historical unwired S09 notes below: `server/supervision-runtime.ts` owns one
 coordinator per home shared with activation; `server/project-runtime.ts` exposes reviewed registry

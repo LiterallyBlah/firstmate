@@ -278,6 +278,29 @@ describe("scoped transaction authority", () => {
     const altered = { ...body, homeId: `${store.homeId}-different` }; await writeFile(file(1, "tip"), `${canonical({ ...altered, hash: digest(altered) })}\n`);
     expect((await store.read()).freshness).toBe("held");
   });
+  it("repeated reads of an unchanged head reuse the status projection; a write invalidates it", async () => {
+    await store.enableLongLived();
+    await commit([{ kind: "scope", value: scope(store.homeId) }]);
+    const size = vi.spyOn(store as unknown as Record<string, unknown>, "projectionSize" as never) as unknown as ReturnType<typeof vi.fn>;
+    const first = await store.read();
+    expect(size).toHaveBeenCalled();
+    size.mockClear();
+    const second = await store.read();
+    expect(second).toEqual(first); expect(second).not.toBe(first);
+    expect(size, "unchanged read re-serialised the whole projection").not.toHaveBeenCalled();
+    // A caller mutating its returned status cannot poison the cached projection (clone kept).
+    second.sequence = -1; second.scopes.length = 0;
+    const third = await store.read();
+    expect(third.sequence).toBe(first.sequence); expect(third.scopes).toHaveLength(first.scopes.length);
+    expect(size).not.toHaveBeenCalled();
+    await store.transact([{ kind: "scope", id: ids.scope, version: 1 }], randomUUID(),
+      [{ kind: "scope", value: { ...scope(store.homeId), version: 2 } }]);
+    size.mockClear();
+    const after = await store.read();
+    expect(size).toHaveBeenCalled();
+    expect(after.sequence).toBe(first.sequence + 1);
+    expect(after.scopes.find(s => s.id === ids.scope)?.version).toBe(2);
+  });
   it("retains checked ownership capsules when coordinator authority is corrupt", async () => {
     await commit(seed(store.homeId));
     await writeFile(join(store.root, "coordinators/000000000001.json"), "{corrupt");
