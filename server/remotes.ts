@@ -9,6 +9,7 @@ import { runPaseo, type CliResult } from "./cli";
 import { readFirstmateConfig, resolveHome } from "./config";
 import { paseoHome, pluginDir } from "./data-dir";
 import { serialized } from "./serialize";
+import type { RemoteWorkspaceTarget } from "./supervision-sources";
 
 const Registry = z.object({ version: z.literal(1), syncedAt: z.string(), localLabel: z.string().optional(), hosts: SavedHosts });
 /** At most this many followed agents per host, besides the crew. */
@@ -117,25 +118,52 @@ function optionValue(options: string[], flag: string): string | undefined {
   if (values.length > 1) throw new Error(`${flag} is given more than once`);
   return values[0];
 }
+/** Paseo's workspace and project IDs as it prints them; any other spelling might still match on the host. */
+const CANONICAL_ID = /^[a-z0-9][a-z0-9_-]{0,199}$/;
+export interface HelperTargets {
+  agent: string | null; workspace: string | null; path: string | null;
+  /** `workspace create --project`, checked by the project's root in the host's catalog. */
+  project: string | null; slug: string | null; branches: string[];
+}
 /** Everything a helper-queue command can reach that a scoped worker might hold: the agent it acts on,
- * the workspace it archives, sets up, renames or adds an agent to, and the directory a new agent or
- * workspace opens in. Reads and the remaining creations reach none. Refuses what cannot be checked:
- * `project delete` (it deletes the project's workspaces), unknown subcommands, an option before a
- * workspace ID. The scoped guards are then asked about each target. */
-export function helperTargets(command: string[]): { agent: string | null; workspace: string | null; path: string | null } {
+ * the workspace it archives, sets up, renames or adds an agent to, the directory a new agent, project or
+ * workspace opens in, a project whose root that is, and the worktree slug and branches a new worktree
+ * takes. Reads and the remaining creations reach none. Refuses what cannot be checked: `project delete`
+ * (it deletes the project's workspaces), unknown subcommands, an option before a workspace ID or a
+ * project's directory, a non-canonical ID, and checking out a pull request (its branch is unknown here).
+ * The scoped guards are then asked about each target. */
+export function helperTargets(command: string[]): HelperTargets {
   const name = command[0] ?? "", end = command.indexOf("--");
   const options = end < 0 ? command : command.slice(0, end), sub = options[1] ?? "";
   const allowed = HELPER_SUBCOMMANDS[name];
   if (name === "project" && sub === "delete") throw new Error("project delete is refused here: it deletes the project's workspaces, which can hold a scoped supervisor's worktree");
   if (allowed && !allowed.includes(sub)) throw new Error(`"${name} ${sub}" is not a command the helper sends; name the subcommand straight after "${name}"`);
-  let workspace: string | null = null, path: string | null = null;
+  const id = (value: string | undefined, what: string) => {
+    if (value !== undefined && !CANONICAL_ID.test(value)) throw new Error(`Name the remote ${what} by its ID exactly as Paseo prints it (lowercase): "${value.slice(0, 64)}"`);
+    return value ?? null;
+  };
+  const targets: HelperTargets = { agent: helperMutationTarget(command), workspace: null, path: null, project: null, slug: null, branches: [] };
   if (name === "workspace" && ["archive", "setup", "rename"].includes(sub)) {
-    workspace = options[2] ?? "";
+    const workspace = options[2] ?? "";
     if (!workspace || workspace.startsWith("-")) throw new Error(`Name the remote workspace by its ID straight after "workspace ${sub}", before any option`);
+    targets.workspace = id(workspace, "workspace");
   }
-  if (name === "run") { workspace = optionValue(options, "--workspace") ?? null; path = optionValue(options, "--cwd") ?? null; }
-  if (name === "workspace" && sub === "create") path = optionValue(options, "--path") ?? null;
-  return { agent: helperMutationTarget(command), workspace, path };
+  if (name === "project" && sub === "create") {
+    const path = options[2] ?? "";
+    if (!path || path.startsWith("-")) throw new Error("Name the project's directory by its absolute path straight after \"project create\", before any option");
+    targets.path = path;
+  }
+  const creates = name === "run" || (name === "workspace" && sub === "create");
+  if (creates) {
+    if (name === "run") { targets.workspace = id(optionValue(options, "--workspace"), "workspace"); targets.path = optionValue(options, "--cwd") ?? null; }
+    else { targets.path = optionValue(options, "--path") ?? null; targets.project = id(optionValue(options, "--project"), "project"); }
+    const mode = optionValue(options, name === "run" ? "--worktree-mode" : "--mode");
+    if (mode === "checkout-pr" || optionValue(options, "--pr-number") !== undefined)
+      throw new Error("Checking out a pull request is refused here: its branch cannot be checked against scoped worker branches");
+    targets.slug = optionValue(options, "--worktree-slug") ?? null;
+    targets.branches = [optionValue(options, "--branch"), optionValue(options, "--new-branch")].filter((branch): branch is string => branch !== undefined);
+  }
+  return targets;
 }
 const MAX_ERROR_CHARS = 1500;
 /** More than a few minutes: the delay of a remote run can never account for it. */
@@ -233,7 +261,7 @@ export class RemoteService {
     /** Refuses helper-queue mutations of scoped workers; absent means no scoped journal is wired. */
     private readonly scopedGuard?: (serverId: string, agentId: string) => Promise<void>,
     /** Refuses helper-queue workspace changes that could reach a scoped worker's worktree; absent, every such change refuses. */
-    private readonly workspaceGuard?: (serverId: string, target: { workspaceId?: string; path?: string }) => Promise<void>,
+    private readonly workspaceGuard?: (serverId: string, target: RemoteWorkspaceTarget) => Promise<void>,
   ) { this.ready = this.load(); }
   private async load() {
     await mkdir(pluginDir(), { recursive: true });
@@ -325,10 +353,23 @@ export class RemoteService {
     if (origin?.helper) {
       const targets = helperTargets(command);
       if (targets.agent !== null) await this.scopedGuard?.(host.serverId, targets.agent);
-      if (targets.workspace !== null || targets.path !== null) {
-        if (!this.workspaceGuard) throw new Error("Remote workspace changes cannot be checked against scoped worktrees here, so they are refused");
-        await this.workspaceGuard(host.serverId, { ...(targets.workspace !== null ? { workspaceId: targets.workspace } : {}), ...(targets.path !== null ? { path: targets.path } : {}) });
+      const catalog = this.snapshot.hosts.find((entry) => entry.serverId === host.serverId);
+      const checks: RemoteWorkspaceTarget[] = [];
+      if (targets.workspace !== null) {
+        // The catalog's directory for it, which tells it apart from a worktree still being created.
+        const row = catalog?.workspaces.find((w) => w.workspaceId === targets.workspace);
+        checks.push({ workspaceId: targets.workspace, listedCwd: typeof row?.cwd === "string" ? row.cwd : null });
       }
+      if (targets.path !== null) checks.push({ path: targets.path });
+      if (targets.project !== null) {
+        const root = catalog?.projects.find((p) => p.projectId === targets.project)?.path;
+        if (typeof root !== "string") throw new Error("This project is not in the host's last poll, so its directory cannot be checked against scoped worktrees; refused");
+        checks.push({ path: root });
+      }
+      if (targets.slug !== null) checks.push({ slug: targets.slug });
+      for (const branch of targets.branches) checks.push({ branch });
+      if (checks.length && !this.workspaceGuard) throw new Error("Remote workspace changes cannot be checked against scoped worktrees here, so they are refused");
+      for (const check of checks) await this.workspaceGuard!(host.serverId, check);
     }
     const connection = await this.connect(host);
     // Exactly one attempt once a command may change remote state. A timeout

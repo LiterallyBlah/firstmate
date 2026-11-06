@@ -127,12 +127,19 @@ branch, so `findWorkspace` never rediscovers a worktree and an uncertain open st
 and the guard refuses any ID prefix of a scoped worker. The helper queue's mutations take a strict form
 (`helperMutationTarget`): the full agent ID straight after `send`/`stop`/`archive` (or `permit allow|deny`),
 no option before it, no prefix or name, and no `stop --all`/`--cwd`, so the guard sees exactly the agent the
-host acts on. `helperTargets` also names the workspace (`workspace archive|setup|rename`, `run --workspace`)
-and directory (`run --cwd`, `workspace create --path`) a helper command reaches; `scopedRemoteWorkspaceGuard`
-refuses a scoped attempt's worktree (verified worker, `workspace.open` receipt, reused workspace), any workspace
-ID while a scoped open is unsettled, a path through an unsettled open's slug, relative paths and an unreadable
-journal. `project delete` and unlisted subcommands refuse on the helper path, and with no workspace guard wired
-every workspace change refuses. A brief plus appended rules over 28,000 characters
+host acts on. `helperTargets` also names the workspace (`workspace archive|setup|rename`, `run --workspace`),
+directory (`run --cwd`, `workspace create --path`, `project create <path>`, and `workspace create --project`
+by the project's root in the host's last poll), worktree slug and branches a helper command reaches;
+`scopedRemoteWorkspaceGuard` refuses a scoped attempt's worktree (verified worker, `workspace.open` receipt,
+reused workspace), every scoped open's slug, every scoped attempt's branch (`workerWorkspaceIntent`'s
+`fm/<node>[-a<n>]`), and an unreadable journal. While a non-retired scope's open is unsettled, a workspace ID
+refuses unless the last poll lists it in a directory not through that open's slug, and a path through the slug
+refuses: on 0.13.0 such an open never settles by itself (`data/supervisors.md` says how it is handled).
+`project delete`, `checkout-pr`, unlisted subcommands, non-lowercase IDs and paths the string check cannot follow
+(relative, `~`, `/proc/`, `\\?\`, `\\.\`, 8.3 names) refuse on the helper path, and with no workspace guard wired
+every workspace change refuses. All of this is a cooperative check against the plugin's records, not
+containment: symlinks and other aliases get past it, and any agent with a shell on the host reaches the
+worktree anyway. A brief plus appended rules over 28,000 characters
 refuses before reservation. Reconcile is `RemoteService.discoverByAttempt` (the service adds its own
 owner filter to `ls -g -a`; the caller-facing allowlist still refuses reserved labels): exactly one binds,
 zero stays uncertain, duplicates are held with a recorded `remoteDuplicate` reason, never archived or

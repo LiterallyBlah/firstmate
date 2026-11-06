@@ -10,9 +10,10 @@ import { expected, seed } from "../test/supervision-fixture";
 import { inboxFixture, ids, now, second, timelinePage } from "../test/supervision-inbox-fixture";
 import { supervisionInboxStatus } from "./supervision-status";
 import {
-  ScopedBoardSteer, SupervisionSources, ghPullRequestReader, normalizePullRequest, prReadiness, refuseScopedRemoteMutation, refuseScopedRemoteWorkspace, remoteCoverage, scopedRemoteGuard, scopedRemoteWorkspaceGuard, remoteFingerprint,
+  ScopedBoardSteer, SupervisionSources, ghPullRequestReader, normalizePullRequest, prReadiness, refuseScopedRemoteMutation, refuseScopedRemoteWorkspace, remoteCoverage, type RemoteWorkspaceTarget, scopedRemoteGuard, scopedRemoteWorkspaceGuard, remoteFingerprint,
 } from "./supervision-sources";
 import { SupervisionStore, type SupervisionMutation } from "./supervision-store";
+import { workerWorkspaceIntent } from "./supervision-effects";
 import type { PaseoApi } from "./host-types";
 
 const H1 = "1".repeat(40), H2 = "2".repeat(40), REPO = "me/web", URL = "https://github.com/me/web/pull/42";
@@ -275,7 +276,7 @@ describe("S08 remote catalog observation", () => {
       { attemptId: r.attempt, operation: "workspace.open", state: "succeeded", receiverKey: "slug-1", receiptRef: null, ...extra }] } as typeof base);
     const dir = "/home/ariadne/.paseo/worktrees/h1/slug-1";
     const s = open({ receiptRef: JSON.stringify({ workspaceId: "wks_open", directory: dir }) });
-    const refused = (status: typeof base, target: { workspaceId?: string; path?: string }, host = "SRV-REMOTE") => {
+    const refused = (status: typeof base, target: RemoteWorkspaceTarget, host = "SRV-REMOTE") => {
       try { refuseScopedRemoteWorkspace(status, host, target); return null; } catch (error) { return (error as { code: string }).code; }
     };
     // By workspace ID: the verified worker's workspace and the settled open's receipt.
@@ -297,6 +298,30 @@ describe("S08 remote catalog observation", () => {
     expect(refused(uncertain, { path: "/home/ariadne/.paseo/worktrees/h9/slug-2" })).toBe("HELD");
     expect(refused(uncertain, { path: "/home/ariadne/work" })).toBeNull();
     expect(refused(uncertain, { workspaceId: "wks_other" }, "srv-other")).toBeNull();
+    // The catalog tells a listed workspace apart from the unsettled worktree, whose directory ends in its slug.
+    expect(refused(uncertain, { workspaceId: "wks_other", listedCwd: "/home/ariadne/.paseo/worktrees/h9/fm-task" })).toBeNull();
+    expect(refused(uncertain, { workspaceId: "wks_other", listedCwd: "/home/ariadne/.paseo/worktrees/h9/slug-2" })).toBe("HELD");
+    expect(refused(uncertain, { workspaceId: "wks_other", listedCwd: null })).toBe("HELD");
+    expect(refused(uncertain, { workspaceId: "wks_open", listedCwd: "/home/ariadne/elsewhere" })).toBeNull(); // Not the settled one here.
+    // A retired scope's unsettled open no longer counts: nothing will act on it.
+    const retired = { ...uncertain, scopes: uncertain.scopes.map(scope => ({ ...scope, state: "retired" as const })) };
+    expect(refused(retired, { workspaceId: "wks_other", listedCwd: null })).toBeNull();
+    expect(refused(retired, { path: "/home/ariadne/.paseo/worktrees/h9/slug-2" })).toBeNull();
+    expect(refused(retired, { workspaceId: "remote-workspace" })).toBe("UNSUPPORTED"); // Its settled worktrees still do.
+    // Every scoped open's slug, settled or not, and every attempt's branch.
+    const both = { ...uncertain, effects: [...uncertain.effects, ...s.effects.slice(-1)] } as typeof base;
+    expect(refused(both, { slug: "slug-1" })).toBe("UNSUPPORTED");
+    expect(refused(both, { slug: "slug-2" })).toBe("UNSUPPORTED");
+    expect(refused(both, { slug: "fm-task" })).toBeNull();
+    const task = base.tasks.find(t => t.hostId === "srv-remote")!, attempt = base.attempts.find(a => a.id === r.attempt)!;
+    const branch = workerWorkspaceIntent(task, attempt.ordinal, { project: "p", baseBranch: "main" } as never, "e").branch;
+    expect(refused(s, { branch })).toBe("UNSUPPORTED");
+    expect(refused(s, { branch: "fm/other" })).toBeNull();
+    // Aliases the string check cannot follow are refused rather than compared: /proc/, ~, Windows verbatim,
+    // device and short-name paths. Only the host can make a path canonical; this check is cooperative.
+    for (const path of [`/proc/self/root${dir}`, "/proc", "~/work", String.raw`\\?\C:\Users\ari\.paseo\worktrees\h1\slug-1`,
+      String.raw`\\.\C:\Users\ari`, "//?/C:/Users/ari/.paseo/worktrees/h1/slug-1", String.raw`C:\Users\ARI~1\.paseo\worktrees\h1\slug-1`])
+      expect(refused(s, { path }), path).toBe("UNSUPPORTED");
     // A receipt that does not parse makes the host unknown.
     expect(refused(open({ receiptRef: "not json" }), { path: "/home/ariadne/work" })).toBe("HELD");
     // The guard fails closed on an unreadable journal, like the agent guard.

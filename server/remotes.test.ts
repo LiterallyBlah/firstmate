@@ -453,7 +453,52 @@ describe("independent remote access", () => {
     for (const args of [["workspace", "archive", "wks_crew"], ["run", "--cwd", "/home/ariadne/work", "--new-workspace", "worktree", "--", "brief"],
       ["workspace", "ls"], ["project", "ls"], ["project", "create", "/home/ariadne/new"], ["provider", "ls"], ["permit", "ls"], ["ls", "-g"], ["run", "--provider", "claude", "--", "brief"]])
       await expect(service.request("Remote", args, { helper: true }), args.join(" ")).resolves.toEqual({ ok: true });
-    expect(checked).toEqual([{ workspaceId: "wks_crew" }, { path: "/home/ariadne/work" }]);
+    expect(checked).toEqual([{ workspaceId: "wks_crew", listedCwd: null }, { path: "/home/ariadne/work" }, { path: "/home/ariadne/new" }]);
+  });
+  it("checks the other ways a new workspace can land in a scoped worktree: project roots, slugs, branches, IDs", async () => {
+    const calls: string[][] = [], checked: unknown[] = [];
+    const scopedWorktree = "/home/ariadne/.paseo/worktrees/h1/ws-slug-1";
+    const { service } = await fixture(async (args) => {
+      calls.push(args);
+      return args[0] === "status" ? success({ serverId: remote.serverId, connectedDaemon: "reachable" }) : success({ ok: true });
+    }, undefined, async () => {}, async (_serverId, target) => {
+      checked.push(target);
+      // The real check reads the journal (supervision-sources.test.ts): one scoped worktree, its slug and branch.
+      if (target.path?.startsWith(scopedWorktree) || target.slug === "ws-slug-1" || target.branch === "fm/build") throw new Error("belongs to a scoped supervisor");
+      if (target.workspaceId !== undefined && target.listedCwd === null) throw new Error("cannot be shown not to be it");
+    });
+    // What the last poll found on the host: a project whose root is the scoped worktree, and a listed workspace.
+    const catalog = (service as any).snapshot.hosts.find((host: { serverId: string }) => host.serverId === remote.serverId);
+    catalog.projects = [{ projectId: "prj_scoped", path: scopedWorktree }, { projectId: "prj_repo", path: "/home/ariadne/repo" }];
+    catalog.workspaces = [{ workspaceId: "wks_listed", cwd: "/home/ariadne/.paseo/worktrees/h1/other" }];
+    for (const [args, message] of [
+      // project create takes its directory as a positional; workspace create --project lands in the project's root.
+      [["project", "create", scopedWorktree], "scoped supervisor"], [["project", "create", "--json", scopedWorktree], "before any option"], [["project", "create"], "before any option"],
+      [["workspace", "create", "--project", "prj_scoped", "--isolation", "local"], "scoped supervisor"],
+      [["workspace", "create", "--project", "prj_unknown"], "not in the host's last poll"],
+      // A scoped worktree's slug or branch, in a run or a workspace create.
+      [["run", "--cwd", "/home/ariadne/repo", "--new-workspace", "worktree", "--worktree-slug", "ws-slug-1", "--", "brief"], "scoped supervisor"],
+      [["workspace", "create", "--project", "prj_repo", "--worktree-slug=ws-slug-1"], "scoped supervisor"],
+      [["run", "--cwd", "/home/ariadne/repo", "--new-workspace", "worktree", "--worktree-mode", "checkout-branch", "--branch", "fm/build", "--", "brief"], "scoped supervisor"],
+      [["workspace", "create", "--project", "prj_repo", "--mode", "checkout-branch", "--branch", "fm/build"], "scoped supervisor"],
+      [["run", "--cwd", "/home/ariadne/repo", "--new-workspace", "worktree", "--new-branch", "fm/build", "--", "brief"], "scoped supervisor"],
+      // A pull request's branch is unknown here.
+      [["run", "--cwd", "/home/ariadne/repo", "--new-workspace", "worktree", "--worktree-mode", "checkout-pr", "--pr-number", "7", "--", "brief"], "pull request"],
+      [["workspace", "create", "--project", "prj_repo", "--mode=checkout-pr"], "pull request"],
+      // Only canonical (lowercase) IDs, which is how Paseo prints them.
+      [["workspace", "archive", "WKS_LISTED"], "lowercase"], [["run", "--workspace", "Wks_listed", "--", "brief"], "lowercase"], [["workspace", "create", "--project", "PRJ_repo"], "lowercase"],
+      // A workspace the catalog does not list, while a scoped open is unsettled.
+      [["workspace", "archive", "wks_unlisted"], "cannot be shown"],
+    ] as const) await expect(service.request("Remote", [...args], { helper: true }), args.join(" ")).rejects.toThrow(message);
+    expect(calls).toEqual([]);
+    // The first mate's own launches and archives pass, with the catalog's directory and the project's root checked.
+    checked.length = 0;
+    for (const args of [["workspace", "archive", "wks_listed"], ["workspace", "create", "--project", "prj_repo", "--worktree-slug", "fm-task", "--new-branch", "fm/task"],
+      ["run", "--cwd", "/home/ariadne/repo", "--new-workspace", "worktree", "--worktree-slug", "fm-task", "--new-branch", "fm/task", "--base", "main", "--", "brief"]])
+      await expect(service.request("Remote", args, { helper: true }), args.join(" ")).resolves.toEqual({ ok: true });
+    expect(checked).toEqual([{ workspaceId: "wks_listed", listedCwd: "/home/ariadne/.paseo/worktrees/h1/other" },
+      { path: "/home/ariadne/repo" }, { slug: "fm-task" }, { branch: "fm/task" },
+      { path: "/home/ariadne/repo" }, { slug: "fm-task" }, { branch: "fm/task" }]);
   });
   it("refuses helper workspace changes outright when no workspace guard is wired", async () => {
     const calls: string[][] = [];
