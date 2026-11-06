@@ -22,6 +22,30 @@ export function canonical(value: unknown): string {
   return JSON.stringify(value);
 }
 export function digest(value: unknown): string { return createHash("sha256").update(canonical(value)).digest("hex"); }
+/** `canonical` memoized by object identity for values that are never mutated after first
+ * hashing (freshly parsed journal records, replaced projection rows). Byte-identical output;
+ * only the top two levels are memoized (a record and its direct children, such as a row or an
+ * ownership capsule) - caching every nested node stored a string per node and cost more than
+ * the walk it saved; below that the plain canonical walk runs. Never use for mutable values. */
+const canonicalCache = new WeakMap<object, string>();
+export function canonicalCached(value: unknown, depth = 0): string {
+  if (depth > 1 && value !== null && typeof value === "object") return canonical(value);
+  if (Array.isArray(value)) {
+    const hit = canonicalCache.get(value);
+    if (hit !== undefined) return hit;
+    const text = `[${value.map(v => canonicalCached(v, depth + 1)).join(",")}]`;
+    canonicalCache.set(value, text); return text;
+  }
+  if (value !== null && typeof value === "object") {
+    const hit = canonicalCache.get(value);
+    if (hit !== undefined) return hit;
+    const text = `{${Object.entries(value).filter(([, v]) => v !== undefined)
+      .sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([k, v]) => `${JSON.stringify(k)}:${canonicalCached(v, depth + 1)}`).join(",")}}`;
+    canonicalCache.set(value, text); return text;
+  }
+  return JSON.stringify(value) as string;
+}
+export function digestCached(value: unknown): string { return createHash("sha256").update(canonicalCached(value)).digest("hex"); }
 export function submissionHash(payload: SubmissionPayload): string { return digest(SubmissionPayloadSchema.parse(payload)); }
 const sameActor = (a: SubmissionActor | null, b: SubmissionActor) => a?.agentId === b.agentId && a.generation === b.generation;
 const terminal = (record: SubmissionRecord) => ["declined", "completed"].includes(record.receipts.at(-1)?.disposition ?? "");

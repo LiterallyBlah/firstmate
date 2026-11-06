@@ -6,7 +6,7 @@ import { dirname, join, resolve } from "node:path";
 import { z } from "zod";
 import { PlanId, PlanLaunchSchema, PlanDefinitionSchema, PlanPostureSourceSchema, WorkflowCommandSchema, captainReviewRequired, decisionOwner, planOwner, planMode, planEscalate, planLiveSteps, modeOwner, planModeLabel, quotes, sameWords, type PlanMode, planAwaitingReview, planFinished, planPosture, planProblems, planSpent, planWorstCase, type AgendaItem, type PlanDefinition, type WorkflowCommand, type WorkflowPlan, type PlanNode } from "../shared/workflow-plans";
 import { readPlanPosture } from "./workflow-posture";
-import { digest, publish } from "./submissions";
+import { digest, digestCached, publish } from "./submissions";
 import { serialized } from "./serialize";
 import { CutoverGate } from "./supervision-gate";
 import { resolveInHome } from "./files";
@@ -26,7 +26,10 @@ export type WorkflowEvent = z.infer<typeof WorkflowEventSchema>;
 type Event = WorkflowEvent;
 const RecoverySchema = z.object({ version: z.literal(1), home: z.string(), plan: PlanId, sequence: z.number().int().nonnegative(),
   orphanHash: z.string().length(64), previous: z.string().length(64).nullable(), revision: z.number().int().positive(), at: z.iso.datetime(), hash: z.string().length(64) }).strict();
-const checksum = ({ hash: _hash, ...event }: Event) => digest(event);
+// The event rest-object and its command are freshly parsed/built per check and never mutated
+// between the checksum and the requestHash check beside it, so the identity-keyed cache lets
+// the second digest reuse the first walk instead of re-serializing the command per event.
+const checksum = ({ hash: _hash, ...event }: Event) => digestCached(event);
 /** How many events of one plan log are read ahead of the in-order checks. */
 const EVENT_READ_AHEAD = 32;
 type Settled<T> = { value: T } | { error: unknown };
@@ -429,7 +432,7 @@ export class WorkflowPlanStore {
         if ((await stat(join(this.directory(id), name))).size > 512000) break;
         const raw = JSON.parse(await readFile(join(this.directory(id), name), "utf8")), event = EventSchema.parse(raw);
         const tip = JSON.parse(await readFile(join(this.tips(id), name), "utf8"));
-        if (checksum(raw) !== raw.hash || raw.requestHash !== digest(raw.command) || workflowHomeIdentity(event.home) !== workflowHomeIdentity(this.home) || event.plan !== id || event.sequence !== (prefix ? prefix.sequence + 1 : 0) || event.previous !== (prefix?.hash ?? null) || tip.hash !== event.hash || tip.sequence !== event.sequence) break;
+        if (checksum(raw) !== raw.hash || raw.requestHash !== digestCached(raw.command) || workflowHomeIdentity(event.home) !== workflowHomeIdentity(this.home) || event.plan !== id || event.sequence !== (prefix ? prefix.sequence + 1 : 0) || event.previous !== (prefix?.hash ?? null) || tip.hash !== event.hash || tip.sequence !== event.sequence) break;
         prefix = reduce(prefix, event); inventories.push(planOwnership(prefix));
       } catch { break; }
     }
@@ -482,7 +485,7 @@ export class WorkflowPlanStore {
       if (taken(read.size) > 512000) throw new Error("Plan event too large.");
       // Hash the committed bytes' object before schema defaults/transforms are applied.
       const raw = JSON.parse(taken(read.event)!);
-      if (checksum(raw) !== raw.hash || raw.requestHash !== digest(raw.command)) throw new Error(`Plan log ${id} failed its home identity or hash chain.`);
+      if (checksum(raw) !== raw.hash || raw.requestHash !== digestCached(raw.command)) throw new Error(`Plan log ${id} failed its home identity or hash chain.`);
       const event = EventSchema.parse(raw);
       const tip = JSON.parse(taken(read.tip));
       if (tip.publication === 1 && !published.includes(name) && !allowUnpublished) throw new Error(`Plan log ${id} publication is incomplete; retry its original mutation.`);

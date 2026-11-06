@@ -37,6 +37,10 @@ export const workflowHomeId = (home: string) => digest(process.platform === "win
  * home is most of this budget, so it must leave the honest "still loading" answer for a genuinely
  * stuck store rather than for a normal cold start. */
 export const PLAN_READ_BUDGET_MS = 15_000;
+/** The whole combined decisions read (ledger, then plans, then scoped rows) against the same
+ * host limit: the plan snapshot only ever gets what is left of this, so a slow ledger read
+ * turns into an honest incomplete answer instead of an RPC timeout with no answer. */
+export const NEEDS_READ_DEADLINE_MS = 20_000;
 /** The plan snapshot, or null once `budgetMs` has passed. A fresh process verifies every plan log once (about
  * 12,000 events on a large home), which can outlast the host's RPC limit while startup work competes; the
  * snapshot then carries on and warms the cache, so the next read is quick. Each call starts its own snapshot,

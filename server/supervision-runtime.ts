@@ -12,13 +12,12 @@ import { primeSupervisionSelfIdentity } from "./supervision-process";
 export class SupervisionRuntime {
   private readonly writers = new Map<string, SupervisionStore>();
   private readonly reader: SupervisionStatusReader;
-  private readonly inert: SupervisionStatusReader;
   private closed = false;
   private readonly active = new Set<Promise<void>>();
   private readonly lock: string;
   constructor(readonly root: string, private readonly create = (root: string, home: string) =>
     new SupervisionStore(root, home, { writable: true, actor: { kind: "system", id: "scoped-runtime", source: "owned-plugin-runtime" } }), readonly features?: FeaturePolicyRuntime) {
-    this.reader = new SupervisionStatusReader(root); this.inert = new SupervisionStatusReader(root); this.lock = `firstmate.runtime:${root}`;
+    this.reader = new SupervisionStatusReader(root); this.lock = `firstmate.runtime:${root}`;
     // Verify this process's identity now, outside every lock, so the first coordinator claim finds it
     // cached instead of paying a cold OS probe while holding the runtime serialization. Never rejects.
     void primeSupervisionSelfIdentity().catch(() => {});
@@ -32,12 +31,13 @@ export class SupervisionRuntime {
   readStore(home: string): SupervisionStore {
     return this.writers.get(workflowHomeIdentity(home)) ?? this.reader.storeFor(home);
   }
-  /** One warm, never-writable store per home for views that must not borrow the writer
-   * (project memory, General's discussion composition). Reused for the process lifetime:
-   * a fresh inert store per view re-validated the whole journal on every open.
+  /** The same current store as readStore, for views that must not initialize, acquire or
+   * write on open (project memory, General's discussion composition - both only ever read
+   * through it). One reader per home total: a separate pool falls behind the writer and
+   * eventually pays (and makes the shared thread pay) a full journal check on a rare view.
    */
   inertStore(home: string): SupervisionStore {
-    return this.inert.storeFor(home);
+    return this.readStore(home);
   }
   /** Caller owns its role/config guard; all services share acquisition and shutdown serialization. */
   async mutate<T>(home: string, run: (store: SupervisionStore) => Promise<T>, recoverIndex: boolean | { homeId: string; sequence: number; hash: string | null } = false): Promise<T> {

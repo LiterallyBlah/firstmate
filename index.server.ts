@@ -7,7 +7,7 @@ import { planSupervisorGatewayLimits } from "./shared/plan-supervisor-limits";
 import { WatchSupervisors } from "./server/watch-supervisors";
 import type { PluginServerContext } from "@getpaseo/plugin/server";
 import { shareLegacyRouteStore, startWorkflowService, workflowStore, queuePlanNotes } from "./server/workflow-service";
-import { shareScopedStatusReader, workflowHomeId, workflowSnapshot, workflowSnapshotWithin, withWorkflowNeeds, withWorkflowFleet } from "./server/workflow-board";
+import { shareScopedStatusReader, workflowHomeId, workflowSnapshot, workflowSnapshotWithin, PLAN_READ_BUDGET_MS, NEEDS_READ_DEADLINE_MS, withWorkflowNeeds, withWorkflowFleet } from "./server/workflow-board";
 import { readWorkflowPlans, actOnWorkflowPlan } from "./shared/workflow-rpc";
 import { ensureSharedTerminal as ensureSharedTerminalRpc } from "./shared/native-tools";
 import { ensureSharedTerminal } from "./server/native-tools";
@@ -195,12 +195,15 @@ export default function contribute(server: PluginServerContext) {
     for (const result of results) if (result.status === "rejected") console.error("[firstmate] scoped clock:", result.reason);
   });
   const readCombinedNeeds = async (given?: Awaited<ReturnType<typeof decisions.read>>) => {
+    const started = Date.now();
     const snapshot = given ?? await decisions.read();
     const config = await readFirstmateConfig(), home = resolveHome(config);
-    // Bounded: a cold start must not hold the decisions read past the host's RPC limit (see workflowSnapshotWithin).
-    const workflow = await workflowSnapshotWithin(home);
-    if (!workflow) return { ...snapshot, planProblems: ["Plans are still loading after a restart. Existing captain decisions remain available; the total is incomplete."],
-      scopedComplete: false, scopedProblems: ["Scoped decisions are still loading after a restart. Existing decisions remain available; the total is incomplete."] };
+    // One deadline for the whole read: the plan snapshot gets only what the ledger read left
+    // of it, so a slow start anywhere still answers (incomplete) inside the host's RPC limit.
+    const remaining = Math.max(2_000, Math.min(PLAN_READ_BUDGET_MS, NEEDS_READ_DEADLINE_MS - (Date.now() - started)));
+    const workflow = await workflowSnapshotWithin(home, remaining);
+    if (!workflow) return { ...snapshot, planProblems: ["Plans are still loading. Existing captain decisions remain available; the total is incomplete."],
+      scopedComplete: false, scopedProblems: ["Scoped decisions are still loading. Existing decisions remain available; the total is incomplete."] };
     const base = await withWorkflowNeeds(snapshot, home, workflow);
     try {
       const status = await readSupervision(home);

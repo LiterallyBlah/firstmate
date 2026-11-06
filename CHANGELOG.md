@@ -189,8 +189,8 @@ Git repository or local directory; it is marked private to prevent accidental np
   bytes, anchors verified in a scan are not re-read by the same scan, the runtime's writer adopts its
   reader's completed check (and absorbs its own coordinator claim), plan writes and read-only views
   share warm readers, legacy plans read a few at a time, and the decisions read's plan budget is 15 s
-  of the host's 30 s. Measured on a copy of a large home (156 plans, 1,464 journal transactions): one
-  full journal check takes about 11 s instead of 27–52 s and runs once per start instead of three
+  of the host's 30 s. Replay is now linear in journal length as well: the whole-projection hash is checked once at the head (the value the checkpoint binds) instead of re-hashing the whole projection per transaction, ownership hashes reuse each row's cached bytes, capsules are collected during the chain walk with a fallback pass only on failure, publications are pinned to their checked tip without a second schema walk, every read-only view shares the runtime's one current store, directory signatures use durable names instead of Windows-flappy write times, and the combined decisions read has one end-to-end deadline. Measured on a copy of the large home at 2,271 journal transactions: one
+  full journal check takes about 8.6 s (about 200 MB peak heap for the check) instead of 50–58 s and about a gigabyte on the previous code, and runs once per start instead of three
   times; a warm plan write takes about half a second instead of paying a full check; the first
   decisions read still answers honestly as "still loading" only while that one check runs.
 - **Plan Supervisors are answered straight after a plugin restart or install.** A freshly started

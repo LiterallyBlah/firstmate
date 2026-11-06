@@ -6,14 +6,14 @@
 // the writer's lock (the route check built a fresh store per mutation). The bounds here are
 // work counts, not wall time: deep copies and full scans per cold start.
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
 import { PlanDefinitionSchema, type PlanDefinition } from "../shared/workflow-plans";
 import { expected, scope } from "../test/supervision-fixture";
 import { pluginDir } from "./data-dir";
 import { SupervisionRuntime } from "./supervision-runtime";
-import { SupervisionStore } from "./supervision-store";
+import { SupervisionStore, supervisionDigestStats } from "./supervision-store";
 import { workflowStore } from "./workflow-service";
 
 afterEach(() => vi.restoreAllMocks());
@@ -53,8 +53,13 @@ it("the runtime validates the journal once across its first read and first write
     expect((await runtime.read(home)).freshness).toBe("current");
     await runtime.mutate(home, async writer => { expect((await writer.read()).freshness).toBe("current"); });
     expect((await runtime.read(home)).freshness).toBe("current");
-    // One instance serves the read and the write; separate reader/writer instances each
-    // paid a full cold validation, racing on the one thread after every restart.
+    // Every read-only view shares that same current store - no second pool to fall behind
+    // the writer and re-validate in full on a rare open.
+    expect(runtime.inertStore(home)).toBe(runtime.readStore(home));
+    expect((await runtime.inertStore(home).read()).freshness).toBe("current");
+    // One validation serves the read, the inert views and the write (the writer adopts the
+    // reader's completed check and absorbs its own coordinator claim); separate instances
+    // each paid a full cold validation, racing on the one thread after every restart.
     expect(scan).toHaveBeenCalledTimes(1);
   } finally { await runtime.stop(); }
 }, 120_000);
@@ -81,4 +86,56 @@ it("legacy plan writes reuse one warm journal reader for the route check", async
   await workflowStore(home).execute({ op: "draft", definition: definition("route-two") }, randomUUID(), "mate");
   // The shared reader validates once; a fresh store per mutation validated in full per write.
   expect(scan.mock.calls.length).toBeLessThanOrEqual(1);
+}, 120_000);
+
+it("cold-check hash work and memory stay linear as the projection grows", async () => {
+  // Each transaction adds a fat new scope row, so the projection (and every anchor after it)
+  // grows with history - the shape that made per-transaction whole-projection hashing and
+  // whole-anchor retention quadratic at the owner's 2k+ transactions.
+  const home = join(process.env.PASEO_HOME!, randomUUID()), data = join(home, "data");
+  const store = new SupervisionStore(data, home, { writable: true,
+    processIdentity: async () => ({ state: "alive", start: "cold-read-scale" }) });
+  await store.initialize(); await store.acquireCoordinator();
+  const transactions = 96;
+  for (let i = 0; i < transactions; i++) {
+    const value = { ...scope(store.homeId), id: randomUUID(), version: 1,
+      projectIds: Array.from({ length: 32 }, () => randomUUID()) };
+    await store.transact(expected([{ kind: "scope", value }]), randomUUID(), [{ kind: "scope", value }]);
+  }
+  const before = { ...supervisionDigestStats };
+  let peakHeap = 0;
+  const sampler = setInterval(() => { peakHeap = Math.max(peakHeap, process.memoryUsage().heapUsed); }, 5);
+  const heapBefore = process.memoryUsage().heapUsed;
+  const cold = await new SupervisionStore(data, home).read().finally(() => clearInterval(sampler));
+  expect(cold.freshness).toBe("current"); expect(cold.sequence).toBe(transactions);
+  // The whole-projection digest runs only at the head (plus its checkpoint comparison),
+  // never once per transaction, and ownership hashing stays a small constant per event.
+  expect(supervisionDigestStats.frameCalls - before.frameCalls).toBeLessThanOrEqual(3);
+  expect(supervisionDigestStats.ownershipCalls - before.ownershipCalls).toBeLessThanOrEqual(transactions * 3 + 8);
+  // Smoke bound against retaining every parsed anchor for the whole check (the gigabyte
+  // peak at production scale); the durable guards are the hash-work counts above.
+  expect(peakHeap - heapBefore).toBeLessThan(96 * 1024 * 1024);
+}, 180_000);
+
+it("a coordinator claim does not absorb another writer's change made in its window", async () => {
+  const home = join(process.env.PASEO_HOME!, randomUUID()), data = join(home, "data");
+  const identity = async () => ({ state: "alive" as const, start: "cold-read-claim" });
+  const writer = new SupervisionStore(data, home, { writable: true, processIdentity: identity });
+  await writer.initialize(); await writer.acquireCoordinator();
+  const blob = await writer.putBlob(new TextEncoder().encode("evidence under claim"));
+  const blobMutation = [{ kind: "blob" as const, value: blob }];
+  await writer.transact(expected(blobMutation, 0), randomUUID(), blobMutation);
+  const scopeMutation = [{ kind: "scope" as const, value: { ...scope(writer.homeId), version: 1 } }];
+  await writer.transact(expected(scopeMutation, 0), randomUUID(), scopeMutation);
+  await writer.releaseCoordinator();
+  // A second instance validates, then claims the coordinator while the blob file disappears
+  // in the claim's publish window (the boundary hook stands in for the other writer).
+  let removed = false;
+  const claimant = new SupervisionStore(data, home, { writable: true, processIdentity: identity,
+    boundary: async name => { if (name === "coordinator:linked" && !removed) { removed = true; await rm(join(claimant.root, "blobs", blob.id)); } } });
+  expect((await claimant.read()).freshness).toBe("current");
+  await claimant.acquireCoordinator();
+  expect(removed).toBe(true);
+  // The absorbed directories must not bless the removal: the next read re-validates and holds.
+  expect((await claimant.read()).freshness).toBe("held");
 }, 120_000);

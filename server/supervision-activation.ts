@@ -167,7 +167,7 @@ export class SupervisionActivation {
   async evidence(input: z.infer<typeof HandoverEvidenceInputSchema>) {
     const review = await this.planHelp(input.homeId, input.plan, input.workflowHomeId), home = resolveHome(await this.config());
     if (workflowHomeIdentity(home) !== input.homeId) refuse("STALE", "FirstMate's home changed. Reopen this review.");
-    return handoverEvidence(this.root, home, review, await this.runtime.read(home), this.options.adapters(home), input.folder, input.rollbackPath);
+    return handoverEvidence(this.runtime.readStore(home), home, review, await this.runtime.read(home), this.options.adapters(home), input.folder, input.rollbackPath);
   }
   private config() { return (this.options.config ?? readFirstmateConfig)(); }
   private async checkedConfig(homeId: string, generalId?: string, settlement = false) {
@@ -221,7 +221,7 @@ export class SupervisionActivation {
           refuse("STALE", "The plan, permissions or backup settings changed. Refresh and review plan help again.");
         if (input.evidence) {
           // No folder listing: it only feeds the picker, and a busy data/ holds far more than its 200-entry cap.
-          const evidence = await handoverEvidence(this.root, home, review, await store.read(), this.options.adapters(home), null, input.evidence.rollback.path);
+          const evidence = await handoverEvidence(store, home, review, await store.read(), this.options.adapters(home), null, input.evidence.rollback.path);
           if (evidence.problems.length || !evidence.inventory || evidence.inventory.problems.length || !evidence.policy || !evidence.rollback)
             refuse("HELD", [...evidence.problems, ...(evidence.inventory?.problems ?? [])].join(" ") || "Choose and review the missing handover evidence before continuing.");
           const checkedEvidence = { inventory: evidence.inventory.hash, policy: evidence.policy.hash, rollback: { path: evidence.rollback.path, hash: evidence.rollback.hash } };
