@@ -22,7 +22,7 @@ import { SupervisionInbox } from "./supervision-inbox";
 import { SupervisorSessions } from "./supervisor-sessions";
 import { registerSupervisionLifecycle, SupervisionLifecycle } from "./supervision-lifecycle";
 import { ghPullRequestReader, registerScopedBoardIngress, ScopedBoardSteer, SupervisionSources, type PullRequestReader } from "./supervision-sources";
-import { processScopeRequests, type ScopeHandlers } from "./scope-requests";
+import { hasPendingScopeRequests, processScopeRequests, type ScopeHandlers } from "./scope-requests";
 import { workflowStore } from "./workflow-service";
 import { acceptPolicyInventory, currentPolicyVector } from "./supervision-policy";
 import { PlanRules } from "./plan-rules";
@@ -244,11 +244,13 @@ export class PlanRuntime {
    * (PR polls, recovery, wakes). The same checked pass tick() runs, with tick()'s guards;
    * processScopeRequests' per-directory serialization and retained same-UUID replies make
    * overlapping passes idempotent. Bootstrap stays tick()'s: without a host handle,
-   * host-backed requests stay deferred for a later pass, never refused. */
+   * host-backed requests stay deferred for a later pass, never refused. An idle beat stops
+   * at the cheap pending listing: no journal read, no runtime lock, while nothing waits. */
   async processRequests() {
     if ((!this.options.enabled && !this.runtime.features) || this.closed) return;
     const config = await this.config(), home = resolveHome(config);
     if (config.migration || config.mateLaunch || !config.mateAgentId) return;
+    if (!await hasPendingScopeRequests(home)) return;
     const read = await this.runtime.read(home);
     if (read.freshness !== "current" || !read.bindings.length) return;
     const paseo = this.paseo, mateAgentId = config.mateAgentId;

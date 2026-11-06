@@ -169,6 +169,17 @@ export async function handleScopeRequest(request: z.infer<typeof ScopeRequestSch
   }
   return handlers.commands.planCommand(input, actor);
 }
+/** Cheap fast-lane gate: one listing, no lock, no journal touch. It only decides whether
+ * the checked pass is worth running; the pass re-lists under its serialization, so a race
+ * here costs at most one extra pass or one clock beat, never a double act. Request and
+ * reply files both land by atomic link, so a listed request is always whole. */
+export async function hasPendingScopeRequests(home: string): Promise<boolean> {
+  try {
+    const { absolute: directory } = await resolveInHome(home, "data/scope-requests");
+    const files = await readdir(directory), names = new Set(files);
+    return files.some(f => /^[\da-f-]{36}\.json$/.test(f) && !names.has(f.replace(/\.json$/, ".reply.json")));
+  } catch (e) { if ((e as NodeJS.ErrnoException).code === "ENOENT") return false; throw e; }
+}
 export async function processScopeRequests(home: string, handlers: ScopeHandlers): Promise<void> {
   const { absolute: directory } = await resolveInHome(home, "data/scope-requests");
   return serialized(directory, async () => {

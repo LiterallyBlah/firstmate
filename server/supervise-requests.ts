@@ -86,6 +86,13 @@ export class SuperviseRequests {
     const config = await this.config(), home = resolveHome(config);
     if (config.migration || config.mateLaunch) return;
     const { absolute: directory } = await resolveInHome(home, "data/supervise-requests");
+    // Cheap fast-lane gate, as for scope requests: one listing outside the lock decides
+    // whether the checked pass is worth running; the pass re-lists under its serialization,
+    // so a race here costs at most one extra pass or one clock beat, never a double act.
+    let waiting: string[];
+    try { waiting = await readdir(directory); } catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return; throw error; }
+    const anyWaiting = new Set(waiting);
+    if (!waiting.some(n => /^[0-9a-f-]{36}\.json$/.test(n) && !anyWaiting.has(n.replace(/\.json$/, ".reply.json")))) return;
     await serialized(directory, async () => {
       let names: string[];
       try { names = await readdir(directory); } catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return; throw error; }

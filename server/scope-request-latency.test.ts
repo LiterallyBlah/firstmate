@@ -55,3 +55,21 @@ it("a scope read is answered on the next clock while the scoped tick is still in
     vi.restoreAllMocks(); releasePr(); await stop?.(); await slow.stop(); await f.service.stop(); await f.runtime.stop();
   }
 }, 90_000);
+
+it("an idle fast pass does no runtime read or mutate when no scope request is waiting", async () => {
+  const f = await fixture(), scope = f.scopes[0]!;
+  try {
+    // The fixture directory holds only retained answered pairs, so this pass is idle:
+    // it must stop at the cheap listing, never paying a journal read or the runtime lock.
+    const read = vi.spyOn(f.runtime, "read"), mutate = vi.spyOn(f.runtime, "mutate");
+    await f.service.processRequests();
+    expect(read, "idle scope pass read the journal").not.toHaveBeenCalled();
+    expect(mutate, "idle scope pass took the runtime lock").not.toHaveBeenCalled();
+    // A waiting request still takes the full checked pass on the very next call.
+    const id = await f.queue(scope, "read", { scopeId: scope.id, epoch: 1, page: "state" });
+    await f.service.processRequests();
+    expect(read).toHaveBeenCalled();
+    expect(mutate).toHaveBeenCalled();
+    expect(await f.result(id)).toMatchObject({ ok: true });
+  } finally { await f.service.stop(); await f.runtime.stop(); }
+}, 90_000);
