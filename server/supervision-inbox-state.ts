@@ -104,6 +104,19 @@ export function validateInboxChange(kind: string, value: unknown, prior: unknown
     }
   }
 }
+/** Journal rows are replaced, never mutated, so these per-event derivations cache by identity
+ * across the replay's per-transaction validations instead of re-hashing every event each time. */
+const sourceKeys = new WeakMap<object, string>(), eventSizes = new WeakMap<object, number>();
+function sourceKey(event: InboxEvent): string {
+  let saved = sourceKeys.get(event);
+  if (saved === undefined) { const s = event.envelope.source; sourceKeys.set(event, saved = digest([s.kind, s.hostId, s.key, s.epoch])); }
+  return saved;
+}
+function eventBytes(event: InboxEvent): number {
+  let saved = eventSizes.get(event);
+  if (saved === undefined) eventSizes.set(event, saved = Buffer.byteLength(JSON.stringify(event)));
+  return saved;
+}
 export function validateInbox(frames: Map<string, InboxFrame>, fail: Fail) {
   const inbox = inboxProjection(frames);
   if (!inbox.events.length && !inbox.sources.length && !inbox.offers.length && !inbox.mailboxes.length && !inbox.assignments.length) return;
@@ -114,12 +127,12 @@ export function validateInbox(frames: Map<string, InboxFrame>, fail: Fail) {
   const registry = { tasks: values<SupervisionStatus["tasks"][number]>("task"), attempts: values<SupervisionStatus["attempts"][number]>("attempt"),
     bindings: values<SourceBinding>("source-binding") };
   for (const event of inbox.events) {
-    const source = event.envelope.source, k = digest([source.kind, source.hostId, source.key, source.epoch]);
+    const source = event.envelope.source, k = sourceKey(event);
     const local = LOCAL_SOURCE_KINDS.includes(source.kind), hostOk = local ? source.hostId === "local" : source.kind === "pr" ? source.hostId === "github.com" : source.hostId !== "local";
     if (event.id !== event.envelope.eventId || !hostOk || sources.has(k)) fail("CONFLICT", "Duplicate source event identity, or a host that does not match its source kind.");
     sources.add(k);
     const blob = get("blob", event.envelope.payloadRef.slice(5)) as { bytes: number } | undefined;
-    if (!/^blob:[0-9a-f]{64}$/.test(event.envelope.payloadRef) || !blob || blob.bytes > INBOX_LIMITS.payloadBytes || Buffer.byteLength(JSON.stringify(event)) > INBOX_LIMITS.payloadBytes) fail("HELD", "Ingress payload must reference committed bounded evidence.");
+    if (!/^blob:[0-9a-f]{64}$/.test(event.envelope.payloadRef) || !blob || blob.bytes > INBOX_LIMITS.payloadBytes || eventBytes(event) > INBOX_LIMITS.payloadBytes) fail("HELD", "Ingress payload must reference committed bounded evidence.");
     const assignment = get("inbox-assignment", event.id) as InboxAssignment | undefined;
     if (!assignment || assignment.consequenceKey !== event.consequenceKey) fail("HELD", "Every admitted event needs its disposition in the same transaction.");
   }

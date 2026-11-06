@@ -184,6 +184,68 @@ Git repository or local directory; it is marked private to prevent accidental np
   checked copy and read it alongside the plans. Measured on a copy of a large home: the startup
   decisions read answers in about 6 seconds instead of timing out at 10, and a later read takes half
   a second instead of three.
+- **A restart no longer replays the whole Supervisor journal before Needs you can answer.** The
+  last fully validated projection is kept in a derived `projection-cache.json`, bound to the
+  checkpoint that witnessed it; a cold read recomputes the projection (vector included)
+  and the ownership digest from the cached frames themselves and witnesses every cached
+  index entry against its hash-verified anchor, and the retained ownership set must
+  equal the anchors' recorded ownership digests exactly (a forged
+  or edited cache is rejected at load, never served), re-binds it to the on-disk checkpoint
+  and anchor chain, validates the tail, and serves frame-derived reads, while a background
+  audit re-verifies every event and anchor up to the served prefix off the read path and
+  compares the frames, transaction index and ownership actually served against the
+  replayed journal. History pages, request-replay and receipt lookups and every write wait for that
+  audit (before the store lock, so reads are never frozen behind it), so nothing commits
+  on top of unverified cache contents, and a divergence holds the journal loudly for the
+  durable beyond the checkpoint (a crashed partial publication) still forces the ordinary full
+  scan. Measured on a copy of the large home at 4,584 transactions: the first decisions snapshot
+  answers in about 6.6 s after a restart (journal part about 1.3 s from cache, against 13.5 s for
+  a full check and 33 s before the anchor migration below), so "still loading" no longer outlives
+  the 15 s budget. The one-time anchor migration is also safer to interrupt: the audit runs
+  unlocked while the old form keeps serving, replacement proceeds in bounded chunks with the
+  /1 originals kept under `anchor-backup/`, a failure — thrown or reported held — releases
+  the coordinator claim without registering the writer so the next writer retries, and
+  `rollbackAnchors` restores the pre-/2 form an older plugin can read: backed-up anchors
+  over the migrated prefix, and the post-migration tail converted in place (events and
+  anchors rewritten /1, whole ownership re-derived from replay; converted transaction
+  hashes change, so receipts already issued for them stop matching — reported in the
+  result). The rollback itself is crash-safe: replacements are staged and a conversion
+  receipt published before any swap, the new checkpoint written before anything is
+  deleted and the conversion receipt deleted last, so an interrupted rollback — even
+  one interrupted during cleanup, after the migration receipt is gone — resumes and finishes
+  instead of stranding a half-converted journal. New records are always /2; nothing is
+  pinned to the old format. The backup (about a journal's worth of /1 originals) expires
+  automatically a week after migration on the next verified writer, or earlier by
+  deliberate discard. The migration also writes the restart cache over the new checkpoint,
+  so the first restart after it is a cache restart,
+  not another full check. On that journal the migration took about 132 s including backups
+  of the 568 MB of originals; at 5,355 transactions (747 MB in /1 form) it took about
+  161 s, the migrated journal is 23 MB, a restart from the cache reads in about 2 s
+  including the load-time recomputation, and an uncontended cold full check takes about 16 s.
+  At 5,757 transactions (827 MB in /1 form) the migration took about 182 s, the migrated
+  journal is 24 MB, the first restart after it reads in about 2.2 s with the load-time
+  witness checks, and an uncontended cold full check takes about 20 s.
+- **The Supervisor journal's anchors stop growing with its history.** Each transaction's tip and
+  publication used to embed the whole retained ownership — 89 KB apiece at 3,349 transactions,
+  duplicated in both files: 365 MB of anchors over 7 MB of events, so the journal's bytes and its
+  restart check grew faster than its transaction count, and a restart still showed "still loading"
+  past the decisions budget. New anchors (`/2`) carry only the ownership contributions their own
+  transaction changed, the full ownership digest, and an incremental projection-set hash that is
+  verified at every transaction instead of every 64th; new events record that set hash as their
+  projection hash, so a self-consistent rewrite between the old spot-check points is caught at the
+  transaction it rewrites. Existing journals are upgraded in place by the first writer after
+  install: a full audit first (every old projection hash included), a published
+  `anchor-migration.json` receipt binding old and new anchor hashes to the unchanged event head,
+  atomic per-file replacement (an interruption leaves a readable mixed journal the next writer
+  resumes from the receipt), then the derived checkpoint rebuilt over the new prefix. Events and
+  transaction receipts never change. Whole-projection replay validation also stops re-parsing and
+  re-hashing unchanged rows on every transaction (identity-keyed caches). Measured on a copy of
+  the large home at 3,349 transactions: the journal shrinks from 355 MB to 15 MB, one cold check
+  takes about 6.5 s instead of 17.3 s (23.0 s on a cold disk cache), and the first cold decisions
+  snapshot answers in about 10.4 s, inside its 15 s budget, instead of giving up. At twice the
+  journal the bytes grow linearly (about 29 MB, against well over a gigabyte extrapolated for the
+  old anchors); the remaining cold-check time is replay's whole-projection semantic validation,
+  which still grows with the frame count.
 - **Needs you stops reporting "some plans unavailable" long after a restart, and in the middle of
   ordinary plan work.** Checking the Supervisor journal from scratch had become the slow part of a
   decisions read: replay copied and re-serialized the whole projection once per transaction, the plugin

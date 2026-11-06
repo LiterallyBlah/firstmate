@@ -27,6 +27,9 @@ class ReadOnlySupervisionStore extends SupervisionStore {
   override audit(...args: Parameters<SupervisionStore["audit"]>) { return this.delegate().audit(...args); }
   override adoptValidatedCacheFrom() { return false; }
   override async enableLongLived(..._args: Parameters<SupervisionStore["enableLongLived"]>): Promise<never> { this.refuse(); }
+  override async migrateAnchors(..._args: Parameters<SupervisionStore["migrateAnchors"]>): Promise<never> { this.refuse(); }
+  override async rollbackAnchors(..._args: Parameters<SupervisionStore["rollbackAnchors"]>): Promise<never> { this.refuse(); }
+  override async discardAnchorBackup(..._args: Parameters<SupervisionStore["discardAnchorBackup"]>): Promise<never> { this.refuse(); }
   override async initialize(..._args: Parameters<SupervisionStore["initialize"]>): Promise<never> { this.refuse(); }
   override async acquireCoordinator(..._args: Parameters<SupervisionStore["acquireCoordinator"]>): Promise<never> { this.refuse(); }
   override async releaseCoordinator(..._args: Parameters<SupervisionStore["releaseCoordinator"]>): Promise<never> { this.refuse(); }
@@ -85,12 +88,27 @@ export class SupervisionRuntime {
         // checkpoint anchor before trusting it.
         store.adoptValidatedCacheFrom(this.reader.storeFor(home));
         await store.initialize();
+        // Resume an interrupted anchor migration first: its stale checkpoint is what blocks
+        // both index recovery and the coordinator claim. With no receipt this is a no-op
+        // until the claim below, after which the one-time /1 -> /2 upgrade itself runs.
+        await store.migrateAnchors();
         if (recoverIndex) {
           const status = await store.read();
           if (status.problems.some(p => p.startsWith("Checkpoint validation failed;")))
             await store.recoverIndex(typeof recoverIndex === "object" ? recoverIndex : { homeId: status.homeId, sequence: status.sequence, hash: status.hash });
         }
-        await store.acquireCoordinator(); this.writers.set(id, store);
+        await store.acquireCoordinator();
+        // A failed migration must never strand the coordinator claim it was attempted under:
+        // release it so the next writer can claim and retry, and do not register the writer.
+        try {
+          // migrateAnchors reports an unfinished migration as held rather than throwing;
+          // treat that exactly like a failure so no writer is registered over it and the
+          // next mutate creates a fresh writer that retries the migration.
+          const migrated = await store.migrateAnchors();
+          if (migrated.held) throw new SupervisionError("HELD", "Anchor migration is incomplete; it will be retried by the next writer.");
+        }
+        catch (error) { await store.releaseCoordinator().catch(() => {}); throw error; }
+        this.writers.set(id, store);
       } else if (recoverIndex) {
         const status = await store.read();
         if (status.problems.some(p => p.startsWith("Checkpoint validation failed;")))
