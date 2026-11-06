@@ -159,6 +159,11 @@ const AnchorMigrationSchema = z.object({ format: z.literal("firstmate.supervisio
   old: z.array(z.object({ sequence: positive, tip: SupervisionHash, publication: SupervisionHash }).strict()),
   next: z.array(z.object({ sequence: positive, tip: SupervisionHash, publication: SupervisionHash }).strict()), hash: SupervisionHash }).strict();
 type AnchorMigration = z.infer<typeof AnchorMigrationSchema>;
+const AnchorRollbackSchema = z.object({ format: z.literal("firstmate.supervision-anchor-rollback/1"), homeId: z.string(),
+  migrationSequence: positive, headSequence: positive, createdAt: z.string(),
+  files: z.array(z.object({ sequence: positive, kind: z.enum(["event", "tip", "publication"]), before: SupervisionHash, after: SupervisionHash }).strict()),
+  hash: SupervisionHash }).strict();
+type AnchorRollback = z.infer<typeof AnchorRollbackSchema>;
 type WorkflowRow = { scopeId: string; plan: WorkflowPlan; inventory: WorkflowOwnership;
   requests: { requestId: string; requestHash: string; eventHash: string }[] };
 type Frame = { kind: SupervisionExpected["kind"]; id: string; version: number; value: unknown };
@@ -597,6 +602,19 @@ export class SupervisionStore {
    * and replaces only what remains. A journal whose audit fails is left byte-for-byte intact.
    * Runs automatically on the runtime's first writer after upgrade; journal-state problems
    * report `held` instead of throwing so ordinary held handling still applies. */
+  private async readAnchorRollback(): Promise<AnchorRollback | null> {
+    try {
+      const plan = verifyHash(AnchorRollbackSchema.parse(await readCanonical(join(this.root, "anchor-rollback.json"))));
+      if (plan.homeId !== this.homeId) fail("HELD", "Anchor rollback receipt belongs to another home.");
+      return plan;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+      throw error;
+    }
+  }
+  private rollbackStagePath(sequence: number, kind: "event" | "tip" | "publication"): string {
+    return join(this.root, "anchor-rollback-staging", this.file(sequence, kind).slice(join(this.root, "transactions").length + 1));
+  }
   private backupPath(sequence: number, kind: "tip" | "publication"): string {
     return join(this.root, "anchor-backup", this.file(sequence, kind).slice(join(this.root, "transactions").length + 1));
   }
@@ -769,50 +787,93 @@ export class SupervisionStore {
    * remove every /2 trace (receipt, backups, restart cache), then rebuild the checkpoint.
    * Bodies and request identities never change; converted transaction hashes do, so
    * receipts already issued for converted transactions stop matching the journal - the
-   * deliberate, reported cost of a downgrade (`converted` in the result). */
+   * deliberate, reported cost of a downgrade (`converted` in the result).
+   * Crash-safety: every replacement file is staged under anchor-rollback-staging/ and a
+   * conversion receipt (anchor-rollback.json) recording each file's before/after hash is
+   * published BEFORE any swap. An interrupted rollback resumes from that receipt: files
+   * already swapped verify as their "after" hash, the rest swap from staging, and any
+   * other content holds the operation instead of guessing. */
   async rollbackAnchors(): Promise<{ restored: number; sequence: number; converted: number }> {
     this.writable();
     return this.locked(async () => {
-      await this.assertCoordinator();
       const receipt = await this.readAnchorMigration();
       if (!receipt) fail("HELD", "No anchor migration receipt; nothing to roll back.");
-      const snapshot = await this.scanFull();
-      if (snapshot.problems.length) fail("HELD", `Anchor rollback needs a validated journal first: ${snapshot.problems.join(" | ")}`);
-      if (snapshot.transactions[receipt.sequence - 1]?.hash !== receipt.headHash)
-        fail("HELD", "History moved at the migration point; anchor rollback is refused.");
-      let restored = 0;
-      for (const row of receipt.old) {
-        for (const [kind, expected] of [["tip", row.tip], ["publication", row.publication]] as const) {
-          const path = this.file(row.sequence, kind);
-          const currentFile = verifyHash(AnyAnchorSchema.parse(await readCanonical(path)));
-          if (currentFile.hash === expected) continue; // never replaced (interrupted migration): no backup needed
-          const backup = verifyHash(AnyAnchorSchema.parse(await readCanonical(this.backupPath(row.sequence, kind))));
-          if (backup.hash !== expected) fail("HELD", `Anchor backup ${row.sequence}.${kind} does not match the migration receipt.`);
-          await this.replaceFile(path, backup); restored++;
+      let plan = await this.readAnchorRollback();
+      // A fresh rollback needs the coordinator; resuming an interrupted one must not:
+      // mid-swap the checkpoint is stale, so no claim could ever be taken to finish it
+      // (the same reason migration resume runs pre-claim).
+      if (!plan || this.coordinator) await this.assertCoordinator();
+      if (plan && plan.migrationSequence !== receipt.sequence)
+        fail("HELD", "Anchor rollback receipt does not bind this migration; reconcile deliberately.");
+      if (!plan) {
+        const snapshot = await this.scanFull();
+        if (snapshot.problems.length) fail("HELD", `Anchor rollback needs a validated journal first: ${snapshot.problems.join(" | ")}`);
+        if (snapshot.transactions[receipt.sequence - 1]?.hash !== receipt.headHash)
+          fail("HELD", "History moved at the migration point; anchor rollback is refused.");
+        const staged: AnchorRollback["files"] = [];
+        await rm(join(this.root, "anchor-rollback-staging"), { recursive: true, force: true });
+        const stage = async (sequence: number, kind: "event" | "tip" | "publication", before: string, value: { hash: string }) => {
+          const target = this.rollbackStagePath(sequence, kind);
+          await mkdir(dirname(target), { recursive: true });
+          await this.publish(target, value, "anchor-rollback-stage");
+          staged.push({ sequence, kind, before, after: value.hash });
+        };
+        for (const row of receipt.old) {
+          for (const [kind, expected] of [["tip", row.tip], ["publication", row.publication]] as const) {
+            const currentFile = verifyHash(AnyAnchorSchema.parse(await readCanonical(this.file(row.sequence, kind))));
+            if (currentFile.hash === expected) continue; // never replaced (interrupted migration): no backup needed
+            const backup = verifyHash(AnyAnchorSchema.parse(await readCanonical(this.backupPath(row.sequence, kind))));
+            if (backup.hash !== expected) fail("HELD", `Anchor backup ${row.sequence}.${kind} does not match the migration receipt.`);
+            await stage(row.sequence, kind, currentFile.hash, backup);
+          }
         }
-      }
-      let converted = 0;
-      if (snapshot.sequence > receipt.sequence) {
-        let frames = new Map<string, Frame>(), previous: string | null = null;
-        for (let seq = 1; seq <= snapshot.sequence; seq++) {
-          const event = verifyHash(TransactionSchema.parse(await readCanonical(this.file(seq, "event"))));
-          frames = this.apply(frames, event.body).frames;
-          if (seq <= receipt.sequence || !event.format.endsWith("/2")) { previous = event.hash; continue; }
-          const convertedEvent: Transaction = hashed({ format: "firstmate.supervision-transaction/1" as const, homeId: this.homeId,
-            sequence: seq, previous, generation: event.generation, coordinatorHash: event.coordinatorHash,
-            requestId: event.requestId, requestHash: event.requestHash, at: event.at, body: event.body,
-            changes: event.changes, projectionHash: frameDigest(frames), outbox: event.outbox });
-          const capsuleBase = { homeId: this.homeId, sequence: seq, previous, transactionHash: convertedEvent.hash,
-            requestId: event.requestId, requestHash: event.requestHash, generation: event.generation };
-          const own = ownership(frames);
-          await this.replaceFile(this.file(seq, "event"), convertedEvent);
-          await this.replaceFile(this.file(seq, "tip"), hashed({ format: "firstmate.supervision-tip/1" as const, ...capsuleBase, ownership: own }));
-          await this.replaceFile(this.file(seq, "publication"), hashed({ format: "firstmate.supervision-publication/1" as const, ...capsuleBase, ownership: own }));
-          previous = convertedEvent.hash; converted++;
+        if (snapshot.sequence > receipt.sequence) {
+          let frames = new Map<string, Frame>(), previous: string | null = null;
+          for (let seq = 1; seq <= snapshot.sequence; seq++) {
+            const event = verifyHash(TransactionSchema.parse(await readCanonical(this.file(seq, "event"))));
+            frames = this.apply(frames, event.body).frames;
+            if (seq <= receipt.sequence || !event.format.endsWith("/2")) { previous = event.hash; continue; }
+            const convertedEvent: Transaction = hashed({ format: "firstmate.supervision-transaction/1" as const, homeId: this.homeId,
+              sequence: seq, previous, generation: event.generation, coordinatorHash: event.coordinatorHash,
+              requestId: event.requestId, requestHash: event.requestHash, at: event.at, body: event.body,
+              changes: event.changes, projectionHash: frameDigest(frames), outbox: event.outbox });
+            const capsuleBase = { homeId: this.homeId, sequence: seq, previous, transactionHash: convertedEvent.hash,
+              requestId: event.requestId, requestHash: event.requestHash, generation: event.generation };
+            const own = ownership(frames);
+            const tipNow = verifyHash(AnyAnchorSchema.parse(await readCanonical(this.file(seq, "tip"))));
+            const pubNow = verifyHash(AnyAnchorSchema.parse(await readCanonical(this.file(seq, "publication"))));
+            await stage(seq, "event", event.hash, convertedEvent);
+            await stage(seq, "tip", tipNow.hash, hashed({ format: "firstmate.supervision-tip/1" as const, ...capsuleBase, ownership: own }));
+            await stage(seq, "publication", pubNow.hash, hashed({ format: "firstmate.supervision-publication/1" as const, ...capsuleBase, ownership: own }));
+            previous = convertedEvent.hash;
+          }
         }
+        plan = AnchorRollbackSchema.parse(hashed({ format: "firstmate.supervision-anchor-rollback/1" as const, homeId: this.homeId,
+          migrationSequence: receipt.sequence, headSequence: snapshot.sequence, createdAt: new Date().toISOString(), files: staged }));
+        await this.publish(join(this.root, "anchor-rollback.json"), plan, "anchor-rollback");
+      } else {
+        // Resume: the journal must not have grown past the planned head meanwhile.
+        const files = await this.transactionFiles();
+        const head = files.reduce((max, name) => Math.max(max, Number(basename(name).slice(0, 12)) || 0), 0);
+        if (head !== plan.headSequence) fail("HELD", "Journal grew after an interrupted anchor rollback; reconcile deliberately.");
       }
+      // Swap phase: idempotent per file, so an interruption anywhere resumes cleanly.
+      for (const file of plan.files) {
+        const path = this.file(file.sequence, file.kind);
+        const current = verifyHash(JSON.parse(await readFile(path, "utf8")) as { hash: string });
+        if (current.hash === file.after) continue;
+        if (current.hash !== file.before) fail("HELD", `Anchor rollback found unexpected content at ${file.sequence}.${file.kind}; reconcile deliberately.`);
+        const stagedFile = verifyHash(JSON.parse(await readFile(this.rollbackStagePath(file.sequence, file.kind), "utf8")) as { hash: string });
+        if (stagedFile.hash !== file.after) fail("HELD", "Anchor rollback staging does not match its receipt.");
+        await this.replaceFile(path, stagedFile);
+        await this.boundary("anchor-rollback:converted");
+      }
+      const restored = plan.files.filter(f => f.sequence <= plan.migrationSequence).length;
+      const converted = new Set(plan.files.filter(f => f.sequence > plan.migrationSequence).map(f => f.sequence)).size;
       await rm(join(this.root, "anchor-migration.json"), { force: true });
       await rm(join(this.root, "anchor-backup"), { recursive: true, force: true });
+      await rm(join(this.root, "anchor-rollback.json"), { force: true });
+      await rm(join(this.root, "anchor-rollback-staging"), { recursive: true, force: true });
       this.cached = null;
       await rm(join(this.root, "projection-cache.json"), { force: true });
       const restoredScan = await this.scanFull();
@@ -1367,7 +1428,7 @@ export class SupervisionStore {
       let names: string[];
       try { names = await readdir(this.root); }
       catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return result; throw error; }
-      if (names.some(n => !["identity.json", "capacity.json", "transactions", "coordinators", "blobs", "checkpoint.json", "anchor-migration.json", "anchor-backup", "projection-cache.json"].includes(n) && !/^(?:identity|capacity|checkpoint|anchor-migration|projection-cache)\.json\.[0-9a-f-]+\.tmp$/.test(n))) fail("HELD", "Unknown supervision root metadata.");
+      if (names.some(n => !["identity.json", "capacity.json", "transactions", "coordinators", "blobs", "checkpoint.json", "anchor-migration.json", "anchor-backup", "projection-cache.json", "anchor-rollback.json", "anchor-rollback-staging"].includes(n) && !/^(?:identity|capacity|checkpoint|anchor-migration|anchor-rollback|projection-cache)\.json\.[0-9a-f-]+\.tmp$/.test(n))) fail("HELD", "Unknown supervision root metadata.");
       await this.loadCapacity();
       const identity = IdentitySchema.parse(await readCanonical(join(this.root, "identity.json")));
       if (identity.homeId !== this.homeId) fail("HELD", "Supervision home identity mismatch.");
@@ -1722,13 +1783,15 @@ export class SupervisionStore {
             const tx = txs[at + i / 2]!, tip = batch[i]!;
             if (tip.transactionHash !== tx.hash || tip.requestId !== tx.requestId || tip.requestHash !== tx.requestHash || tip.generation !== tx.generation) { ok = false; break; }
             const tipDigest = isAnchor2(tip) ? tip.ownershipDigest : ownershipDigest((tip as Anchor).ownership);
-            if (capsuleDigests.has(tipDigest)) witnessed.add(tipDigest);
+            witnessed.add(tipDigest);
             headOwnershipDigest = tipDigest;
             prefix = extendPrefix(prefix, tx, tip, batch[i + 1]!);
           }
         }
         if (!ok || prefix !== file.prefixDigest) return false;
-        if (witnessed.size !== capsuleDigests.size) return false;
+        // Set equality, not just witnessing what is present: a capsule silently dropped
+        // from the cache would hide retained reservations from every pre-audit read.
+        if (witnessed.size !== capsuleDigests.size || [...capsuleDigests].some(d => !witnessed.has(d))) return false;
         if (file.sequence > 0 && headOwnershipDigest !== file.ownershipDigest) return false;
       }
       const receipt = await this.readAnchorMigration().catch(() => null);
@@ -2281,6 +2344,7 @@ export class SupervisionStore {
   }
   /** Read accepted transaction identity without reauthorizing it or acquiring the coordinator. */
   async requestReceipt(requestId: string): Promise<SupervisionReceipt | null> {
+    await this.awaitAudit();
     return this.reading(async () => {
       const snapshot = await this.sharedScan();
       if (snapshot.problems.length) fail("HELD", snapshot.problems.join(" "));
@@ -2290,6 +2354,7 @@ export class SupervisionStore {
   }
   /** Original event/request identity and transaction receipt, independent of later policy changes. */
   async workflowRequest(planId: string, requestId: string): Promise<{ requestHash: string; eventHash: string; receipt: SupervisionReceipt } | null> {
+    await this.awaitAudit();
     return this.reading(async () => {
       const snapshot = await this.sharedScan();
       if (snapshot.problems.length) fail("HELD", snapshot.problems.join(" "));

@@ -188,12 +188,13 @@ Git repository or local directory; it is marked private to prevent accidental np
   last fully validated projection is kept in a derived `projection-cache.json`, bound to the
   checkpoint that witnessed it; a cold read recomputes the projection (vector included)
   and the ownership digest from the cached frames themselves and witnesses every cached
-  index entry and retained ownership capsule against the hash-verified anchors (a forged
+  index entry against its hash-verified anchor, and the retained ownership set must
+  equal the anchors' recorded ownership digests exactly (a forged
   or edited cache is rejected at load, never served), re-binds it to the on-disk checkpoint
   and anchor chain, validates the tail, and serves frame-derived reads, while a background
   audit re-verifies every event and anchor up to the served prefix off the read path and
   compares the frames, transaction index and ownership actually served against the
-  replayed journal. History pages, request-replay lookups and every write wait for that
+  replayed journal. History pages, request-replay and receipt lookups and every write wait for that
   audit (before the store lock, so reads are never frozen behind it), so nothing commits
   on top of unverified cache contents, and a divergence holds the journal loudly for the
   durable beyond the checkpoint (a crashed partial publication) still forces the ordinary full
@@ -208,9 +209,13 @@ Git repository or local directory; it is marked private to prevent accidental np
   over the migrated prefix, and the post-migration tail converted in place (events and
   anchors rewritten /1, whole ownership re-derived from replay; converted transaction
   hashes change, so receipts already issued for them stop matching — reported in the
-  result). New records are always /2; nothing is pinned to the old format. The backup
-  (about a journal's worth of /1 originals) expires automatically a week after migration
-  restart cache over the new checkpoint, so the first restart after it is a cache restart,
+  result). The rollback itself is crash-safe: replacements are staged and a conversion
+  receipt published before any swap, so an interrupted rollback resumes and finishes
+  instead of stranding a half-converted journal. New records are always /2; nothing is
+  pinned to the old format. The backup (about a journal's worth of /1 originals) expires
+  automatically a week after migration on the next verified writer, or earlier by
+  deliberate discard. The migration also writes the restart cache over the new checkpoint,
+  so the first restart after it is a cache restart,
   not another full check. On that journal the migration took about 132 s including backups
   of the 568 MB of originals; at 5,355 transactions (747 MB in /1 form) it took about
   161 s, the migrated journal is 23 MB, a restart from the cache reads in about 2 s

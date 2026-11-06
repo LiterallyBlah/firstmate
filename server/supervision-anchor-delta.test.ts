@@ -564,3 +564,75 @@ it("expires the anchor backup a week after migration on a verified writer", asyn
   expect(await readdir(store.root)).not.toContain("anchor-migration.json");
   expect((await new SupervisionStore(data, home).read()).freshness).toBe("current");
 }, 300_000);
+
+it("resumes an interrupted rollback from its conversion receipt (R11)", async () => {
+  const { store, home, data } = await journal(6, true, true);
+  await store.releaseCoordinator();
+  const migrator = new SupervisionStore(data, home, { writable: true, processIdentity: identity });
+  await migrator.acquireCoordinator();
+  await migrator.migrateAnchors();
+  for (let i = 0; i < 3; i++) {
+    const mutation = [{ kind: "scope" as const, value: { ...scope(store.homeId), id: randomUUID(), version: 1 } }];
+    await migrator.transact(expected(mutation, 0), randomUUID(), mutation);
+  }
+  const before = await migrator.read();
+  await migrator.releaseCoordinator();
+  // Crash on the third swap of the rollback: staging and the conversion receipt survive.
+  let converted = 0;
+  const crashing = new SupervisionStore(data, home, { writable: true, processIdentity: identity,
+    boundary: async name => { if (name === "anchor-rollback:converted" && ++converted === 3) throw new Error("crash mid-rollback"); } });
+  await crashing.acquireCoordinator();
+  await expect(crashing.rollbackAnchors()).rejects.toThrow("crash mid-rollback");
+  expect(await readdir(store.root)).toContain("anchor-rollback.json");
+  await crashing.releaseCoordinator().catch(() => {});
+  // A fresh writer resumes from the receipt and finishes the downgrade.
+  const resumer = new SupervisionStore(data, home, { writable: true, processIdentity: identity });
+  // No claim is possible mid-swap (stale checkpoint); resume runs receipt-guided.
+  await expect(resumer.rollbackAnchors()).resolves.toMatchObject({ restored: 12, sequence: 9, converted: 3 });
+  expect(await readdir(store.root)).not.toContain("anchor-rollback.json");
+  expect(await readdir(store.root)).not.toContain("anchor-rollback-staging");
+  for (const seq of [1, 6, 7, 9]) {
+    const event = JSON.parse(await readFile(join(store.root, "transactions", fileName(seq, "event")), "utf8"));
+    expect(event.format).toBe("firstmate.supervision-transaction/1");
+  }
+  const rolledBack = await new SupervisionStore(data, home, { legacyFormat: true }).read();
+  expect(rolledBack.freshness).toBe("current");
+  expect(rolledBack.scopes).toEqual(before.scopes);
+}, 300_000);
+
+it("rejects a cache whose retained ownership set differs from the witnessed anchors (R9)", async () => {
+  const { store, home, data } = await journal(24, false, true);
+  const truth = await store.read();
+  expect(truth.retainedOwnership.length).toBeGreaterThan(1);
+  await store.releaseCoordinator();
+  const claimer = new SupervisionStore(data, home, { writable: true, processIdentity: identity });
+  await claimer.acquireCoordinator(); await claimer.releaseCoordinator();
+  // Drop one retained capsule: what remains is individually witnessed, but the SET no
+  // longer equals the anchors' recorded ownership digests, so the cache is rejected whole
+  // and the very first read already serves the full retained ownership from the journal.
+  await forgeCache(store.root, cache => { cache.ownership.splice(1, 1); });
+  const served = await new SupervisionStore(data, home).read();
+  expect(served.freshness).toBe("current");
+  expect(served.retainedOwnership).toEqual(truth.retainedOwnership);
+}, 300_000);
+
+it("gates receipt lookups on the restart audit (R2c)", async () => {
+  const { store, home, data } = await journal(24, false, true);
+  const truth = await store.read();
+  await store.releaseCoordinator();
+  const claimer = new SupervisionStore(data, home, { writable: true, processIdentity: identity });
+  await claimer.acquireCoordinator(); await claimer.releaseCoordinator();
+  // Corrupt an early event below the cache: only the audit can see it, and receipt
+  // lookups must wait for that verdict instead of answering from the unverified index.
+  const eventPath = join(store.root, "transactions", fileName(3, "event"));
+  const event = JSON.parse(await readFile(eventPath, "utf8"));
+  event.body.mutations[0].value.projectIds = [randomUUID()];
+  event.requestHash = digest(event.body);
+  const { hash: _hash, ...unsignedEvent } = event; event.hash = digest(unsignedEvent);
+  await writeFile(eventPath, `${canonical(event)}\n`);
+  const victim = new SupervisionStore(data, home);
+  await victim.read();
+  await expect(victim.requestReceipt(event.requestId)).rejects.toMatchObject({ code: "HELD" });
+  await expect(victim.workflowRequest("any-plan", event.requestId)).rejects.toMatchObject({ code: "HELD" });
+  expect(truth.freshness).toBe("current");
+}, 300_000);
