@@ -114,10 +114,168 @@ function liveProbe() {
   return { nonce, agentId: id };
 }
 
+// The rest of the remote Supervisor receiver's surface, against a throwaway git repository the probe
+// creates under /tmp: workspace create/ls/archive, permit allow --input, permit deny --interrupt, stop.
+// A janitor agent (cwd /tmp) runs exactly two shell commands, each allowed only after the pending
+// request shows that exact command: create the repository, and at the end remove it. Every mutation
+// names an ID the probe created; every listing is recorded filtered to the probe's own rows. Any
+// surprise stops the probe and tears down what it knows it created; `leftover` lists anything it
+// could not prove gone. The daemon version is read before the first effect and after the last.
+function surfaceProbe() {
+  const home = flag("home"), host = flag("host");
+  if (!home || !host) throw new Error("surface needs --home and --host");
+  const nonce = `s0-${randomBytes(4).toString("hex")}`;
+  const repo = `/tmp/fm-probe-${nonce}`, slug = `fm-probe-${nonce}`, branch = `fm-probe/${nonce}`;
+  const labels = ["--label", "firstmate.task=fm-remote-supervisors-probe", "--label", "firstmate.kind=scout", "--label", `firstmate.probe=${nonce}`];
+  const created = { janitor: null, worker: null, worktree: null, worktreeCwd: null, repoProject: null, tmpWorkspace: null, tmpProject: null, repo: false };
+  const leftover = [];
+  const helper = (args) => spawnSync(process.execPath, [join(home, "tools", "remote.mjs"), ...args], { cwd: home, encoding: "utf8", timeout: 400_000 });
+  const remote = (args) => {
+    const startedAt = new Date().toISOString(), r = helper([host, ...args]);
+    return { args, code: r.status, startedAt, endedAt: new Date().toISOString(), stdout: r.stdout, stderr: r.stderr, parsed: json(r.stdout) };
+  };
+  // Only this probe's rows are kept: the host's other workspaces, projects and permissions are not ours to record.
+  const filtered = (result, keep) => { const rows = Array.isArray(result.parsed) ? result.parsed : [];
+    return { ...result, stdout: undefined, rows: rows.length, keys: [...new Set(rows.flatMap((row) => Object.keys(row)))].sort(), parsed: rows.filter(keep) }; };
+  const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+  const catalog = () => { const r = helper(["hosts"]); const h = json(r.stdout)?.hosts?.find((x) => x.serverId === host); if (!h) throw new Error("host not in the catalog"); return h; };
+  const version = (phase) => { const h = catalog(); return record(`version:${phase}`, { readAt: new Date().toISOString(), checkedAt: h.checkedAt, online: h.online, daemonVersion: h.daemonVersion ?? null }); };
+  const fail = (why) => { throw new Error(why); };
+  const inspect = (id) => remote(["inspect", id]).parsed;
+  const until = (label, test, tries = 36, every = 5_000) => {
+    for (let i = 0; i < tries; i++) { const value = test(); if (value) return value; sleep(every); }
+    fail(`gave up waiting: ${label}`);
+  };
+  const pendingOf = (id) => { const r = remote(["permit", "ls"]); return { r, mine: (Array.isArray(r.parsed) ? r.parsed : []).filter((p) => p.agentId === id) }; };
+  const awaitPermission = (label, id, tool) => {
+    const { r, mine } = until(label, () => { const p = pendingOf(id); return p.mine.length ? p : null; });
+    record(label, { ...r, stdout: undefined, parsed: mine });
+    if (mine.length !== 1 || mine[0].name !== tool) fail(`${label}: expected exactly one ${tool} request, got ${JSON.stringify(mine.map((p) => p.name))}`);
+    return mine[0];
+  };
+  const settled = (label, id, ok = (a) => a && a.Status === "idle" && a.PendingPermissions.length === 0) => {
+    let last = null;
+    try { return record(label, { parsed: until(label, () => { last = inspect(id); return ok(last) ? last : null; }) }); }
+    catch (error) { record(`${label}:last-seen`, { parsed: last }); throw error; }
+  };
+  const stopped = (a) => a && a.Status !== "running" && a.Status !== "initializing" && a.PendingPermissions.length === 0;
+  // The janitor's one shell command, allowed only when the pending request shows exactly it.
+  const shell = (label, command, onAllow = () => {}) => {
+    // The CLI's tool summary is capped at 200 characters; a longer command could never be checked.
+    if (command.length > 190 || /\n/.test(command)) fail(`${label}: the command is too long to check exactly`);
+    record(`${label}:send`, remote(["send", created.janitor, "--", `Run exactly this one Bash command, with no other tool, then reply with its output and stop:\n${command}`]));
+    const request = awaitPermission(`${label}:requested`, created.janitor, "Bash");
+    // The CLI labels a Claude Bash call `[Shell]` in its tool summary.
+    const shown = (request.recentTools ?? []).map((t) => String(t).replace(/^\[(?:Bash|Shell)\]\s*/, ""));
+    if (!shown.includes(command)) {
+      record(`${label}:refused`, remote(["permit", "deny", created.janitor, request.id, "--message", "Not the exact command.", "--interrupt"]));
+      fail(`${label}: the pending Bash request is not exactly the command`);
+    }
+    onAllow();
+    record(`${label}:allow`, remote(["permit", "allow", created.janitor, request.id]));
+    settled(`${label}:settled`, created.janitor);
+    return record(`${label}:output`, remote(["logs", created.janitor, "--tail", "1", "--filter", "assistant_message"])).stdout ?? "";
+  };
+  const workspaces = () => remote(["workspace", "ls", "--background"]);
+  const projects = () => remote(["project", "ls"]);
+  try {
+    version("before");
+    const before = catalog();
+    if (before.projects.some((p) => p.path === "/tmp" || p.path.startsWith("/tmp/fm-probe")) || before.workspaces.some((w) => w.cwd === "/tmp" || w.cwd.startsWith("/tmp/fm-probe")))
+      fail("preflight: /tmp already has a project or workspace; refusing to share it");
+    record("preflight", { projects: before.projects.length, workspaces: before.workspaces.length, tmpProjects: 0, tmpWorkspaces: 0 });
+
+    const janitor = record("janitor:create", remote(["run", "--cwd", "/tmp", "--provider", "claude", "--model", "claude-haiku-4-5", "--mode", "default",
+      "--title", `FirstMate probe janitor ${nonce} (archive me)`, ...labels, "--", "This is a FirstMate capability probe. Reply with exactly the word ok and then stop. Do not use any tools."]));
+    created.janitor = janitor.parsed?.agentId ?? fail("janitor create returned no agentId");
+    settled("janitor:first-turn", created.janitor);
+    const tmp = record("janitor:workspace", filtered(workspaces(), (w) => w.cwd === "/tmp"));
+    created.tmpWorkspace = tmp.parsed.length === 1 ? tmp.parsed[0].workspaceId : fail("expected exactly one new /tmp workspace");
+    const tmpProject = record("janitor:project", filtered(projects(), (p) => (p.path ?? p.cwd ?? p.directory) === "/tmp"));
+    created.tmpProject = tmpProject.parsed.length === 1 ? (tmpProject.parsed[0].projectId ?? tmpProject.parsed[0].id) : null;
+
+    const setup = `mkdir ${repo} && cd ${repo} && git init -q -b main && git -c user.name=p -c user.email=p@x commit -q --allow-empty -m init && git branch --show-current`;
+    // Once allowed, the directory may exist; teardown removes it.
+    if (!/\bmain\b/.test(shell("repo:create", setup, () => { created.repo = true; }))) fail("the throwaway repository did not report branch main");
+
+    // The receiver's own `workspace create` shape (`SupervisionRemoteReceiver.openWorkspace`).
+    const open = record("workspace:create", remote(["workspace", "create", "--isolation", "worktree", "--path", repo,
+      "--worktree-slug", slug, "--new-branch", branch, "--base", "main", "--title", branch]));
+    if (open.code !== 0) fail("workspace create failed");
+    const w = open.parsed ?? {}, nested = w.workspace ?? {};
+    created.worktree = w.workspaceId ?? w.id ?? nested.workspaceId ?? nested.id ?? fail("workspace create returned no workspace id");
+    created.worktreeCwd = w.cwd ?? w.path ?? w.directory ?? nested.cwd ?? nested.path ?? null;
+    const listed = record("workspace:ls", filtered(workspaces(), (row) => row.workspaceId === created.worktree || String(row.cwd ?? "").includes(slug)));
+    record("workspace:ls-branch", { branchField: listed.keys.includes("branch"), rowBranch: listed.parsed[0]?.branch ?? null });
+    const repoProject = record("workspace:project", filtered(projects(), (p) => (p.path ?? p.cwd ?? p.directory) === repo));
+    created.repoProject = repoProject.parsed.length === 1 ? (repoProject.parsed[0].projectId ?? repoProject.parsed[0].id) : null;
+
+    const worker = record("worker:create", remote(["run", "--workspace", created.worktree, "--provider", "claude", "--model", "claude-haiku-4-5", "--mode", "default",
+      "--title", `FirstMate probe worker ${nonce} (archive me)`, ...labels, "--",
+      "This is a FirstMate capability probe. Use the AskUserQuestion tool exactly once, with one question \"Proceed with the probe?\" (header \"Probe\") and the two options \"yes\" and \"no\". Then reply with exactly the answer you received and stop. Use no other tool."]));
+    created.worker = worker.parsed?.agentId ?? fail("worker create returned no agentId");
+    const question = awaitPermission("permit-allow:requested", created.worker, "AskUserQuestion");
+    record("permit-allow:inspect", remote(["inspect", created.worker]));
+    record("permit-allow:answer", remote(["permit", "allow", created.worker, question.id, "--input", JSON.stringify({ answers: { "Proceed with the probe?": "yes" } })]));
+    settled("permit-allow:settled", created.worker);
+    record("permit-allow:reply", remote(["logs", created.worker, "--tail", "1", "--filter", "assistant_message"]));
+
+    record("permit-deny-interrupt:send", remote(["send", created.worker, "--", "Use the Write tool to create probe.txt in the current directory containing ok. If that is refused, reply ok and stop."]));
+    const write = awaitPermission("permit-deny-interrupt:requested", created.worker, "Write");
+    record("permit-deny-interrupt:deny", remote(["permit", "deny", created.worker, write.id, "--message", "Denied by the FirstMate probe.", "--interrupt"]));
+    // The interrupt ends the turn: the worker stops, its request gone, whatever status it settles in.
+    settled("permit-deny-interrupt:settled", created.worker, stopped);
+    record("permit-deny-interrupt:logs", remote(["logs", created.worker, "--tail", "4", "--filter", "text"]));
+
+    record("stop:send", remote(["send", created.worker, "--", "Without using any tools, write the numbers from 1 to 3000 in English words, one per line, then stop."]));
+    record("stop:running", { parsed: until("worker running", () => { const a = inspect(created.worker); return a?.Status === "running" ? a : null; }, 30, 1_000) });
+    const stop = record("stop", remote(["stop", created.worker]));
+    // A turn that finished before the stop arrived would prove nothing: the stop must have stopped this worker.
+    if (stop.parsed?.stoppedCount !== 1 || !stop.parsed.agentIds?.includes(created.worker)) fail("stop did not report stopping the running worker");
+    settled("stop:settled", created.worker, (a) => a && a.Status !== "running" && a.Status !== "initializing");
+    record("stop:logs", remote(["logs", created.worker, "--tail", "2", "--filter", "text"]));
+  } catch (error) {
+    record("aborted", { error: String(error?.message ?? error) });
+  }
+  // Teardown, in reverse: each step only for what this probe created.
+  const step = (label, args) => { const r = record(label, remote(args)); if (r.code !== 0) leftover.push(`${label}: ${r.stderr.trim()}`); return r; };
+  if (created.worker) { step("teardown:worker-stop", ["stop", created.worker]); step("teardown:worker-archive", ["archive", created.worker]); }
+  if (created.worktree) step("teardown:worktree-archive", ["workspace", "archive", created.worktree]);
+  if (created.repoProject) step("teardown:repo-project-delete", ["project", "delete", created.repoProject]);
+  if (created.repo && created.janitor) {
+    const checks = [`test ! -e ${repo}`, ...(created.worktreeCwd ? [`test ! -e ${created.worktreeCwd}`] : [])].join(" && ");
+    try { if (!/\bclean\b/.test(shell("repo:remove", `rm -rf ${repo} && ${checks} && echo clean`))) leftover.push(`${repo} or the worktree may remain`); }
+    catch (error) { leftover.push(`repo:remove: ${String(error?.message ?? error)}`); }
+  } else if (created.repo) leftover.push(`${repo} may remain (no janitor)`);
+  if (created.janitor) { step("teardown:janitor-stop", ["stop", created.janitor]); step("teardown:janitor-archive", ["archive", created.janitor]); }
+  if (created.tmpWorkspace) step("teardown:tmp-workspace-archive", ["workspace", "archive", created.tmpWorkspace]);
+  if (created.tmpProject) step("teardown:tmp-project-delete", ["project", "delete", created.tmpProject]);
+  // Once its workspace is archived and its project deleted, an archived agent drops out of `ls -a`; inspect each one.
+  for (const [role, id] of [["janitor", created.janitor], ["worker", created.worker]]) {
+    if (!id) continue;
+    const a = record(`after:${role}-inspect`, remote(["inspect", id])).parsed;
+    if (!a || a.Archived !== true || a.Status === "running") leftover.push(`${role} ${id} is not archived`);
+  }
+  const agents = record("after:agents", remote(["ls", "-g", "-a", "--label", `firstmate.probe=${nonce}`]));
+  const live = record("after:agents-active", remote(["ls", "-g", "--label", `firstmate.probe=${nonce}`]));
+  if (!Array.isArray(live.parsed) || live.parsed.length) leftover.push("an agent with the probe label is still active");
+  const ours = (path) => path === "/tmp" || String(path ?? "").includes(slug) || String(path ?? "").startsWith(repo);
+  const ws = record("after:workspaces", filtered(workspaces(), (row) => ours(row.cwd) || Object.values(created).includes(row.workspaceId)));
+  const pj = record("after:projects", filtered(projects(), (row) => ours(row.path ?? row.cwd ?? row.directory)));
+  if (ws.parsed.length) leftover.push("a probe workspace is still listed");
+  if (pj.parsed.length) leftover.push("a probe project is still listed");
+  // Truly after the last effect: wait for a catalog refresh that started after it.
+  const lastEffect = steps.filter((s) => s.endedAt).at(-1)?.endedAt;
+  for (let i = 0; i < 30; i++) { const h = catalog(); if (Date.parse(h.checkedAt) > Date.parse(lastEffect)) break; sleep(10_000); }
+  version("after");
+  return { nonce, repo, created, agents: Array.isArray(agents.parsed) ? agents.parsed.map((a) => a.id) : [], leftover };
+}
+
 let summary;
 try {
   if (mode === "static") staticProbe();
   else if (mode === "live") summary = liveProbe();
-  else throw new Error("usage: probe.mjs static | live --home <dir> --host <serverId> --workspace <id>");
+  else if (mode === "surface") summary = surfaceProbe();
+  else throw new Error("usage: probe.mjs static | live --home <dir> --host <serverId> --workspace <id> | surface --home <dir> --host <serverId>");
 } catch (error) { summary = { error: String(error?.message ?? error) }; }
 process.stdout.write(`${JSON.stringify({ probe: "firstmate-remote-supervisors-s0", mode, at: new Date(started).toISOString(), platform: process.platform, summary, steps }, null, 2)}\n`);

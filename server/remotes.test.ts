@@ -33,6 +33,7 @@ async function fixture(execute: ConstructorParameters<typeof RemoteService>[0], 
   await service.sync([local, remote]);
   return { directory, home, service };
 }
+const SCOPED = "8552861a-dee4-4771-9968-a494a64d1a79", CREW = "c0ffee00-1111-4111-8111-111111111111", TWIN = "c0ffee00-2222-4222-8222-222222222222";
 const success = (value: unknown) => ({ code: 0, stdout: JSON.stringify(value), stderr: "" });
 
 describe("independent remote access", () => {
@@ -240,9 +241,9 @@ describe("independent remote access", () => {
     const cwd = "C:\\Users\\captain\\repo";
     await run(process.execPath, [helper, remote.serverId, "run", "--prompt-file", "data/task/brief.md", "--cwd", cwd, "--provider", "claude/opus"], { cwd: home, timeout: 10000 });
     expect(calls.at(-1)).toEqual(["run", "--cwd", cwd, "--provider", "claude/opus", "--no-wait", "--label", "firstmate.role=crew", "--label", "firstmate.owner=local-test:firstmate", "--json", "--", brief]);
-    await writeFile(join(home, "data", "task", "send.json"), JSON.stringify({ host: "Remote", args: ["send", "agent-1", "--prompt-file", join(home, "data", "task", "brief.md")] }));
+    await writeFile(join(home, "data", "task", "send.json"), JSON.stringify({ host: "Remote", args: ["send", CREW, "--prompt-file", join(home, "data", "task", "brief.md")] }));
     await run(process.execPath, [helper, "--request-file", join(home, "data", "task", "send.json")], { cwd: home, timeout: 10000 });
-    expect(calls.at(-1)).toEqual(["send", "agent-1", "--no-wait", "--json", "--", brief]);
+    expect(calls.at(-1)).toEqual(["send", CREW, "--no-wait", "--json", "--", brief]);
 
     const sent = calls.length;
     const refused = async (args: string[], message: string) => {
@@ -375,21 +376,50 @@ describe("independent remote access", () => {
       return args[0] === "status" ? success({ serverId: remote.serverId, connectedDaemon: "reachable" }) : success({ ok: true });
     }, undefined, async (serverId, agentId) => {
       guarded.push([serverId, agentId]);
-      if (agentId === "scoped-1") throw new Error("This remote worker belongs to a scoped supervisor.");
+      if (agentId === SCOPED) throw new Error("This remote worker belongs to a scoped supervisor.");
     });
     for (const args of [
-      ["send", "scoped-1", "--", "steer"], ["stop", "scoped-1"], ["archive", "scoped-1"],
-      ["permit", "allow", "scoped-1", "req-1"], ["permit", "deny", "scoped-1", "req-1", "--message", "No."],
+      ["send", SCOPED, "--", "steer"], ["stop", SCOPED], ["archive", SCOPED],
+      ["permit", "allow", SCOPED, "req-1"], ["permit", "deny", SCOPED, "req-1", "--message", "No."],
     ]) await expect(service.request("Remote", args, { helper: true })).rejects.toThrow("scoped supervisor");
     expect(calls).toEqual([]); // Refused before any connection or command reached the host.
-    expect(guarded).toEqual(Array(5).fill([remote.serverId, "scoped-1"]));
+    expect(guarded).toEqual(Array(5).fill([remote.serverId, SCOPED]));
     // The checked gateway's own receiver (no helper origin) still answers its worker's permission.
-    await expect(service.request("Remote", ["permit", "deny", "scoped-1", "req-1", "--message", "No."])).resolves.toEqual({ ok: true });
+    await expect(service.request("Remote", ["permit", "deny", SCOPED, "req-1", "--message", "No."])).resolves.toEqual({ ok: true });
     // General's own crew and read-only helper calls are unaffected.
-    await expect(service.request("Remote", ["send", "crew-1", "--", "hi"], { helper: true })).resolves.toEqual({ ok: true });
+    await expect(service.request("Remote", ["send", CREW, "--", "hi"], { helper: true })).resolves.toEqual({ ok: true });
     await expect(service.request("Remote", ["permit", "ls"], { helper: true })).resolves.toEqual({ ok: true });
-    await expect(service.request("Remote", ["inspect", "scoped-1"], { helper: true })).resolves.toEqual({ ok: true });
+    await expect(service.request("Remote", ["inspect", SCOPED], { helper: true })).resolves.toEqual({ ok: true });
     expect(guarded).toHaveLength(6); // Only the crew send added a guard check after the refusals.
+  });
+  it("resolves a helper's ID prefix to one polled worker before guarding; a scoped prefix, a name or an unknown prefix refuses", async () => {
+    const calls: string[][] = [], guarded: string[] = [];
+    const { service } = await fixture(async (args) => {
+      calls.push(args);
+      return args[0] === "status" ? success({ serverId: remote.serverId, connectedDaemon: "reachable" }) : success({ ok: true });
+    }, undefined, async (_serverId, agentId) => {
+      guarded.push(agentId);
+      // The real guard refuses any prefix of a scoped worker's ID (supervision-sources.test.ts).
+      if (SCOPED.startsWith(agentId.toLowerCase())) throw new Error("This remote worker belongs to a scoped supervisor.");
+    });
+    // What the last poll found on the host (the poll itself is covered above).
+    const worker = (id: string) => ({ id, name: "Crew worker", status: "idle", updatedAt: "2026-11-06T00:00:00.000Z", permissions: 0, output: "" });
+    (service as any).snapshot.hosts.find((host: { serverId: string }) => host.serverId === remote.serverId).workers = [worker(SCOPED), worker(CREW), worker(TWIN)];
+    // A scoped worker's prefix refuses before resolution, before any connection.
+    for (const args of [["send", SCOPED.slice(0, 7), "--", "steer"], ["stop", SCOPED.slice(0, 8).toUpperCase()], ["archive", SCOPED.slice(0, 7)],
+      ["permit", "allow", SCOPED.slice(0, 7), "req-1"], ["permit", "deny", SCOPED.slice(0, 7), "req-1", "--message", "No."]])
+      await expect(service.request("Remote", args, { helper: true })).rejects.toThrow("scoped supervisor");
+    // A name, an unknown prefix and an ambiguous one cannot be checked, so they refuse too.
+    await expect(service.request("Remote", ["archive", "Crew worker"], { helper: true })).rejects.toThrow("full ID");
+    await expect(service.request("Remote", ["stop", "0000000"], { helper: true })).rejects.toThrow("matches no worker");
+    await expect(service.request("Remote", ["stop", "c0ffee00"], { helper: true })).rejects.toThrow("more than one");
+    expect(calls).toEqual([]);
+    // Own crew by prefix: guarded as typed and as resolved, and sent with the full ID.
+    guarded.length = 0;
+    await expect(service.request("Remote", ["send", CREW.slice(0, 10), "--", "hi"], { helper: true })).resolves.toEqual({ ok: true });
+    expect(guarded).toEqual([CREW.slice(0, 10), CREW]);
+    expect(calls.find((args) => args[0] === "send")).toEqual(expect.arrayContaining(["send", CREW, "--", "hi"]));
+    expect(calls.find((args) => args[0] === "send")).not.toContain(CREW.slice(0, 10));
   });
   it("executes a native terminal helper through the daemon queue", async () => {
     const { directory, home, service } = await fixture(async (args) => args[0] === "status" ? success({ serverId: remote.serverId, connectedDaemon: "reachable" }) : success([{ projectId: "remote-project" }]));

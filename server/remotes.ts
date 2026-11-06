@@ -82,10 +82,22 @@ export function commandArguments(args: string[], owner: string): string[] {
  * refuses these for scoped workers (they are their Supervisor's, through the checked gateway);
  * the gateway's own receiver and the board's already-guarded path do not take the helper origin. */
 export function remoteMutationAgent(args: string[]): string | null {
-  const positional = (value: string | undefined) => value && !value.startsWith("-") ? value : null;
-  if (["send", "stop", "archive"].includes(args[0] ?? "")) return positional(args[1]);
-  if (args[0] === "permit" && (args[1] === "allow" || args[1] === "deny")) return positional(args[2]);
-  return null;
+  const index = remoteMutationIndex(args);
+  return index === null ? null : args[index]!;
+}
+function remoteMutationIndex(args: string[]): number | null {
+  const at = ["send", "stop", "archive"].includes(args[0] ?? "") ? 1 : args[0] === "permit" && (args[1] === "allow" || args[1] === "deny") ? 2 : null;
+  return at !== null && args[at] && !args[at]!.startsWith("-") ? at : null;
+}
+const FULL_AGENT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** The full agent ID a helper mutation names. The CLI also takes a unique ID prefix (and, for
+ * `archive`, a name), which the scoped-worker guard could not compare; a prefix is resolved against
+ * the host's last poll and must name exactly one worker there, and anything else is refused. */
+export function resolveMutationTarget(token: string, workers: readonly { id: string }[]): string {
+  if (FULL_AGENT_ID.test(token)) return token;
+  const matches = workers.filter((worker) => worker.id.toLowerCase().startsWith(token.toLowerCase()));
+  if (matches.length === 1) return matches[0]!.id;
+  throw new Error(`Name the remote agent by its full ID: "${token.slice(0, 64)}" is not one, and ${matches.length ? "matches more than one" : "matches no"} worker in the last poll of that host`);
 }
 const MAX_ERROR_CHARS = 1500;
 /** More than a few minutes: the delay of a remote run can never account for it. */
@@ -270,9 +282,14 @@ export class RemoteService {
     if (matches.length !== 1) throw new Error("Host is unknown or its name is ambiguous; use its serverId from hosts");
     const host = matches[0]!;
     const command = commandArguments(args, this.owner);
-    if (origin?.helper && this.scopedGuard) {
-      const agent = remoteMutationAgent(command);
-      if (agent) await this.scopedGuard(host.serverId, agent);
+    const target = origin?.helper ? remoteMutationIndex(command) : null;
+    if (target !== null) {
+      // The token as given is checked first (the guard refuses a prefix of any scoped worker), then the
+      // full ID it resolves to, which replaces it so the host acts on exactly the agent that was checked.
+      const token = command[target]!;
+      await this.scopedGuard?.(host.serverId, token);
+      const full = resolveMutationTarget(token, this.snapshot.hosts.find((entry) => entry.serverId === host.serverId)?.workers ?? []);
+      if (full !== token) { await this.scopedGuard?.(host.serverId, full); command[target] = full; }
     }
     const connection = await this.connect(host);
     // Exactly one attempt once a command may change remote state. A timeout

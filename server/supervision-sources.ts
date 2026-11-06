@@ -582,9 +582,18 @@ export function isScopedSourceWorker(status: SupervisionStatus, hostId: string, 
     a.worker && normalHost(a.worker.hostId) === host && a.worker.agentId === agentId &&
     s.tasks.some(t => t.id === a.taskId && (status.scopes.find(scope => scope.id === t.ownerScopeId)?.mode === "scoped" || status.freshness === "held"))));
 }
-/** Remote mutation of scoped work is disabled until S11's qualified receiver contract. */
+/** True when any scoped (or, on a held journal, possibly scoped) attempt on the host has a worker
+ * whose ID starts with `token`, case-insensitively: the CLI resolves a unique prefix to that agent. */
+function mayNameScopedSourceWorker(status: SupervisionStatus, hostId: string, token: string): boolean {
+  const host = normalHost(hostId), wanted = token.toLowerCase();
+  return wanted.length > 0 && [{ attempts: status.attempts, tasks: status.tasks }, ...status.retainedOwnership].some(s => s.attempts.some(a =>
+    a.worker && normalHost(a.worker.hostId) === host && a.worker.agentId.toLowerCase().startsWith(wanted) &&
+    s.tasks.some(t => t.id === a.taskId && (status.scopes.find(scope => scope.id === t.ownerScopeId)?.mode === "scoped" || status.freshness === "held"))));
+}
+/** Remote mutation of scoped work is disabled until S11's qualified receiver contract. `agentId` is
+ * the target as the command names it: a full ID, or a prefix the CLI would resolve. */
 export function refuseScopedRemoteMutation(status: SupervisionStatus, serverId: string, agentId: string): void {
-  if (isScopedSourceWorker(status, serverId, agentId)) throw new SupervisionError("UNSUPPORTED",
+  if (mayNameScopedSourceWorker(status, serverId, agentId)) throw new SupervisionError("UNSUPPORTED",
     "This remote worker belongs to a scoped supervisor. Remote steer, interrupt, end and permission answers stay disabled here; they are the Supervisor's through the checked gateway.");
 }
 /** The board's and the mate helper's guard on a remote mutation, reading the journal through `read`.

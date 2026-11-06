@@ -1,0 +1,1433 @@
+{
+  "probe": "firstmate-remote-supervisors-s0",
+  "mode": "surface",
+  "at": "2026-11-06T17:08:30.296Z",
+  "platform": "win32",
+  "summary": {
+    "nonce": "s0-2666de49",
+    "repo": "/tmp/fm-probe-s0-2666de49",
+    "created": {
+      "janitor": "690329a3-86ef-46bb-aa41-c13f1fa2196a",
+      "worker": "9dbfb50b-8209-4283-a9a1-ab12d5f67f66",
+      "worktree": "wks_c033ad6dfbbf0cae",
+      "worktreeCwd": "/home/ariadne/.paseo/worktrees/1zlak3n8/fm-probe-s0-2666de49",
+      "repoProject": "prj_88670995a98c5e06",
+      "tmpWorkspace": "wks_a9d5fdef9d487f6b",
+      "tmpProject": "prj_471672a4f63ee973",
+      "repo": true
+    },
+    "agents": [],
+    "leftover": []
+  },
+  "steps": [
+    {
+      "name": "version:before",
+      "atMs": 75,
+      "readAt": "2026-11-06T17:08:30.370Z",
+      "checkedAt": "2026-11-06T17:07:20.633Z",
+      "online": true,
+      "daemonVersion": "0.13.0"
+    },
+    {
+      "name": "preflight",
+      "atMs": 148,
+      "projects": 288,
+      "workspaces": 369,
+      "tmpProjects": 0,
+      "tmpWorkspaces": 0
+    },
+    {
+      "name": "janitor:create",
+      "atMs": 6103,
+      "args": [
+        "run",
+        "--cwd",
+        "/tmp",
+        "--provider",
+        "claude",
+        "--model",
+        "claude-haiku-4-5",
+        "--mode",
+        "default",
+        "--title",
+        "FirstMate probe janitor s0-2666de49 (archive me)",
+        "--label",
+        "firstmate.task=fm-remote-supervisors-probe",
+        "--label",
+        "firstmate.kind=scout",
+        "--label",
+        "firstmate.probe=s0-2666de49",
+        "--",
+        "This is a FirstMate capability probe. Reply with exactly the word ok and then stop. Do not use any tools."
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:08:30.444Z",
+      "endedAt": "2026-11-06T17:08:36.399Z",
+      "stdout": "{\n  \"agentId\": \"690329a3-86ef-46bb-aa41-c13f1fa2196a\",\n  \"status\": \"running\",\n  \"provider\": \"claude\",\n  \"cwd\": \"/tmp\",\n  \"title\": \"FirstMate probe janitor s0-2666de49 (archive me)\"\n}\n",
+      "stderr": "",
+      "parsed": {
+        "agentId": "690329a3-86ef-46bb-aa41-c13f1fa2196a",
+        "status": "running",
+        "provider": "claude",
+        "cwd": "/tmp",
+        "title": "FirstMate probe janitor s0-2666de49 (archive me)"
+      }
+    },
+    {
+      "name": "janitor:first-turn",
+      "atMs": 10020,
+      "parsed": {
+        "Id": "690329a3-86ef-46bb-aa41-c13f1fa2196a",
+        "Name": "FirstMate probe janitor s0-2666de49 (archive me)",
+        "Provider": "claude",
+        "Model": "claude-haiku-4-5",
+        "Thinking": "auto",
+        "Status": "idle",
+        "Archived": false,
+        "ArchivedAt": null,
+        "Mode": "default",
+        "Cwd": "/tmp",
+        "CreatedAt": "2026-11-06T17:08:34.839Z",
+        "UpdatedAt": "2026-11-06T17:08:36.442Z",
+        "LastUsage": {
+          "InputTokens": 10,
+          "OutputTokens": 79,
+          "CachedTokens": 23698,
+          "CostUsd": 0.0027748
+        },
+        "Capabilities": {
+          "Streaming": true,
+          "Persistence": true,
+          "DynamicModes": true,
+          "McpServers": true
+        },
+        "AvailableModes": [
+          {
+            "id": "plan",
+            "label": "Plan Mode"
+          },
+          {
+            "id": "default",
+            "label": "Always Ask"
+          },
+          {
+            "id": "acceptEdits",
+            "label": "Accept File Edits"
+          },
+          {
+            "id": "auto",
+            "label": "Auto mode"
+          },
+          {
+            "id": "bypassPermissions",
+            "label": "Bypass"
+          }
+        ],
+        "PendingPermissions": [],
+        "Worktree": null,
+        "ParentAgentId": null
+      }
+    },
+    {
+      "name": "janitor:workspace",
+      "atMs": 15168,
+      "args": [
+        "workspace",
+        "ls",
+        "--background"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:08:40.316Z",
+      "endedAt": "2026-11-06T17:08:45.464Z",
+      "stderr": "",
+      "parsed": [
+        {
+          "workspaceId": "wks_a9d5fdef9d487f6b",
+          "project": "tmp",
+          "name": "tmp",
+          "isolation": "local",
+          "cwd": "/tmp",
+          "background": false
+        }
+      ],
+      "rows": 370,
+      "keys": [
+        "background",
+        "cwd",
+        "isolation",
+        "name",
+        "project",
+        "workspaceId"
+      ]
+    },
+    {
+      "name": "janitor:project",
+      "atMs": 20331,
+      "args": [
+        "project",
+        "ls"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:08:45.464Z",
+      "endedAt": "2026-11-06T17:08:50.627Z",
+      "stderr": "",
+      "parsed": [
+        {
+          "projectId": "prj_471672a4f63ee973",
+          "name": "tmp",
+          "kind": "non_git",
+          "path": "/tmp"
+        }
+      ],
+      "rows": 289,
+      "keys": [
+        "kind",
+        "name",
+        "path",
+        "projectId"
+      ]
+    },
+    {
+      "name": "repo:create:send",
+      "atMs": 28061,
+      "args": [
+        "send",
+        "690329a3-86ef-46bb-aa41-c13f1fa2196a",
+        "--",
+        "Run exactly this one Bash command, with no other tool, then reply with its output and stop:\nmkdir /tmp/fm-probe-s0-2666de49 && cd /tmp/fm-probe-s0-2666de49 && git init -q -b main && git -c user.name=p -c user.email=p@x commit -q --allow-empty -m init && git branch --show-current"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:08:50.627Z",
+      "endedAt": "2026-11-06T17:08:58.357Z",
+      "stdout": "{\n  \"agentId\": \"690329a3-86ef-46bb-aa41-c13f1fa2196a\",\n  \"status\": \"sent\",\n  \"message\": \"Message sent, not waiting for completion\"\n}\n",
+      "stderr": "",
+      "parsed": {
+        "agentId": "690329a3-86ef-46bb-aa41-c13f1fa2196a",
+        "status": "sent",
+        "message": "Message sent, not waiting for completion"
+      }
+    },
+    {
+      "name": "repo:create:requested",
+      "atMs": 38079,
+      "args": [
+        "permit",
+        "ls"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:08:58.357Z",
+      "endedAt": "2026-11-06T17:09:08.375Z",
+      "stderr": "",
+      "parsed": [
+        {
+          "id": "permission-e01265ef-70bf-41e8-94b2-37e2a285eac3",
+          "agentId": "690329a3-86ef-46bb-aa41-c13f1fa2196a",
+          "agentShortId": "690329a",
+          "name": "Bash",
+          "description": "-",
+          "recentTools": [
+            "[Shell] mkdir /tmp/fm-probe-s0-2666de49 && cd /tmp/fm-probe-s0-2666de49 && git init -q -b main && git -c user.name=p -c user.email=p@x commit -q --allow-empty -m init && git branch --show-current"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "repo:create:allow",
+      "atMs": 45301,
+      "args": [
+        "permit",
+        "allow",
+        "690329a3-86ef-46bb-aa41-c13f1fa2196a",
+        "permission-e01265ef-70bf-41e8-94b2-37e2a285eac3"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:09:08.375Z",
+      "endedAt": "2026-11-06T17:09:15.597Z",
+      "stdout": "[\n  {\n    \"requestId\": \"permission-e01265ef-70bf-41e8-94b2-37e2a285eac3\",\n    \"agentId\": \"690329a3-86ef-46bb-aa41-c13f1fa2196a\",\n    \"agentShortId\": \"690329a\",\n    \"name\": \"Bash\",\n    \"result\": \"allowed\"\n  }\n]\n",
+      "stderr": "",
+      "parsed": [
+        {
+          "requestId": "permission-e01265ef-70bf-41e8-94b2-37e2a285eac3",
+          "agentId": "690329a3-86ef-46bb-aa41-c13f1fa2196a",
+          "agentShortId": "690329a",
+          "name": "Bash",
+          "result": "allowed"
+        }
+      ]
+    },
+    {
+      "name": "repo:create:settled",
+      "atMs": 51023,
+      "parsed": {
+        "Id": "690329a3-86ef-46bb-aa41-c13f1fa2196a",
+        "Name": "FirstMate probe janitor s0-2666de49 (archive me)",
+        "Provider": "claude",
+        "Model": "claude-haiku-4-5",
+        "Thinking": "auto",
+        "Status": "idle",
+        "Archived": false,
+        "ArchivedAt": null,
+        "Mode": "default",
+        "Cwd": "/tmp",
+        "CreatedAt": "2026-11-06T17:08:34.839Z",
+        "UpdatedAt": "2026-11-06T17:09:15.479Z",
+        "LastUsage": {
+          "InputTokens": 18,
+          "OutputTokens": 366,
+          "CachedTokens": 48514,
+          "CostUsd": 0.0125202
+        },
+        "Capabilities": {
+          "Streaming": true,
+          "Persistence": true,
+          "DynamicModes": true,
+          "McpServers": true
+        },
+        "AvailableModes": [
+          {
+            "id": "plan",
+            "label": "Plan Mode"
+          },
+          {
+            "id": "default",
+            "label": "Always Ask"
+          },
+          {
+            "id": "acceptEdits",
+            "label": "Accept File Edits"
+          },
+          {
+            "id": "auto",
+            "label": "Auto mode"
+          },
+          {
+            "id": "bypassPermissions",
+            "label": "Bypass"
+          }
+        ],
+        "PendingPermissions": [],
+        "Worktree": null,
+        "ParentAgentId": null
+      }
+    },
+    {
+      "name": "repo:create:output",
+      "atMs": 54888,
+      "args": [
+        "logs",
+        "690329a3-86ef-46bb-aa41-c13f1fa2196a",
+        "--tail",
+        "1",
+        "--filter",
+        "assistant_message"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:09:21.319Z",
+      "endedAt": "2026-11-06T17:09:25.184Z",
+      "stdout": "main\n\n",
+      "stderr": ""
+    },
+    {
+      "name": "workspace:create",
+      "atMs": 60552,
+      "args": [
+        "workspace",
+        "create",
+        "--isolation",
+        "worktree",
+        "--path",
+        "/tmp/fm-probe-s0-2666de49",
+        "--worktree-slug",
+        "fm-probe-s0-2666de49",
+        "--new-branch",
+        "fm-probe/s0-2666de49",
+        "--base",
+        "main",
+        "--title",
+        "fm-probe/s0-2666de49"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:09:25.184Z",
+      "endedAt": "2026-11-06T17:09:30.848Z",
+      "stdout": "{\n  \"workspaceId\": \"wks_c033ad6dfbbf0cae\",\n  \"project\": \"fm-probe-s0-2666de49\",\n  \"name\": \"fm-probe/s0-2666de49\",\n  \"isolation\": \"worktree\",\n  \"cwd\": \"/home/ariadne/.paseo/worktrees/1zlak3n8/fm-probe-s0-2666de49\",\n  \"background\": false\n}\n",
+      "stderr": "",
+      "parsed": {
+        "workspaceId": "wks_c033ad6dfbbf0cae",
+        "project": "fm-probe-s0-2666de49",
+        "name": "fm-probe/s0-2666de49",
+        "isolation": "worktree",
+        "cwd": "/home/ariadne/.paseo/worktrees/1zlak3n8/fm-probe-s0-2666de49",
+        "background": false
+      }
+    },
+    {
+      "name": "workspace:ls",
+      "atMs": 65964,
+      "args": [
+        "workspace",
+        "ls",
+        "--background"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:09:30.848Z",
+      "endedAt": "2026-11-06T17:09:36.259Z",
+      "stderr": "",
+      "parsed": [
+        {
+          "workspaceId": "wks_c033ad6dfbbf0cae",
+          "project": "fm-probe-s0-2666de49",
+          "name": "fm-probe/s0-2666de49",
+          "isolation": "worktree",
+          "cwd": "/home/ariadne/.paseo/worktrees/1zlak3n8/fm-probe-s0-2666de49",
+          "background": false
+        }
+      ],
+      "rows": 371,
+      "keys": [
+        "background",
+        "cwd",
+        "isolation",
+        "name",
+        "project",
+        "workspaceId"
+      ]
+    },
+    {
+      "name": "workspace:ls-branch",
+      "atMs": 65964,
+      "branchField": false,
+      "rowBranch": null
+    },
+    {
+      "name": "workspace:project",
+      "atMs": 72643,
+      "args": [
+        "project",
+        "ls"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:09:36.260Z",
+      "endedAt": "2026-11-06T17:09:42.939Z",
+      "stderr": "",
+      "parsed": [
+        {
+          "projectId": "prj_88670995a98c5e06",
+          "name": "fm-probe-s0-2666de49",
+          "kind": "git",
+          "path": "/tmp/fm-probe-s0-2666de49"
+        }
+      ],
+      "rows": 290,
+      "keys": [
+        "kind",
+        "name",
+        "path",
+        "projectId"
+      ]
+    },
+    {
+      "name": "worker:create",
+      "atMs": 79371,
+      "args": [
+        "run",
+        "--workspace",
+        "wks_c033ad6dfbbf0cae",
+        "--provider",
+        "claude",
+        "--model",
+        "claude-haiku-4-5",
+        "--mode",
+        "default",
+        "--title",
+        "FirstMate probe worker s0-2666de49 (archive me)",
+        "--label",
+        "firstmate.task=fm-remote-supervisors-probe",
+        "--label",
+        "firstmate.kind=scout",
+        "--label",
+        "firstmate.probe=s0-2666de49",
+        "--",
+        "This is a FirstMate capability probe. Use the AskUserQuestion tool exactly once, with one question \"Proceed with the probe?\" (header \"Probe\") and the two options \"yes\" and \"no\". Then reply with exactly the answer you received and stop. Use no other tool."
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:09:42.939Z",
+      "endedAt": "2026-11-06T17:09:49.667Z",
+      "stdout": "{\n  \"agentId\": \"9dbfb50b-8209-4283-a9a1-ab12d5f67f66\",\n  \"status\": \"running\",\n  \"provider\": \"claude\",\n  \"cwd\": \"/home/ariadne/.paseo/worktrees/1zlak3n8/fm-probe-s0-2666de49\",\n  \"title\": \"FirstMate probe worker s0-2666de49 (archive me)\"\n}\n",
+      "stderr": "",
+      "parsed": {
+        "agentId": "9dbfb50b-8209-4283-a9a1-ab12d5f67f66",
+        "status": "running",
+        "provider": "claude",
+        "cwd": "/home/ariadne/.paseo/worktrees/1zlak3n8/fm-probe-s0-2666de49",
+        "title": "FirstMate probe worker s0-2666de49 (archive me)"
+      }
+    },
+    {
+      "name": "permit-allow:requested",
+      "atMs": 88960,
+      "args": [
+        "permit",
+        "ls"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:09:49.667Z",
+      "endedAt": "2026-11-06T17:09:59.256Z",
+      "stderr": "",
+      "parsed": [
+        {
+          "id": "permission-77426fae-c7b5-4e49-a18d-a3b9cc26a1e7",
+          "agentId": "9dbfb50b-8209-4283-a9a1-ab12d5f67f66",
+          "agentShortId": "9dbfb50",
+          "name": "AskUserQuestion",
+          "description": "yes / no",
+          "recentTools": [
+            "[Askuserquestion]"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "permit-allow:inspect",
+      "atMs": 94876,
+      "args": [
+        "inspect",
+        "9dbfb50b-8209-4283-a9a1-ab12d5f67f66"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:09:59.256Z",
+      "endedAt": "2026-11-06T17:10:05.172Z",
+      "stdout": "{\n  \"Id\": \"9dbfb50b-8209-4283-a9a1-ab12d5f67f66\",\n  \"Name\": \"FirstMate probe worker s0-2666de49 (archive me)\",\n  \"Provider\": \"claude\",\n  \"Model\": \"claude-haiku-4-5\",\n  \"Thinking\": \"auto\",\n  \"Status\": \"running\",\n  \"Archived\": false,\n  \"ArchivedAt\": null,\n  \"Mode\": \"default\",\n  \"Cwd\": \"/home/ariadne/.paseo/worktrees/1zlak3n8/fm-probe-s0-2666de49\",\n  \"CreatedAt\": \"2026-11-06T17:09:47.807Z\",\n  \"UpdatedAt\": \"2026-11-06T17:09:50.297Z\",\n  \"LastUsage\": {\n    \"InputTokens\": 0,\n    \"OutputTokens\": 0,\n    \"CachedTokens\": 0,\n    \"CostUsd\": 0\n  },\n  \"Capabilities\": {\n    \"Streaming\": true,\n    \"Persistence\": true,\n    \"DynamicModes\": true,\n    \"McpServers\": true\n  },\n  \"AvailableModes\": [\n    {\n      \"id\": \"plan\",\n      \"label\": \"Plan Mode\"\n    },\n    {\n      \"id\": \"default\",\n      \"label\": \"Always Ask\"\n    },\n    {\n      \"id\": \"acceptEdits\",\n      \"label\": \"Accept File Edits\"\n    },\n    {\n      \"id\": \"auto\",\n      \"label\": \"Auto mode\"\n    },\n    {\n      \"id\": \"bypassPermissions\",\n      \"label\": \"Bypass\"\n    }\n  ],\n  \"PendingPermissions\": [\n    {\n      \"id\": \"permission-77426fae-c7b5-4e49-a18d-a3b9cc26a1e7\",\n      \"tool\": \"AskUserQuestion\"\n    }\n  ],\n  \"Worktree\": null,\n  \"ParentAgentId\": null\n}\n",
+      "stderr": "",
+      "parsed": {
+        "Id": "9dbfb50b-8209-4283-a9a1-ab12d5f67f66",
+        "Name": "FirstMate probe worker s0-2666de49 (archive me)",
+        "Provider": "claude",
+        "Model": "claude-haiku-4-5",
+        "Thinking": "auto",
+        "Status": "running",
+        "Archived": false,
+        "ArchivedAt": null,
+        "Mode": "default",
+        "Cwd": "/home/ariadne/.paseo/worktrees/1zlak3n8/fm-probe-s0-2666de49",
+        "CreatedAt": "2026-11-06T17:09:47.807Z",
+        "UpdatedAt": "2026-11-06T17:09:50.297Z",
+        "LastUsage": {
+          "InputTokens": 0,
+          "OutputTokens": 0,
+          "CachedTokens": 0,
+          "CostUsd": 0
+        },
+        "Capabilities": {
+          "Streaming": true,
+          "Persistence": true,
+          "DynamicModes": true,
+          "McpServers": true
+        },
+        "AvailableModes": [
+          {
+            "id": "plan",
+            "label": "Plan Mode"
+          },
+          {
+            "id": "default",
+            "label": "Always Ask"
+          },
+          {
+            "id": "acceptEdits",
+            "label": "Accept File Edits"
+          },
+          {
+            "id": "auto",
+            "label": "Auto mode"
+          },
+          {
+            "id": "bypassPermissions",
+            "label": "Bypass"
+          }
+        ],
+        "PendingPermissions": [
+          {
+            "id": "permission-77426fae-c7b5-4e49-a18d-a3b9cc26a1e7",
+            "tool": "AskUserQuestion"
+          }
+        ],
+        "Worktree": null,
+        "ParentAgentId": null
+      }
+    },
+    {
+      "name": "permit-allow:answer",
+      "atMs": 102031,
+      "args": [
+        "permit",
+        "allow",
+        "9dbfb50b-8209-4283-a9a1-ab12d5f67f66",
+        "permission-77426fae-c7b5-4e49-a18d-a3b9cc26a1e7",
+        "--input",
+        "{\"answers\":{\"Proceed with the probe?\":\"yes\"}}"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:10:05.172Z",
+      "endedAt": "2026-11-06T17:10:12.327Z",
+      "stdout": "[\n  {\n    \"requestId\": \"permission-77426fae-c7b5-4e49-a18d-a3b9cc26a1e7\",\n    \"agentId\": \"9dbfb50b-8209-4283-a9a1-ab12d5f67f66\",\n    \"agentShortId\": \"9dbfb50\",\n    \"name\": \"AskUserQuestion\",\n    \"result\": \"allowed\"\n  }\n]\n",
+      "stderr": "",
+      "parsed": [
+        {
+          "requestId": "permission-77426fae-c7b5-4e49-a18d-a3b9cc26a1e7",
+          "agentId": "9dbfb50b-8209-4283-a9a1-ab12d5f67f66",
+          "agentShortId": "9dbfb50",
+          "name": "AskUserQuestion",
+          "result": "allowed"
+        }
+      ]
+    },
+    {
+      "name": "permit-allow:settled",
+      "atMs": 107966,
+      "parsed": {
+        "Id": "9dbfb50b-8209-4283-a9a1-ab12d5f67f66",
+        "Name": "FirstMate probe worker s0-2666de49 (archive me)",
+        "Provider": "claude",
+        "Model": "claude-haiku-4-5",
+        "Thinking": "auto",
+        "Status": "idle",
+        "Archived": false,
+        "ArchivedAt": null,
+        "Mode": "default",
+        "Cwd": "/home/ariadne/.paseo/worktrees/1zlak3n8/fm-probe-s0-2666de49",
+        "CreatedAt": "2026-11-06T17:09:47.807Z",
+        "UpdatedAt": "2026-11-06T17:10:12.235Z",
+        "LastUsage": {
+          "InputTokens": 18,
+          "OutputTokens": 317,
+          "CachedTokens": 39543,
+          "CostUsd": 0.0250793
+        },
+        "Capabilities": {
+          "Streaming": true,
+          "Persistence": true,
+          "DynamicModes": true,
+          "McpServers": true
+        },
+        "AvailableModes": [
+          {
+            "id": "plan",
+            "label": "Plan Mode"
+          },
+          {
+            "id": "default",
+            "label": "Always Ask"
+          },
+          {
+            "id": "acceptEdits",
+            "label": "Accept File Edits"
+          },
+          {
+            "id": "auto",
+            "label": "Auto mode"
+          },
+          {
+            "id": "bypassPermissions",
+            "label": "Bypass"
+          }
+        ],
+        "PendingPermissions": [],
+        "Worktree": null,
+        "ParentAgentId": null
+      }
+    },
+    {
+      "name": "permit-allow:reply",
+      "atMs": 112594,
+      "args": [
+        "logs",
+        "9dbfb50b-8209-4283-a9a1-ab12d5f67f66",
+        "--tail",
+        "1",
+        "--filter",
+        "assistant_message"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:10:18.262Z",
+      "endedAt": "2026-11-06T17:10:22.890Z",
+      "stdout": "yes\n\n",
+      "stderr": ""
+    },
+    {
+      "name": "permit-deny-interrupt:send",
+      "atMs": 118771,
+      "args": [
+        "send",
+        "9dbfb50b-8209-4283-a9a1-ab12d5f67f66",
+        "--",
+        "Use the Write tool to create probe.txt in the current directory containing ok. If that is refused, reply ok and stop."
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:10:22.890Z",
+      "endedAt": "2026-11-06T17:10:29.067Z",
+      "stdout": "{\n  \"agentId\": \"9dbfb50b-8209-4283-a9a1-ab12d5f67f66\",\n  \"status\": \"sent\",\n  \"message\": \"Message sent, not waiting for completion\"\n}\n",
+      "stderr": "",
+      "parsed": {
+        "agentId": "9dbfb50b-8209-4283-a9a1-ab12d5f67f66",
+        "status": "sent",
+        "message": "Message sent, not waiting for completion"
+      }
+    },
+    {
+      "name": "permit-deny-interrupt:requested",
+      "atMs": 127773,
+      "args": [
+        "permit",
+        "ls"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:10:29.067Z",
+      "endedAt": "2026-11-06T17:10:38.069Z",
+      "stderr": "",
+      "parsed": [
+        {
+          "id": "permission-0a4e66a5-6f17-4a7e-af64-fc710f9c85e1",
+          "agentId": "9dbfb50b-8209-4283-a9a1-ab12d5f67f66",
+          "agentShortId": "9dbfb50",
+          "name": "Write",
+          "description": "-",
+          "recentTools": [
+            "[Askuserquestion]",
+            "[Write] /home/ariadne/.paseo/worktrees/1zlak3n8/fm-probe-s0-2666de49/probe.txt"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "permit-deny-interrupt:deny",
+      "atMs": 158913,
+      "args": [
+        "permit",
+        "deny",
+        "9dbfb50b-8209-4283-a9a1-ab12d5f67f66",
+        "permission-0a4e66a5-6f17-4a7e-af64-fc710f9c85e1",
+        "--message",
+        "Denied by the FirstMate probe.",
+        "--interrupt"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:10:38.069Z",
+      "endedAt": "2026-11-06T17:11:09.209Z",
+      "stdout": "[\n  {\n    \"requestId\": \"permission-0a4e66a5-6f17-4a7e-af64-fc710f9c85e1\",\n    \"agentId\": \"9dbfb50b-8209-4283-a9a1-ab12d5f67f66\",\n    \"agentShortId\": \"9dbfb50\",\n    \"name\": \"Write\",\n    \"result\": \"denied\"\n  }\n]\n",
+      "stderr": "",
+      "parsed": [
+        {
+          "requestId": "permission-0a4e66a5-6f17-4a7e-af64-fc710f9c85e1",
+          "agentId": "9dbfb50b-8209-4283-a9a1-ab12d5f67f66",
+          "agentShortId": "9dbfb50",
+          "name": "Write",
+          "result": "denied"
+        }
+      ]
+    },
+    {
+      "name": "permit-deny-interrupt:settled",
+      "atMs": 165357,
+      "parsed": {
+        "Id": "9dbfb50b-8209-4283-a9a1-ab12d5f67f66",
+        "Name": "FirstMate probe worker s0-2666de49 (archive me)",
+        "Provider": "claude",
+        "Model": "claude-haiku-4-5",
+        "Thinking": "auto",
+        "Status": "error",
+        "Archived": false,
+        "ArchivedAt": null,
+        "Mode": "default",
+        "Cwd": "/home/ariadne/.paseo/worktrees/1zlak3n8/fm-probe-s0-2666de49",
+        "CreatedAt": "2026-11-06T17:09:47.807Z",
+        "UpdatedAt": "2026-11-06T17:11:08.788Z",
+        "LastUsage": {
+          "InputTokens": 0,
+          "OutputTokens": 0,
+          "CachedTokens": 0,
+          "CostUsd": 0
+        },
+        "Capabilities": {
+          "Streaming": true,
+          "Persistence": true,
+          "DynamicModes": true,
+          "McpServers": true
+        },
+        "AvailableModes": [
+          {
+            "id": "plan",
+            "label": "Plan Mode"
+          },
+          {
+            "id": "default",
+            "label": "Always Ask"
+          },
+          {
+            "id": "acceptEdits",
+            "label": "Accept File Edits"
+          },
+          {
+            "id": "auto",
+            "label": "Auto mode"
+          },
+          {
+            "id": "bypassPermissions",
+            "label": "Bypass"
+          }
+        ],
+        "PendingPermissions": [],
+        "Worktree": null,
+        "ParentAgentId": null
+      }
+    },
+    {
+      "name": "permit-deny-interrupt:logs",
+      "atMs": 171030,
+      "args": [
+        "logs",
+        "9dbfb50b-8209-4283-a9a1-ab12d5f67f66",
+        "--tail",
+        "4",
+        "--filter",
+        "text"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:11:15.653Z",
+      "endedAt": "2026-11-06T17:11:21.326Z",
+      "stdout": "[User] This is a FirstMate capability probe. Use the AskUserQuestion tool exactly once, with one question \"Proceed with the probe?\" (header \"Probe\") and the two options \"yes\" and \"no\". Then reply with exactly the answer you received and stop. Use no other tool.\nyes\n[User] Use the Write tool to create probe.txt in the current directory containing ok. If that is refused, reply ok and stop.\n[System Error] [ede_diagnostic] result_type=user last_content_type=n/a stop_reason=tool_use\n\n",
+      "stderr": ""
+    },
+    {
+      "name": "stop:send",
+      "atMs": 181584,
+      "args": [
+        "send",
+        "9dbfb50b-8209-4283-a9a1-ab12d5f67f66",
+        "--",
+        "Without using any tools, write the numbers from 1 to 3000 in English words, one per line, then stop."
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:11:21.326Z",
+      "endedAt": "2026-11-06T17:11:31.880Z",
+      "stdout": "{\n  \"agentId\": \"9dbfb50b-8209-4283-a9a1-ab12d5f67f66\",\n  \"status\": \"sent\",\n  \"message\": \"Message sent, not waiting for completion\"\n}\n",
+      "stderr": "",
+      "parsed": {
+        "agentId": "9dbfb50b-8209-4283-a9a1-ab12d5f67f66",
+        "status": "sent",
+        "message": "Message sent, not waiting for completion"
+      }
+    },
+    {
+      "name": "stop:running",
+      "atMs": 186754,
+      "parsed": {
+        "Id": "9dbfb50b-8209-4283-a9a1-ab12d5f67f66",
+        "Name": "FirstMate probe worker s0-2666de49 (archive me)",
+        "Provider": "claude",
+        "Model": "claude-haiku-4-5",
+        "Thinking": "auto",
+        "Status": "running",
+        "Archived": false,
+        "ArchivedAt": null,
+        "Mode": "default",
+        "Cwd": "/home/ariadne/.paseo/worktrees/1zlak3n8/fm-probe-s0-2666de49",
+        "CreatedAt": "2026-11-06T17:09:47.807Z",
+        "UpdatedAt": "2026-11-06T17:11:36.441Z",
+        "LastUsage": {
+          "InputTokens": 0,
+          "OutputTokens": 0,
+          "CachedTokens": 0,
+          "CostUsd": 0
+        },
+        "Capabilities": {
+          "Streaming": true,
+          "Persistence": true,
+          "DynamicModes": true,
+          "McpServers": true
+        },
+        "AvailableModes": [
+          {
+            "id": "plan",
+            "label": "Plan Mode"
+          },
+          {
+            "id": "default",
+            "label": "Always Ask"
+          },
+          {
+            "id": "acceptEdits",
+            "label": "Accept File Edits"
+          },
+          {
+            "id": "auto",
+            "label": "Auto mode"
+          },
+          {
+            "id": "bypassPermissions",
+            "label": "Bypass"
+          }
+        ],
+        "PendingPermissions": [],
+        "Worktree": null,
+        "ParentAgentId": null
+      }
+    },
+    {
+      "name": "stop",
+      "atMs": 197315,
+      "args": [
+        "stop",
+        "9dbfb50b-8209-4283-a9a1-ab12d5f67f66"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:11:37.050Z",
+      "endedAt": "2026-11-06T17:11:47.611Z",
+      "stdout": "{\n  \"stoppedCount\": 1,\n  \"agentIds\": [\n    \"9dbfb50b-8209-4283-a9a1-ab12d5f67f66\"\n  ]\n}\n",
+      "stderr": "",
+      "parsed": {
+        "stoppedCount": 1,
+        "agentIds": [
+          "9dbfb50b-8209-4283-a9a1-ab12d5f67f66"
+        ]
+      }
+    },
+    {
+      "name": "stop:settled",
+      "atMs": 203532,
+      "parsed": {
+        "Id": "9dbfb50b-8209-4283-a9a1-ab12d5f67f66",
+        "Name": "FirstMate probe worker s0-2666de49 (archive me)",
+        "Provider": "claude",
+        "Model": "claude-haiku-4-5",
+        "Thinking": "auto",
+        "Status": "idle",
+        "Archived": false,
+        "ArchivedAt": null,
+        "Mode": "default",
+        "Cwd": "/home/ariadne/.paseo/worktrees/1zlak3n8/fm-probe-s0-2666de49",
+        "CreatedAt": "2026-11-06T17:09:47.807Z",
+        "UpdatedAt": "2026-11-06T17:11:46.051Z",
+        "LastUsage": {
+          "InputTokens": 0,
+          "OutputTokens": 0,
+          "CachedTokens": 0,
+          "CostUsd": 0
+        },
+        "Capabilities": {
+          "Streaming": true,
+          "Persistence": true,
+          "DynamicModes": true,
+          "McpServers": true
+        },
+        "AvailableModes": [
+          {
+            "id": "plan",
+            "label": "Plan Mode"
+          },
+          {
+            "id": "default",
+            "label": "Always Ask"
+          },
+          {
+            "id": "acceptEdits",
+            "label": "Accept File Edits"
+          },
+          {
+            "id": "auto",
+            "label": "Auto mode"
+          },
+          {
+            "id": "bypassPermissions",
+            "label": "Bypass"
+          }
+        ],
+        "PendingPermissions": [],
+        "Worktree": null,
+        "ParentAgentId": null
+      }
+    },
+    {
+      "name": "stop:logs",
+      "atMs": 208180,
+      "args": [
+        "logs",
+        "9dbfb50b-8209-4283-a9a1-ab12d5f67f66",
+        "--tail",
+        "2",
+        "--filter",
+        "text"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:11:53.828Z",
+      "endedAt": "2026-11-06T17:11:58.476Z",
+      "stdout": "[User] Without using any tools, write the numbers from 1 to 3000 in English words, one per line, then stop.\none\ntwo\nthree\nfour\nfive\nsix\nseven\neight\nnine\nten\neleven\ntwelve\nthirteen\nfourteen\nfifteen\nsixteen\nseventeen\neighteen\nnineteen\ntwenty\ntwenty-one\ntwenty-two\ntwenty-three\ntwenty-four\ntwenty-five\ntwenty-six\ntwenty-seven\ntwenty-eight\ntwenty-nine\nthirty\nthirty-one\nthirty-two\nthirty-three\nthirty-four\nthirty-five\nthirty-six\nthirty-seven\nthirty-eight\nthirty-nine\nforty\nforty-one\nforty-two\nforty-three\nforty-four\nforty-five\nforty-six\nforty-seven\nforty-eight\nforty-nine\nfifty\nfifty-one\nfifty-two\nfifty-three\nfifty-four\nfifty-five\nfifty-six\nfifty-seven\nfifty-eight\nfifty-nine\nsixty\nsixty-one\nsixty-two\nsixty-three\nsixty-four\nsixty-five\nsixty-six\nsixty-seven\nsixty-eight\nsixty-nine\nseventy\nseventy-one\nseventy-two\nseventy-three\nseventy-four\nseventy-five\nseventy-six\nseventy-seven\nseventy-eight\nseventy-nine\neighty\neighty-one\neighty-two\neighty-three\neighty-four\neighty-five\neighty-six\neighty-seven\neighty-eight\neighty-nine\nninety\nninety-one\nninety-two\nninety-three\nninety-four\nninety-five\nninety-six\nninety-seven\nninety-eight\nninety-nine\none hundred\none hundred one\none hundred two\none hundred three\none hundred four\none hundred five\none hundred six\none hundred seven\none hundred eight\none hundred nine\none hundred ten\none hundred eleven\none hundred twelve\none hundred thirteen\none hundred fourteen\none hundred fifteen\none hundred sixteen\none hundred seventeen\none hundred eighteen\none hundred nineteen\none hundred twenty\none hundred twenty-one\none hundred twenty-two\none hundred twenty-three\none hundred twenty-four\none hundred twenty-five\none hundred twenty-six\none hundred twenty-seven\none hundred twenty-eight\none hundred twenty-nine\none hundred thirty\none hundred thirty-one\none hundred thirty-two\none hundred thirty-three\none hundred thirty-four\none hundred thirty-five\none hundred thirty-six\none hundred thirty-seven\none hundred thirty-eight\none hundred thirty-nine\none hundred forty\none hundred forty-one\none hundred forty-two\none hundred forty-three\none hundred forty-four\none hundred forty-five\none hundred forty-six\none hundred forty-seven\none hundred forty-eight\none hundred forty-nine\none hundred fifty\none hundred fifty-one\none hundred fifty-two\none hundred fifty-three\none hundred fifty-four\none hundred fifty-five\none hundred fifty-six\none hundred fifty-seven\none hundred fifty-eight\none hundred fifty-nine\none hundred sixty\none hundred sixty-one\none hundred sixty-two\none hundred sixty-three\none hundred sixty-four\none hundred sixty-five\none hundred sixty-six\none hundred sixty-seven\none hundred sixty-eight\none hundred sixty-nine\none hundred seventy\none hundred seventy-one\none hundred seventy-two\none hundred seventy-three\none hundred seventy-four\none hundred seventy-five\none hundred seventy-six\none hundred seventy-seven\none hundred seventy-eight\none hundred seventy-nine\none hundred eighty\none hundred eighty-one\none hundred eighty-two\none hundred eighty-three\none hundred eighty-four\none hundred eighty-five\none hundred eighty-six\none hundred eighty-seven\none hundred eighty-eight\none hundred eighty-nine\none hundred ninety\none hundred ninety-one\none hundred ninety-two\none hundred ninety-three\none hundred ninety-four\none hundred ninety-five\none hundred ninety-six\none hundred ninety-seven\none hundred ninety-eight\none hundred ninety-nine\ntwo hundred\ntwo hundred one\ntwo hundred two\ntwo hundred three\ntwo hundred four\ntwo hundred five\ntwo hundred six\ntwo hundred seven\ntwo hundred eight\ntwo hundred nine\ntwo hundred ten\ntwo hundred eleven\ntwo hundred twelve\ntwo hundred thirteen\ntwo hundred fourteen\ntwo hundred fifteen\ntwo hundred sixteen\ntwo hundred seventeen\ntwo hundred eighteen\ntwo hundred nineteen\ntwo hundred twenty\ntwo hundred twenty-one\ntwo hundred twenty-two\ntwo hundred twenty-three\ntwo hundred twenty-four\ntwo hundred twenty-five\ntwo hundred twenty-six\ntwo hundred twenty-seven\ntwo hundred twenty-eight\ntwo hundred twenty-nine\ntwo hundred thirty\ntwo hundred thirty-one\ntwo hundred thirty-two\ntwo hundred thirty-three\ntwo hundred thirty-four\ntwo hundred thirty-five\ntwo hundred thirty-six\ntwo hundred thirty-seven\ntwo hundred thirty-eight\ntwo hundred thirty-nine\ntwo hundred forty\ntwo hundred forty-one\ntwo hundred forty-two\ntwo hundred forty-three\ntwo hundred forty-four\ntwo hundred forty-five\ntwo hundred forty-six\ntwo hundred forty-seven\ntwo hundred forty-eight\ntwo hundred forty-nine\ntwo hundred fifty\ntwo hundred fifty-one\ntwo hundred fifty-two\ntwo hundred fifty-three\ntwo hundred fifty-four\ntwo hundred fifty-five\ntwo hundred fifty-six\ntwo hundred fifty-seven\ntwo hundred fifty-eight\ntwo hundred fifty-nine\ntwo hundred sixty\ntwo hundred sixty-one\ntwo hundred sixty-two\ntwo hundred sixty-three\ntwo hundred sixty-four\ntwo hundred sixty-five\ntwo hundred sixty-six\ntwo hundred sixty-seven\ntwo hundred sixty-eight\ntwo hundred sixty-nine\ntwo hundred seventy\ntwo hundred seventy-one\ntwo hundred seventy-two\ntwo hundred seventy-three\ntwo hundred seventy-four\ntwo hundred seventy-five\ntwo hundred seventy-six\ntwo hundred seventy-seven\ntwo hundred seventy-eight\ntwo hundred seventy-nine\ntwo hundred eighty\ntwo hundred eighty-one\ntwo hundred eighty-two\ntwo hundred eighty-three\ntwo hundred eighty-four\ntwo hundred eighty-five\ntwo hundred eighty-six\ntwo hundred eighty-seven\ntwo hundred eighty-eight\ntwo hundred eighty-nine\ntwo hundred ninety\ntwo hundred ninety-one\ntwo hundred ninety-two\ntwo hundred ninety-three\ntwo hundred ninety-four\ntwo hundred ninety-five\ntwo hundred ninety-six\ntwo hundred ninety-seven\ntwo hundred ninety-eight\ntwo hundred ninety-nine\nthree hundred\nthree hundred one\nthree hundred two\nthree hundred three\nthree hundred four\nthree hundred five\nthree hundred six\nthree hundred seven\nthree hundred eight\nthree hundred nine\nthree hundred ten\nthree hundred eleven\nthree hundred twelve\nthree hundred thirteen\nthree hundred fourteen\nthree hundred fifteen\nthree hundred sixteen\nthree hundred seventeen\nthree hundred eighteen\nthree hundred nineteen\nthree hundred twenty\nthree hundred twenty-one\nthree hundred twenty-two\nthree hundred twenty-three\nthree hundred twenty-four\nthree hundred twenty-five\nthree hundred twenty-six\nthree hundred twenty-seven\nthree hundred twenty-eight\nthree hundred twenty-nine\nthree hundred thirty\nthree hundred thirty-one\nthree hundred thirty-two\nthree hundred thirty-three\nthree hundred thirty-four\nthree hundred thirty-five\nthree hundred thirty-six\nthree hundred thirty-seven\nthree hundred thirty-eight\nthree hundred thirty-nine\nthree hundred forty\nthree hundred forty-one\nthree hundred forty-two\nthree hundred forty-three\nthree hundred forty-four\nthree hundred forty-five\nthree hundred forty-six\nthree hundred forty-seven\nthree hundred forty-eight\nthree hundred forty-nine\nthree hundred fifty\nthree hundred fifty-one\nthree hundred fifty-two\nthree hundred fifty-three\nthree hundred fifty-four\nthree hundred fifty-five\nthree hundred fifty-six\nthree hundred fifty-seven\nthree hundred fifty-eight\nthree hundred fifty-nine\nthree hundred sixty\nthree hundred sixty-one\nthree hundred sixty-two\nthree hundred sixty-three\nthree hundred sixty-four\nthree hundred sixty-five\nthree hundred sixty-six\nthree hundred sixty-seven\nthree hundred sixty-eight\nthree hundred sixty-nine\nthree hundred seventy\nthree hundred seventy-one\nthree hundred seventy-two\nthree hundred seventy-three\nthree hundred seventy-four\nthree hundred seventy-five\nthree hundred seventy-six\nthree hundred seventy-seven\nthree hundred seventy-eight\nthree hundred seventy-nine\nthree hundred eighty\nthree hundred eighty-one\nthree hundred eighty-two\nthree hundred eighty-three\nthree hundred eighty-four\nthree hundred eighty-five\nthree hundred eighty-six\nthree hundred eighty-seven\nthree hundred eighty-eight\nthree hundred eighty-nine\nthree hundred ninety\nthree hundred ninety-one\nthree hundred ninety-two\nthree hundred ninety-three\nthree hundred ninety-four\nthree hundred ninety-five\nthree hundred ninety-six\nthree hundred ninety-seven\nthree hundred ninety-eight\nthree hundred ninety-nine\nfour hundred\nfour hundred one\nfour hundred two\nfour hundred three\nfour hundred four\nfour hundred five\nfour hundred six\nfour hundred seven\nfour hundred eight\nfour hundred nine\nfour hundred ten\nfour hundred eleven\nfour hundred twelve\nfour hundred thirteen\nfour hundred fourteen\nfour hundred fifteen\nfour hundred sixteen\nfour hundred seventeen\nfour hundred eighteen\nfour hundred nineteen\nfour hundred twenty\nfour hundred twenty-one\nfour hundred twenty-two\nfour hundred twenty-three\nfour hundred twenty-four\nfour hundred twenty-five\nfour hundred twenty-six\nfour hundred twenty-seven\nfour hundred twenty-eight\nfour hundred twenty-nine\nfour hundred thirty\nfour hundred thirty-one\nfour hundred thirty-two\nfour hundred thirty-three\nfour hundred thirty-four\nfour hundred thirty-five\nfour hundred thirty-six\nfour hundred thirty-seven\nfour hundred thirty-eight\nfour hundred thirty-nine\nfour hundred forty\nfour hundred forty-one\nfour hundred forty-two\nfour hundred forty-three\nfour hundred forty-four\nfour hundred forty-five\nfour hundred forty-six\nfour hundred forty-seven\nfour hundred forty-eight\nfour hundred forty-nine\nfour hundred fifty\nfour hundred fifty-one\nfour hundred fifty-two\nfour hundred fifty-three\nfour hundred fifty-four\nfour hundred fifty-five\nfour hundred fifty-six\nfour hundred fifty-seven\nfour hundred fifty-eight\nfour hundred fifty-nine\nfour hundred sixty\nfour hundred sixty-one\nfour hundred sixty-two\nfour hundred sixty-three\nfour hundred sixty-four\nfour hundred sixty-five\nfour hundred sixty-six\nfour hundred sixty-seven\nfour hundred sixty-eight\nfour hundred sixty-nine\nfour hundred seventy\nfour hundred seventy-one\nfour hundred seventy-two\nfour hundred seventy-three\nfour hundred seventy-four\nfour hundred seventy-five\nfour hundred seventy-six\nfour hundred seventy-seven\nfour hundred seventy-eight\nfour hundred seventy-nine\nfour hundred eighty\nfour hundred eighty-one\nfour hundred eighty-two\nfour hundred eighty-three\nfour hundred eighty-four\nfour hundred eighty-five\nfour hundred eighty-six\nfour hundred eighty-seven\nfour hundred eighty-eight\nfour hundred eighty-nine\nfour hundred ninety\nfour hundred ninety-one\nfour hundred ninety-two\nfour hundred ninety-three\nfour hundred ninety-four\nfour hundred ninety-five\nfour hundred ninety-six\nfour hundred ninety-seven\nfour hundred ninety-eight\nfour hundred ninety-nine\nfive hundred\nfive hundred one\nfive hundred two\nfive hundred three\nfive hundred four\nfive hundred five\nfive hundred six\nfive hundred seven\nfive hundred eight\nfive hundred nine\nfive hundred ten\nfive hundred eleven\nfive hundred twelve\nfive hundred thirteen\nfive hundred fourteen\nfive hundred fifteen\nfive hundred sixteen\nfive hundred seventeen\nfive hundred eighteen\nfive hundred nineteen\nfive hundred twenty\nfive hundred twenty-one\nfive hundred twenty-two\nfive hundred twenty-three\nfive hundred twenty-four\nfive hundred twenty-five\nfive hundred twenty-six\nfive hundred twenty-seven\nfive hundred twenty-eight\nfive hundred twenty-nine\nfive hundred thirty\nfive hundred thirty-one\nfive hundred thirty-two\nfive hundred thirty-three\nfive hundred thirty-four\nfive hundred thirty-five\nfive hundred thirty-six\nfive hundred thirty-seven\nfive hundred thirty-eight\nfive hundred thirty-nine\nfive hundred forty\nfive hundred forty-one\nfive hundred forty-two\nfive hundred forty-three\nfive hundred forty-four\nfive hundred forty-five\nfive hundred forty-six\nfive hundred forty-seven\nfive hundred forty-eight\nfive hundred forty-nine\nfive hundred fifty\nfive hundred fifty-one\nfive hundred fifty-two\nfive hundred fifty-three\nfive hundred fifty-four\nfive hundred fifty-five\nfive hundred fifty-six\nfive hundred fifty-seven\nfive hundred fifty-eight\nfive hundred fifty-nine\nfive hundred sixty\nfive hundred sixty-one\nfive hundred sixty-two\nfive hundred sixty-three\nfive hundred sixty-four\nfive hundred sixty-five\nfive hundred sixty-six\nfive hundred sixty-seven\nfive hundred sixty-eight\nfive hundred sixty-nine\nfive hundred seventy\nfive hundred seventy-one\nfive hundred seventy-two\nfive hundred seventy-three\nfive hundred seventy-four\nfive hundred seventy-five\nfive hundred seventy-six\nfive hundred seventy-seven\nfive hundred seventy-eight\nfive hundred seventy-nine\nfive hundred eighty\nfive hundred eighty-one\nfive hundred eighty-two\nfive hundred eighty-three\nfive hundred eighty-four\nfive hundred eighty-five\nfive hundred eighty-six\nfive hundred eighty-seven\nfive hundred eighty-eight\nfive hundred eighty-nine\nfive hundred ninety\nfive hundred ninety-one\nfive hundred ninety-two\nfive hundred ninety-three\nfive hundred ninety-four\nfive hundred ninety-five\nfive hundred ninety-six\nfive hundred ninety-seven\nfive hundred ninety-eight\nfive hundred ninety-nine\nsix hundred\nsix hundred one\nsix hundred two\nsix hundred three\nsix hundred four\nsix hundred five\nsix hundred six\nsix hundred seven\nsix hundred eight\nsix hundred nine\nsix hundred ten\nsix hundred eleven\nsix hundred twelve\nsix hundred thirteen\nsix hundred fourteen\nsix hundred fifteen\nsix hundred sixteen\nsix hundred seventeen\nsix hundred eighteen\nsix hundred nineteen\nsix hundred twenty\nsix hundred twenty-one\nsix hundred twenty-two\nsix hundred twenty-three\nsix hundred twenty-four\nsix hundred twenty-five\nsix hundred twenty-six\nsix hundred twenty-seven\nsix hundred twenty-eight\nsix hundred twenty-nine\nsix hundred thirty\nsix hundred thirty-one\nsix hundred thirty-two\nsix hundred thirty-three\nsix hundred thirty-four\nsix hundred thirty-five\nsix hundred thirty-six\nsix hundred thirty-seven\nsix hundred thirty-eight\nsix hundred thirty-nine\nsix hundred forty\nsix hundred forty-one\nsix hundred forty-two\nsix hundred forty-three\nsix hundred forty-four\nsix hundred forty-five\nsix hundred forty-six\nsix hundred forty-seven\nsix hundred forty-eight\nsix hundred forty-nine\nsix hundred fifty\nsix hundred fifty-one\nsix hundred fifty-two\nsix hundred fifty-three\nsix hundred fifty-four\nsix hundred fifty-five\nsix hundred fifty-six\nsix hundred fifty-seven\nsix hundred fifty-eight\nsix hundred fifty-nine\nsix hundred sixty\nsix hundred sixty-one\nsix hundred sixty-two\nsix hundred sixty-three\nsix hundred sixty-four\nsix hundred sixty-five\nsix hundred sixty-six\nsix hundred sixty-seven\nsix hundred sixty-eight\nsix hundred sixty-nine\nsix hundred seventy\nsix hundred seventy-one\nsix hundred seventy-two\nsix hundred seventy-three\nsix hundred seventy-four\nsix hundred seventy-five\nsix hundred seventy-six\nsix hundred seventy-seven\nsix hundred seventy-eight\nsix hundred seventy-nine\nsix hundred eighty\nsix hundred eighty-one\nsix hundred eighty-two\nsix hundred eighty-three\nsix hundred eighty-four\nsix hundred eighty-five\nsix hundred eighty-six\nsix hundred eighty-seven\nsix hundred eighty-eight\nsix hundred eighty-nine\nsix hundred ninety\nsix hundred ninety-one\nsix hundred ninety-two\nsix hundred ninety-three\nsix hundred ninety-four\nsix hundred ninety-five\nsix hundred ninety-six\nsix hundred ninety-seven\nsix hundred ninety-eight\nsix hundred ninety-nine\nseven hundred\nseven hundred one\nseven hundred two\nseven hundred three\nseven hundred four\nseven hundred five\nseven hundred six\nseven hundred seven\nseven hundred eight\nseven hundred nine\nseven hundred ten\nseven hundred eleven\nseven hundred twelve\nseven hundred thirteen\nseven hundred fourteen\nseven hundred fifteen\nseven hundred sixteen\nseven hundred seventeen\nseven hundred eighteen\nseven hundred nineteen\nseven hundred twenty\nseven hundred twenty-one\nseven hundred twenty-two\nseven hundred twenty-three\nseven hundred twenty-four\nseven hundred twenty-five\nseven hundred twenty-six\nseven hundred twenty-seven\nseven hundred twenty-eight\nseven hundred twenty-nine\nseven hundred thirty\nseven hundred thirty-one\nseven hundred thirty-two\nseven hundred thirty-three\nseven hundred thirty-four\nseven hundred thirty-five\nseven hundred thirty-six\nseven hundred thirty-seven\nseven hundred thirty-eight\nseven hundred thirty-nine\nseven hundred forty\nseven hundred forty-one\nseven hundred forty-two\nseven hundred forty-three\nseven hundred forty-four\nseven hundred forty-five\nseven hundred forty-six\nseven hundred\n\n",
+      "stderr": ""
+    },
+    {
+      "name": "teardown:worker-stop",
+      "atMs": 221460,
+      "args": [
+        "stop",
+        "9dbfb50b-8209-4283-a9a1-ab12d5f67f66"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:11:58.476Z",
+      "endedAt": "2026-11-06T17:12:11.756Z",
+      "stdout": "{\n  \"stoppedCount\": 0,\n  \"agentIds\": []\n}\n",
+      "stderr": "",
+      "parsed": {
+        "stoppedCount": 0,
+        "agentIds": []
+      }
+    },
+    {
+      "name": "teardown:worker-archive",
+      "atMs": 230954,
+      "args": [
+        "archive",
+        "9dbfb50b-8209-4283-a9a1-ab12d5f67f66"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:12:11.756Z",
+      "endedAt": "2026-11-06T17:12:21.250Z",
+      "stdout": "{\n  \"agentId\": \"9dbfb50b-8209-4283-a9a1-ab12d5f67f66\",\n  \"status\": \"archived\",\n  \"archivedAt\": \"2026-11-06T17:12:19.145Z\"\n}\n",
+      "stderr": "",
+      "parsed": {
+        "agentId": "9dbfb50b-8209-4283-a9a1-ab12d5f67f66",
+        "status": "archived",
+        "archivedAt": "2026-11-06T17:12:19.145Z"
+      }
+    },
+    {
+      "name": "teardown:worktree-archive",
+      "atMs": 240152,
+      "args": [
+        "workspace",
+        "archive",
+        "wks_c033ad6dfbbf0cae"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:12:21.250Z",
+      "endedAt": "2026-11-06T17:12:30.448Z",
+      "stdout": "{\n  \"workspaceId\": \"wks_c033ad6dfbbf0cae\",\n  \"status\": \"archived\",\n  \"archivedAt\": \"2026-11-06T17:12:26.496Z\"\n}\n",
+      "stderr": "",
+      "parsed": {
+        "workspaceId": "wks_c033ad6dfbbf0cae",
+        "status": "archived",
+        "archivedAt": "2026-11-06T17:12:26.496Z"
+      }
+    },
+    {
+      "name": "teardown:repo-project-delete",
+      "atMs": 248354,
+      "args": [
+        "project",
+        "delete",
+        "prj_88670995a98c5e06"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:12:30.448Z",
+      "endedAt": "2026-11-06T17:12:38.649Z",
+      "stdout": "{\n  \"projectId\": \"prj_88670995a98c5e06\",\n  \"removedWorkspaceIds\": []\n}\n",
+      "stderr": "",
+      "parsed": {
+        "projectId": "prj_88670995a98c5e06",
+        "removedWorkspaceIds": []
+      }
+    },
+    {
+      "name": "repo:remove:send",
+      "atMs": 263381,
+      "args": [
+        "send",
+        "690329a3-86ef-46bb-aa41-c13f1fa2196a",
+        "--",
+        "Run exactly this one Bash command, with no other tool, then reply with its output and stop:\nrm -rf /tmp/fm-probe-s0-2666de49 && test ! -e /tmp/fm-probe-s0-2666de49 && test ! -e /home/ariadne/.paseo/worktrees/1zlak3n8/fm-probe-s0-2666de49 && echo clean"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:12:38.650Z",
+      "endedAt": "2026-11-06T17:12:53.677Z",
+      "stdout": "{\n  \"agentId\": \"690329a3-86ef-46bb-aa41-c13f1fa2196a\",\n  \"status\": \"sent\",\n  \"message\": \"Message sent, not waiting for completion\"\n}\n",
+      "stderr": "",
+      "parsed": {
+        "agentId": "690329a3-86ef-46bb-aa41-c13f1fa2196a",
+        "status": "sent",
+        "message": "Message sent, not waiting for completion"
+      }
+    },
+    {
+      "name": "repo:remove:requested",
+      "atMs": 278026,
+      "args": [
+        "permit",
+        "ls"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:12:53.677Z",
+      "endedAt": "2026-11-06T17:13:08.322Z",
+      "stderr": "",
+      "parsed": [
+        {
+          "id": "permission-82c0aced-a316-48c1-ba94-03246d6326cf",
+          "agentId": "690329a3-86ef-46bb-aa41-c13f1fa2196a",
+          "agentShortId": "690329a",
+          "name": "Bash",
+          "description": "-",
+          "recentTools": [
+            "[Shell] mkdir /tmp/fm-probe-s0-2666de49 && cd /tmp/fm-probe-s0-2666de49 && git init -q -b main && git -c user.name=p -c user.email=p@x commit -q --allow-empty -m init && git branch --show-current",
+            "[Shell] rm -rf /tmp/fm-probe-s0-2666de49 && test ! -e /tmp/fm-probe-s0-2666de49 && test ! -e /home/ariadne/.paseo/worktrees/1zlak3n8/fm-probe-s0-2666de49 && echo clean"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "repo:remove:allow",
+      "atMs": 292444,
+      "args": [
+        "permit",
+        "allow",
+        "690329a3-86ef-46bb-aa41-c13f1fa2196a",
+        "permission-82c0aced-a316-48c1-ba94-03246d6326cf"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:13:08.322Z",
+      "endedAt": "2026-11-06T17:13:22.740Z",
+      "stdout": "[\n  {\n    \"requestId\": \"permission-82c0aced-a316-48c1-ba94-03246d6326cf\",\n    \"agentId\": \"690329a3-86ef-46bb-aa41-c13f1fa2196a\",\n    \"agentShortId\": \"690329a\",\n    \"name\": \"Bash\",\n    \"result\": \"allowed\"\n  }\n]\n",
+      "stderr": "",
+      "parsed": [
+        {
+          "requestId": "permission-82c0aced-a316-48c1-ba94-03246d6326cf",
+          "agentId": "690329a3-86ef-46bb-aa41-c13f1fa2196a",
+          "agentShortId": "690329a",
+          "name": "Bash",
+          "result": "allowed"
+        }
+      ]
+    },
+    {
+      "name": "repo:remove:settled",
+      "atMs": 304612,
+      "parsed": {
+        "Id": "690329a3-86ef-46bb-aa41-c13f1fa2196a",
+        "Name": "FirstMate probe janitor s0-2666de49 (archive me)",
+        "Provider": "claude",
+        "Model": "claude-haiku-4-5",
+        "Thinking": "auto",
+        "Status": "idle",
+        "Archived": false,
+        "ArchivedAt": null,
+        "Mode": "default",
+        "Cwd": "/tmp",
+        "CreatedAt": "2026-11-06T17:08:34.839Z",
+        "UpdatedAt": "2026-11-06T17:13:20.374Z",
+        "LastUsage": {
+          "InputTokens": 18,
+          "OutputTokens": 414,
+          "CachedTokens": 50634,
+          "CostUsd": 0.0208456
+        },
+        "Capabilities": {
+          "Streaming": true,
+          "Persistence": true,
+          "DynamicModes": true,
+          "McpServers": true
+        },
+        "AvailableModes": [
+          {
+            "id": "plan",
+            "label": "Plan Mode"
+          },
+          {
+            "id": "default",
+            "label": "Always Ask"
+          },
+          {
+            "id": "acceptEdits",
+            "label": "Accept File Edits"
+          },
+          {
+            "id": "auto",
+            "label": "Auto mode"
+          },
+          {
+            "id": "bypassPermissions",
+            "label": "Bypass"
+          }
+        ],
+        "PendingPermissions": [],
+        "Worktree": null,
+        "ParentAgentId": null
+      }
+    },
+    {
+      "name": "repo:remove:output",
+      "atMs": 313619,
+      "args": [
+        "logs",
+        "690329a3-86ef-46bb-aa41-c13f1fa2196a",
+        "--tail",
+        "1",
+        "--filter",
+        "assistant_message"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:13:34.908Z",
+      "endedAt": "2026-11-06T17:13:43.914Z",
+      "stdout": "clean\n\n",
+      "stderr": ""
+    },
+    {
+      "name": "teardown:janitor-stop",
+      "atMs": 327804,
+      "args": [
+        "stop",
+        "690329a3-86ef-46bb-aa41-c13f1fa2196a"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:13:43.915Z",
+      "endedAt": "2026-11-06T17:13:58.100Z",
+      "stdout": "{\n  \"stoppedCount\": 0,\n  \"agentIds\": []\n}\n",
+      "stderr": "",
+      "parsed": {
+        "stoppedCount": 0,
+        "agentIds": []
+      }
+    },
+    {
+      "name": "teardown:janitor-archive",
+      "atMs": 341225,
+      "args": [
+        "archive",
+        "690329a3-86ef-46bb-aa41-c13f1fa2196a"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:13:58.100Z",
+      "endedAt": "2026-11-06T17:14:11.521Z",
+      "stdout": "{\n  \"agentId\": \"690329a3-86ef-46bb-aa41-c13f1fa2196a\",\n  \"status\": \"archived\",\n  \"archivedAt\": \"2026-11-06T17:14:07.900Z\"\n}\n",
+      "stderr": "",
+      "parsed": {
+        "agentId": "690329a3-86ef-46bb-aa41-c13f1fa2196a",
+        "status": "archived",
+        "archivedAt": "2026-11-06T17:14:07.900Z"
+      }
+    },
+    {
+      "name": "teardown:tmp-workspace-archive",
+      "atMs": 351260,
+      "args": [
+        "workspace",
+        "archive",
+        "wks_a9d5fdef9d487f6b"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:14:11.521Z",
+      "endedAt": "2026-11-06T17:14:21.556Z",
+      "stdout": "{\n  \"workspaceId\": \"wks_a9d5fdef9d487f6b\",\n  \"status\": \"archived\",\n  \"archivedAt\": \"2026-11-06T17:14:21.253Z\"\n}\n",
+      "stderr": "",
+      "parsed": {
+        "workspaceId": "wks_a9d5fdef9d487f6b",
+        "status": "archived",
+        "archivedAt": "2026-11-06T17:14:21.253Z"
+      }
+    },
+    {
+      "name": "teardown:tmp-project-delete",
+      "atMs": 359249,
+      "args": [
+        "project",
+        "delete",
+        "prj_471672a4f63ee973"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:14:21.556Z",
+      "endedAt": "2026-11-06T17:14:29.545Z",
+      "stdout": "{\n  \"projectId\": \"prj_471672a4f63ee973\",\n  \"removedWorkspaceIds\": []\n}\n",
+      "stderr": "",
+      "parsed": {
+        "projectId": "prj_471672a4f63ee973",
+        "removedWorkspaceIds": []
+      }
+    },
+    {
+      "name": "after:janitor-inspect",
+      "atMs": 364707,
+      "args": [
+        "inspect",
+        "690329a3-86ef-46bb-aa41-c13f1fa2196a"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:14:29.545Z",
+      "endedAt": "2026-11-06T17:14:35.003Z",
+      "stdout": "{\n  \"Id\": \"690329a3-86ef-46bb-aa41-c13f1fa2196a\",\n  \"Name\": \"FirstMate probe janitor s0-2666de49 (archive me)\",\n  \"Provider\": \"claude\",\n  \"Model\": \"claude-haiku-4-5\",\n  \"Thinking\": \"auto\",\n  \"Status\": \"idle\",\n  \"Archived\": true,\n  \"ArchivedAt\": \"2026-11-06T17:14:21.252Z\",\n  \"Mode\": \"default\",\n  \"Cwd\": \"/tmp\",\n  \"CreatedAt\": \"2026-11-06T17:08:34.839Z\",\n  \"UpdatedAt\": \"2026-11-06T17:14:21.252Z\",\n  \"LastUsage\": null,\n  \"Capabilities\": {\n    \"Streaming\": true,\n    \"Persistence\": true,\n    \"DynamicModes\": true,\n    \"McpServers\": true\n  },\n  \"AvailableModes\": [\n    {\n      \"id\": \"plan\",\n      \"label\": \"Plan Mode\"\n    },\n    {\n      \"id\": \"default\",\n      \"label\": \"Always Ask\"\n    },\n    {\n      \"id\": \"acceptEdits\",\n      \"label\": \"Accept File Edits\"\n    },\n    {\n      \"id\": \"auto\",\n      \"label\": \"Auto mode\"\n    },\n    {\n      \"id\": \"bypassPermissions\",\n      \"label\": \"Bypass\"\n    }\n  ],\n  \"PendingPermissions\": [],\n  \"Worktree\": null,\n  \"ParentAgentId\": null\n}\n",
+      "stderr": "",
+      "parsed": {
+        "Id": "690329a3-86ef-46bb-aa41-c13f1fa2196a",
+        "Name": "FirstMate probe janitor s0-2666de49 (archive me)",
+        "Provider": "claude",
+        "Model": "claude-haiku-4-5",
+        "Thinking": "auto",
+        "Status": "idle",
+        "Archived": true,
+        "ArchivedAt": "2026-11-06T17:14:21.252Z",
+        "Mode": "default",
+        "Cwd": "/tmp",
+        "CreatedAt": "2026-11-06T17:08:34.839Z",
+        "UpdatedAt": "2026-11-06T17:14:21.252Z",
+        "LastUsage": null,
+        "Capabilities": {
+          "Streaming": true,
+          "Persistence": true,
+          "DynamicModes": true,
+          "McpServers": true
+        },
+        "AvailableModes": [
+          {
+            "id": "plan",
+            "label": "Plan Mode"
+          },
+          {
+            "id": "default",
+            "label": "Always Ask"
+          },
+          {
+            "id": "acceptEdits",
+            "label": "Accept File Edits"
+          },
+          {
+            "id": "auto",
+            "label": "Auto mode"
+          },
+          {
+            "id": "bypassPermissions",
+            "label": "Bypass"
+          }
+        ],
+        "PendingPermissions": [],
+        "Worktree": null,
+        "ParentAgentId": null
+      }
+    },
+    {
+      "name": "after:worker-inspect",
+      "atMs": 371441,
+      "args": [
+        "inspect",
+        "9dbfb50b-8209-4283-a9a1-ab12d5f67f66"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:14:35.003Z",
+      "endedAt": "2026-11-06T17:14:41.737Z",
+      "stdout": "{\n  \"Id\": \"9dbfb50b-8209-4283-a9a1-ab12d5f67f66\",\n  \"Name\": \"FirstMate probe worker s0-2666de49 (archive me)\",\n  \"Provider\": \"claude\",\n  \"Model\": \"claude-haiku-4-5\",\n  \"Thinking\": \"auto\",\n  \"Status\": \"closed\",\n  \"Archived\": true,\n  \"ArchivedAt\": \"2026-11-06T17:12:19.145Z\",\n  \"Mode\": \"default\",\n  \"Cwd\": \"/home/ariadne/.paseo/worktrees/1zlak3n8/fm-probe-s0-2666de49\",\n  \"CreatedAt\": \"2026-11-06T17:09:47.807Z\",\n  \"UpdatedAt\": \"2026-11-06T17:12:19.145Z\",\n  \"LastUsage\": null,\n  \"Capabilities\": {\n    \"Streaming\": false,\n    \"Persistence\": true,\n    \"DynamicModes\": false,\n    \"McpServers\": false\n  },\n  \"AvailableModes\": [],\n  \"PendingPermissions\": [],\n  \"Worktree\": null,\n  \"ParentAgentId\": null\n}\n",
+      "stderr": "",
+      "parsed": {
+        "Id": "9dbfb50b-8209-4283-a9a1-ab12d5f67f66",
+        "Name": "FirstMate probe worker s0-2666de49 (archive me)",
+        "Provider": "claude",
+        "Model": "claude-haiku-4-5",
+        "Thinking": "auto",
+        "Status": "closed",
+        "Archived": true,
+        "ArchivedAt": "2026-11-06T17:12:19.145Z",
+        "Mode": "default",
+        "Cwd": "/home/ariadne/.paseo/worktrees/1zlak3n8/fm-probe-s0-2666de49",
+        "CreatedAt": "2026-11-06T17:09:47.807Z",
+        "UpdatedAt": "2026-11-06T17:12:19.145Z",
+        "LastUsage": null,
+        "Capabilities": {
+          "Streaming": false,
+          "Persistence": true,
+          "DynamicModes": false,
+          "McpServers": false
+        },
+        "AvailableModes": [],
+        "PendingPermissions": [],
+        "Worktree": null,
+        "ParentAgentId": null
+      }
+    },
+    {
+      "name": "after:agents",
+      "atMs": 377655,
+      "args": [
+        "ls",
+        "-g",
+        "-a",
+        "--label",
+        "firstmate.probe=s0-2666de49"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:14:41.737Z",
+      "endedAt": "2026-11-06T17:14:47.951Z",
+      "stdout": "[]\n",
+      "stderr": "",
+      "parsed": []
+    },
+    {
+      "name": "after:agents-active",
+      "atMs": 383950,
+      "args": [
+        "ls",
+        "-g",
+        "--label",
+        "firstmate.probe=s0-2666de49"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:14:47.951Z",
+      "endedAt": "2026-11-06T17:14:54.246Z",
+      "stdout": "[]\n",
+      "stderr": "",
+      "parsed": []
+    },
+    {
+      "name": "after:workspaces",
+      "atMs": 389654,
+      "args": [
+        "workspace",
+        "ls",
+        "--background"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:14:54.246Z",
+      "endedAt": "2026-11-06T17:14:59.949Z",
+      "stderr": "",
+      "parsed": [],
+      "rows": 369,
+      "keys": [
+        "background",
+        "cwd",
+        "isolation",
+        "name",
+        "project",
+        "workspaceId"
+      ]
+    },
+    {
+      "name": "after:projects",
+      "atMs": 393817,
+      "args": [
+        "project",
+        "ls"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T17:14:59.950Z",
+      "endedAt": "2026-11-06T17:15:04.112Z",
+      "stderr": "",
+      "parsed": [],
+      "rows": 288,
+      "keys": [
+        "kind",
+        "name",
+        "path",
+        "projectId"
+      ]
+    },
+    {
+      "name": "version:after",
+      "atMs": 474494,
+      "readAt": "2026-11-06T17:16:24.790Z",
+      "checkedAt": "2026-11-06T17:16:09.151Z",
+      "online": true,
+      "daemonVersion": "0.13.0"
+    }
+  ]
+}

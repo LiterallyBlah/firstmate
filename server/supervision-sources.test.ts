@@ -268,6 +268,18 @@ describe("S08 remote catalog observation", () => {
     expect(() => refuseScopedRemoteMutation(s, "srv-remote", "legacy-crew")).not.toThrow();
   });
 
+  it("a prefix of a scoped worker's ID is refused like the full ID, in any case", async () => {
+    const f = await fixture(); await withRemote(f);
+    const s = await f.store.read();
+    // The CLI resolves a unique prefix to the agent, so every prefix of the scoped worker's ID is refused.
+    for (const token of ["remote-", "remote", "REMOTE-A", "r"])
+      expect(() => refuseScopedRemoteMutation(s, "srv-remote", token), token).toThrow(/stay disabled/);
+    expect(() => refuseScopedRemoteMutation(s, "srv-remote", "legacy")).not.toThrow();
+    expect(() => refuseScopedRemoteMutation(s, "srv-remote", "")).not.toThrow();
+    expect(() => refuseScopedRemoteMutation(s, "srv-other", "remote-")).not.toThrow();
+    await expect(scopedRemoteGuard(async () => s, "helper")("srv-remote", "remote-")).rejects.toThrow(/stay disabled/);
+  });
+
   it("an unreadable journal refuses the remote mutation instead of letting it through", async () => {
     const f = await fixture(); await withRemote(f);
     const s = await f.store.read();
