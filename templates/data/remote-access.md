@@ -183,7 +183,22 @@ identity than a local reserved ID — the CLI takes no caller-chosen ID and crea
 brief as its prompt), and report back through the poll as observations that wake their Supervisor.
 Do not steer, interrupt, end or answer permissions for a scoped remote worker from here: this
 helper's `send`, `stop`, `archive` and `permit allow|deny` refuse a scoped worker exactly as the
-board does. The Supervisor answers its worker's permissions itself through
+board does. Name the agent by its full ID straight after the command, with options after it: a
+prefix, a name, an option before the ID, and `stop --all` or `stop --cwd` are refused. A scoped
+worker's worktree is the Supervisor's too: `workspace archive`, `setup` and `rename` of it, and a
+`run --workspace`, `run --cwd`, `workspace create --path` or `--project`, or `project create` into it,
+are refused, as are its worktree slug (`--worktree-slug`) and its branch (`--branch`, `--new-branch`).
+Checking out a pull request (`checkout-pr`) is refused, since its branch cannot be checked. Name
+workspaces and projects by their IDs exactly as Paseo prints them (lowercase) and directories by plain
+absolute paths: relative, `~`, `/proc/`, `\\?\`/`\\.\` and Windows short-name paths are refused. While
+one of a Supervisor's worktrees is still being created or uncertain, a workspace change is refused
+unless the host's last poll lists that workspace in a directory that is not that worktree's slug, and a
+path through the slug is refused; see `data/supervisors.md` for how such an open is settled.
+`project delete` is refused outright, since it deletes the project's workspaces; so is a `workspace` or
+`project` subcommand the helper does not list. These checks are cooperative, not containment: they
+compare names and paths against the plugin's records, so a symlink, bind mount or another alias of a
+worktree can get past them, and any agent with a shell on the host can reach the worktree anyway. Do
+not work around them; leave a Supervisor's worktrees to it. The Supervisor answers its worker's permissions itself through
 `tools/scope.mjs permit-worker` — one exact request, deny with words or allow a Claude question
 only, judged from the tool name, `recentTools` and logs because the CLI passes no request input.
 

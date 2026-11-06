@@ -1,0 +1,1179 @@
+{
+  "probe": "firstmate-remote-supervisors-s0",
+  "mode": "surface",
+  "at": "2026-11-06T16:46:44.743Z",
+  "platform": "win32",
+  "summary": {
+    "nonce": "s0-049d1aa2",
+    "repo": "/tmp/fm-probe-s0-049d1aa2",
+    "created": {
+      "janitor": "145263f7-4c8d-4806-8d93-b80b8049727c",
+      "worker": "4b09d3e2-09f8-4d5e-854b-317a46729ff9",
+      "worktree": "wks_24c76a1dfff0f7fd",
+      "worktreeCwd": "/home/ariadne/.paseo/worktrees/1yjqg1eo/fm-probe-s0-049d1aa2",
+      "repoProject": "prj_536181303c1afbaf",
+      "tmpWorkspace": "wks_d4757af0ca8c8da9",
+      "tmpProject": "prj_2db20df39a6e1cdc",
+      "repo": true
+    },
+    "agents": [],
+    "leftover": []
+  },
+  "steps": [
+    {
+      "name": "version:before",
+      "atMs": 64,
+      "readAt": "2026-11-06T16:46:44.799Z",
+      "checkedAt": "2026-11-06T16:45:25.729Z",
+      "online": true,
+      "daemonVersion": "0.13.0"
+    },
+    {
+      "name": "preflight",
+      "atMs": 116,
+      "projects": 288,
+      "workspaces": 369,
+      "tmpProjects": 0,
+      "tmpWorkspaces": 0
+    },
+    {
+      "name": "janitor:create",
+      "atMs": 19749,
+      "args": [
+        "run",
+        "--cwd",
+        "/tmp",
+        "--provider",
+        "claude",
+        "--model",
+        "claude-haiku-4-5",
+        "--mode",
+        "default",
+        "--title",
+        "FirstMate probe janitor s0-049d1aa2 (archive me)",
+        "--label",
+        "firstmate.task=fm-remote-supervisors-probe",
+        "--label",
+        "firstmate.kind=scout",
+        "--label",
+        "firstmate.probe=s0-049d1aa2",
+        "--",
+        "This is a FirstMate capability probe. Reply with exactly the word ok and then stop. Do not use any tools."
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:46:44.859Z",
+      "endedAt": "2026-11-06T16:47:04.492Z",
+      "stdout": "{\n  \"agentId\": \"145263f7-4c8d-4806-8d93-b80b8049727c\",\n  \"status\": \"running\",\n  \"provider\": \"claude\",\n  \"cwd\": \"/tmp\",\n  \"title\": \"FirstMate probe janitor s0-049d1aa2 (archive me)\"\n}\n",
+      "stderr": "",
+      "parsed": {
+        "agentId": "145263f7-4c8d-4806-8d93-b80b8049727c",
+        "status": "running",
+        "provider": "claude",
+        "cwd": "/tmp",
+        "title": "FirstMate probe janitor s0-049d1aa2 (archive me)"
+      }
+    },
+    {
+      "name": "janitor:first-turn",
+      "atMs": 24624,
+      "parsed": {
+        "Id": "145263f7-4c8d-4806-8d93-b80b8049727c",
+        "Name": "FirstMate probe janitor s0-049d1aa2 (archive me)",
+        "Provider": "claude",
+        "Model": "claude-haiku-4-5",
+        "Thinking": "auto",
+        "Status": "idle",
+        "Archived": false,
+        "ArchivedAt": null,
+        "Mode": "default",
+        "Cwd": "/tmp",
+        "CreatedAt": "2026-11-06T16:47:02.082Z",
+        "UpdatedAt": "2026-11-06T16:47:04.347Z",
+        "LastUsage": {
+          "InputTokens": 10,
+          "OutputTokens": 85,
+          "CachedTokens": 23698,
+          "CostUsd": 0.0028048
+        },
+        "Capabilities": {
+          "Streaming": true,
+          "Persistence": true,
+          "DynamicModes": true,
+          "McpServers": true
+        },
+        "AvailableModes": [
+          {
+            "id": "plan",
+            "label": "Plan Mode"
+          },
+          {
+            "id": "default",
+            "label": "Always Ask"
+          },
+          {
+            "id": "acceptEdits",
+            "label": "Accept File Edits"
+          },
+          {
+            "id": "auto",
+            "label": "Auto mode"
+          },
+          {
+            "id": "bypassPermissions",
+            "label": "Bypass"
+          }
+        ],
+        "PendingPermissions": [],
+        "Worktree": null,
+        "ParentAgentId": null
+      }
+    },
+    {
+      "name": "janitor:workspace",
+      "atMs": 29788,
+      "args": [
+        "workspace",
+        "ls",
+        "--background"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:47:09.367Z",
+      "endedAt": "2026-11-06T16:47:14.531Z",
+      "stderr": "",
+      "parsed": [
+        {
+          "workspaceId": "wks_d4757af0ca8c8da9",
+          "project": "tmp",
+          "name": "tmp",
+          "isolation": "local",
+          "cwd": "/tmp",
+          "background": false
+        }
+      ],
+      "rows": 370,
+      "keys": [
+        "background",
+        "cwd",
+        "isolation",
+        "name",
+        "project",
+        "workspaceId"
+      ]
+    },
+    {
+      "name": "janitor:project",
+      "atMs": 33995,
+      "args": [
+        "project",
+        "ls"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:47:14.531Z",
+      "endedAt": "2026-11-06T16:47:18.738Z",
+      "stderr": "",
+      "parsed": [
+        {
+          "projectId": "prj_2db20df39a6e1cdc",
+          "name": "tmp",
+          "kind": "non_git",
+          "path": "/tmp"
+        }
+      ],
+      "rows": 289,
+      "keys": [
+        "kind",
+        "name",
+        "path",
+        "projectId"
+      ]
+    },
+    {
+      "name": "repo:create:send",
+      "atMs": 41487,
+      "args": [
+        "send",
+        "145263f7-4c8d-4806-8d93-b80b8049727c",
+        "--",
+        "Run exactly this one Bash command, with no other tool, then reply with its output and stop:\nmkdir /tmp/fm-probe-s0-049d1aa2 && cd /tmp/fm-probe-s0-049d1aa2 && git init -q -b main && git -c user.name=p -c user.email=p@x commit -q --allow-empty -m init && git branch --show-current"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:47:18.738Z",
+      "endedAt": "2026-11-06T16:47:26.230Z",
+      "stdout": "{\n  \"agentId\": \"145263f7-4c8d-4806-8d93-b80b8049727c\",\n  \"status\": \"sent\",\n  \"message\": \"Message sent, not waiting for completion\"\n}\n",
+      "stderr": "",
+      "parsed": {
+        "agentId": "145263f7-4c8d-4806-8d93-b80b8049727c",
+        "status": "sent",
+        "message": "Message sent, not waiting for completion"
+      }
+    },
+    {
+      "name": "repo:create:requested",
+      "atMs": 54786,
+      "args": [
+        "permit",
+        "ls"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:47:26.230Z",
+      "endedAt": "2026-11-06T16:47:39.529Z",
+      "stderr": "",
+      "parsed": [
+        {
+          "id": "permission-6a51bbd4-b4cc-4643-afad-bc4873ee055d",
+          "agentId": "145263f7-4c8d-4806-8d93-b80b8049727c",
+          "agentShortId": "145263f",
+          "name": "Bash",
+          "description": "-",
+          "recentTools": [
+            "[Shell] mkdir /tmp/fm-probe-s0-049d1aa2 && cd /tmp/fm-probe-s0-049d1aa2 && git init -q -b main && git -c user.name=p -c user.email=p@x commit -q --allow-empty -m init && git branch --show-current"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "repo:create:allow",
+      "atMs": 65066,
+      "args": [
+        "permit",
+        "allow",
+        "145263f7-4c8d-4806-8d93-b80b8049727c",
+        "permission-6a51bbd4-b4cc-4643-afad-bc4873ee055d"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:47:39.529Z",
+      "endedAt": "2026-11-06T16:47:49.809Z",
+      "stdout": "[\n  {\n    \"requestId\": \"permission-6a51bbd4-b4cc-4643-afad-bc4873ee055d\",\n    \"agentId\": \"145263f7-4c8d-4806-8d93-b80b8049727c\",\n    \"agentShortId\": \"145263f\",\n    \"name\": \"Bash\",\n    \"result\": \"allowed\"\n  }\n]\n",
+      "stderr": "",
+      "parsed": [
+        {
+          "requestId": "permission-6a51bbd4-b4cc-4643-afad-bc4873ee055d",
+          "agentId": "145263f7-4c8d-4806-8d93-b80b8049727c",
+          "agentShortId": "145263f",
+          "name": "Bash",
+          "result": "allowed"
+        }
+      ]
+    },
+    {
+      "name": "repo:create:settled",
+      "atMs": 69502,
+      "parsed": {
+        "Id": "145263f7-4c8d-4806-8d93-b80b8049727c",
+        "Name": "FirstMate probe janitor s0-049d1aa2 (archive me)",
+        "Provider": "claude",
+        "Model": "claude-haiku-4-5",
+        "Thinking": "auto",
+        "Status": "idle",
+        "Archived": false,
+        "ArchivedAt": null,
+        "Mode": "default",
+        "Cwd": "/tmp",
+        "CreatedAt": "2026-11-06T16:47:02.082Z",
+        "UpdatedAt": "2026-11-06T16:47:49.659Z",
+        "LastUsage": {
+          "InputTokens": 18,
+          "OutputTokens": 347,
+          "CachedTokens": 48522,
+          "CostUsd": 0.012433999999999999
+        },
+        "Capabilities": {
+          "Streaming": true,
+          "Persistence": true,
+          "DynamicModes": true,
+          "McpServers": true
+        },
+        "AvailableModes": [
+          {
+            "id": "plan",
+            "label": "Plan Mode"
+          },
+          {
+            "id": "default",
+            "label": "Always Ask"
+          },
+          {
+            "id": "acceptEdits",
+            "label": "Accept File Edits"
+          },
+          {
+            "id": "auto",
+            "label": "Auto mode"
+          },
+          {
+            "id": "bypassPermissions",
+            "label": "Bypass"
+          }
+        ],
+        "PendingPermissions": [],
+        "Worktree": null,
+        "ParentAgentId": null
+      }
+    },
+    {
+      "name": "repo:create:output",
+      "atMs": 74450,
+      "args": [
+        "logs",
+        "145263f7-4c8d-4806-8d93-b80b8049727c",
+        "--tail",
+        "1",
+        "--filter",
+        "assistant_message"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:47:54.245Z",
+      "endedAt": "2026-11-06T16:47:59.193Z",
+      "stdout": "main\n\n",
+      "stderr": ""
+    },
+    {
+      "name": "workspace:create",
+      "atMs": 81910,
+      "args": [
+        "workspace",
+        "create",
+        "--isolation",
+        "worktree",
+        "--path",
+        "/tmp/fm-probe-s0-049d1aa2",
+        "--worktree-slug",
+        "fm-probe-s0-049d1aa2",
+        "--new-branch",
+        "fm-probe/s0-049d1aa2",
+        "--base",
+        "main",
+        "--title",
+        "fm-probe/s0-049d1aa2"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:47:59.193Z",
+      "endedAt": "2026-11-06T16:48:06.653Z",
+      "stdout": "{\n  \"workspaceId\": \"wks_24c76a1dfff0f7fd\",\n  \"project\": \"fm-probe-s0-049d1aa2\",\n  \"name\": \"fm-probe/s0-049d1aa2\",\n  \"isolation\": \"worktree\",\n  \"cwd\": \"/home/ariadne/.paseo/worktrees/1yjqg1eo/fm-probe-s0-049d1aa2\",\n  \"background\": false\n}\n",
+      "stderr": "",
+      "parsed": {
+        "workspaceId": "wks_24c76a1dfff0f7fd",
+        "project": "fm-probe-s0-049d1aa2",
+        "name": "fm-probe/s0-049d1aa2",
+        "isolation": "worktree",
+        "cwd": "/home/ariadne/.paseo/worktrees/1yjqg1eo/fm-probe-s0-049d1aa2",
+        "background": false
+      }
+    },
+    {
+      "name": "workspace:ls",
+      "atMs": 89127,
+      "args": [
+        "workspace",
+        "ls",
+        "--background"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:48:06.653Z",
+      "endedAt": "2026-11-06T16:48:13.869Z",
+      "stderr": "",
+      "parsed": [
+        {
+          "workspaceId": "wks_24c76a1dfff0f7fd",
+          "project": "fm-probe-s0-049d1aa2",
+          "name": "fm-probe/s0-049d1aa2",
+          "isolation": "worktree",
+          "cwd": "/home/ariadne/.paseo/worktrees/1yjqg1eo/fm-probe-s0-049d1aa2",
+          "background": false
+        }
+      ],
+      "rows": 371,
+      "keys": [
+        "background",
+        "cwd",
+        "isolation",
+        "name",
+        "project",
+        "workspaceId"
+      ]
+    },
+    {
+      "name": "workspace:ls-branch",
+      "atMs": 89127,
+      "branchField": false,
+      "rowBranch": null
+    },
+    {
+      "name": "workspace:project",
+      "atMs": 97106,
+      "args": [
+        "project",
+        "ls"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:48:13.870Z",
+      "endedAt": "2026-11-06T16:48:21.849Z",
+      "stderr": "",
+      "parsed": [
+        {
+          "projectId": "prj_536181303c1afbaf",
+          "name": "fm-probe-s0-049d1aa2",
+          "kind": "git",
+          "path": "/tmp/fm-probe-s0-049d1aa2"
+        }
+      ],
+      "rows": 290,
+      "keys": [
+        "kind",
+        "name",
+        "path",
+        "projectId"
+      ]
+    },
+    {
+      "name": "worker:create",
+      "atMs": 104822,
+      "args": [
+        "run",
+        "--workspace",
+        "wks_24c76a1dfff0f7fd",
+        "--provider",
+        "claude",
+        "--model",
+        "claude-haiku-4-5",
+        "--mode",
+        "default",
+        "--title",
+        "FirstMate probe worker s0-049d1aa2 (archive me)",
+        "--label",
+        "firstmate.task=fm-remote-supervisors-probe",
+        "--label",
+        "firstmate.kind=scout",
+        "--label",
+        "firstmate.probe=s0-049d1aa2",
+        "--",
+        "This is a FirstMate capability probe. Use the AskUserQuestion tool exactly once, with one question \"Proceed with the probe?\" (header \"Probe\") and the two options \"yes\" and \"no\". Then reply with exactly the answer you received and stop. Use no other tool."
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:48:21.850Z",
+      "endedAt": "2026-11-06T16:48:29.565Z",
+      "stdout": "{\n  \"agentId\": \"4b09d3e2-09f8-4d5e-854b-317a46729ff9\",\n  \"status\": \"running\",\n  \"provider\": \"claude\",\n  \"cwd\": \"/home/ariadne/.paseo/worktrees/1yjqg1eo/fm-probe-s0-049d1aa2\",\n  \"title\": \"FirstMate probe worker s0-049d1aa2 (archive me)\"\n}\n",
+      "stderr": "",
+      "parsed": {
+        "agentId": "4b09d3e2-09f8-4d5e-854b-317a46729ff9",
+        "status": "running",
+        "provider": "claude",
+        "cwd": "/home/ariadne/.paseo/worktrees/1yjqg1eo/fm-probe-s0-049d1aa2",
+        "title": "FirstMate probe worker s0-049d1aa2 (archive me)"
+      }
+    },
+    {
+      "name": "permit-allow:requested",
+      "atMs": 116624,
+      "args": [
+        "permit",
+        "ls"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:48:29.565Z",
+      "endedAt": "2026-11-06T16:48:41.367Z",
+      "stderr": "",
+      "parsed": [
+        {
+          "id": "permission-1f90a960-9e28-4e7c-8566-b1d22dc9608b",
+          "agentId": "4b09d3e2-09f8-4d5e-854b-317a46729ff9",
+          "agentShortId": "4b09d3e",
+          "name": "AskUserQuestion",
+          "description": "yes / no",
+          "recentTools": [
+            "[Askuserquestion]"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "permit-allow:inspect",
+      "atMs": 122056,
+      "args": [
+        "inspect",
+        "4b09d3e2-09f8-4d5e-854b-317a46729ff9"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:48:41.367Z",
+      "endedAt": "2026-11-06T16:48:46.799Z",
+      "stdout": "{\n  \"Id\": \"4b09d3e2-09f8-4d5e-854b-317a46729ff9\",\n  \"Name\": \"FirstMate probe worker s0-049d1aa2 (archive me)\",\n  \"Provider\": \"claude\",\n  \"Model\": \"claude-haiku-4-5\",\n  \"Thinking\": \"auto\",\n  \"Status\": \"running\",\n  \"Archived\": false,\n  \"ArchivedAt\": null,\n  \"Mode\": \"default\",\n  \"Cwd\": \"/home/ariadne/.paseo/worktrees/1yjqg1eo/fm-probe-s0-049d1aa2\",\n  \"CreatedAt\": \"2026-11-06T16:48:27.210Z\",\n  \"UpdatedAt\": \"2026-11-06T16:48:29.547Z\",\n  \"LastUsage\": {\n    \"InputTokens\": 0,\n    \"OutputTokens\": 0,\n    \"CachedTokens\": 0,\n    \"CostUsd\": 0\n  },\n  \"Capabilities\": {\n    \"Streaming\": true,\n    \"Persistence\": true,\n    \"DynamicModes\": true,\n    \"McpServers\": true\n  },\n  \"AvailableModes\": [\n    {\n      \"id\": \"plan\",\n      \"label\": \"Plan Mode\"\n    },\n    {\n      \"id\": \"default\",\n      \"label\": \"Always Ask\"\n    },\n    {\n      \"id\": \"acceptEdits\",\n      \"label\": \"Accept File Edits\"\n    },\n    {\n      \"id\": \"auto\",\n      \"label\": \"Auto mode\"\n    },\n    {\n      \"id\": \"bypassPermissions\",\n      \"label\": \"Bypass\"\n    }\n  ],\n  \"PendingPermissions\": [\n    {\n      \"id\": \"permission-1f90a960-9e28-4e7c-8566-b1d22dc9608b\",\n      \"tool\": \"AskUserQuestion\"\n    }\n  ],\n  \"Worktree\": null,\n  \"ParentAgentId\": null\n}\n",
+      "stderr": "",
+      "parsed": {
+        "Id": "4b09d3e2-09f8-4d5e-854b-317a46729ff9",
+        "Name": "FirstMate probe worker s0-049d1aa2 (archive me)",
+        "Provider": "claude",
+        "Model": "claude-haiku-4-5",
+        "Thinking": "auto",
+        "Status": "running",
+        "Archived": false,
+        "ArchivedAt": null,
+        "Mode": "default",
+        "Cwd": "/home/ariadne/.paseo/worktrees/1yjqg1eo/fm-probe-s0-049d1aa2",
+        "CreatedAt": "2026-11-06T16:48:27.210Z",
+        "UpdatedAt": "2026-11-06T16:48:29.547Z",
+        "LastUsage": {
+          "InputTokens": 0,
+          "OutputTokens": 0,
+          "CachedTokens": 0,
+          "CostUsd": 0
+        },
+        "Capabilities": {
+          "Streaming": true,
+          "Persistence": true,
+          "DynamicModes": true,
+          "McpServers": true
+        },
+        "AvailableModes": [
+          {
+            "id": "plan",
+            "label": "Plan Mode"
+          },
+          {
+            "id": "default",
+            "label": "Always Ask"
+          },
+          {
+            "id": "acceptEdits",
+            "label": "Accept File Edits"
+          },
+          {
+            "id": "auto",
+            "label": "Auto mode"
+          },
+          {
+            "id": "bypassPermissions",
+            "label": "Bypass"
+          }
+        ],
+        "PendingPermissions": [
+          {
+            "id": "permission-1f90a960-9e28-4e7c-8566-b1d22dc9608b",
+            "tool": "AskUserQuestion"
+          }
+        ],
+        "Worktree": null,
+        "ParentAgentId": null
+      }
+    },
+    {
+      "name": "permit-allow:answer",
+      "atMs": 129264,
+      "args": [
+        "permit",
+        "allow",
+        "4b09d3e2-09f8-4d5e-854b-317a46729ff9",
+        "permission-1f90a960-9e28-4e7c-8566-b1d22dc9608b",
+        "--input",
+        "{\"answers\":{\"Proceed with the probe?\":\"yes\"}}"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:48:46.799Z",
+      "endedAt": "2026-11-06T16:48:54.007Z",
+      "stdout": "[\n  {\n    \"requestId\": \"permission-1f90a960-9e28-4e7c-8566-b1d22dc9608b\",\n    \"agentId\": \"4b09d3e2-09f8-4d5e-854b-317a46729ff9\",\n    \"agentShortId\": \"4b09d3e\",\n    \"name\": \"AskUserQuestion\",\n    \"result\": \"allowed\"\n  }\n]\n",
+      "stderr": "",
+      "parsed": [
+        {
+          "requestId": "permission-1f90a960-9e28-4e7c-8566-b1d22dc9608b",
+          "agentId": "4b09d3e2-09f8-4d5e-854b-317a46729ff9",
+          "agentShortId": "4b09d3e",
+          "name": "AskUserQuestion",
+          "result": "allowed"
+        }
+      ]
+    },
+    {
+      "name": "permit-allow:settled",
+      "atMs": 133414,
+      "parsed": {
+        "Id": "4b09d3e2-09f8-4d5e-854b-317a46729ff9",
+        "Name": "FirstMate probe worker s0-049d1aa2 (archive me)",
+        "Provider": "claude",
+        "Model": "claude-haiku-4-5",
+        "Thinking": "auto",
+        "Status": "idle",
+        "Archived": false,
+        "ArchivedAt": null,
+        "Mode": "default",
+        "Cwd": "/home/ariadne/.paseo/worktrees/1yjqg1eo/fm-probe-s0-049d1aa2",
+        "CreatedAt": "2026-11-06T16:48:27.210Z",
+        "UpdatedAt": "2026-11-06T16:48:54.934Z",
+        "LastUsage": {
+          "InputTokens": 18,
+          "OutputTokens": 336,
+          "CachedTokens": 39545,
+          "CostUsd": 0.0251905
+        },
+        "Capabilities": {
+          "Streaming": true,
+          "Persistence": true,
+          "DynamicModes": true,
+          "McpServers": true
+        },
+        "AvailableModes": [
+          {
+            "id": "plan",
+            "label": "Plan Mode"
+          },
+          {
+            "id": "default",
+            "label": "Always Ask"
+          },
+          {
+            "id": "acceptEdits",
+            "label": "Accept File Edits"
+          },
+          {
+            "id": "auto",
+            "label": "Auto mode"
+          },
+          {
+            "id": "bypassPermissions",
+            "label": "Bypass"
+          }
+        ],
+        "PendingPermissions": [],
+        "Worktree": null,
+        "ParentAgentId": null
+      }
+    },
+    {
+      "name": "permit-allow:reply",
+      "atMs": 136817,
+      "args": [
+        "logs",
+        "4b09d3e2-09f8-4d5e-854b-317a46729ff9",
+        "--tail",
+        "1",
+        "--filter",
+        "assistant_message"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:48:58.157Z",
+      "endedAt": "2026-11-06T16:49:01.560Z",
+      "stdout": "yes\n\n",
+      "stderr": ""
+    },
+    {
+      "name": "permit-deny-interrupt:send",
+      "atMs": 148278,
+      "args": [
+        "send",
+        "4b09d3e2-09f8-4d5e-854b-317a46729ff9",
+        "--",
+        "Use the Write tool to create probe.txt in the current directory containing ok. If that is refused, reply ok and stop."
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:49:01.560Z",
+      "endedAt": "2026-11-06T16:49:13.021Z",
+      "stdout": "{\n  \"agentId\": \"4b09d3e2-09f8-4d5e-854b-317a46729ff9\",\n  \"status\": \"sent\",\n  \"message\": \"Message sent, not waiting for completion\"\n}\n",
+      "stderr": "",
+      "parsed": {
+        "agentId": "4b09d3e2-09f8-4d5e-854b-317a46729ff9",
+        "status": "sent",
+        "message": "Message sent, not waiting for completion"
+      }
+    },
+    {
+      "name": "permit-deny-interrupt:requested",
+      "atMs": 157769,
+      "args": [
+        "permit",
+        "ls"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:49:13.021Z",
+      "endedAt": "2026-11-06T16:49:22.512Z",
+      "stderr": "",
+      "parsed": [
+        {
+          "id": "permission-0b87cebe-feba-4c4c-86a1-4bd5ea8091cb",
+          "agentId": "4b09d3e2-09f8-4d5e-854b-317a46729ff9",
+          "agentShortId": "4b09d3e",
+          "name": "Write",
+          "description": "-",
+          "recentTools": [
+            "[Askuserquestion]",
+            "[Write] /home/ariadne/.paseo/worktrees/1yjqg1eo/fm-probe-s0-049d1aa2/probe.txt"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "permit-deny-interrupt:deny",
+      "atMs": 166542,
+      "args": [
+        "permit",
+        "deny",
+        "4b09d3e2-09f8-4d5e-854b-317a46729ff9",
+        "permission-0b87cebe-feba-4c4c-86a1-4bd5ea8091cb",
+        "--message",
+        "Denied by the FirstMate probe.",
+        "--interrupt"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:49:22.512Z",
+      "endedAt": "2026-11-06T16:49:31.285Z",
+      "stdout": "[\n  {\n    \"requestId\": \"permission-0b87cebe-feba-4c4c-86a1-4bd5ea8091cb\",\n    \"agentId\": \"4b09d3e2-09f8-4d5e-854b-317a46729ff9\",\n    \"agentShortId\": \"4b09d3e\",\n    \"name\": \"Write\",\n    \"result\": \"denied\"\n  }\n]\n",
+      "stderr": "",
+      "parsed": [
+        {
+          "requestId": "permission-0b87cebe-feba-4c4c-86a1-4bd5ea8091cb",
+          "agentId": "4b09d3e2-09f8-4d5e-854b-317a46729ff9",
+          "agentShortId": "4b09d3e",
+          "name": "Write",
+          "result": "denied"
+        }
+      ]
+    },
+    {
+      "name": "aborted",
+      "atMs": 513124,
+      "error": "gave up waiting: permit-deny-interrupt:settled"
+    },
+    {
+      "name": "teardown:worker-stop",
+      "atMs": 525374,
+      "args": [
+        "stop",
+        "4b09d3e2-09f8-4d5e-854b-317a46729ff9"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:55:17.868Z",
+      "endedAt": "2026-11-06T16:55:30.117Z",
+      "stdout": "{\n  \"stoppedCount\": 0,\n  \"agentIds\": []\n}\n",
+      "stderr": "",
+      "parsed": {
+        "stoppedCount": 0,
+        "agentIds": []
+      }
+    },
+    {
+      "name": "teardown:worker-archive",
+      "atMs": 533670,
+      "args": [
+        "archive",
+        "4b09d3e2-09f8-4d5e-854b-317a46729ff9"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:55:30.117Z",
+      "endedAt": "2026-11-06T16:55:38.413Z",
+      "stdout": "{\n  \"agentId\": \"4b09d3e2-09f8-4d5e-854b-317a46729ff9\",\n  \"status\": \"archived\",\n  \"archivedAt\": \"2026-11-06T16:55:36.087Z\"\n}\n",
+      "stderr": "",
+      "parsed": {
+        "agentId": "4b09d3e2-09f8-4d5e-854b-317a46729ff9",
+        "status": "archived",
+        "archivedAt": "2026-11-06T16:55:36.087Z"
+      }
+    },
+    {
+      "name": "teardown:worktree-archive",
+      "atMs": 538883,
+      "args": [
+        "workspace",
+        "archive",
+        "wks_24c76a1dfff0f7fd"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:55:38.413Z",
+      "endedAt": "2026-11-06T16:55:43.626Z",
+      "stdout": "{\n  \"workspaceId\": \"wks_24c76a1dfff0f7fd\",\n  \"status\": \"archived\",\n  \"archivedAt\": \"2026-11-06T16:55:42.495Z\"\n}\n",
+      "stderr": "",
+      "parsed": {
+        "workspaceId": "wks_24c76a1dfff0f7fd",
+        "status": "archived",
+        "archivedAt": "2026-11-06T16:55:42.495Z"
+      }
+    },
+    {
+      "name": "teardown:repo-project-delete",
+      "atMs": 546037,
+      "args": [
+        "project",
+        "delete",
+        "prj_536181303c1afbaf"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:55:43.626Z",
+      "endedAt": "2026-11-06T16:55:50.780Z",
+      "stdout": "{\n  \"projectId\": \"prj_536181303c1afbaf\",\n  \"removedWorkspaceIds\": []\n}\n",
+      "stderr": "",
+      "parsed": {
+        "projectId": "prj_536181303c1afbaf",
+        "removedWorkspaceIds": []
+      }
+    },
+    {
+      "name": "repo:remove:send",
+      "atMs": 577717,
+      "args": [
+        "send",
+        "145263f7-4c8d-4806-8d93-b80b8049727c",
+        "--",
+        "Run exactly this one Bash command, with no other tool, then reply with its output and stop:\nrm -rf /tmp/fm-probe-s0-049d1aa2 && test ! -e /tmp/fm-probe-s0-049d1aa2 && test ! -e /home/ariadne/.paseo/worktrees/1yjqg1eo/fm-probe-s0-049d1aa2 && echo clean"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:55:50.780Z",
+      "endedAt": "2026-11-06T16:56:22.460Z",
+      "stdout": "{\n  \"agentId\": \"145263f7-4c8d-4806-8d93-b80b8049727c\",\n  \"status\": \"sent\",\n  \"message\": \"Message sent, not waiting for completion\"\n}\n",
+      "stderr": "",
+      "parsed": {
+        "agentId": "145263f7-4c8d-4806-8d93-b80b8049727c",
+        "status": "sent",
+        "message": "Message sent, not waiting for completion"
+      }
+    },
+    {
+      "name": "repo:remove:requested",
+      "atMs": 592927,
+      "args": [
+        "permit",
+        "ls"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:56:22.460Z",
+      "endedAt": "2026-11-06T16:56:37.670Z",
+      "stderr": "",
+      "parsed": [
+        {
+          "id": "permission-ed617b38-c66e-4246-b3d0-7c3b671ccc9d",
+          "agentId": "145263f7-4c8d-4806-8d93-b80b8049727c",
+          "agentShortId": "145263f",
+          "name": "Bash",
+          "description": "-",
+          "recentTools": [
+            "[Shell] mkdir /tmp/fm-probe-s0-049d1aa2 && cd /tmp/fm-probe-s0-049d1aa2 && git init -q -b main && git -c user.name=p -c user.email=p@x commit -q --allow-empty -m init && git branch --show-current",
+            "[Shell] rm -rf /tmp/fm-probe-s0-049d1aa2 && test ! -e /tmp/fm-probe-s0-049d1aa2 && test ! -e /home/ariadne/.paseo/worktrees/1yjqg1eo/fm-probe-s0-049d1aa2 && echo clean"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "repo:remove:allow",
+      "atMs": 606305,
+      "args": [
+        "permit",
+        "allow",
+        "145263f7-4c8d-4806-8d93-b80b8049727c",
+        "permission-ed617b38-c66e-4246-b3d0-7c3b671ccc9d"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:56:37.670Z",
+      "endedAt": "2026-11-06T16:56:51.048Z",
+      "stdout": "[\n  {\n    \"requestId\": \"permission-ed617b38-c66e-4246-b3d0-7c3b671ccc9d\",\n    \"agentId\": \"145263f7-4c8d-4806-8d93-b80b8049727c\",\n    \"agentShortId\": \"145263f\",\n    \"name\": \"Bash\",\n    \"result\": \"allowed\"\n  }\n]\n",
+      "stderr": "",
+      "parsed": [
+        {
+          "requestId": "permission-ed617b38-c66e-4246-b3d0-7c3b671ccc9d",
+          "agentId": "145263f7-4c8d-4806-8d93-b80b8049727c",
+          "agentShortId": "145263f",
+          "name": "Bash",
+          "result": "allowed"
+        }
+      ]
+    },
+    {
+      "name": "repo:remove:settled",
+      "atMs": 612486,
+      "parsed": {
+        "Id": "145263f7-4c8d-4806-8d93-b80b8049727c",
+        "Name": "FirstMate probe janitor s0-049d1aa2 (archive me)",
+        "Provider": "claude",
+        "Model": "claude-haiku-4-5",
+        "Thinking": "auto",
+        "Status": "idle",
+        "Archived": false,
+        "ArchivedAt": null,
+        "Mode": "default",
+        "Cwd": "/tmp",
+        "CreatedAt": "2026-11-06T16:47:02.082Z",
+        "UpdatedAt": "2026-11-06T16:56:49.771Z",
+        "LastUsage": {
+          "InputTokens": 18,
+          "OutputTokens": 393,
+          "CachedTokens": 50618,
+          "CostUsd": 0.020634800000000002
+        },
+        "Capabilities": {
+          "Streaming": true,
+          "Persistence": true,
+          "DynamicModes": true,
+          "McpServers": true
+        },
+        "AvailableModes": [
+          {
+            "id": "plan",
+            "label": "Plan Mode"
+          },
+          {
+            "id": "default",
+            "label": "Always Ask"
+          },
+          {
+            "id": "acceptEdits",
+            "label": "Accept File Edits"
+          },
+          {
+            "id": "auto",
+            "label": "Auto mode"
+          },
+          {
+            "id": "bypassPermissions",
+            "label": "Bypass"
+          }
+        ],
+        "PendingPermissions": [],
+        "Worktree": null,
+        "ParentAgentId": null
+      }
+    },
+    {
+      "name": "repo:remove:output",
+      "atMs": 622505,
+      "args": [
+        "logs",
+        "145263f7-4c8d-4806-8d93-b80b8049727c",
+        "--tail",
+        "1",
+        "--filter",
+        "assistant_message"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:56:57.229Z",
+      "endedAt": "2026-11-06T16:57:07.248Z",
+      "stdout": "clean\n\n",
+      "stderr": ""
+    },
+    {
+      "name": "teardown:janitor-stop",
+      "atMs": 632566,
+      "args": [
+        "stop",
+        "145263f7-4c8d-4806-8d93-b80b8049727c"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:57:07.248Z",
+      "endedAt": "2026-11-06T16:57:17.309Z",
+      "stdout": "{\n  \"stoppedCount\": 0,\n  \"agentIds\": []\n}\n",
+      "stderr": "",
+      "parsed": {
+        "stoppedCount": 0,
+        "agentIds": []
+      }
+    },
+    {
+      "name": "teardown:janitor-archive",
+      "atMs": 651050,
+      "args": [
+        "archive",
+        "145263f7-4c8d-4806-8d93-b80b8049727c"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:57:17.309Z",
+      "endedAt": "2026-11-06T16:57:35.793Z",
+      "stdout": "{\n  \"agentId\": \"145263f7-4c8d-4806-8d93-b80b8049727c\",\n  \"status\": \"archived\",\n  \"archivedAt\": \"2026-11-06T16:57:35.134Z\"\n}\n",
+      "stderr": "",
+      "parsed": {
+        "agentId": "145263f7-4c8d-4806-8d93-b80b8049727c",
+        "status": "archived",
+        "archivedAt": "2026-11-06T16:57:35.134Z"
+      }
+    },
+    {
+      "name": "teardown:tmp-workspace-archive",
+      "atMs": 657770,
+      "args": [
+        "workspace",
+        "archive",
+        "wks_d4757af0ca8c8da9"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:57:35.793Z",
+      "endedAt": "2026-11-06T16:57:42.513Z",
+      "stdout": "{\n  \"workspaceId\": \"wks_d4757af0ca8c8da9\",\n  \"status\": \"archived\",\n  \"archivedAt\": \"2026-11-06T16:57:40.044Z\"\n}\n",
+      "stderr": "",
+      "parsed": {
+        "workspaceId": "wks_d4757af0ca8c8da9",
+        "status": "archived",
+        "archivedAt": "2026-11-06T16:57:40.044Z"
+      }
+    },
+    {
+      "name": "teardown:tmp-project-delete",
+      "atMs": 662927,
+      "args": [
+        "project",
+        "delete",
+        "prj_2db20df39a6e1cdc"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:57:42.513Z",
+      "endedAt": "2026-11-06T16:57:47.670Z",
+      "stdout": "{\n  \"projectId\": \"prj_2db20df39a6e1cdc\",\n  \"removedWorkspaceIds\": []\n}\n",
+      "stderr": "",
+      "parsed": {
+        "projectId": "prj_2db20df39a6e1cdc",
+        "removedWorkspaceIds": []
+      }
+    },
+    {
+      "name": "after:janitor-inspect",
+      "atMs": 668843,
+      "args": [
+        "inspect",
+        "145263f7-4c8d-4806-8d93-b80b8049727c"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:57:47.670Z",
+      "endedAt": "2026-11-06T16:57:53.586Z",
+      "stdout": "{\n  \"Id\": \"145263f7-4c8d-4806-8d93-b80b8049727c\",\n  \"Name\": \"FirstMate probe janitor s0-049d1aa2 (archive me)\",\n  \"Provider\": \"claude\",\n  \"Model\": \"claude-haiku-4-5\",\n  \"Thinking\": \"auto\",\n  \"Status\": \"closed\",\n  \"Archived\": true,\n  \"ArchivedAt\": \"2026-11-06T16:57:35.134Z\",\n  \"Mode\": \"default\",\n  \"Cwd\": \"/tmp\",\n  \"CreatedAt\": \"2026-11-06T16:47:02.082Z\",\n  \"UpdatedAt\": \"2026-11-06T16:57:35.134Z\",\n  \"LastUsage\": null,\n  \"Capabilities\": {\n    \"Streaming\": false,\n    \"Persistence\": true,\n    \"DynamicModes\": false,\n    \"McpServers\": false\n  },\n  \"AvailableModes\": [],\n  \"PendingPermissions\": [],\n  \"Worktree\": null,\n  \"ParentAgentId\": null\n}\n",
+      "stderr": "",
+      "parsed": {
+        "Id": "145263f7-4c8d-4806-8d93-b80b8049727c",
+        "Name": "FirstMate probe janitor s0-049d1aa2 (archive me)",
+        "Provider": "claude",
+        "Model": "claude-haiku-4-5",
+        "Thinking": "auto",
+        "Status": "closed",
+        "Archived": true,
+        "ArchivedAt": "2026-11-06T16:57:35.134Z",
+        "Mode": "default",
+        "Cwd": "/tmp",
+        "CreatedAt": "2026-11-06T16:47:02.082Z",
+        "UpdatedAt": "2026-11-06T16:57:35.134Z",
+        "LastUsage": null,
+        "Capabilities": {
+          "Streaming": false,
+          "Persistence": true,
+          "DynamicModes": false,
+          "McpServers": false
+        },
+        "AvailableModes": [],
+        "PendingPermissions": [],
+        "Worktree": null,
+        "ParentAgentId": null
+      }
+    },
+    {
+      "name": "after:worker-inspect",
+      "atMs": 675301,
+      "args": [
+        "inspect",
+        "4b09d3e2-09f8-4d5e-854b-317a46729ff9"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:57:53.586Z",
+      "endedAt": "2026-11-06T16:58:00.044Z",
+      "stdout": "{\n  \"Id\": \"4b09d3e2-09f8-4d5e-854b-317a46729ff9\",\n  \"Name\": \"FirstMate probe worker s0-049d1aa2 (archive me)\",\n  \"Provider\": \"claude\",\n  \"Model\": \"claude-haiku-4-5\",\n  \"Thinking\": \"auto\",\n  \"Status\": \"closed\",\n  \"Archived\": true,\n  \"ArchivedAt\": \"2026-11-06T16:55:36.087Z\",\n  \"Mode\": \"default\",\n  \"Cwd\": \"/home/ariadne/.paseo/worktrees/1yjqg1eo/fm-probe-s0-049d1aa2\",\n  \"CreatedAt\": \"2026-11-06T16:48:27.210Z\",\n  \"UpdatedAt\": \"2026-11-06T16:55:36.087Z\",\n  \"LastUsage\": null,\n  \"Capabilities\": {\n    \"Streaming\": false,\n    \"Persistence\": true,\n    \"DynamicModes\": false,\n    \"McpServers\": false\n  },\n  \"AvailableModes\": [],\n  \"PendingPermissions\": [],\n  \"Worktree\": null,\n  \"ParentAgentId\": null\n}\n",
+      "stderr": "",
+      "parsed": {
+        "Id": "4b09d3e2-09f8-4d5e-854b-317a46729ff9",
+        "Name": "FirstMate probe worker s0-049d1aa2 (archive me)",
+        "Provider": "claude",
+        "Model": "claude-haiku-4-5",
+        "Thinking": "auto",
+        "Status": "closed",
+        "Archived": true,
+        "ArchivedAt": "2026-11-06T16:55:36.087Z",
+        "Mode": "default",
+        "Cwd": "/home/ariadne/.paseo/worktrees/1yjqg1eo/fm-probe-s0-049d1aa2",
+        "CreatedAt": "2026-11-06T16:48:27.210Z",
+        "UpdatedAt": "2026-11-06T16:55:36.087Z",
+        "LastUsage": null,
+        "Capabilities": {
+          "Streaming": false,
+          "Persistence": true,
+          "DynamicModes": false,
+          "McpServers": false
+        },
+        "AvailableModes": [],
+        "PendingPermissions": [],
+        "Worktree": null,
+        "ParentAgentId": null
+      }
+    },
+    {
+      "name": "after:agents",
+      "atMs": 681497,
+      "args": [
+        "ls",
+        "-g",
+        "-a",
+        "--label",
+        "firstmate.probe=s0-049d1aa2"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:58:00.044Z",
+      "endedAt": "2026-11-06T16:58:06.240Z",
+      "stdout": "[]\n",
+      "stderr": "",
+      "parsed": []
+    },
+    {
+      "name": "after:agents-active",
+      "atMs": 687667,
+      "args": [
+        "ls",
+        "-g",
+        "--label",
+        "firstmate.probe=s0-049d1aa2"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:58:06.240Z",
+      "endedAt": "2026-11-06T16:58:12.410Z",
+      "stdout": "[]\n",
+      "stderr": "",
+      "parsed": []
+    },
+    {
+      "name": "after:workspaces",
+      "atMs": 692845,
+      "args": [
+        "workspace",
+        "ls",
+        "--background"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:58:12.410Z",
+      "endedAt": "2026-11-06T16:58:17.588Z",
+      "stderr": "",
+      "parsed": [],
+      "rows": 369,
+      "keys": [
+        "background",
+        "cwd",
+        "isolation",
+        "name",
+        "project",
+        "workspaceId"
+      ]
+    },
+    {
+      "name": "after:projects",
+      "atMs": 699529,
+      "args": [
+        "project",
+        "ls"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:58:17.588Z",
+      "endedAt": "2026-11-06T16:58:24.272Z",
+      "stderr": "",
+      "parsed": [],
+      "rows": 288,
+      "keys": [
+        "kind",
+        "name",
+        "path",
+        "projectId"
+      ]
+    },
+    {
+      "name": "version:after",
+      "atMs": 790470,
+      "readAt": "2026-11-06T16:59:55.213Z",
+      "checkedAt": "2026-11-06T16:59:33.422Z",
+      "online": true,
+      "daemonVersion": "0.13.0"
+    }
+  ]
+}

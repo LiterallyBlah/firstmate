@@ -1,0 +1,423 @@
+{
+  "probe": "firstmate-remote-supervisors-s0",
+  "mode": "surface",
+  "at": "2026-11-06T16:42:30.763Z",
+  "platform": "win32",
+  "summary": {
+    "nonce": "s0-5ff6f433",
+    "repo": "/tmp/fm-probe-s0-5ff6f433",
+    "created": {
+      "janitor": "524b9346-fada-47e1-933f-a6d959540eaf",
+      "worker": null,
+      "worktree": null,
+      "worktreeCwd": null,
+      "repoProject": null,
+      "tmpWorkspace": "wks_dd8ddeec21dd8399",
+      "tmpProject": "prj_417c8a64569e57a6",
+      "repo": false
+    },
+    "agents": [],
+    "leftover": []
+  },
+  "steps": [
+    {
+      "name": "version:before",
+      "atMs": 81,
+      "readAt": "2026-11-06T16:42:30.843Z",
+      "checkedAt": "2026-11-06T16:42:08.008Z",
+      "online": true,
+      "daemonVersion": "0.13.0"
+    },
+    {
+      "name": "preflight",
+      "atMs": 137,
+      "projects": 288,
+      "workspaces": 369,
+      "tmpProjects": 0,
+      "tmpWorkspaces": 0
+    },
+    {
+      "name": "janitor:create",
+      "atMs": 8879,
+      "args": [
+        "run",
+        "--cwd",
+        "/tmp",
+        "--provider",
+        "claude",
+        "--model",
+        "claude-haiku-4-5",
+        "--mode",
+        "default",
+        "--title",
+        "FirstMate probe janitor s0-5ff6f433 (archive me)",
+        "--label",
+        "firstmate.task=fm-remote-supervisors-probe",
+        "--label",
+        "firstmate.kind=scout",
+        "--label",
+        "firstmate.probe=s0-5ff6f433",
+        "--",
+        "This is a FirstMate capability probe. Reply with exactly the word ok and then stop. Do not use any tools."
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:42:30.900Z",
+      "endedAt": "2026-11-06T16:42:39.642Z",
+      "stdout": "{\n  \"agentId\": \"524b9346-fada-47e1-933f-a6d959540eaf\",\n  \"status\": \"running\",\n  \"provider\": \"claude\",\n  \"cwd\": \"/tmp\",\n  \"title\": \"FirstMate probe janitor s0-5ff6f433 (archive me)\"\n}\n",
+      "stderr": "",
+      "parsed": {
+        "agentId": "524b9346-fada-47e1-933f-a6d959540eaf",
+        "status": "running",
+        "provider": "claude",
+        "cwd": "/tmp",
+        "title": "FirstMate probe janitor s0-5ff6f433 (archive me)"
+      }
+    },
+    {
+      "name": "janitor:first-turn",
+      "atMs": 14520,
+      "parsed": {
+        "Id": "524b9346-fada-47e1-933f-a6d959540eaf",
+        "Name": "FirstMate probe janitor s0-5ff6f433 (archive me)",
+        "Provider": "claude",
+        "Model": "claude-haiku-4-5",
+        "Thinking": "auto",
+        "Status": "idle",
+        "Archived": false,
+        "ArchivedAt": null,
+        "Mode": "default",
+        "Cwd": "/tmp",
+        "CreatedAt": "2026-11-06T16:42:36.186Z",
+        "UpdatedAt": "2026-11-06T16:42:38.078Z",
+        "LastUsage": {
+          "InputTokens": 10,
+          "OutputTokens": 69,
+          "CachedTokens": 15495,
+          "CostUsd": 0.0183105
+        },
+        "Capabilities": {
+          "Streaming": true,
+          "Persistence": true,
+          "DynamicModes": true,
+          "McpServers": true
+        },
+        "AvailableModes": [
+          {
+            "id": "plan",
+            "label": "Plan Mode"
+          },
+          {
+            "id": "default",
+            "label": "Always Ask"
+          },
+          {
+            "id": "acceptEdits",
+            "label": "Accept File Edits"
+          },
+          {
+            "id": "auto",
+            "label": "Auto mode"
+          },
+          {
+            "id": "bypassPermissions",
+            "label": "Bypass"
+          }
+        ],
+        "PendingPermissions": [],
+        "Worktree": null,
+        "ParentAgentId": null
+      }
+    },
+    {
+      "name": "janitor:workspace",
+      "atMs": 19436,
+      "args": [
+        "workspace",
+        "ls",
+        "--background"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:42:45.283Z",
+      "endedAt": "2026-11-06T16:42:50.199Z",
+      "stderr": "",
+      "parsed": [
+        {
+          "workspaceId": "wks_dd8ddeec21dd8399",
+          "project": "tmp",
+          "name": "tmp",
+          "isolation": "local",
+          "cwd": "/tmp",
+          "background": false
+        }
+      ],
+      "rows": 370,
+      "keys": [
+        "background",
+        "cwd",
+        "isolation",
+        "name",
+        "project",
+        "workspaceId"
+      ]
+    },
+    {
+      "name": "janitor:project",
+      "atMs": 26637,
+      "args": [
+        "project",
+        "ls"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:42:50.199Z",
+      "endedAt": "2026-11-06T16:42:57.399Z",
+      "stderr": "",
+      "parsed": [
+        {
+          "projectId": "prj_417c8a64569e57a6",
+          "name": "tmp",
+          "kind": "non_git",
+          "path": "/tmp"
+        }
+      ],
+      "rows": 289,
+      "keys": [
+        "kind",
+        "name",
+        "path",
+        "projectId"
+      ]
+    },
+    {
+      "name": "repo:create:send",
+      "atMs": 34847,
+      "args": [
+        "send",
+        "524b9346-fada-47e1-933f-a6d959540eaf",
+        "--",
+        "Run exactly this one Bash command, with no other tool, then reply with its output and stop:\nmkdir /tmp/fm-probe-s0-5ff6f433 && cd /tmp/fm-probe-s0-5ff6f433 && git init -q -b main && git -c user.name=p -c user.email=p@x commit -q --allow-empty -m init && git branch --show-current"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:42:57.400Z",
+      "endedAt": "2026-11-06T16:43:05.610Z",
+      "stdout": "{\n  \"agentId\": \"524b9346-fada-47e1-933f-a6d959540eaf\",\n  \"status\": \"sent\",\n  \"message\": \"Message sent, not waiting for completion\"\n}\n",
+      "stderr": "",
+      "parsed": {
+        "agentId": "524b9346-fada-47e1-933f-a6d959540eaf",
+        "status": "sent",
+        "message": "Message sent, not waiting for completion"
+      }
+    },
+    {
+      "name": "repo:create:requested",
+      "atMs": 47872,
+      "args": [
+        "permit",
+        "ls"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:43:05.610Z",
+      "endedAt": "2026-11-06T16:43:18.635Z",
+      "stderr": "",
+      "parsed": [
+        {
+          "id": "permission-896e3868-8182-41c2-8476-309077f13af6",
+          "agentId": "524b9346-fada-47e1-933f-a6d959540eaf",
+          "agentShortId": "524b934",
+          "name": "Bash",
+          "description": "-",
+          "recentTools": [
+            "[Shell] mkdir /tmp/fm-probe-s0-5ff6f433 && cd /tmp/fm-probe-s0-5ff6f433 && git init -q -b main && git -c user.name=p -c user.email=p@x commit -q --allow-empty -m init && git branch --show-current"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "repo:create:refused",
+      "atMs": 57666,
+      "args": [
+        "permit",
+        "deny",
+        "524b9346-fada-47e1-933f-a6d959540eaf",
+        "permission-896e3868-8182-41c2-8476-309077f13af6",
+        "--message",
+        "Not the exact command.",
+        "--interrupt"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:43:18.635Z",
+      "endedAt": "2026-11-06T16:43:28.429Z",
+      "stdout": "[\n  {\n    \"requestId\": \"permission-896e3868-8182-41c2-8476-309077f13af6\",\n    \"agentId\": \"524b9346-fada-47e1-933f-a6d959540eaf\",\n    \"agentShortId\": \"524b934\",\n    \"name\": \"Bash\",\n    \"result\": \"denied\"\n  }\n]\n",
+      "stderr": "",
+      "parsed": [
+        {
+          "requestId": "permission-896e3868-8182-41c2-8476-309077f13af6",
+          "agentId": "524b9346-fada-47e1-933f-a6d959540eaf",
+          "agentShortId": "524b934",
+          "name": "Bash",
+          "result": "denied"
+        }
+      ]
+    },
+    {
+      "name": "aborted",
+      "atMs": 57666,
+      "error": "repo:create: the pending Bash request is not exactly the command"
+    },
+    {
+      "name": "teardown:janitor-stop",
+      "atMs": 66352,
+      "args": [
+        "stop",
+        "524b9346-fada-47e1-933f-a6d959540eaf"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:43:28.429Z",
+      "endedAt": "2026-11-06T16:43:37.115Z",
+      "stdout": "{\n  \"stoppedCount\": 0,\n  \"agentIds\": []\n}\n",
+      "stderr": "",
+      "parsed": {
+        "stoppedCount": 0,
+        "agentIds": []
+      }
+    },
+    {
+      "name": "teardown:janitor-archive",
+      "atMs": 75056,
+      "args": [
+        "archive",
+        "524b9346-fada-47e1-933f-a6d959540eaf"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:43:37.115Z",
+      "endedAt": "2026-11-06T16:43:45.819Z",
+      "stdout": "{\n  \"agentId\": \"524b9346-fada-47e1-933f-a6d959540eaf\",\n  \"status\": \"archived\",\n  \"archivedAt\": \"2026-11-06T16:43:44.923Z\"\n}\n",
+      "stderr": "",
+      "parsed": {
+        "agentId": "524b9346-fada-47e1-933f-a6d959540eaf",
+        "status": "archived",
+        "archivedAt": "2026-11-06T16:43:44.923Z"
+      }
+    },
+    {
+      "name": "teardown:tmp-workspace-archive",
+      "atMs": 81978,
+      "args": [
+        "workspace",
+        "archive",
+        "wks_dd8ddeec21dd8399"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:43:45.819Z",
+      "endedAt": "2026-11-06T16:43:52.741Z",
+      "stdout": "{\n  \"workspaceId\": \"wks_dd8ddeec21dd8399\",\n  \"status\": \"archived\",\n  \"archivedAt\": \"2026-11-06T16:43:51.132Z\"\n}\n",
+      "stderr": "",
+      "parsed": {
+        "workspaceId": "wks_dd8ddeec21dd8399",
+        "status": "archived",
+        "archivedAt": "2026-11-06T16:43:51.132Z"
+      }
+    },
+    {
+      "name": "teardown:tmp-project-delete",
+      "atMs": 87140,
+      "args": [
+        "project",
+        "delete",
+        "prj_417c8a64569e57a6"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:43:52.741Z",
+      "endedAt": "2026-11-06T16:43:57.903Z",
+      "stdout": "{\n  \"projectId\": \"prj_417c8a64569e57a6\",\n  \"removedWorkspaceIds\": []\n}\n",
+      "stderr": "",
+      "parsed": {
+        "projectId": "prj_417c8a64569e57a6",
+        "removedWorkspaceIds": []
+      }
+    },
+    {
+      "name": "after:agents",
+      "atMs": 91307,
+      "args": [
+        "ls",
+        "-g",
+        "-a",
+        "--label",
+        "firstmate.probe=s0-5ff6f433"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:43:57.903Z",
+      "endedAt": "2026-11-06T16:44:02.070Z",
+      "stdout": "[]\n",
+      "stderr": "",
+      "parsed": []
+    },
+    {
+      "name": "after:agents-active",
+      "atMs": 97025,
+      "args": [
+        "ls",
+        "-g",
+        "--label",
+        "firstmate.probe=s0-5ff6f433"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:44:02.070Z",
+      "endedAt": "2026-11-06T16:44:07.788Z",
+      "stdout": "[]\n",
+      "stderr": "",
+      "parsed": []
+    },
+    {
+      "name": "after:workspaces",
+      "atMs": 104504,
+      "args": [
+        "workspace",
+        "ls",
+        "--background"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:44:07.788Z",
+      "endedAt": "2026-11-06T16:44:15.266Z",
+      "stderr": "",
+      "parsed": [],
+      "rows": 369,
+      "keys": [
+        "background",
+        "cwd",
+        "isolation",
+        "name",
+        "project",
+        "workspaceId"
+      ]
+    },
+    {
+      "name": "after:projects",
+      "atMs": 110434,
+      "args": [
+        "project",
+        "ls"
+      ],
+      "code": 0,
+      "startedAt": "2026-11-06T16:44:15.267Z",
+      "endedAt": "2026-11-06T16:44:21.197Z",
+      "stderr": "",
+      "parsed": [],
+      "rows": 288,
+      "keys": [
+        "kind",
+        "name",
+        "path",
+        "projectId"
+      ]
+    },
+    {
+      "name": "version:after",
+      "atMs": 201073,
+      "readAt": "2026-11-06T16:45:51.836Z",
+      "checkedAt": "2026-11-06T16:45:25.729Z",
+      "online": true,
+      "daemonVersion": "0.13.0"
+    }
+  ]
+}

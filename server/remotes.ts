@@ -9,6 +9,7 @@ import { runPaseo, type CliResult } from "./cli";
 import { readFirstmateConfig, resolveHome } from "./config";
 import { paseoHome, pluginDir } from "./data-dir";
 import { serialized } from "./serialize";
+import type { RemoteWorkspaceTarget } from "./supervision-sources";
 
 const Registry = z.object({ version: z.literal(1), syncedAt: z.string(), localLabel: z.string().optional(), hosts: SavedHosts });
 /** At most this many followed agents per host, besides the crew. */
@@ -82,10 +83,87 @@ export function commandArguments(args: string[], owner: string): string[] {
  * refuses these for scoped workers (they are their Supervisor's, through the checked gateway);
  * the gateway's own receiver and the board's already-guarded path do not take the helper origin. */
 export function remoteMutationAgent(args: string[]): string | null {
-  const positional = (value: string | undefined) => value && !value.startsWith("-") ? value : null;
-  if (["send", "stop", "archive"].includes(args[0] ?? "")) return positional(args[1]);
-  if (args[0] === "permit" && (args[1] === "allow" || args[1] === "deny")) return positional(args[2]);
-  return null;
+  const index = remoteMutationIndex(args);
+  return index === null ? null : args[index]!;
+}
+function remoteMutationIndex(args: string[]): number | null {
+  const at = ["send", "stop", "archive"].includes(args[0] ?? "") ? 1 : args[0] === "permit" && (args[1] === "allow" || args[1] === "deny") ? 2 : null;
+  return at !== null && args[at] && !args[at]!.startsWith("-") ? at : null;
+}
+const FULL_AGENT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** The one agent a helper-queue mutation acts on, so the scoped-worker guard sees exactly what the host
+ * will. Null for reads and creations. The CLI parses options anywhere and takes a unique ID prefix (or,
+ * for `archive`, a name), so the helper's form is strict: the full agent ID straight after the command,
+ * no option before it, and no `stop --all` or `--cwd`, which reach agents without naming them. */
+export function helperMutationTarget(command: string[]): string | null {
+  const name = command[0] ?? "", end = command.indexOf("--");
+  const options = end < 0 ? command : command.slice(0, end);
+  const at = ["send", "stop", "archive"].includes(name) ? 1 : name === "permit" && (command[1] === "allow" || command[1] === "deny") ? 2 : null;
+  if (at === null) return null;
+  if (name === "stop" && options.some((arg) => /^--(?:all|cwd)(?:=|$)/.test(arg)))
+    throw new Error("stop --all and stop --cwd are refused here; stop one agent by its full ID");
+  const target = options[at];
+  if (!target || target.startsWith("-")) throw new Error(`Name the remote agent by its full ID straight after "${command.slice(0, at).join(" ")}", before any option`);
+  if (!FULL_AGENT_ID.test(target)) throw new Error(`Name the remote agent by its full ID: "${target.slice(0, 64)}" is not one (prefixes and names are refused here)`);
+  return target;
+}
+/** The subcommands the helper may send; anything else (`project delete`, `help`, a future one) is refused. */
+const HELPER_SUBCOMMANDS: Record<string, readonly string[]> = {
+  workspace: ["ls", "create", "rename", "setup", "archive"], project: ["ls", "create", "rename"],
+  permit: ["ls", "allow", "deny"], provider: ["ls", "models", "diagnostic"],
+};
+/** One option's value, in either spelling, or undefined; given twice it is refused, as ambiguous. */
+function optionValue(options: string[], flag: string): string | undefined {
+  const values = options.flatMap((arg, i) => arg === flag ? [options[i + 1] ?? ""] : arg.startsWith(`${flag}=`) ? [arg.slice(flag.length + 1)] : []);
+  if (values.length > 1) throw new Error(`${flag} is given more than once`);
+  return values[0];
+}
+/** Paseo's workspace and project IDs as it prints them; any other spelling might still match on the host. */
+const CANONICAL_ID = /^[a-z0-9][a-z0-9_-]{0,199}$/;
+export interface HelperTargets {
+  agent: string | null; workspace: string | null; path: string | null;
+  /** `workspace create --project`, checked by the project's root in the host's catalog. */
+  project: string | null; slug: string | null; branches: string[];
+}
+/** Everything a helper-queue command can reach that a scoped worker might hold: the agent it acts on,
+ * the workspace it archives, sets up, renames or adds an agent to, the directory a new agent, project or
+ * workspace opens in, a project whose root that is, and the worktree slug and branches a new worktree
+ * takes. Reads and the remaining creations reach none. Refuses what cannot be checked: `project delete`
+ * (it deletes the project's workspaces), unknown subcommands, an option before a workspace ID or a
+ * project's directory, a non-canonical ID, and checking out a pull request (its branch is unknown here).
+ * The scoped guards are then asked about each target. */
+export function helperTargets(command: string[]): HelperTargets {
+  const name = command[0] ?? "", end = command.indexOf("--");
+  const options = end < 0 ? command : command.slice(0, end), sub = options[1] ?? "";
+  const allowed = HELPER_SUBCOMMANDS[name];
+  if (name === "project" && sub === "delete") throw new Error("project delete is refused here: it deletes the project's workspaces, which can hold a scoped supervisor's worktree");
+  if (allowed && !allowed.includes(sub)) throw new Error(`"${name} ${sub}" is not a command the helper sends; name the subcommand straight after "${name}"`);
+  const id = (value: string | undefined, what: string) => {
+    if (value !== undefined && !CANONICAL_ID.test(value)) throw new Error(`Name the remote ${what} by its ID exactly as Paseo prints it (lowercase): "${value.slice(0, 64)}"`);
+    return value ?? null;
+  };
+  const targets: HelperTargets = { agent: helperMutationTarget(command), workspace: null, path: null, project: null, slug: null, branches: [] };
+  if (name === "workspace" && ["archive", "setup", "rename"].includes(sub)) {
+    const workspace = options[2] ?? "";
+    if (!workspace || workspace.startsWith("-")) throw new Error(`Name the remote workspace by its ID straight after "workspace ${sub}", before any option`);
+    targets.workspace = id(workspace, "workspace");
+  }
+  if (name === "project" && sub === "create") {
+    const path = options[2] ?? "";
+    if (!path || path.startsWith("-")) throw new Error("Name the project's directory by its absolute path straight after \"project create\", before any option");
+    targets.path = path;
+  }
+  const creates = name === "run" || (name === "workspace" && sub === "create");
+  if (creates) {
+    if (name === "run") { targets.workspace = id(optionValue(options, "--workspace"), "workspace"); targets.path = optionValue(options, "--cwd") ?? null; }
+    else { targets.path = optionValue(options, "--path") ?? null; targets.project = id(optionValue(options, "--project"), "project"); }
+    const mode = optionValue(options, name === "run" ? "--worktree-mode" : "--mode");
+    if (mode === "checkout-pr" || optionValue(options, "--pr-number") !== undefined)
+      throw new Error("Checking out a pull request is refused here: its branch cannot be checked against scoped worker branches");
+    targets.slug = optionValue(options, "--worktree-slug") ?? null;
+    targets.branches = [optionValue(options, "--branch"), optionValue(options, "--new-branch")].filter((branch): branch is string => branch !== undefined);
+  }
+  return targets;
 }
 const MAX_ERROR_CHARS = 1500;
 /** More than a few minutes: the delay of a remote run can never account for it. */
@@ -182,6 +260,8 @@ export class RemoteService {
     private readonly observedPoll?: (snapshot: RemoteSnapshot) => void,
     /** Refuses helper-queue mutations of scoped workers; absent means no scoped journal is wired. */
     private readonly scopedGuard?: (serverId: string, agentId: string) => Promise<void>,
+    /** Refuses helper-queue workspace changes that could reach a scoped worker's worktree; absent, every such change refuses. */
+    private readonly workspaceGuard?: (serverId: string, target: RemoteWorkspaceTarget) => Promise<void>,
   ) { this.ready = this.load(); }
   private async load() {
     await mkdir(pluginDir(), { recursive: true });
@@ -270,9 +350,26 @@ export class RemoteService {
     if (matches.length !== 1) throw new Error("Host is unknown or its name is ambiguous; use its serverId from hosts");
     const host = matches[0]!;
     const command = commandArguments(args, this.owner);
-    if (origin?.helper && this.scopedGuard) {
-      const agent = remoteMutationAgent(command);
-      if (agent) await this.scopedGuard(host.serverId, agent);
+    if (origin?.helper) {
+      const targets = helperTargets(command);
+      if (targets.agent !== null) await this.scopedGuard?.(host.serverId, targets.agent);
+      const catalog = this.snapshot.hosts.find((entry) => entry.serverId === host.serverId);
+      const checks: RemoteWorkspaceTarget[] = [];
+      if (targets.workspace !== null) {
+        // The catalog's directory for it, which tells it apart from a worktree still being created.
+        const row = catalog?.workspaces.find((w) => w.workspaceId === targets.workspace);
+        checks.push({ workspaceId: targets.workspace, listedCwd: typeof row?.cwd === "string" ? row.cwd : null });
+      }
+      if (targets.path !== null) checks.push({ path: targets.path });
+      if (targets.project !== null) {
+        const root = catalog?.projects.find((p) => p.projectId === targets.project)?.path;
+        if (typeof root !== "string") throw new Error("This project is not in the host's last poll, so its directory cannot be checked against scoped worktrees; refused");
+        checks.push({ path: root });
+      }
+      if (targets.slug !== null) checks.push({ slug: targets.slug });
+      for (const branch of targets.branches) checks.push({ branch });
+      if (checks.length && !this.workspaceGuard) throw new Error("Remote workspace changes cannot be checked against scoped worktrees here, so they are refused");
+      for (const check of checks) await this.workspaceGuard!(host.serverId, check);
     }
     const connection = await this.connect(host);
     // Exactly one attempt once a command may change remote state. A timeout

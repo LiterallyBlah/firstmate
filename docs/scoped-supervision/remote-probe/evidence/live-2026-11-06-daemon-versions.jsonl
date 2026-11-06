@@ -1,0 +1,8 @@
+{"phase":"before","readAt":"2026-11-06T16:12:09.651Z","checkedAt":"2026-11-06T16:11:23.383Z","online":true,"daemonVersion":"0.13.0"}
+{"phase":"during","readAt":"2026-11-06T16:12:24.883Z","checkedAt":"2026-11-06T16:11:23.383Z","online":true,"daemonVersion":"0.13.0"}
+{"phase":"during","readAt":"2026-11-06T16:12:40.066Z","checkedAt":"2026-11-06T16:12:16.165Z","online":true,"daemonVersion":"0.13.0"}
+{"phase":"during","readAt":"2026-11-06T16:12:55.216Z","checkedAt":"2026-11-06T16:12:36.092Z","online":true,"daemonVersion":"0.13.0"}
+{"phase":"during","readAt":"2026-11-06T16:13:10.389Z","checkedAt":"2026-11-06T16:12:36.092Z","online":true,"daemonVersion":"0.13.0"}
+{"phase":"during","readAt":"2026-11-06T16:13:25.544Z","checkedAt":"2026-11-06T16:13:00.777Z","online":true,"daemonVersion":"0.13.0"}
+{"phase":"during","readAt":"2026-11-06T16:13:40.688Z","checkedAt":"2026-11-06T16:13:23.491Z","online":true,"daemonVersion":"0.13.0"}
+{"phase":"after","readAt":"2026-11-06T16:13:40.799Z","checkedAt":"2026-11-06T16:13:23.491Z","online":true,"daemonVersion":"0.13.0"}

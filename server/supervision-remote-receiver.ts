@@ -6,10 +6,11 @@
  * uncertain, two or more is a held duplicate. Archive and persisted inventory are refused.
  * A failure before submission (connect refused) is a definite `ReceiverRejected`; a failure
  * after submission is a plain error, which the gateway settles uncertain and never resends.
- * Assumed, unproven reply shapes (no live `workspace create`/`workspace ls --json` reply was ever
- * captured): create returns `{ workspaceId|id, cwd|path|directory }`, possibly nested under
- * `workspace`; ls rows carry `{ workspaceId|id, cwd|path, branch, name }`. `run`/`inspect`/`ls -g`
- * shapes come from the slice 0 probe evidence. A create refused after `workspace create` leaves
+ * Reply shapes on daemon 0.13.0 (the surface probe, `docs/scoped-supervision/remote-probe/`): create
+ * returns `{ workspaceId, project, name, isolation, cwd, background }`; ls rows the same, with **no
+ * `branch`**, so `findWorkspace` cannot rediscover a worktree there and an uncertain open stays
+ * uncertain (no not-created proof) rather than being recreated. `run`/`inspect`/`ls -g` shapes come from
+ * the slice 0 probe evidence. A create refused after `workspace create` leaves
  * that worktree in place — removing it would need the refused archive/delete surface — retained
  * and accounted by the succeeded `workspace.open` effect's receipt, and rediscovered by
  * `findWorkspace`; it is never silently dropped. */

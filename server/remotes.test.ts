@@ -19,7 +19,7 @@ afterEach(async () => {
   if (root) await rm(root, { recursive: true, force: true });
   root = ""; vi.unstubAllEnvs();
 });
-async function fixture(execute: ConstructorParameters<typeof RemoteService>[0], tasks?: ConstructorParameters<typeof RemoteService>[1], scopedGuard?: ConstructorParameters<typeof RemoteService>[3]) {
+async function fixture(execute: ConstructorParameters<typeof RemoteService>[0], tasks?: ConstructorParameters<typeof RemoteService>[1], scopedGuard?: ConstructorParameters<typeof RemoteService>[3], workspaceGuard?: ConstructorParameters<typeof RemoteService>[4]) {
   root = await mkdtemp(join(tmpdir(), "firstmate-remotes-"));
   vi.stubEnv("PASEO_HOME", root);
   await writeFile(join(root, "server-id"), local.serverId);
@@ -29,10 +29,11 @@ async function fixture(execute: ConstructorParameters<typeof RemoteService>[0], 
   await mkdir(join(home, "tools"));
   await writeFile(join(home, "AGENTS.md"), "# Isolated fixture\n");
   await writeFile(join(directory, "config.json"), JSON.stringify({ home }));
-  service = new RemoteService(execute, tasks, undefined, scopedGuard);
+  service = new RemoteService(execute, tasks, undefined, scopedGuard, workspaceGuard);
   await service.sync([local, remote]);
   return { directory, home, service };
 }
+const SCOPED = "8552861a-dee4-4771-9968-a494a64d1a79", CREW = "c0ffee00-1111-4111-8111-111111111111";
 const success = (value: unknown) => ({ code: 0, stdout: JSON.stringify(value), stderr: "" });
 
 describe("independent remote access", () => {
@@ -225,7 +226,7 @@ describe("independent remote access", () => {
       if (args[0] === "logs") return { code: 0, stdout: "[Read] notes.md\n[Shell] npm test -- --run\n", stderr: "" };
       if (args[0] === "inspect") return success({ Id: "agent-1", UpdatedAt: "2026-10-08T09:09:42.199Z", Name: "2026-10-08T09:09:42.199Z is a title" });
       return success({ ok: true });
-    });
+    }, undefined, undefined, async () => {}); // No scoped worktrees here; the guards are covered below.
     const helper = join(home, "tools", "remote.mjs");
     await writeFile(helper, fill(await readTemplate(TEMPLATES.remoteHelper), { remoteQueueJson: JSON.stringify(join(directory, "remote-requests")) }));
     // This test counts helper commands, not the independent background collector.
@@ -240,9 +241,9 @@ describe("independent remote access", () => {
     const cwd = "C:\\Users\\captain\\repo";
     await run(process.execPath, [helper, remote.serverId, "run", "--prompt-file", "data/task/brief.md", "--cwd", cwd, "--provider", "claude/opus"], { cwd: home, timeout: 10000 });
     expect(calls.at(-1)).toEqual(["run", "--cwd", cwd, "--provider", "claude/opus", "--no-wait", "--label", "firstmate.role=crew", "--label", "firstmate.owner=local-test:firstmate", "--json", "--", brief]);
-    await writeFile(join(home, "data", "task", "send.json"), JSON.stringify({ host: "Remote", args: ["send", "agent-1", "--prompt-file", join(home, "data", "task", "brief.md")] }));
+    await writeFile(join(home, "data", "task", "send.json"), JSON.stringify({ host: "Remote", args: ["send", CREW, "--prompt-file", join(home, "data", "task", "brief.md")] }));
     await run(process.execPath, [helper, "--request-file", join(home, "data", "task", "send.json")], { cwd: home, timeout: 10000 });
-    expect(calls.at(-1)).toEqual(["send", "agent-1", "--no-wait", "--json", "--", brief]);
+    expect(calls.at(-1)).toEqual(["send", CREW, "--no-wait", "--json", "--", brief]);
 
     const sent = calls.length;
     const refused = async (args: string[], message: string) => {
@@ -375,21 +376,138 @@ describe("independent remote access", () => {
       return args[0] === "status" ? success({ serverId: remote.serverId, connectedDaemon: "reachable" }) : success({ ok: true });
     }, undefined, async (serverId, agentId) => {
       guarded.push([serverId, agentId]);
-      if (agentId === "scoped-1") throw new Error("This remote worker belongs to a scoped supervisor.");
+      if (agentId === SCOPED) throw new Error("This remote worker belongs to a scoped supervisor.");
     });
     for (const args of [
-      ["send", "scoped-1", "--", "steer"], ["stop", "scoped-1"], ["archive", "scoped-1"],
-      ["permit", "allow", "scoped-1", "req-1"], ["permit", "deny", "scoped-1", "req-1", "--message", "No."],
+      ["send", SCOPED, "--", "steer"], ["stop", SCOPED], ["archive", SCOPED],
+      ["permit", "allow", SCOPED, "req-1"], ["permit", "deny", SCOPED, "req-1", "--message", "No."],
     ]) await expect(service.request("Remote", args, { helper: true })).rejects.toThrow("scoped supervisor");
     expect(calls).toEqual([]); // Refused before any connection or command reached the host.
-    expect(guarded).toEqual(Array(5).fill([remote.serverId, "scoped-1"]));
+    expect(guarded).toEqual(Array(5).fill([remote.serverId, SCOPED]));
     // The checked gateway's own receiver (no helper origin) still answers its worker's permission.
-    await expect(service.request("Remote", ["permit", "deny", "scoped-1", "req-1", "--message", "No."])).resolves.toEqual({ ok: true });
+    await expect(service.request("Remote", ["permit", "deny", SCOPED, "req-1", "--message", "No."])).resolves.toEqual({ ok: true });
     // General's own crew and read-only helper calls are unaffected.
-    await expect(service.request("Remote", ["send", "crew-1", "--", "hi"], { helper: true })).resolves.toEqual({ ok: true });
+    await expect(service.request("Remote", ["send", CREW, "--", "hi"], { helper: true })).resolves.toEqual({ ok: true });
     await expect(service.request("Remote", ["permit", "ls"], { helper: true })).resolves.toEqual({ ok: true });
-    await expect(service.request("Remote", ["inspect", "scoped-1"], { helper: true })).resolves.toEqual({ ok: true });
+    await expect(service.request("Remote", ["inspect", SCOPED], { helper: true })).resolves.toEqual({ ok: true });
     expect(guarded).toHaveLength(6); // Only the crew send added a guard check after the refusals.
+  });
+  it("guards exactly the agent a helper mutation reaches: full ID first, no option before it, no stop --all or --cwd", async () => {
+    const calls: string[][] = [], guarded: string[] = [];
+    const { service } = await fixture(async (args) => {
+      calls.push(args);
+      return args[0] === "status" ? success({ serverId: remote.serverId, connectedDaemon: "reachable" }) : success({ ok: true });
+    }, undefined, async (_serverId, agentId) => {
+      guarded.push(agentId);
+      // The real guard also refuses any prefix of a scoped worker's ID (supervision-sources.test.ts).
+      if (SCOPED.startsWith(agentId.toLowerCase())) throw new Error("This remote worker belongs to a scoped supervisor.");
+    });
+    // An option before the target would put the agent where the guard did not look: refused, unguarded.
+    for (const args of [["send", "--json", SCOPED, "--", "steer"], ["archive", "--force", SCOPED], ["stop", "--json", SCOPED],
+      ["stop", "-q", SCOPED], ["archive", "-o", "json", SCOPED], ["stop"], ["send", "--", "steer"]])
+      await expect(service.request("Remote", args, { helper: true }), args.join(" ")).rejects.toThrow("before any option");
+    // stop --all and stop --cwd reach agents without naming them, in either spelling and position.
+    for (const args of [["stop", "--all"], ["stop", "--cwd", "/home/ariadne/work"], ["stop", "--cwd=/home/ariadne/work"], ["stop", CREW, "--all"], ["stop", "--all=true"]])
+      await expect(service.request("Remote", args, { helper: true }), args.join(" ")).rejects.toThrow("stop --all and stop --cwd are refused");
+    // Prefixes and names are refused outright, a scoped prefix included; only a full ID is acted on.
+    for (const args of [["send", SCOPED.slice(0, 7), "--", "steer"], ["stop", CREW.slice(0, 8)], ["archive", "c"], ["archive", "Crew worker"],
+      ["permit", "allow", CREW.slice(0, 7), "req-1"], ["permit", "deny", SCOPED.slice(0, 7), "req-1", "--message", "No."], ["stop", `${CREW}x`]])
+      await expect(service.request("Remote", args, { helper: true }), args.join(" ")).rejects.toThrow("full ID");
+    expect(guarded).toEqual([]);
+    expect(calls).toEqual([]);
+    // The full ID of a scoped worker, in any case, is still refused by the guard; own crew passes with its options after.
+    await expect(service.request("Remote", ["stop", SCOPED.toUpperCase(), "--json"], { helper: true })).rejects.toThrow("scoped supervisor");
+    await expect(service.request("Remote", ["archive", CREW, "--force"], { helper: true })).resolves.toEqual({ ok: true });
+    expect(guarded).toEqual([SCOPED.toUpperCase(), CREW]);
+    expect(calls.find((args) => args[0] === "archive")).toEqual(["archive", CREW, "--force", "--json"]);
+    // The gateway's own receiver (no helper origin) keeps its forms.
+    await expect(service.request("Remote", ["stop", "--json", SCOPED])).resolves.toEqual({ ok: true });
+  });
+  it("guards every helper command that can reach a scoped worker's workspace; project delete and unknown subcommands refuse", async () => {
+    const calls: string[][] = [], checked: { workspaceId?: string; path?: string }[] = [];
+    const scopedWorktree = "/home/ariadne/.paseo/worktrees/h1/slug-1";
+    const { service } = await fixture(async (args) => {
+      calls.push(args);
+      return args[0] === "status" ? success({ serverId: remote.serverId, connectedDaemon: "reachable" }) : success({ ok: true });
+    }, undefined, async () => {}, async (_serverId, target) => {
+      checked.push(target);
+      // The real check reads the journal (supervision-sources.test.ts); here one workspace and its directory are scoped.
+      if (target.workspaceId === "wks_scoped" || target.path?.startsWith(scopedWorktree)) throw new Error("belongs to a scoped supervisor");
+    });
+    // Each command that archives, sets up, renames or adds an agent or workspace to a scoped worktree refuses before connecting.
+    for (const args of [["workspace", "archive", "wks_scoped"], ["workspace", "setup", "wks_scoped"], ["workspace", "rename", "wks_scoped", "x"],
+      ["run", "--workspace", "wks_scoped", "--provider", "claude", "--", "brief"], ["run", "--workspace=wks_scoped", "--", "brief"],
+      ["run", "--cwd", scopedWorktree, "--", "brief"], ["run", `--cwd=${scopedWorktree}/src`, "--", "brief"],
+      ["workspace", "create", "--isolation", "local", "--path", scopedWorktree]])
+      await expect(service.request("Remote", args, { helper: true }), args.join(" ")).rejects.toThrow("scoped supervisor");
+    // project delete deletes the project's workspaces; unknown subcommands and an option before the workspace ID cannot be checked.
+    await expect(service.request("Remote", ["project", "delete", "prj_any"], { helper: true })).rejects.toThrow("project delete is refused");
+    for (const args of [["workspace", "help"], ["workspace", "--json", "archive", "wks_scoped"], ["project", "remove", "prj_any"], ["permit", "approve", "a", "b"], ["provider", "set", "claude"]])
+      await expect(service.request("Remote", args, { helper: true }), args.join(" ")).rejects.toThrow("not a command the helper sends");
+    for (const args of [["workspace", "archive", "--json", "wks_scoped"], ["workspace", "archive"]])
+      await expect(service.request("Remote", args, { helper: true }), args.join(" ")).rejects.toThrow("before any option");
+    await expect(service.request("Remote", ["run", "--workspace", "a", "--workspace", "wks_scoped", "--", "brief"], { helper: true })).rejects.toThrow("more than once");
+    expect(calls).toEqual([]);
+    // Unscoped workspaces and directories, reads and plain creations pass; reads are not checked at all.
+    checked.length = 0;
+    for (const args of [["workspace", "archive", "wks_crew"], ["run", "--cwd", "/home/ariadne/work", "--new-workspace", "worktree", "--", "brief"],
+      ["workspace", "ls"], ["project", "ls"], ["project", "create", "/home/ariadne/new"], ["provider", "ls"], ["permit", "ls"], ["ls", "-g"], ["run", "--provider", "claude", "--", "brief"]])
+      await expect(service.request("Remote", args, { helper: true }), args.join(" ")).resolves.toEqual({ ok: true });
+    expect(checked).toEqual([{ workspaceId: "wks_crew", listedCwd: null }, { path: "/home/ariadne/work" }, { path: "/home/ariadne/new" }]);
+  });
+  it("checks the other ways a new workspace can land in a scoped worktree: project roots, slugs, branches, IDs", async () => {
+    const calls: string[][] = [], checked: unknown[] = [];
+    const scopedWorktree = "/home/ariadne/.paseo/worktrees/h1/ws-slug-1";
+    const { service } = await fixture(async (args) => {
+      calls.push(args);
+      return args[0] === "status" ? success({ serverId: remote.serverId, connectedDaemon: "reachable" }) : success({ ok: true });
+    }, undefined, async () => {}, async (_serverId, target) => {
+      checked.push(target);
+      // The real check reads the journal (supervision-sources.test.ts): one scoped worktree, its slug and branch.
+      if (target.path?.startsWith(scopedWorktree) || target.slug === "ws-slug-1" || target.branch === "fm/build") throw new Error("belongs to a scoped supervisor");
+      if (target.workspaceId !== undefined && target.listedCwd === null) throw new Error("cannot be shown not to be it");
+    });
+    // What the last poll found on the host: a project whose root is the scoped worktree, and a listed workspace.
+    const catalog = (service as any).snapshot.hosts.find((host: { serverId: string }) => host.serverId === remote.serverId);
+    catalog.projects = [{ projectId: "prj_scoped", path: scopedWorktree }, { projectId: "prj_repo", path: "/home/ariadne/repo" }];
+    catalog.workspaces = [{ workspaceId: "wks_listed", cwd: "/home/ariadne/.paseo/worktrees/h1/other" }];
+    for (const [args, message] of [
+      // project create takes its directory as a positional; workspace create --project lands in the project's root.
+      [["project", "create", scopedWorktree], "scoped supervisor"], [["project", "create", "--json", scopedWorktree], "before any option"], [["project", "create"], "before any option"],
+      [["workspace", "create", "--project", "prj_scoped", "--isolation", "local"], "scoped supervisor"],
+      [["workspace", "create", "--project", "prj_unknown"], "not in the host's last poll"],
+      // A scoped worktree's slug or branch, in a run or a workspace create.
+      [["run", "--cwd", "/home/ariadne/repo", "--new-workspace", "worktree", "--worktree-slug", "ws-slug-1", "--", "brief"], "scoped supervisor"],
+      [["workspace", "create", "--project", "prj_repo", "--worktree-slug=ws-slug-1"], "scoped supervisor"],
+      [["run", "--cwd", "/home/ariadne/repo", "--new-workspace", "worktree", "--worktree-mode", "checkout-branch", "--branch", "fm/build", "--", "brief"], "scoped supervisor"],
+      [["workspace", "create", "--project", "prj_repo", "--mode", "checkout-branch", "--branch", "fm/build"], "scoped supervisor"],
+      [["run", "--cwd", "/home/ariadne/repo", "--new-workspace", "worktree", "--new-branch", "fm/build", "--", "brief"], "scoped supervisor"],
+      // A pull request's branch is unknown here.
+      [["run", "--cwd", "/home/ariadne/repo", "--new-workspace", "worktree", "--worktree-mode", "checkout-pr", "--pr-number", "7", "--", "brief"], "pull request"],
+      [["workspace", "create", "--project", "prj_repo", "--mode=checkout-pr"], "pull request"],
+      // Only canonical (lowercase) IDs, which is how Paseo prints them.
+      [["workspace", "archive", "WKS_LISTED"], "lowercase"], [["run", "--workspace", "Wks_listed", "--", "brief"], "lowercase"], [["workspace", "create", "--project", "PRJ_repo"], "lowercase"],
+      // A workspace the catalog does not list, while a scoped open is unsettled.
+      [["workspace", "archive", "wks_unlisted"], "cannot be shown"],
+    ] as const) await expect(service.request("Remote", [...args], { helper: true }), args.join(" ")).rejects.toThrow(message);
+    expect(calls).toEqual([]);
+    // The first mate's own launches and archives pass, with the catalog's directory and the project's root checked.
+    checked.length = 0;
+    for (const args of [["workspace", "archive", "wks_listed"], ["workspace", "create", "--project", "prj_repo", "--worktree-slug", "fm-task", "--new-branch", "fm/task"],
+      ["run", "--cwd", "/home/ariadne/repo", "--new-workspace", "worktree", "--worktree-slug", "fm-task", "--new-branch", "fm/task", "--base", "main", "--", "brief"]])
+      await expect(service.request("Remote", args, { helper: true }), args.join(" ")).resolves.toEqual({ ok: true });
+    expect(checked).toEqual([{ workspaceId: "wks_listed", listedCwd: "/home/ariadne/.paseo/worktrees/h1/other" },
+      { path: "/home/ariadne/repo" }, { slug: "fm-task" }, { branch: "fm/task" },
+      { path: "/home/ariadne/repo" }, { slug: "fm-task" }, { branch: "fm/task" }]);
+  });
+  it("refuses helper workspace changes outright when no workspace guard is wired", async () => {
+    const calls: string[][] = [];
+    const { service } = await fixture(async (args) => { calls.push(args); return args[0] === "status" ? success({ serverId: remote.serverId, connectedDaemon: "reachable" }) : success({ ok: true }); });
+    for (const args of [["workspace", "archive", "wks_any"], ["run", "--cwd", "/home/ariadne/work", "--", "brief"]])
+      await expect(service.request("Remote", args, { helper: true }), args.join(" ")).rejects.toThrow("cannot be checked");
+    expect(calls).toEqual([]);
+    // The checked gateway's own receiver (no helper origin) is not affected.
+    await expect(service.request("Remote", ["workspace", "create", "--isolation", "worktree", "--path", "/home/ariadne/work"])).resolves.toEqual({ ok: true });
   });
   it("executes a native terminal helper through the daemon queue", async () => {
     const { directory, home, service } = await fixture(async (args) => args[0] === "status" ? success({ serverId: remote.serverId, connectedDaemon: "reachable" }) : success([{ projectId: "remote-project" }]));

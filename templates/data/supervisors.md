@@ -191,6 +191,13 @@ who decides, the caps, or the evidence rules: only where the worker runs.
   attempts and spend stay as they are, and nothing is resent on reconnect. A failure before submission
   is a definite refusal; one after submission is uncertain and reconciled by label discovery or left
   for deliberate review. Never create a replacement to escape that uncertainty.
+- **A remote worktree open can stay uncertain for good.** On daemon 0.13.0 `workspace ls` has no
+  branch and the receiver has no not-created proof, so a lost `workspace create` reply never settles by
+  itself. Diagnose it read-only: the worktree, if it exists, is the host's `workspace ls` row whose
+  directory ends in `ws-<effect id>` (the open's slug). Do not recreate it; escalate the held attempt
+  and replan deliberately. While it stays uncertain, General's helper refuses workspace changes that
+  could be that worktree (any workspace the host's last poll does not list in another directory, and
+  any path through the slug). An open stops counting when the captain retires its scope.
 - **Archive is refused.** There is no persisted remote inventory through the CLI, so a remote worker
   cannot be archived through the gateway; `stop-worker` (the receiver's `stop`) is the safe stop. The
   captain's board likewise refuses steer, interrupt and end for scoped remote workers: they are yours

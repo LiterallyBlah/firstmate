@@ -1,0 +1,481 @@
+{
+  "probe": "firstmate-remote-supervisors-s0",
+  "mode": "live",
+  "at": "2026-11-06T16:12:09.799Z",
+  "platform": "win32",
+  "summary": {
+    "nonce": "s0-4c299e9b",
+    "agentId": "8552861a-dee4-4771-9968-a494a64d1a79"
+  },
+  "steps": [
+    {
+      "name": "baseline:label-listing",
+      "atMs": 2618,
+      "args": [
+        "ls",
+        "-g",
+        "--label",
+        "firstmate.probe=s0-4c299e9b"
+      ],
+      "code": 0,
+      "ms": 2618,
+      "stdout": "[]\n",
+      "stderr": "",
+      "parsed": []
+    },
+    {
+      "name": "unknown-host",
+      "atMs": 3441,
+      "code": 1,
+      "stdout": "",
+      "stderr": "Host is unknown or its name is ambiguous; use its serverId from hosts\n"
+    },
+    {
+      "name": "create",
+      "atMs": 9987,
+      "args": [
+        "run",
+        "--workspace",
+        "wks_029fde57422215dd",
+        "--provider",
+        "claude",
+        "--model",
+        "claude-haiku-4-5",
+        "--mode",
+        "default",
+        "--title",
+        "FirstMate s0 probe s0-4c299e9b (archive me)",
+        "--label",
+        "firstmate.task=fm-remote-supervisors-s0-probe",
+        "--label",
+        "firstmate.kind=scout",
+        "--label",
+        "firstmate.probe=s0-4c299e9b",
+        "--",
+        "This is a FirstMate capability probe. Reply with exactly the word ok and then stop. Do not use any tools."
+      ],
+      "code": 0,
+      "ms": 6546,
+      "stdout": "{\n  \"agentId\": \"8552861a-dee4-4771-9968-a494a64d1a79\",\n  \"status\": \"running\",\n  \"provider\": \"claude\",\n  \"cwd\": \"/home/ariadne/work\",\n  \"title\": \"FirstMate s0 probe s0-4c299e9b (archive me)\"\n}\n",
+      "stderr": "",
+      "parsed": {
+        "agentId": "8552861a-dee4-4771-9968-a494a64d1a79",
+        "status": "running",
+        "provider": "claude",
+        "cwd": "/home/ariadne/work",
+        "title": "FirstMate s0 probe s0-4c299e9b (archive me)"
+      }
+    },
+    {
+      "name": "reconcile:label-listing",
+      "atMs": 14638,
+      "args": [
+        "ls",
+        "-g",
+        "--label",
+        "firstmate.probe=s0-4c299e9b"
+      ],
+      "code": 0,
+      "ms": 4651,
+      "stdout": "[\n  {\n    \"id\": \"8552861a-dee4-4771-9968-a494a64d1a79\",\n    \"shortId\": \"8552861\",\n    \"name\": \"FirstMate s0 probe s0-4c299e9b (archive me)\",\n    \"provider\": \"claude/claude-haiku-4-5\",\n    \"thinking\": \"auto\",\n    \"status\": \"idle\",\n    \"cwd\": \"/home/ariadne/work\",\n    \"created\": \"just now\"\n  }\n]\n",
+      "stderr": "",
+      "parsed": [
+        {
+          "id": "8552861a-dee4-4771-9968-a494a64d1a79",
+          "shortId": "8552861",
+          "name": "FirstMate s0 probe s0-4c299e9b (archive me)",
+          "provider": "claude/claude-haiku-4-5",
+          "thinking": "auto",
+          "status": "idle",
+          "cwd": "/home/ariadne/work",
+          "created": "just now"
+        }
+      ]
+    },
+    {
+      "name": "reconcile:label-and-owner",
+      "atMs": 15759,
+      "args": [
+        "ls",
+        "-g",
+        "--label",
+        "firstmate.probe=s0-4c299e9b",
+        "--label",
+        "firstmate.role=crew"
+      ],
+      "code": 1,
+      "ms": 1121,
+      "stdout": "",
+      "stderr": "Reserved ownership label\n"
+    },
+    {
+      "name": "status:first-turn-settled",
+      "atMs": 20684,
+      "args": [
+        "inspect",
+        "8552861a-dee4-4771-9968-a494a64d1a79"
+      ],
+      "code": 0,
+      "ms": 4925,
+      "stdout": "{\n  \"Id\": \"8552861a-dee4-4771-9968-a494a64d1a79\",\n  \"Name\": \"FirstMate s0 probe s0-4c299e9b (archive me)\",\n  \"Provider\": \"claude\",\n  \"Model\": \"claude-haiku-4-5\",\n  \"Thinking\": \"auto\",\n  \"Status\": \"idle\",\n  \"Archived\": false,\n  \"ArchivedAt\": null,\n  \"Mode\": \"default\",\n  \"Cwd\": \"/home/ariadne/work\",\n  \"CreatedAt\": \"2026-11-06T16:12:17.017Z\",\n  \"UpdatedAt\": \"2026-11-06T16:12:19.118Z\",\n  \"LastUsage\": {\n    \"InputTokens\": 10,\n    \"OutputTokens\": 72,\n    \"CachedTokens\": 15495,\n    \"CostUsd\": 0.0183495\n  },\n  \"Capabilities\": {\n    \"Streaming\": true,\n    \"Persistence\": true,\n    \"DynamicModes\": true,\n    \"McpServers\": true\n  },\n  \"AvailableModes\": [\n    {\n      \"id\": \"plan\",\n      \"label\": \"Plan Mode\"\n    },\n    {\n      \"id\": \"default\",\n      \"label\": \"Always Ask\"\n    },\n    {\n      \"id\": \"acceptEdits\",\n      \"label\": \"Accept File Edits\"\n    },\n    {\n      \"id\": \"auto\",\n      \"label\": \"Auto mode\"\n    },\n    {\n      \"id\": \"bypassPermissions\",\n      \"label\": \"Bypass\"\n    }\n  ],\n  \"PendingPermissions\": [],\n  \"Worktree\": null,\n  \"ParentAgentId\": null\n}\n",
+      "stderr": "",
+      "parsed": {
+        "Id": "8552861a-dee4-4771-9968-a494a64d1a79",
+        "Name": "FirstMate s0 probe s0-4c299e9b (archive me)",
+        "Provider": "claude",
+        "Model": "claude-haiku-4-5",
+        "Thinking": "auto",
+        "Status": "idle",
+        "Archived": false,
+        "ArchivedAt": null,
+        "Mode": "default",
+        "Cwd": "/home/ariadne/work",
+        "CreatedAt": "2026-11-06T16:12:17.017Z",
+        "UpdatedAt": "2026-11-06T16:12:19.118Z",
+        "LastUsage": {
+          "InputTokens": 10,
+          "OutputTokens": 72,
+          "CachedTokens": 15495,
+          "CostUsd": 0.0183495
+        },
+        "Capabilities": {
+          "Streaming": true,
+          "Persistence": true,
+          "DynamicModes": true,
+          "McpServers": true
+        },
+        "AvailableModes": [
+          {
+            "id": "plan",
+            "label": "Plan Mode"
+          },
+          {
+            "id": "default",
+            "label": "Always Ask"
+          },
+          {
+            "id": "acceptEdits",
+            "label": "Accept File Edits"
+          },
+          {
+            "id": "auto",
+            "label": "Auto mode"
+          },
+          {
+            "id": "bypassPermissions",
+            "label": "Bypass"
+          }
+        ],
+        "PendingPermissions": [],
+        "Worktree": null,
+        "ParentAgentId": null
+      }
+    },
+    {
+      "name": "completion:logs-text",
+      "atMs": 23810,
+      "args": [
+        "logs",
+        "8552861a-dee4-4771-9968-a494a64d1a79",
+        "--tail",
+        "5",
+        "--filter",
+        "text"
+      ],
+      "code": 0,
+      "ms": 3126,
+      "stdout": "[User] This is a FirstMate capability probe. Reply with exactly the word ok and then stop. Do not use any tools.\nok\n\n",
+      "stderr": ""
+    },
+    {
+      "name": "completion:logs-assistant",
+      "atMs": 27454,
+      "args": [
+        "logs",
+        "8552861a-dee4-4771-9968-a494a64d1a79",
+        "--tail",
+        "1",
+        "--filter",
+        "assistant_message"
+      ],
+      "code": 0,
+      "ms": 3643,
+      "stdout": "ok\n\n",
+      "stderr": ""
+    },
+    {
+      "name": "permission:send",
+      "atMs": 34220,
+      "args": [
+        "send",
+        "8552861a-dee4-4771-9968-a494a64d1a79",
+        "--",
+        "Use the Write tool to create /tmp/firstmate-s0-probe.txt containing ok. If that is refused, reply ok and stop."
+      ],
+      "code": 0,
+      "ms": 6766,
+      "stdout": "{\n  \"agentId\": \"8552861a-dee4-4771-9968-a494a64d1a79\",\n  \"status\": \"sent\",\n  \"message\": \"Message sent, not waiting for completion\"\n}\n",
+      "stderr": "",
+      "parsed": {
+        "agentId": "8552861a-dee4-4771-9968-a494a64d1a79",
+        "status": "sent",
+        "message": "Message sent, not waiting for completion"
+      }
+    },
+    {
+      "name": "permission:listed",
+      "atMs": 51141,
+      "args": [
+        "permit",
+        "ls"
+      ],
+      "code": 0,
+      "ms": 6921,
+      "stdout": "[\n  {\n    \"id\": \"permission-5e58c45a-f1f9-479b-9eae-4693c15c9d68\",\n    \"agentId\": \"8552861a-dee4-4771-9968-a494a64d1a79\",\n    \"agentShortId\": \"8552861\",\n    \"name\": \"Write\",\n    \"description\": \"-\",\n    \"recentTools\": [\n      \"[Write] /tmp/firstmate-s0-probe.txt\"\n    ]\n  }\n]\n",
+      "stderr": "",
+      "parsed": [
+        {
+          "id": "permission-5e58c45a-f1f9-479b-9eae-4693c15c9d68",
+          "agentId": "8552861a-dee4-4771-9968-a494a64d1a79",
+          "agentShortId": "8552861",
+          "name": "Write",
+          "description": "-",
+          "recentTools": [
+            "[Write] /tmp/firstmate-s0-probe.txt"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "permission:inspect",
+      "atMs": 56547,
+      "args": [
+        "inspect",
+        "8552861a-dee4-4771-9968-a494a64d1a79"
+      ],
+      "code": 0,
+      "ms": 5406,
+      "stdout": "{\n  \"Id\": \"8552861a-dee4-4771-9968-a494a64d1a79\",\n  \"Name\": \"FirstMate s0 probe s0-4c299e9b (archive me)\",\n  \"Provider\": \"claude\",\n  \"Model\": \"claude-haiku-4-5\",\n  \"Thinking\": \"auto\",\n  \"Status\": \"running\",\n  \"Archived\": false,\n  \"ArchivedAt\": null,\n  \"Mode\": \"default\",\n  \"Cwd\": \"/home/ariadne/work\",\n  \"CreatedAt\": \"2026-11-06T16:12:17.017Z\",\n  \"UpdatedAt\": \"2026-11-06T16:12:45.545Z\",\n  \"LastUsage\": {\n    \"InputTokens\": 0,\n    \"OutputTokens\": 0,\n    \"CachedTokens\": 0,\n    \"CostUsd\": 0\n  },\n  \"Capabilities\": {\n    \"Streaming\": true,\n    \"Persistence\": true,\n    \"DynamicModes\": true,\n    \"McpServers\": true\n  },\n  \"AvailableModes\": [\n    {\n      \"id\": \"plan\",\n      \"label\": \"Plan Mode\"\n    },\n    {\n      \"id\": \"default\",\n      \"label\": \"Always Ask\"\n    },\n    {\n      \"id\": \"acceptEdits\",\n      \"label\": \"Accept File Edits\"\n    },\n    {\n      \"id\": \"auto\",\n      \"label\": \"Auto mode\"\n    },\n    {\n      \"id\": \"bypassPermissions\",\n      \"label\": \"Bypass\"\n    }\n  ],\n  \"PendingPermissions\": [\n    {\n      \"id\": \"permission-5e58c45a-f1f9-479b-9eae-4693c15c9d68\",\n      \"tool\": \"Write\"\n    }\n  ],\n  \"Worktree\": null,\n  \"ParentAgentId\": null\n}\n",
+      "stderr": "",
+      "parsed": {
+        "Id": "8552861a-dee4-4771-9968-a494a64d1a79",
+        "Name": "FirstMate s0 probe s0-4c299e9b (archive me)",
+        "Provider": "claude",
+        "Model": "claude-haiku-4-5",
+        "Thinking": "auto",
+        "Status": "running",
+        "Archived": false,
+        "ArchivedAt": null,
+        "Mode": "default",
+        "Cwd": "/home/ariadne/work",
+        "CreatedAt": "2026-11-06T16:12:17.017Z",
+        "UpdatedAt": "2026-11-06T16:12:45.545Z",
+        "LastUsage": {
+          "InputTokens": 0,
+          "OutputTokens": 0,
+          "CachedTokens": 0,
+          "CostUsd": 0
+        },
+        "Capabilities": {
+          "Streaming": true,
+          "Persistence": true,
+          "DynamicModes": true,
+          "McpServers": true
+        },
+        "AvailableModes": [
+          {
+            "id": "plan",
+            "label": "Plan Mode"
+          },
+          {
+            "id": "default",
+            "label": "Always Ask"
+          },
+          {
+            "id": "acceptEdits",
+            "label": "Accept File Edits"
+          },
+          {
+            "id": "auto",
+            "label": "Auto mode"
+          },
+          {
+            "id": "bypassPermissions",
+            "label": "Bypass"
+          }
+        ],
+        "PendingPermissions": [
+          {
+            "id": "permission-5e58c45a-f1f9-479b-9eae-4693c15c9d68",
+            "tool": "Write"
+          }
+        ],
+        "Worktree": null,
+        "ParentAgentId": null
+      }
+    },
+    {
+      "name": "permission:deny",
+      "atMs": 62282,
+      "args": [
+        "permit",
+        "deny",
+        "8552861a-dee4-4771-9968-a494a64d1a79",
+        "permission-5e58c45a-f1f9-479b-9eae-4693c15c9d68",
+        "--message",
+        "Denied by the FirstMate slice 0 probe. Reply ok and stop."
+      ],
+      "code": 0,
+      "ms": 5735,
+      "stdout": "[\n  {\n    \"requestId\": \"permission-5e58c45a-f1f9-479b-9eae-4693c15c9d68\",\n    \"agentId\": \"8552861a-dee4-4771-9968-a494a64d1a79\",\n    \"agentShortId\": \"8552861\",\n    \"name\": \"Write\",\n    \"result\": \"denied\"\n  }\n]\n",
+      "stderr": "",
+      "parsed": [
+        {
+          "requestId": "permission-5e58c45a-f1f9-479b-9eae-4693c15c9d68",
+          "agentId": "8552861a-dee4-4771-9968-a494a64d1a79",
+          "agentShortId": "8552861",
+          "name": "Write",
+          "result": "denied"
+        }
+      ]
+    },
+    {
+      "name": "permission:settled",
+      "atMs": 66144,
+      "args": [
+        "inspect",
+        "8552861a-dee4-4771-9968-a494a64d1a79"
+      ],
+      "code": 0,
+      "ms": 3862,
+      "stdout": "{\n  \"Id\": \"8552861a-dee4-4771-9968-a494a64d1a79\",\n  \"Name\": \"FirstMate s0 probe s0-4c299e9b (archive me)\",\n  \"Provider\": \"claude\",\n  \"Model\": \"claude-haiku-4-5\",\n  \"Thinking\": \"auto\",\n  \"Status\": \"idle\",\n  \"Archived\": false,\n  \"ArchivedAt\": null,\n  \"Mode\": \"default\",\n  \"Cwd\": \"/home/ariadne/work\",\n  \"CreatedAt\": \"2026-11-06T16:12:17.017Z\",\n  \"UpdatedAt\": \"2026-11-06T16:13:11.951Z\",\n  \"LastUsage\": {\n    \"InputTokens\": 18,\n    \"OutputTokens\": 224,\n    \"CachedTokens\": 48464,\n    \"CostUsd\": 0.0269179\n  },\n  \"Capabilities\": {\n    \"Streaming\": true,\n    \"Persistence\": true,\n    \"DynamicModes\": true,\n    \"McpServers\": true\n  },\n  \"AvailableModes\": [\n    {\n      \"id\": \"plan\",\n      \"label\": \"Plan Mode\"\n    },\n    {\n      \"id\": \"default\",\n      \"label\": \"Always Ask\"\n    },\n    {\n      \"id\": \"acceptEdits\",\n      \"label\": \"Accept File Edits\"\n    },\n    {\n      \"id\": \"auto\",\n      \"label\": \"Auto mode\"\n    },\n    {\n      \"id\": \"bypassPermissions\",\n      \"label\": \"Bypass\"\n    }\n  ],\n  \"PendingPermissions\": [],\n  \"Worktree\": null,\n  \"ParentAgentId\": null\n}\n",
+      "stderr": "",
+      "parsed": {
+        "Id": "8552861a-dee4-4771-9968-a494a64d1a79",
+        "Name": "FirstMate s0 probe s0-4c299e9b (archive me)",
+        "Provider": "claude",
+        "Model": "claude-haiku-4-5",
+        "Thinking": "auto",
+        "Status": "idle",
+        "Archived": false,
+        "ArchivedAt": null,
+        "Mode": "default",
+        "Cwd": "/home/ariadne/work",
+        "CreatedAt": "2026-11-06T16:12:17.017Z",
+        "UpdatedAt": "2026-11-06T16:13:11.951Z",
+        "LastUsage": {
+          "InputTokens": 18,
+          "OutputTokens": 224,
+          "CachedTokens": 48464,
+          "CostUsd": 0.0269179
+        },
+        "Capabilities": {
+          "Streaming": true,
+          "Persistence": true,
+          "DynamicModes": true,
+          "McpServers": true
+        },
+        "AvailableModes": [
+          {
+            "id": "plan",
+            "label": "Plan Mode"
+          },
+          {
+            "id": "default",
+            "label": "Always Ask"
+          },
+          {
+            "id": "acceptEdits",
+            "label": "Accept File Edits"
+          },
+          {
+            "id": "auto",
+            "label": "Auto mode"
+          },
+          {
+            "id": "bypassPermissions",
+            "label": "Bypass"
+          }
+        ],
+        "PendingPermissions": [],
+        "Worktree": null,
+        "ParentAgentId": null
+      }
+    },
+    {
+      "name": "permission:logs-text",
+      "atMs": 69048,
+      "args": [
+        "logs",
+        "8552861a-dee4-4771-9968-a494a64d1a79",
+        "--tail",
+        "5",
+        "--filter",
+        "text"
+      ],
+      "code": 0,
+      "ms": 2904,
+      "stdout": "[User] This is a FirstMate capability probe. Reply with exactly the word ok and then stop. Do not use any tools.\nok\n[User] Use the Write tool to create /tmp/firstmate-s0-probe.txt containing ok. If that is refused, reply ok and stop.\nok\n\n",
+      "stderr": ""
+    },
+    {
+      "name": "archive",
+      "atMs": 74753,
+      "args": [
+        "archive",
+        "8552861a-dee4-4771-9968-a494a64d1a79"
+      ],
+      "code": 0,
+      "ms": 5705,
+      "stdout": "{\n  \"agentId\": \"8552861a-dee4-4771-9968-a494a64d1a79\",\n  \"status\": \"archived\",\n  \"archivedAt\": \"2026-11-06T16:13:23.509Z\"\n}\n",
+      "stderr": "",
+      "parsed": {
+        "agentId": "8552861a-dee4-4771-9968-a494a64d1a79",
+        "status": "archived",
+        "archivedAt": "2026-11-06T16:13:23.509Z"
+      }
+    },
+    {
+      "name": "after-archive:listing",
+      "atMs": 78409,
+      "args": [
+        "ls",
+        "-g",
+        "--label",
+        "firstmate.probe=s0-4c299e9b"
+      ],
+      "code": 0,
+      "ms": 3656,
+      "stdout": "[]\n",
+      "stderr": "",
+      "parsed": []
+    },
+    {
+      "name": "after-archive:listing-all",
+      "atMs": 81797,
+      "args": [
+        "ls",
+        "-g",
+        "-a",
+        "--label",
+        "firstmate.probe=s0-4c299e9b"
+      ],
+      "code": 0,
+      "ms": 3388,
+      "stdout": "[\n  {\n    \"id\": \"8552861a-dee4-4771-9968-a494a64d1a79\",\n    \"shortId\": \"8552861\",\n    \"name\": \"FirstMate s0 probe s0-4c299e9b (archive me)\",\n    \"provider\": \"claude/claude-haiku-4-5\",\n    \"thinking\": \"auto\",\n    \"status\": \"closed\",\n    \"cwd\": \"/home/ariadne/work\",\n    \"created\": \"1 minutes ago\"\n  }\n]\n",
+      "stderr": "",
+      "parsed": [
+        {
+          "id": "8552861a-dee4-4771-9968-a494a64d1a79",
+          "shortId": "8552861",
+          "name": "FirstMate s0 probe s0-4c299e9b (archive me)",
+          "provider": "claude/claude-haiku-4-5",
+          "thinking": "auto",
+          "status": "closed",
+          "cwd": "/home/ariadne/work",
+          "created": "1 minutes ago"
+        }
+      ]
+    }
+  ]
+}
