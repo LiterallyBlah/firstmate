@@ -28,6 +28,8 @@ class ReadOnlySupervisionStore extends SupervisionStore {
   override adoptValidatedCacheFrom() { return false; }
   override async enableLongLived(..._args: Parameters<SupervisionStore["enableLongLived"]>): Promise<never> { this.refuse(); }
   override async migrateAnchors(..._args: Parameters<SupervisionStore["migrateAnchors"]>): Promise<never> { this.refuse(); }
+  override async rollbackAnchors(..._args: Parameters<SupervisionStore["rollbackAnchors"]>): Promise<never> { this.refuse(); }
+  override async discardAnchorBackup(..._args: Parameters<SupervisionStore["discardAnchorBackup"]>): Promise<never> { this.refuse(); }
   override async initialize(..._args: Parameters<SupervisionStore["initialize"]>): Promise<never> { this.refuse(); }
   override async acquireCoordinator(..._args: Parameters<SupervisionStore["acquireCoordinator"]>): Promise<never> { this.refuse(); }
   override async releaseCoordinator(..._args: Parameters<SupervisionStore["releaseCoordinator"]>): Promise<never> { this.refuse(); }
@@ -95,7 +97,12 @@ export class SupervisionRuntime {
           if (status.problems.some(p => p.startsWith("Checkpoint validation failed;")))
             await store.recoverIndex(typeof recoverIndex === "object" ? recoverIndex : { homeId: status.homeId, sequence: status.sequence, hash: status.hash });
         }
-        await store.acquireCoordinator(); await store.migrateAnchors(); this.writers.set(id, store);
+        await store.acquireCoordinator();
+        // A failed migration must never strand the coordinator claim it was attempted under:
+        // release it so the next writer can claim and retry, and do not register the writer.
+        try { await store.migrateAnchors(); }
+        catch (error) { await store.releaseCoordinator().catch(() => {}); throw error; }
+        this.writers.set(id, store);
       } else if (recoverIndex) {
         const status = await store.read();
         if (status.problems.some(p => p.startsWith("Checkpoint validation failed;")))

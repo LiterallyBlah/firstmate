@@ -7,19 +7,23 @@
 // projection set hash is verified at every transaction, closing the off-stride gap the
 // stride spot-check left on /1 journals.
 import { randomUUID } from "node:crypto";
-import { readFile, readdir, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { expect, it } from "vitest";
-import { expected, scope } from "../test/supervision-fixture";
-import { SupervisionStore } from "./supervision-store";
+import { expect, it, vi } from "vitest";
+import { expected, ids, scope } from "../test/supervision-fixture";
+import { workflowFixture } from "../test/workflow-fixture";
+import { SupervisionRuntime } from "./supervision-runtime";
+import { SupervisionStore, type SupervisionMutation } from "./supervision-store";
+import { WorkflowPlanStore } from "./workflow-plans";
 import { canonical, digest } from "./submissions";
 
 const identity = async () => ({ state: "alive" as const, start: "anchor-delta-fixture" });
 
-async function journal(transactions: number, legacyFormat = false, fat = false) {
+async function journal(transactions: number, legacyFormat = false, fat = false, longLived = false) {
   const home = join(process.env.PASEO_HOME!, randomUUID()), data = join(home, "data");
   const store = new SupervisionStore(data, home, { writable: true, legacyFormat, processIdentity: identity });
   await store.initialize(); await store.acquireCoordinator();
+  if (longLived) await store.enableLongLived();
   for (let version = 0; version < transactions; version++) {
     const mutation = fat
       ? [{ kind: "scope" as const, value: { ...scope(store.homeId), id: randomUUID(), version: 1, projectIds: Array.from({ length: 32 }, () => randomUUID()) } }]
@@ -123,7 +127,8 @@ it("resumes an interrupted anchor migration from its receipt", async () => {
   const crashing = new SupervisionStore(data, home, { writable: true, processIdentity: identity,
     boundary: async name => { if (name === "anchor-migration:replaced" && ++replaced === 3) throw new Error("crash mid-migration"); } });
   await crashing.acquireCoordinator();
-  await expect(crashing.migrateAnchors()).rejects.toThrow("crash mid-migration");
+  // A mid-replacement failure reports held instead of stranding the caller with a throw.
+  await expect(crashing.migrateAnchors()).resolves.toEqual({ migrated: 3, sequence: 12, held: true });
   // The mixed journal is held (stale checkpoint), never silently rebuilt over half-replaced anchors.
   expect((await new SupervisionStore(data, home).read()).freshness).toBe("held");
   await expect(crashing.recoverIndex()).rejects.toMatchObject({ code: "HELD", message: expect.stringContaining("Anchor migration is incomplete") });
@@ -175,3 +180,156 @@ it("catches a body rewrite whose replay difference settles before the head", asy
   });
   expect((await new SupervisionStore(data, home).read()).freshness).toBe("held");
 }, 180_000);
+
+it("crosses anchor resets and journal pages with identical cold status", async () => {
+  const { store, home, data } = await journal(300, false, true, true);
+  const warm = await store.read();
+  expect(warm.retainedOwnership).toHaveLength(300);
+  expect(warm.retainedOwnership[299]!.scopes).toHaveLength(300);
+  // The page-crossing anchor at 257 restarts reconstruction from a full entry list.
+  const page = String(Math.floor((257 - 1) / 256)).padStart(12, "0");
+  const resetTip = JSON.parse(await readFile(join(store.root, "transactions", page, fileName(257, "tip")), "utf8"));
+  expect(resetTip.ownershipDelta.reset).toBe(true);
+  expect(resetTip.ownershipDelta.entries.length).toBeGreaterThan(256);
+  const cold = await new SupervisionStore(data, home).read();
+  expect(cold).toEqual(warm);
+  // Warm tail over /2 anchors after the cold read needs no further full scan.
+  const reader = new SupervisionStore(data, home);
+  await reader.read();
+  const scan = vi.spyOn(SupervisionStore.prototype as any, "scanFull");
+  const mutation = [{ kind: "scope" as const, value: { ...scope(store.homeId), id: randomUUID(), version: 1 } }];
+  await store.transact(expected(mutation, 0), randomUUID(), mutation);
+  expect((await reader.read()).sequence).toBe(301);
+  expect(scan.mock.calls.length).toBeLessThanOrEqual(1); // at most the background audit
+  scan.mockRestore();
+  await store.releaseCoordinator();
+}, 300_000);
+
+it("keeps warm reads warm when a workflow follows a retirement-only plan", async () => {
+  const home = join(process.env.PASEO_HOME!, randomUUID()), data = join(home, "data");
+  for (const id of ["build", "trial"]) { await mkdir(join(home, `data/${id}`), { recursive: true }); await writeFile(join(home, `data/${id}/brief.md`), "Bounded fixture evidence only."); }
+  await writeFile(join(home, "data/backlog.md"), "## In flight\n## Queued\n## Done\n");
+  const legacy = new WorkflowPlanStore(join(home, "legacy"), home);
+  const run = (command: any) => legacy.execute(command, randomUUID(), "fixture-mate") as Promise<any>;
+  const scoped = new SupervisionStore(data, home, { writable: true, processIdentity: identity });
+  await scoped.initialize(); await scoped.acquireCoordinator();
+  // A retirement-only plan: its ownership entry comes from a retirement row alone.
+  const retiredDef = { ...workflowFixture(), id: "retired", nodes: [workflowFixture().nodes[0]] };
+  await run({ op: "draft", definition: retiredDef }); await run({ op: "start", plan: "retired", node: "trial" });
+  await writeFile(join(legacy.root, "retired/00000001.json"), "{corrupt");
+  const held = (await legacy.read()).quarantined[0]!;
+  const receipt = await run({ op: "retire", plan: "retired", expected: held.fingerprint, evidence: "Inspected damaged fixture." });
+  const first: SupervisionMutation[] = [{ kind: "scope", value: scope(scoped.homeId) }, { kind: "retirement", scopeId: ids.scope, receipt }];
+  await scoped.transact(expected(first), randomUUID(), first);
+  // A workflow for another plan, drafted in the legacy log and mirrored in. Its node and
+  // launch identities are its own - the fixture's would collide with the retired plan's.
+  const laterNode = workflowFixture().nodes[0]!;
+  if (laterNode.kind !== "run") throw new Error("fixture");
+  await mkdir(join(home, "data/later-node"), { recursive: true });
+  await writeFile(join(home, "data/later-node/brief.md"), "Bounded fixture evidence only.");
+  const workflowDef = { ...workflowFixture(), id: "later", nodes: [{ ...laterNode, id: "later-node",
+    launch: { ...laterNode.launch, id: "later-node", brief: { file: "data/later-node/brief.md" } } }] };
+  await run({ op: "draft", definition: workflowDef });
+  const event = JSON.parse(await readFile(join(legacy.root, "later/00000000.json"), "utf8"));
+  const reader = new SupervisionStore(data, home);
+  expect((await reader.read()).freshness).toBe("current");
+  const scan = vi.spyOn(SupervisionStore.prototype as any, "scanFull");
+  const second: SupervisionMutation[] = [
+    { kind: "backend", value: { planId: "later", ownerScopeId: ids.scope, backend: "scoped", state: "active", sourceHash: null, version: 1 } },
+    { kind: "workflow", scopeId: ids.scope, event }];
+  await scoped.transact(expected(second), randomUUID(), second);
+  const status = await reader.read();
+  expect(status.freshness).toBe("current");
+  // Order: workflow inventories first, retirement inventories after - and no fallback scan.
+  expect(status.retainedOwnership.at(-1)?.workflows.map(w => w.plan)).toEqual(["later", "retired"]);
+  expect(scan.mock.calls.length).toBeLessThanOrEqual(1); // at most the background audit
+  scan.mockRestore();
+  await scoped.releaseCoordinator();
+}, 180_000);
+
+it("rolls a migrated journal back to a form a pre-/2 reader accepts", async () => {
+  const { store, home, data } = await journal(8, true, true);
+  const before = await store.read();
+  await store.releaseCoordinator();
+  const migrator = new SupervisionStore(data, home, { writable: true, processIdentity: identity });
+  await migrator.acquireCoordinator();
+  await expect(migrator.migrateAnchors()).resolves.toMatchObject({ migrated: 16, held: false });
+  await expect(migrator.rollbackAnchors()).resolves.toEqual({ restored: 16, sequence: 8 });
+  const names = await readdir(store.root);
+  expect(names).not.toContain("anchor-migration.json");
+  expect(names).not.toContain("anchor-backup");
+  expect(names).not.toContain("projection-cache.json");
+  const tip = JSON.parse(await readFile(join(store.root, "transactions", fileName(8, "tip")), "utf8"));
+  expect(tip.format).toBe("firstmate.supervision-tip/1");
+  expect(tip.ownership.scopes).toHaveLength(8);
+  const after = await new SupervisionStore(data, home, { legacyFormat: true }).read();
+  expect(after).toEqual(before);
+  await migrator.releaseCoordinator();
+}, 180_000);
+
+it("discards the anchor backup only on a verified /2 journal", async () => {
+  const { store, home, data } = await journal(4, true, true);
+  await store.releaseCoordinator();
+  const migrator = new SupervisionStore(data, home, { writable: true, processIdentity: identity });
+  await migrator.acquireCoordinator();
+  await migrator.migrateAnchors();
+  expect(await readdir(store.root)).toContain("anchor-backup");
+  await migrator.discardAnchorBackup();
+  expect(await readdir(store.root)).not.toContain("anchor-backup");
+  expect(await readdir(store.root)).not.toContain("anchor-migration.json");
+  await expect(migrator.rollbackAnchors()).rejects.toMatchObject({ code: "HELD" });
+  expect((await migrator.read()).freshness).toBe("current");
+  await migrator.releaseCoordinator();
+}, 120_000);
+
+it("releases the coordinator claim when migration fails after claiming", async () => {
+  const { store, home, data } = await journal(4, true, true);
+  await store.releaseCoordinator();
+  const runtime = new SupervisionRuntime(data, (root, h) => {
+    const created = new SupervisionStore(root, h, { writable: true, processIdentity: identity });
+    const original = created.migrateAnchors.bind(created);
+    created.migrateAnchors = async () => {
+      if ((created as any).coordinator) throw new Error("migration blew up after claiming");
+      return original();
+    };
+    return created;
+  });
+  try {
+    await expect(runtime.mutate(home, async () => {})).rejects.toThrow("migration blew up after claiming");
+    // The claim was released: a fresh store can claim the next generation at once.
+    const next = new SupervisionStore(data, home, { writable: true, processIdentity: identity });
+    await expect(next.acquireCoordinator()).resolves.toBeGreaterThan(0);
+    await next.releaseCoordinator();
+  } finally { await runtime.stop(); }
+}, 120_000);
+
+it("serves a restart from the verified projection cache and catches later tampering", async () => {
+  const { store, home, data } = await journal(48, false, true);
+  const expectedStatus = await store.read();
+  await store.releaseCoordinator();
+  expect(await readdir(store.root)).toContain("projection-cache.json");
+  // Cold instance: cache-bound serve without a checked full scan on the read path.
+  const checked = vi.spyOn(SupervisionStore.prototype as any, "checkedFullScan");
+  const reader = new SupervisionStore(data, home);
+  const cold = await reader.read();
+  expect(cold).toEqual(expectedStatus);
+  expect(checked.mock.calls.length).toBe(0);
+  checked.mockRestore();
+  // Refresh the restart cache to the head through a writer claim, then tamper an early event
+  // below it: only the background audit can catch this - it must poison the served cache so
+  // a later read surfaces held through the ordinary checked scan.
+  const claimer = new SupervisionStore(data, home, { writable: true, processIdentity: identity });
+  await claimer.acquireCoordinator(); await claimer.releaseCoordinator();
+  const eventPath = join(store.root, "transactions", fileName(3, "event"));
+  const event = JSON.parse(await readFile(eventPath, "utf8"));
+  event.body.mutations[0].value.projectIds = [randomUUID()];
+  event.requestHash = digest(event.body);
+  const { hash: _hash, ...unsignedEvent } = event; event.hash = digest(unsignedEvent);
+  await writeFile(eventPath, `${canonical(event)}\n`);
+  // Fresh instance serves the (still chain-bound at its sequence) cache, then its audit fails.
+  const victim = new SupervisionStore(data, home);
+  await victim.read();
+  let held = false;
+  for (let i = 0; i < 60 && !held; i++) { await new Promise(r => setTimeout(r, 250)); held = (await victim.read()).freshness === "held"; }
+  expect(held).toBe(true);
+}, 300_000);

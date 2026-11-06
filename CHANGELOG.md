@@ -184,6 +184,21 @@ Git repository or local directory; it is marked private to prevent accidental np
   checked copy and read it alongside the plans. Measured on a copy of a large home: the startup
   decisions read answers in about 6 seconds instead of timing out at 10, and a later read takes half
   a second instead of three.
+- **A restart no longer replays the whole Supervisor journal before Needs you can answer.** The
+  last fully validated projection is kept in a derived `projection-cache.json`, bound to the
+  checkpoint that witnessed it; a cold read re-binds it to the on-disk checkpoint and anchor
+  chain, validates the tail, and serves, while a background full audit re-verifies every event
+  and anchor off the read path and surfaces held on the next read if anything diverges. Anything
+  durable beyond the checkpoint (a crashed partial publication) still forces the ordinary full
+  scan. Measured on a copy of the large home at 4,584 transactions: the first decisions snapshot
+  answers in about 6.6 s after a restart (journal part about 1.3 s from cache, against 13.5 s for
+  a full check and 33 s before the anchor migration below), so "still loading" no longer outlives
+  the 15 s budget. The one-time anchor migration is also safer to interrupt: the audit runs
+  unlocked while the old form keeps serving, replacement proceeds in bounded chunks with the
+  /1 originals kept under `anchor-backup/`, a failure reports held instead of stranding the
+  coordinator claim, and `rollbackAnchors` restores the pre-/2 form (refused once /2
+  transactions exist) until an operator discards the backup deliberately. On that journal the
+  migration took about 132 s including backups of the 568 MB of originals.
 - **The Supervisor journal's anchors stop growing with its history.** Each transaction's tip and
   publication used to embed the whole retained ownership — 89 KB apiece at 3,349 transactions,
   duplicated in both files: 365 MB of anchors over 7 MB of events, so the journal's bytes and its
