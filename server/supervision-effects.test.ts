@@ -338,7 +338,7 @@ describe("S04 effect gateway (synthetic receiver)", { timeout: 60000 }, () => {
   });
 });
 describe("label-bound remote worker receiver (fake CLI bridge, probe shapes)", { timeout: 60000 }, () => {
-  // A fixture pair only: the production table is empty (no daemon version is qualified yet).
+  // A fixture pair only, so these cases do not depend on the production table's qualified pairs.
   const FIXTURE_PAIRS = [{ cliVersion: "0.14.0", daemonVersion: "0.14.0" }];
   async function remoteReady(fx: S04Fixture, bridge: FakeCliBridge, cliVersion = "0.14.0", pairs: readonly { cliVersion: string; daemonVersion: string }[] | null = FIXTURE_PAIRS) {
     const scope = await fx.addScope(3, "plan-r", ["r-trial", "r-build"], true, REMOTE_HOST);
@@ -614,12 +614,23 @@ describe("label-bound remote worker receiver (fake CLI bridge, probe shapes)", {
     bridge3.daemonVersion = "0.11.0";
     const third = await remoteReady(fx3, bridge3);
     await expect(startRemote(fx3, third.gateway, third.scope)).rejects.toMatchObject({ code: "UNSUPPORTED" });
-    // The production table is empty — no daemon version is qualified yet — so even the probed
-    // CLI with a recorded daemon version fails closed without an injected fixture pair.
+    // The production table holds only probed pairs: the probed CLI against an unprobed daemon
+    // version (the fake's 0.14.0) fails closed without an injected fixture pair.
     const fx4 = await s04Fixture(), bridge4 = new FakeCliBridge();
     const fourth = await remoteReady(fx4, bridge4, "0.14.0", null);
     await expect(startRemote(fx4, fourth.gateway, fourth.scope)).rejects.toMatchObject({ code: "UNSUPPORTED" });
     expect(bridge4.calls).toEqual([]);
+  });
+
+  it("the production table admits its qualified pair: CLI 0.14.0 against daemon 0.13.0", async () => {
+    const fx = await s04Fixture(), bridge = new FakeCliBridge();
+    bridge.daemonVersion = "0.13.0";
+    const { scope, gateway } = await remoteReady(fx, bridge, "0.14.0", null);
+    const started = await startRemote(fx, gateway, scope);
+    expect(started.attemptId).toBeTruthy();
+    await gateway.dispatch(started.effects!.workspace);
+    await gateway.dispatch(started.effects!.create);
+    expect(bridge.runs()).toHaveLength(1);
   });
 
   it("verification holds unless label discovery finds exactly the created identity", async () => {

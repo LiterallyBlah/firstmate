@@ -58,10 +58,13 @@ export type ReceiverCapabilities = z.infer<typeof ReceiverCapabilitiesSchema>;
 /** The one CLI version the remote receiver surface was probed against (slice 0). */
 export const QUALIFIED_REMOTE_CLI_VERSION = "0.14.0";
 /** Exact `(cliVersion, remoteDaemonVersion)` pairs qualified by evidence for label-bound identity.
- * The slice 0 probe never recorded a remote daemon version, so no pair is qualified yet: this table
- * stays empty and remote reservation fails closed to local-only until a pair earns its place here
- * from recorded probe evidence. A version is never invented to fill it. */
-export const QUALIFIED_REMOTE_PAIRS: readonly { cliVersion: string; daemonVersion: string }[] = [];
+ * A pair earns its place only from a live probe (`docs/scoped-supervision/remote-probe/`) whose daemon
+ * version was recorded before, during and after it; any other pair fails closed to local-only. A version
+ * is never invented or borrowed to fill it. `test/remote-qualification.ts` holds each entry's evidence.
+ * - CLI 0.14.0 / daemon 0.13.0: ariadne-dev (`srv_sY4CFeHq0_8l`), probe `s0-4c299e9b`, 2026-11-06. */
+export const QUALIFIED_REMOTE_PAIRS: readonly { cliVersion: string; daemonVersion: string }[] = [
+  { cliVersion: "0.14.0", daemonVersion: "0.13.0" },
+];
 export type QualifiedRemotePair = { cliVersion: string; daemonVersion: string };
 /** A remote `run` prompt travels on a command line; briefs plus appended rules beyond this are refused. */
 export const REMOTE_PROMPT_MAX_CHARS = 28000;

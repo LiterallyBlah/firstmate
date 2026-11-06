@@ -19,5 +19,13 @@ and local daemon 0.14.0 against ariadne-dev (`srv_sY4CFeHq0_8l`), workspace `wks
 `firstmate.probe=s0-0421617c`, and it is archived. The findings are in the home's
 `data/fm-remote-supervisors-s0/report.md`.
 
-Run the probe again after any Paseo upgrade. Its results pin one CLI version, and S00's rule is
-exact-version columns, nothing borrowed.
+The 2026-11-04 run recorded no remote daemon version, so it qualified no pair. It was re-run on
+2026-11-06 against the same host and workspace, unchanged: `evidence/live-2026-11-06.json` (nonce
+`s0-4c299e9b`, agent `8552861a-dee4-4771-9968-a494a64d1a79`, archived; its one Write request denied),
+with `evidence/live-2026-11-06-daemon-versions.jsonl` (the `tools/remote.mjs hosts` catalog read every
+15 seconds, before to after: daemon `0.13.0` throughout) and the read-only reads before it in
+`evidence/ariadne-dev-versions-2026-11-06.json`. That qualifies CLI 0.14.0 / daemon 0.13.0 in
+`QUALIFIED_REMOTE_PAIRS`; `test/remote-qualification.ts` holds the evidence the test checks.
+
+Run the probe again after any Paseo upgrade, on either side, with the version snapshots around it. Its
+results pin one (CLI, daemon) pair, and S00's rule is exact-version columns, nothing borrowed.

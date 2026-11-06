@@ -114,9 +114,13 @@ verify-after-create: owner-filtered label discovery must find exactly the create
 on that at-create delivery and is never resent. Identity is a qualified weaker mode in
 `ReceiverCapabilities` (`selectedAgentIds: false`, `labelBoundIdentity: true`): reservation requires the
 exact qualified pair from `QUALIFIED_REMOTE_PAIRS` (`shared/supervision-effects.ts`; the catalog's
-`daemonVersion` is kept by `connect`'s `status` probe and the minute poll). No remote daemon version has
-been qualified by evidence yet, so that table is empty and remote reservation currently always fails
-closed to local-only; a brief plus appended rules over 28,000 characters
+`daemonVersion` is kept by `connect`'s `status` probe and the minute poll). A pair is added only from a
+live `probe.mjs live` run whose daemon version was recorded before, during and after it; each entry's
+evidence is in `test/remote-qualification.ts`, checked against its transcripts by
+`remote-qualification.test.ts`. Today the table is CLI 0.14.0 / daemon 0.13.0 (ariadne-dev); any other
+pair, including after a Paseo upgrade on either side, fails closed to local-only until re-probed. The
+mate helper's and the board's remote guards (`scopedRemoteGuard`) refuse while the supervision journal
+cannot be read, unowned remote crew included; a brief plus appended rules over 28,000 characters
 refuses before reservation. Reconcile is `RemoteService.discoverByAttempt` (the service adds its own
 owner filter to `ls -g -a`; the caller-facing allowlist still refuses reserved labels): exactly one binds,
 zero stays uncertain, duplicates are held with a recorded `remoteDuplicate` reason, never archived or
