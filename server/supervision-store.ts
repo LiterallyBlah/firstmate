@@ -495,6 +495,15 @@ export class SupervisionStore {
   private cacheServed: { sequence: number; hash: string | null; prefixDigest: string; projection: string;
     transactionsDigest: string; ownershipDigest: string; framesDigest: string } | null = null;
   private shared: { epoch: number; scan: Promise<Scan> } | null = null;
+  // Single-entry memos for the read path, keyed on scan identity (below). Scans are immutable
+  // once validated — rows and their Maps are replaced, never mutated in place (see apply()) —
+  // and every write publishes a fresh Scan, so identity plus the guarded content refs below
+  // can never serve a status older than the scan it was built from. The lengths additionally
+  // guard the one in-place change: scanFull's failure path retains into the same ownership list.
+  private statusMemo: { scan: Scan; capacityHash: string | null; frames: Scan["frames"]; transactions: Scan["transactions"];
+    ownership: Scan["ownership"]; problems: number; bytes: number; status: SupervisionStatus } | null = null;
+  private projectionSizeMemo: { snapshot: object; capacityHash: string | null; frames: Scan["frames"]; framesSize: number;
+    ownership: Scan["ownership"]; ownershipLength: number; transactions: Scan["transactions"] | undefined; transactionsLength: number; size: number } | null = null;
   private readonly actor: SupervisionActor;
   constructor(dataRoot: string, home: string, private readonly options: SupervisionStoreOptions = {}) {
     this.homeId = workflowHomeIdentity(home); // Never realpath; exactly the existing durable namespace.
@@ -542,8 +551,15 @@ export class SupervisionStore {
     return join(this.root, "transactions", ...(sequence > 256 ? [pad(Math.floor((sequence - 1) / 256))] : []), `${pad(sequence)}.${suffix}.json`);
   }
   private projectionSize(snapshot: Pick<Scan, "frames" | "ownership"> & Partial<Pick<Scan, "transactions">>) {
-    return Buffer.byteLength(canonical({ frames: [...snapshot.frames], ownership: snapshot.ownership,
+    const capacityHash = this.capacity?.hash ?? null, memo = this.projectionSizeMemo;
+    if (memo && memo.snapshot === snapshot && memo.capacityHash === capacityHash && memo.frames === snapshot.frames &&
+      memo.framesSize === snapshot.frames.size && memo.ownership === snapshot.ownership && memo.ownershipLength === snapshot.ownership.length &&
+      memo.transactions === snapshot.transactions && memo.transactionsLength === (snapshot.transactions?.length ?? -1)) return memo.size;
+    const size = Buffer.byteLength(canonical({ frames: [...snapshot.frames], ownership: snapshot.ownership,
       ...(this.capacity ? { historyIndex: snapshot.transactions ?? [] } : {}) }));
+    this.projectionSizeMemo = { snapshot, capacityHash, frames: snapshot.frames, framesSize: snapshot.frames.size,
+      ownership: snapshot.ownership, ownershipLength: snapshot.ownership.length, transactions: snapshot.transactions, transactionsLength: snapshot.transactions?.length ?? -1, size };
+    return size;
   }
   private obligations(snapshot: Scan) {
     return [...snapshot.frames.values()].filter(f => f.kind === "effect" && ["reserved", "dispatching", "accepted", "uncertain"].includes((f.value as { state: string }).state) ||
@@ -2248,7 +2264,7 @@ export class SupervisionStore {
       await this.assertCoordinator();
       const snapshot = await this.scanFull();
       if (snapshot.problems.length) fail("HELD", "Snapshot requires a complete audited published journal prefix.");
-      return copy(this.status(snapshot));
+      return copy(structuredClone(this.status(snapshot)));
     });
   }
   /** Concurrent reads in one publication epoch share one validation. reading() still discards,
@@ -2314,9 +2330,25 @@ export class SupervisionStore {
       return content;
     } finally { await handle.close(); }
   }
+  /** The status for one validated scan, memoised on that scan's identity: the scoped clock
+   * reads several times a beat, and rebuilding this (two capacity serialisations of every
+   * frame and history entry) per read saturated the process on a large journal. Callers
+   * still receive only clones (read()/transactCommand), so the memoised master can never be
+   * mutated through a returned status; a write publishes a fresh Scan and misses the memo. */
   private status(snapshot: Scan): SupervisionStatus {
+    const memo = this.statusMemo, capacityHash = this.capacity?.hash ?? null;
+    if (memo && memo.scan === snapshot && memo.capacityHash === capacityHash && memo.frames === snapshot.frames &&
+      memo.transactions === snapshot.transactions && memo.ownership === snapshot.ownership &&
+      memo.problems === snapshot.problems.length && memo.bytes === snapshot.bytes) return memo.status;
+    const status = this.buildStatus(snapshot);
+    this.statusMemo = { scan: snapshot, capacityHash, frames: snapshot.frames, transactions: snapshot.transactions,
+      ownership: snapshot.ownership, problems: snapshot.problems.length, bytes: snapshot.bytes, status };
+    return status;
+  }
+  private buildStatus(snapshot: Scan): SupervisionStatus {
     const values = <T>(kind: Frame["kind"]) => [...snapshot.frames.values()].filter(f => f.kind === kind).map(f => f.value as T);
     const tasks = values<SupervisionStatus["tasks"][number]>("task"), effects = values<SupervisionStatus["effects"][number]>("effect");
+    const pressure = this.capacity ? this.capacityPressure(snapshot)! : undefined;
     return { format: "firstmate.supervision-status/1", homeId: this.homeId,
       freshness: snapshot.problems.length ? "held" : snapshot.initialized ? "current" : "uninitialized",
       sequence: snapshot.sequence, hash: snapshot.hash, executable: false, guarantee: "cooperative-storage-only",
@@ -2326,9 +2358,9 @@ export class SupervisionStore {
         "Actor provenance and filesystem ownership are cooperative, not authenticated IPC or receiver fencing.",
         "Process-crash qualification only; coordinated loss of journal and all local metadata can hide truncation."],
       problems: snapshot.problems, versions: [...snapshot.frames.values()].map(({ kind, id, version }) => ({ kind, id, version })),
-      storage: { bytes: snapshot.bytes, limitBytes: this.journalLimit(), ...(this.capacity ? { capacity: this.capacityPressure(snapshot)! } : {}),
+      storage: { bytes: snapshot.bytes, limitBytes: this.journalLimit(), ...(pressure ? { capacity: pressure } : {}),
         admissionsHeld: snapshot.problems.length > 0 || snapshot.bytes >= this.journalLimit() ||
-          (this.capacity ? this.capacityPressure(snapshot)!.held.includes("admissions") : snapshot.sequence >= SUPERVISION_INDEX_LIMITS.admissions) },
+          (pressure ? pressure.held.includes("admissions") : snapshot.sequence >= SUPERVISION_INDEX_LIMITS.admissions) },
       scopes: values("scope"), bindings: values("binding"), tasks, attempts: values("attempt"), effects, backends: values("backend"),
       policySources: values("policy-source"), policyRules: values("policy-rule"), policyEvidence: values("policy-evidence"), approvals: values("approval"),
       decisions: values("decision"), outbox: values("outbox"), operationHolds: values("operation-hold"), commands: values("command"),
