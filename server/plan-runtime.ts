@@ -239,6 +239,30 @@ export class PlanRuntime {
     }
     return { rules, receiver, receiverFor, commands, sources, board, gateway, sessions, ingress, inbox, lifecycle, projectJudgments, recovered: false, recoveredAt: 0, routesHash: "" };
   }
+  /** Scope requests only, for the workflow clock's fast lane: a Supervisor's helper polls
+   * for this reply (45 s in scope.mjs), so it must not queue behind tick()'s slow tail
+   * (PR polls, recovery, wakes). The same checked pass tick() runs, with tick()'s guards;
+   * processScopeRequests' per-directory serialization and retained same-UUID replies make
+   * overlapping passes idempotent. Bootstrap stays tick()'s: without a host handle,
+   * host-backed requests stay deferred for a later pass, never refused. */
+  async processRequests() {
+    if ((!this.options.enabled && !this.runtime.features) || this.closed) return;
+    const config = await this.config(), home = resolveHome(config);
+    if (config.migration || config.mateLaunch || !config.mateAgentId) return;
+    const read = await this.runtime.read(home);
+    if (read.freshness !== "current" || !read.bindings.length) return;
+    const paseo = this.paseo, mateAgentId = config.mateAgentId;
+    await this.runtime.mutate(home, async store => {
+      await this.guard(home, mateAgentId, false);
+      if (!paseo) {
+        await processScopeRequests(home, { ...this.scopeHandlers(store, home, mateAgentId, this.hostFree(store, home, mateAgentId)), gateway: null, deferHost: true });
+        return;
+      }
+      let c = this.components.get(store);
+      if (!c) { c = this.compose(store, home, mateAgentId, paseo); this.components.set(store, c); }
+      await processScopeRequests(home, { ...this.scopeHandlers(store, home, mateAgentId, c), gateway: c.gateway });
+    });
+  }
   async tick() {
     if ((!this.options.enabled && !this.runtime.features) || this.closed) return;
     const config = await this.config(), home = resolveHome(config);

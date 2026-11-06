@@ -41,7 +41,10 @@ with provenance `first mate tool (unverified)` beside the app's `plugin-ui-unver
 the attach/provision request id. Journal replay treats the two supervise origins as equivalent (`superviseReplayEquivalent`): a successor first mate — or the captain, for a mate-started request — records an explicit takeover row, then continues the same
 recorded request. Handover `abort`/`resolve-hold`, routine-check admission, retirement and the
 always-captain plan effects (installation/access/discard/spend) stay captain-only. The sections below that
-call Attach or provisioning captain-app-only describe the builds as first shipped.
+call Attach or provisioning captain-app-only describe the builds as first shipped. Those supervise requests run on the workflow clock's fast lane too (`SuperviseRequests.processRequests`, its own single-flight queue in `startWorkflowService`), still under the in-turn gate above: a reply that waited out a slow sweep could land after the mate's turn ended and be refused. A Supervisor's own
+`tools/scope.mjs` requests (`data/scope-requests/`) run on the workflow clock's fast lane
+(`PlanRuntime.processRequests`, its own single-flight queue in `startWorkflowService`), never behind
+`PlanRuntime.tick`'s slow tail of PR polls and recovery, which once answered them only in 5–6 minute sweeps.
 
 Build A overlays the historical unwired S09 notes below: `server/supervision-runtime.ts` owns one
 coordinator per home shared with activation; `server/project-runtime.ts` exposes reviewed registry

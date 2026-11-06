@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import * as fs from "node:fs/promises";
 import { join } from "node:path";
 import { beforeEach, expect, it, vi } from "vitest";
 import { SuperviseRequestSchema } from "../shared/supervise";
@@ -8,6 +9,10 @@ import { SuperviseRequests } from "./supervise-requests";
 import { workflowHomeIdentity } from "./workflow-ownership";
 import type { PaseoApi } from "./host-types";
 
+vi.mock("node:fs/promises", async importOriginal => {
+  const actual = await importOriginal<typeof import("node:fs/promises")>();
+  return { ...actual, stat: vi.fn(actual.stat) };
+});
 let home: string, calls: { name: string; input: unknown; actor?: unknown }[];
 const api = {} as PaseoApi;
 const retainedProvision = { homeId: "retained-home", requestId: "00000000-0000-4000-8000-000000000099", projectId: "00000000-0000-4000-8000-000000000042", projectVersion: 2 };
@@ -104,4 +109,22 @@ it("request files reply once; deleting the reply replays the same id and bytes a
   await writeFile(join(directory, `${other}.json`), JSON.stringify({ id, actor: "general", command: { op: "activation" } }));
   await supervise.processRequests();
   expect(JSON.parse(await readFile(join(directory, `${other}.reply.json`), "utf8")).ok).toBe(false);
+});
+it("a pass skips retained answered requests from its listing, without stat-ing each reply", async () => {
+  const supervise = service(), directory = join(home, "data/supervise-requests");
+  await mkdir(directory, { recursive: true });
+  const answered = new Map<string, string>();
+  for (let n = 0; n < 25; n++) {
+    const id = randomUUID(), reply = JSON.stringify({ ok: true, result: `retained-${n}` });
+    await writeFile(join(directory, `${id}.json`), JSON.stringify({ id, actor: "general", command: { op: "activation" } }));
+    await writeFile(join(directory, `${id}.reply.json`), reply); answered.set(id, reply);
+  }
+  const pending = randomUUID();
+  await writeFile(join(directory, `${pending}.json`), JSON.stringify({ id: pending, actor: "general", command: { op: "activation" } }));
+  vi.mocked(fs.stat).mockClear();
+  await supervise.processRequests();
+  expect(JSON.parse(await readFile(join(directory, `${pending}.reply.json`), "utf8")).ok).toBe(true);
+  expect(calls.filter(c => c.name === "read")).toHaveLength(1);
+  for (const [id, reply] of answered) expect(await readFile(join(directory, `${id}.reply.json`), "utf8")).toBe(reply);
+  expect(vi.mocked(fs.stat).mock.calls.map(call => String(call[0])).filter(path => path.endsWith(".reply.json"))).toEqual([]);
 });

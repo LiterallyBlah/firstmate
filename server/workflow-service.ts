@@ -113,11 +113,18 @@ export async function processWorkflowRequests(home: string, store: WorkflowPlanS
     }
   });
 }
-export function startWorkflowService(afterTick?: () => Promise<void>) {
+export function startWorkflowService(afterTick?: () => Promise<void>, onFastTick?: (() => Promise<void>) | ReadonlyArray<() => Promise<void>>) {
   let pending: Promise<void> | undefined, scoped: Promise<void> | undefined;
+  const fastTicks = onFastTick === undefined ? [] : Array.isArray(onFastTick) ? onFastTick : [onFastTick];
+  const fast: (Promise<void> | undefined)[] = fastTicks.map(() => undefined);
   const timer = setInterval(() => {
     // Scoped work has its own queue and must not wait for General's role/conversation lock.
     if (!scoped && afterTick) scoped = Promise.resolve().then(afterTick).catch(e => console.error("[firstmate] scoped queue:", e)).finally(() => { scoped = undefined; });
+    // Each fast lane has its own queue: a caller polling for a request reply must not wait
+    // for the scoped tick's slow tail (PR polls, recovery) — or another fast lane — before the next pass.
+    fastTicks.forEach((runFastTick, lane) => {
+      if (!fast[lane]) fast[lane] = Promise.resolve().then(runFastTick).catch(e => console.error("[firstmate] fast request queue:", e)).finally(() => { fast[lane] = undefined; });
+    });
     if (pending) return;
     pending = oneAtATime(async () => {
       const config = await readFirstmateConfig(), home = resolveHome(config);
@@ -126,5 +133,5 @@ export function startWorkflowService(afterTick?: () => Promise<void>) {
       await queuePlanNotes(home);
     }).catch(e => console.error("[firstmate] workflow queue:", e)).finally(() => { pending = undefined; });
   }, 1000);
-  return async () => { clearInterval(timer); await Promise.all([pending, scoped]); };
+  return async () => { clearInterval(timer); await Promise.all([pending, scoped, ...fast]); };
 }
