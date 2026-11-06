@@ -278,6 +278,15 @@ describe("scoped transaction authority", () => {
     const altered = { ...body, homeId: `${store.homeId}-different` }; await writeFile(file(1, "tip"), `${canonical({ ...altered, hash: digest(altered) })}\n`);
     expect((await store.read()).freshness).toBe("held");
   });
+  it("the projection-size memo misses when the ownership list changes in place", () => {
+    // scanFull's failure path retains capsules into the same ownership array after the bound
+    // check has run; keying that array by identity alone would serve the pre-retention size.
+    const sizeOf = (store as unknown as { projectionSize(snapshot: unknown): number }).projectionSize.bind(store);
+    const snapshot = { frames: new Map(), ownership: [] as unknown[], transactions: [] as unknown[] };
+    const first = sizeOf(snapshot);
+    snapshot.ownership.push({ scopes: [], tasks: [], attempts: [], effects: [], backends: [], workflows: [] });
+    expect(sizeOf(snapshot)).toBeGreaterThan(first);
+  });
   it("repeated reads of an unchanged head reuse the status projection; a write invalidates it", async () => {
     await store.enableLongLived();
     await commit([{ kind: "scope", value: scope(store.homeId) }]);

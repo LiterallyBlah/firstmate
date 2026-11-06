@@ -498,11 +498,12 @@ export class SupervisionStore {
   // Single-entry memos for the read path, keyed on scan identity (below). Scans are immutable
   // once validated — rows and their Maps are replaced, never mutated in place (see apply()) —
   // and every write publishes a fresh Scan, so identity plus the guarded content refs below
-  // can never serve a status older than the scan it was built from.
+  // can never serve a status older than the scan it was built from. The lengths additionally
+  // guard the one in-place change: scanFull's failure path retains into the same ownership list.
   private statusMemo: { scan: Scan; capacityHash: string | null; frames: Scan["frames"]; transactions: Scan["transactions"];
     ownership: Scan["ownership"]; problems: number; bytes: number; status: SupervisionStatus } | null = null;
   private projectionSizeMemo: { snapshot: object; capacityHash: string | null; frames: Scan["frames"]; framesSize: number;
-    ownership: Scan["ownership"]; transactions: Scan["transactions"] | undefined; transactionsLength: number; size: number } | null = null;
+    ownership: Scan["ownership"]; ownershipLength: number; transactions: Scan["transactions"] | undefined; transactionsLength: number; size: number } | null = null;
   private readonly actor: SupervisionActor;
   constructor(dataRoot: string, home: string, private readonly options: SupervisionStoreOptions = {}) {
     this.homeId = workflowHomeIdentity(home); // Never realpath; exactly the existing durable namespace.
@@ -552,12 +553,12 @@ export class SupervisionStore {
   private projectionSize(snapshot: Pick<Scan, "frames" | "ownership"> & Partial<Pick<Scan, "transactions">>) {
     const capacityHash = this.capacity?.hash ?? null, memo = this.projectionSizeMemo;
     if (memo && memo.snapshot === snapshot && memo.capacityHash === capacityHash && memo.frames === snapshot.frames &&
-      memo.framesSize === snapshot.frames.size && memo.ownership === snapshot.ownership &&
+      memo.framesSize === snapshot.frames.size && memo.ownership === snapshot.ownership && memo.ownershipLength === snapshot.ownership.length &&
       memo.transactions === snapshot.transactions && memo.transactionsLength === (snapshot.transactions?.length ?? -1)) return memo.size;
     const size = Buffer.byteLength(canonical({ frames: [...snapshot.frames], ownership: snapshot.ownership,
       ...(this.capacity ? { historyIndex: snapshot.transactions ?? [] } : {}) }));
     this.projectionSizeMemo = { snapshot, capacityHash, frames: snapshot.frames, framesSize: snapshot.frames.size,
-      ownership: snapshot.ownership, transactions: snapshot.transactions, transactionsLength: snapshot.transactions?.length ?? -1, size };
+      ownership: snapshot.ownership, ownershipLength: snapshot.ownership.length, transactions: snapshot.transactions, transactionsLength: snapshot.transactions?.length ?? -1, size };
     return size;
   }
   private obligations(snapshot: Scan) {
