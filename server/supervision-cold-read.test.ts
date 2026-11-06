@@ -166,7 +166,7 @@ it("a self-consistent rewrite of a recorded projection hash is caught at its str
     events[i].hash = digest(unsigned(events[i]));
     tips[i].previous = i > 0 ? events[i - 1].hash : null; tips[i].transactionHash = events[i].hash;
     tips[i].hash = digest(unsigned(tips[i]));
-    markers[i] = { ...tips[i], format: "firstmate.supervision-publication/1", hash: "" };
+    markers[i] = { ...tips[i], format: String(tips[i].format).replace("tip", "publication"), hash: "" };
     markers[i].hash = digest(unsigned(markers[i]));
     await write(i + 1, "event", events[i]); await write(i + 1, "tip", tips[i]); await write(i + 1, "publication", markers[i]);
   }

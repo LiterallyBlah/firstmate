@@ -27,6 +27,7 @@ class ReadOnlySupervisionStore extends SupervisionStore {
   override audit(...args: Parameters<SupervisionStore["audit"]>) { return this.delegate().audit(...args); }
   override adoptValidatedCacheFrom() { return false; }
   override async enableLongLived(..._args: Parameters<SupervisionStore["enableLongLived"]>): Promise<never> { this.refuse(); }
+  override async migrateAnchors(..._args: Parameters<SupervisionStore["migrateAnchors"]>): Promise<never> { this.refuse(); }
   override async initialize(..._args: Parameters<SupervisionStore["initialize"]>): Promise<never> { this.refuse(); }
   override async acquireCoordinator(..._args: Parameters<SupervisionStore["acquireCoordinator"]>): Promise<never> { this.refuse(); }
   override async releaseCoordinator(..._args: Parameters<SupervisionStore["releaseCoordinator"]>): Promise<never> { this.refuse(); }
@@ -85,12 +86,16 @@ export class SupervisionRuntime {
         // checkpoint anchor before trusting it.
         store.adoptValidatedCacheFrom(this.reader.storeFor(home));
         await store.initialize();
+        // Resume an interrupted anchor migration first: its stale checkpoint is what blocks
+        // both index recovery and the coordinator claim. With no receipt this is a no-op
+        // until the claim below, after which the one-time /1 -> /2 upgrade itself runs.
+        await store.migrateAnchors();
         if (recoverIndex) {
           const status = await store.read();
           if (status.problems.some(p => p.startsWith("Checkpoint validation failed;")))
             await store.recoverIndex(typeof recoverIndex === "object" ? recoverIndex : { homeId: status.homeId, sequence: status.sequence, hash: status.hash });
         }
-        await store.acquireCoordinator(); this.writers.set(id, store);
+        await store.acquireCoordinator(); await store.migrateAnchors(); this.writers.set(id, store);
       } else if (recoverIndex) {
         const status = await store.read();
         if (status.problems.some(p => p.startsWith("Checkpoint validation failed;")))

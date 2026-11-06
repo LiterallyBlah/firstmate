@@ -107,17 +107,17 @@ const OwnershipSchema = z.object({ scopes: z.array(SupervisionUuid), tasks: z.ar
   attempts: z.array(SupervisionAttemptSchema), effects: z.array(SupervisionEffectSchema), backends: z.array(SupervisionBackendSchema),
   workflows: z.array(z.object({ plan: z.string(), inventory: WorkflowOwnershipSchema }).strict()),
 }).strict();
-const TransactionSchema = z.object({ format: z.literal("firstmate.supervision-transaction/1"), homeId: z.string(), sequence: positive,
+const TransactionSchema = z.object({ format: z.enum(["firstmate.supervision-transaction/1", "firstmate.supervision-transaction/2"]), homeId: z.string(), sequence: positive,
   previous: SupervisionHash.nullable(), generation: positive, coordinatorHash: SupervisionHash, requestId: SupervisionUuid,
   requestHash: SupervisionHash, at: SupervisionUtc, body: BodySchema, changes: z.array(SupervisionExpectedSchema),
   projectionHash: SupervisionHash, outbox: z.array(z.never()).max(0), hash: SupervisionHash }).strict();
 type Transaction = z.infer<typeof TransactionSchema>;
 /** Rebuildable metadata index: event bodies stay on disk, never retained for warm history/replay reads. */
-type IndexedTransaction = Pick<Transaction, "requestId" | "requestHash" | "sequence" | "hash" | "generation" | "changes" | "projectionHash" | "at"> & {
+type IndexedTransaction = Pick<Transaction, "format" | "requestId" | "requestHash" | "sequence" | "hash" | "generation" | "changes" | "projectionHash" | "at"> & {
   actor: SupervisionActor; workflows: { plan: string; requestId: string; requestHash: string; eventHash: string }[] };
 function indexedTransaction(event: Transaction): IndexedTransaction {
-  const { requestId, requestHash, sequence, hash, generation, changes, projectionHash, at } = event;
-  return { requestId, requestHash, sequence, hash, generation, changes, projectionHash, at, actor: event.body.actor,
+  const { format, requestId, requestHash, sequence, hash, generation, changes, projectionHash, at } = event;
+  return { format, requestId, requestHash, sequence, hash, generation, changes, projectionHash, at, actor: event.body.actor,
     workflows: event.body.mutations.flatMap(m => m.kind === "workflow" ? [m.event] : m.kind === "workflow-import" ? m.events : [])
       .map(e => ({ plan: e.plan, requestId: e.requestId, requestHash: e.requestHash, eventHash: e.hash })) };
 }
@@ -126,12 +126,44 @@ const AnchorSchema = z.object({ format: z.enum(["firstmate.supervision-tip/1", "
   requestId: SupervisionUuid, requestHash: SupervisionHash, generation: positive,
   ownership: OwnershipSchema, hash: SupervisionHash }).strict();
 type Anchor = z.infer<typeof AnchorSchema>;
+/** One changed ownership contribution, exactly as `ownership(frames)` derives it from its frame.
+ * A /2 anchor carries only the contributions its own transaction changed (or every contribution
+ * on a reset anchor), plus the full ownership digest, instead of embedding the whole retained
+ * ownership - which grew every anchor with history (89 KB each at 3,349 transactions, duplicated
+ * in tip and publication: 365 MB of a 372 MB journal whose events are 7 MB). */
+const OwnershipEntrySchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("scope"), id: SupervisionUuid }).strict(),
+  z.object({ kind: z.literal("task"), value: SupervisionTaskSchema }).strict(),
+  z.object({ kind: z.literal("attempt"), value: SupervisionAttemptSchema }).strict(),
+  z.object({ kind: z.literal("effect"), value: SupervisionEffectSchema }).strict(),
+  z.object({ kind: z.literal("backend"), value: SupervisionBackendSchema }).strict(),
+  z.object({ kind: z.literal("workflow"), value: z.object({ plan: z.string(), inventory: WorkflowOwnershipSchema }).strict() }).strict(),
+  z.object({ kind: z.literal("retirement"), value: z.object({ plan: z.string(), inventory: WorkflowOwnershipSchema }).strict() }).strict(),
+]);
+type OwnershipEntry = z.infer<typeof OwnershipEntrySchema>;
+const OwnershipDeltaSchema = z.object({ reset: z.boolean(), entries: z.array(OwnershipEntrySchema).max(16384) }).strict();
+type OwnershipDelta = z.infer<typeof OwnershipDeltaSchema>;
+const Anchor2Schema = z.object({ format: z.enum(["firstmate.supervision-tip/2", "firstmate.supervision-publication/2"]),
+  homeId: z.string(), sequence: positive, previous: SupervisionHash.nullable(), transactionHash: SupervisionHash,
+  requestId: SupervisionUuid, requestHash: SupervisionHash, generation: positive,
+  ownershipDigest: SupervisionHash, ownershipDelta: OwnershipDeltaSchema, projectionSet: SupervisionHash, hash: SupervisionHash }).strict();
+type Anchor2 = z.infer<typeof Anchor2Schema>;
+type AnyAnchor = Anchor | Anchor2;
+const AnyAnchorSchema = z.union([AnchorSchema, Anchor2Schema]);
+const isAnchor2 = (anchor: AnyAnchor): anchor is Anchor2 => anchor.format.endsWith("/2");
+/** Written before the first anchor file is replaced: both anchor generations' hashes per sequence
+ * and both prefix digests, so an interrupted migration is verifiable and resumable at any point. */
+const AnchorMigrationSchema = z.object({ format: z.literal("firstmate.supervision-anchor-migration/1"), homeId: z.string(),
+  sequence: positive, headHash: SupervisionHash, oldPrefixDigest: SupervisionHash, newPrefixDigest: SupervisionHash,
+  old: z.array(z.object({ sequence: positive, tip: SupervisionHash, publication: SupervisionHash }).strict()),
+  next: z.array(z.object({ sequence: positive, tip: SupervisionHash, publication: SupervisionHash }).strict()), hash: SupervisionHash }).strict();
+type AnchorMigration = z.infer<typeof AnchorMigrationSchema>;
 type WorkflowRow = { scopeId: string; plan: WorkflowPlan; inventory: WorkflowOwnership;
   requests: { requestId: string; requestHash: string; eventHash: string }[] };
 type Frame = { kind: SupervisionExpected["kind"]; id: string; version: number; value: unknown };
 type Scan = { frames: Map<string, Frame>; transactions: IndexedTransaction[]; sequence: number; hash: string | null;
-  problems: string[]; initialized: boolean; ownership: z.infer<typeof OwnershipSchema>[]; pending: { event: Transaction; tip: Anchor } | null;
-  bytes: number; coordinators: Coordinator[]; prefixDigest: string };
+  problems: string[]; initialized: boolean; ownership: z.infer<typeof OwnershipSchema>[]; pending: { event: Transaction; tip: AnyAnchor } | null;
+  bytes: number; coordinators: Coordinator[]; prefixDigest: string; projection: string; projectionSet: string; projectionXor: string; legacyAnchors: number };
 /** Bounded cooperative pilot. Full audit/recovery is deliberately separate from warm reads.
  * These are admission ceilings, not history eviction or a guarantee about filesystem latency.
  */
@@ -156,7 +188,7 @@ function publicationFor(root: string): StorePublication {
 /** Sentinel: journal metadata moved while a warm read was checking it. */
 const changedDuringRead = new Error("Supervision journal changed during a warm read.");
 const emptyPrefix = digest({ format: "firstmate.supervision-prefix/1" });
-const extendPrefix = (previous: string, event: Pick<Transaction, "sequence" | "hash">, tip: Anchor, marker: Anchor) => digest({ previous,
+const extendPrefix = (previous: string, event: Pick<Transaction, "sequence" | "hash">, tip: AnyAnchor, marker: AnyAnchor) => digest({ previous,
   sequence: event.sequence, event: event.hash, tip: tip.hash, publication: marker.hash });
 export interface SupervisionStoreOptions {
   /** Defaults off. Internal fixture/shadow writer only; no env flag, RPC or runtime wiring. */
@@ -168,6 +200,8 @@ export interface SupervisionStoreOptions {
   maxJournalBytes?: number;
   /** Queue pressure counts unresolved primary events, including triage. No critical eviction. */
   maxPendingEvents?: number;
+  /** Fixture-only: write original /1 events and whole-ownership anchors so anchor migration can be regression-tested on a genuine legacy journal. No runtime wiring. */
+  legacyFormat?: boolean;
 }
 export class SupervisionError extends Error {
   constructor(readonly code: SupervisionCode, message: string) { super(message); }
@@ -261,6 +295,92 @@ export const supervisionDigestStats = { frameCalls: 0, frameBytes: 0, ownershipC
 /** Test/diagnostic evidence that the projection digest stays linear: a full journal check
  * may hash the head projection a constant number of times, never once per transaction. */
 const frameDigest = (frames: Map<string, Frame>) => { const text = `[${[...frames.entries()].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([k, f]) => `[${JSON.stringify(k)},${cachedCanonical(f)}]`).join(",")}]`; supervisionDigestStats.frameCalls++; supervisionDigestStats.frameBytes += text.length; return createHash("sha256").update(text).digest("hex"); };
+/** Incremental whole-projection digest for /2 records: the XOR of every frame entry's hash
+ * (LT-hash style, bound to the frame count), updated only for the rows a transaction changed.
+ * Verifying it per transaction pins the replayed projection at every sequence without hashing
+ * the whole projection text each time - the /1 `frameDigest` check could only afford stride+head.
+ * Frame rows are immutable once built, so entry hashes cache by row identity. */
+const frameEntryHashes = new WeakMap<object, Buffer>();
+function frameEntryHash(k: string, frame: Frame): Buffer {
+  let saved = frameEntryHashes.get(frame);
+  if (!saved) { saved = createHash("sha256").update(`[${JSON.stringify(k)},${cachedCanonical(frame)}]`).digest(); frameEntryHashes.set(frame, saved); }
+  return saved;
+}
+type ProjectionAcc = { xor: Buffer; count: number };
+const emptyProjectionAcc = (): ProjectionAcc => ({ xor: Buffer.alloc(32), count: 0 });
+const projectionSetHash = (acc: ProjectionAcc) => digest({ format: "firstmate.supervision-projection-set/1", count: acc.count, xor: acc.xor.toString("hex") });
+function advanceProjection(acc: ProjectionAcc, before: Map<string, Frame>, after: Map<string, Frame>, changes: SupervisionExpected[]): ProjectionAcc {
+  const xor = Buffer.from(acc.xor);
+  for (const change of changes) {
+    const k = key(change.kind, change.id), old = before.get(k), next = after.get(k);
+    if (old) { const h = frameEntryHash(k, old); for (let i = 0; i < 32; i++) xor[i]! ^= h[i]!; }
+    if (next) { const h = frameEntryHash(k, next); for (let i = 0; i < 32; i++) xor[i]! ^= h[i]!; }
+  }
+  return { xor, count: after.size };
+}
+/** The ownership contribution of one frame, or null for kinds ownership() does not retain. */
+function ownershipEntry(frame: Frame): OwnershipEntry | null {
+  switch (frame.kind) {
+    case "scope": return { kind: "scope", id: (frame.value as { id: string }).id };
+    case "task": return { kind: "task", value: frame.value as z.infer<typeof SupervisionTaskSchema> };
+    case "attempt": return { kind: "attempt", value: frame.value as z.infer<typeof SupervisionAttemptSchema> };
+    case "effect": return { kind: "effect", value: frame.value as z.infer<typeof SupervisionEffectSchema> };
+    case "backend": return { kind: "backend", value: frame.value as z.infer<typeof SupervisionBackendSchema> };
+    case "workflow": { const w = frame.value as WorkflowRow; return { kind: "workflow", value: { plan: w.plan.definition.id, inventory: w.inventory } }; }
+    case "retirement": { const r = (frame.value as { receipt: z.infer<typeof RetirementSchema> }).receipt; return { kind: "retirement", value: { plan: r.plan, inventory: r.inventory } }; }
+    default: return null;
+  }
+}
+function ownershipDeltaFor(changes: SupervisionExpected[], after: Map<string, Frame>, reset: boolean): OwnershipDelta {
+  if (reset) return { reset: true, entries: [...after.values()].flatMap(frame => { const entry = ownershipEntry(frame); return entry ? [entry] : []; }) };
+  return { reset: false, entries: changes.flatMap(change => { const frame = after.get(key(change.kind, change.id)); const entry = frame ? ownershipEntry(frame) : null; return entry ? [entry] : []; }) };
+}
+/** Cumulative ownership rebuilt from /2 deltas. Per-kind ordered maps mirror ownership()'s
+ * frame-order grouping exactly: Map.set keeps a replaced row at its first position and appends
+ * new rows in entry order, as the frame map does. Frames are never deleted, so deltas need no
+ * removals; the recorded full digest verifies every reconstruction. */
+type OwnershipAcc = { scopes: Map<string, true>; tasks: Map<string, OwnershipEntry & { kind: "task" }>; attempts: Map<string, OwnershipEntry & { kind: "attempt" }>;
+  effects: Map<string, OwnershipEntry & { kind: "effect" }>; backends: Map<string, OwnershipEntry & { kind: "backend" }>;
+  workflows: Map<string, { plan: string; inventory: WorkflowOwnership }>; retirements: Map<string, { plan: string; inventory: WorkflowOwnership }> };
+const emptyOwnershipAcc = (): OwnershipAcc => ({ scopes: new Map(), tasks: new Map(), attempts: new Map(), effects: new Map(), backends: new Map(), workflows: new Map(), retirements: new Map() });
+function applyOwnershipDelta(acc: OwnershipAcc, delta: OwnershipDelta): void {
+  if (delta.reset) { const fresh = emptyOwnershipAcc(); acc.scopes = fresh.scopes; acc.tasks = fresh.tasks; acc.attempts = fresh.attempts; acc.effects = fresh.effects; acc.backends = fresh.backends; acc.workflows = fresh.workflows; acc.retirements = fresh.retirements; }
+  for (const entry of delta.entries) {
+    if (entry.kind === "scope") acc.scopes.set(entry.id, true);
+    else if (entry.kind === "task") acc.tasks.set(entry.value.id, entry);
+    else if (entry.kind === "attempt") acc.attempts.set(entry.value.id, entry);
+    else if (entry.kind === "effect") acc.effects.set(entry.value.id, entry);
+    else if (entry.kind === "backend") acc.backends.set(entry.value.planId, entry);
+    else if (entry.kind === "workflow") acc.workflows.set(entry.value.plan, entry.value);
+    else acc.retirements.set(entry.value.plan, entry.value);
+  }
+}
+function buildOwnership(acc: OwnershipAcc): z.infer<typeof OwnershipSchema> {
+  return { scopes: [...acc.scopes.keys()], tasks: [...acc.tasks.values()].map(e => e.value), attempts: [...acc.attempts.values()].map(e => e.value),
+    effects: [...acc.effects.values()].map(e => e.value), backends: [...acc.backends.values()].map(e => e.value),
+    workflows: [...acc.workflows.values(), ...acc.retirements.values()] };
+}
+function ownershipAccFrom(full: z.infer<typeof OwnershipSchema>): OwnershipAcc {
+  const acc = emptyOwnershipAcc();
+  for (const id of full.scopes) acc.scopes.set(id, true);
+  for (const value of full.tasks) acc.tasks.set(value.id, { kind: "task", value });
+  for (const value of full.attempts) acc.attempts.set(value.id, { kind: "attempt", value });
+  for (const value of full.effects) acc.effects.set(value.id, { kind: "effect", value });
+  for (const value of full.backends) acc.backends.set(value.planId, { kind: "backend", value });
+  // A plan's second entry in a /1 capsule is its retirement contribution (workflow rows first).
+  for (const entry of full.workflows) (acc.workflows.has(entry.plan) ? acc.retirements : acc.workflows).set(entry.plan, entry);
+  return acc;
+}
+const anchorOwnershipDigest = (anchor: AnyAnchor, rawOwnership?: z.infer<typeof OwnershipSchema>) =>
+  isAnchor2(anchor) ? anchor.ownershipDigest : ownershipDigest(rawOwnership ?? anchor.ownership);
+/** Reset anchors restart delta reconstruction from a full entry list, bounding what one damaged
+ * anchor can lose from the fallback capsule collection to less than one journal page. */
+const anchorReset = (sequence: number) => (sequence - 1) % 256 === 0;
+const publicationFormat = (version: 1 | 2) => version === 2 ? "firstmate.supervision-publication/2" as const : "firstmate.supervision-publication/1" as const;
+const anchorVersion = (anchor: AnyAnchor): 1 | 2 => isAnchor2(anchor) ? 2 : 1;
+const emptyFrameDigest = frameDigest(new Map());
+/** One sequence's replacement anchors as a migration audit computes them from replay. */
+type AnchorPlanEntry = { sequence: number; oldTipHash: string; oldPublicationHash: string; nextTip: Anchor2; nextPublication: Anchor2 };
 
 /** The immutable part of a disposition; the migration's inventory hash binds exactly these. */
 export function dispositionIdentity(d: LegacyDeliveryDisposition) {
@@ -372,6 +492,116 @@ export class SupervisionStore {
         baseSequence: snapshot.sequence, baseHash: snapshot.hash, ...limits }));
       await this.publish(join(this.root, "capacity.json"), receipt, "capacity");
       this.capacity = receipt; this.cached = null;
+    });
+  }
+  private async replaceFile(path: string, value: unknown): Promise<void> {
+    const temporary = `${path}.${randomUUID()}.tmp`;
+    try {
+      const file = await open(temporary, "wx", 0o600);
+      try { await file.writeFile(`${canonical(value)}\n`); await file.sync(); }
+      finally { await file.close(); }
+      // Windows intermittently refuses a rename over a just-read file (EPERM from a lagging
+      // close or indexer); the replacement is idempotent, so retry briefly before failing.
+      for (let attempt = 0; ; attempt++) {
+        try { await rename(temporary, path); break; }
+        catch (error) {
+          if (!["EPERM", "EBUSY", "EACCES"].includes(String((error as NodeJS.ErrnoException).code)) || attempt >= 9) throw error;
+          await new Promise(resolve => setTimeout(resolve, 25 * (attempt + 1)));
+        }
+      }
+    } finally { await rm(temporary, { force: true }); }
+  }
+  private async readAnchorMigration(): Promise<AnchorMigration | null> {
+    try {
+      const receipt = verifyHash(AnchorMigrationSchema.parse(await readCanonical(join(this.root, "anchor-migration.json"))));
+      if (receipt.homeId !== this.homeId) fail("HELD", "Anchor migration receipt belongs to another home.");
+      return receipt;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+      throw error;
+    }
+  }
+  /** One-time in-place anchor format upgrade under the coordinator: /1 anchors embed the whole
+   * retained ownership (365 MB of the owner's 372 MB journal); /2 anchors carry only its delta
+   * and digest. Safe migration, in order: a full audit first (including every /1 projection
+   * hash, the one-time expensive check), a published receipt binding the old and new anchor
+   * hash lists and prefix digests to the unchanged event head, atomic per-file replacement,
+   * then the derived checkpoint rebuilt over the new prefix. Events are never rewritten and
+   * no receipt or transaction hash changes. Interruption at any point leaves a readable mixed
+   * journal and a stale checkpoint: calling this again verifies every file against the receipt
+   * and replaces only what remains. A journal whose audit fails is left byte-for-byte intact.
+   * Runs automatically on the runtime's first writer after upgrade; journal-state problems
+   * report `held` instead of throwing so ordinary held handling still applies. */
+  async migrateAnchors(): Promise<{ migrated: number; sequence: number; held: boolean }> {
+    this.writable();
+    return this.locked(async () => {
+      // A fresh migration runs only under this instance's coordinator claim. Resuming an
+      // interrupted one is recovery (like recoverIndex): its stale checkpoint is exactly
+      // what blocks acquiring a coordinator, and it equally blocks every other writer,
+      // so the receipt-guided replacement proceeds under the store lock alone. Without a
+      // claim and without a receipt there is nothing to do yet - the caller retries after
+      // acquiring (the runtime calls this on both sides of its claim).
+      let receipt: AnchorMigration | null;
+      try { receipt = await this.readAnchorMigration(); }
+      catch { return { migrated: 0, sequence: this.cached?.scan.sequence ?? 0, held: true }; }
+      if (!this.coordinator && !receipt) return { migrated: 0, sequence: this.cached?.scan.sequence ?? 0, held: false };
+      if (this.coordinator) await this.assertCoordinator();
+      if (this.cached && !this.cached.scan.problems.length && this.cached.scan.legacyAnchors === 0)
+        return { migrated: 0, sequence: this.cached.scan.sequence, held: false };
+      const anchorPlan: AnchorPlanEntry[] = [];
+      // The ordinary checked scan first: a completed migration (valid checkpoint, no legacy
+      // anchors) needs no further audit on later restarts. The one-time verify-every-/1-
+      // projection audit runs only when legacy anchors actually remain to be replaced, or
+      // when a stale checkpoint says a published migration was interrupted mid-replacement.
+      let snapshot = await this.checkedFullScan({ anchorPlan });
+      if (snapshot.problems.length) {
+        if (!receipt) return { migrated: 0, sequence: snapshot.sequence, held: true };
+        anchorPlan.length = 0;
+        snapshot = await this.scanFull({ verifyAllProjections: true, anchorPlan });
+      } else if (snapshot.legacyAnchors) {
+        anchorPlan.length = 0;
+        snapshot = await this.scanFull({ verifyAllProjections: true, anchorPlan });
+      }
+      if (!snapshot.initialized) return { migrated: 0, sequence: 0, held: false };
+      if (snapshot.problems.length) return { migrated: 0, sequence: snapshot.sequence, held: true };
+      if (!snapshot.sequence) return { migrated: 0, sequence: 0, held: false };
+      let newPrefixDigest = emptyPrefix;
+      for (const entry of anchorPlan)
+        newPrefixDigest = extendPrefix(newPrefixDigest, { sequence: entry.sequence, hash: entry.nextTip.transactionHash }, entry.nextTip, entry.nextPublication);
+      if (receipt && snapshot.sequence > receipt.sequence && !snapshot.legacyAnchors) {
+        // Completed long ago and since grown: new transactions can only have been appended over
+        // the rebuilt checkpoint. Verify the migrated prefix still matches the receipt, then done.
+        const intact = receipt.next.every((row, i) => anchorPlan[i]?.oldTipHash === row.tip && anchorPlan[i]?.oldPublicationHash === row.publication);
+        return { migrated: 0, sequence: snapshot.sequence, held: !intact };
+      }
+      if (receipt) {
+        const matches = (list: { sequence: number; tip: string; publication: string }[], get: (entry: AnchorPlanEntry) => [string, string]) =>
+          list.length === anchorPlan.length && list.every((row, i) => row.sequence === anchorPlan[i]!.sequence && row.tip === get(anchorPlan[i]!)[0] && row.publication === get(anchorPlan[i]!)[1]);
+        if (receipt.sequence !== snapshot.sequence || receipt.headHash !== snapshot.hash || receipt.newPrefixDigest !== newPrefixDigest ||
+          !matches(receipt.next, entry => [entry.nextTip.hash, entry.nextPublication.hash]) ||
+          !anchorPlan.every((entry, i) => [entry.oldTipHash, entry.oldPublicationHash].every((hash, side) =>
+            hash === (side ? receipt!.next[i]!.publication : receipt!.next[i]!.tip) || hash === (side ? receipt!.old[i]!.publication : receipt!.old[i]!.tip))))
+          return { migrated: 0, sequence: snapshot.sequence, held: true };
+      } else {
+        if (!snapshot.legacyAnchors) return { migrated: 0, sequence: snapshot.sequence, held: false };
+        receipt = AnchorMigrationSchema.parse(hashed({ format: "firstmate.supervision-anchor-migration/1" as const, homeId: this.homeId,
+          sequence: snapshot.sequence, headHash: snapshot.hash!, oldPrefixDigest: snapshot.prefixDigest, newPrefixDigest,
+          old: anchorPlan.map(entry => ({ sequence: entry.sequence, tip: entry.oldTipHash, publication: entry.oldPublicationHash })),
+          next: anchorPlan.map(entry => ({ sequence: entry.sequence, tip: entry.nextTip.hash, publication: entry.nextPublication.hash })) }));
+        await this.publish(join(this.root, "anchor-migration.json"), receipt, "anchor-migration");
+      }
+      let migrated = 0, bytes = snapshot.bytes;
+      for (const entry of anchorPlan) {
+        for (const [kind, next, current] of [["tip", entry.nextTip, entry.oldTipHash], ["publication", entry.nextPublication, entry.oldPublicationHash]] as const) {
+          if (next.hash === current) continue;
+          const path = this.file(entry.sequence, kind);
+          bytes += Buffer.byteLength(`${canonical(next)}\n`) - (await stat(path)).size;
+          await this.replaceFile(path, next); migrated++;
+          await this.boundary("anchor-migration:replaced");
+        }
+      }
+      await this.saveCheckpoint({ ...snapshot, prefixDigest: newPrefixDigest, legacyAnchors: 0, bytes });
+      return { migrated, sequence: snapshot.sequence, held: false };
     });
   }
   private async loadCapacity() {
@@ -718,6 +948,16 @@ export class SupervisionStore {
       }
     }
   }
+  /** Row objects are replaced, never mutated, so a schema parse of one is a pure function of
+   * its identity. Whole-projection validation re-parsed every row on every replayed transaction. */
+  private static readonly parsedRows = new WeakMap<object, Map<unknown, unknown>>();
+  private parseRow<T>(schema: { parse(value: unknown): T }, value: unknown): T {
+    if (typeof value !== "object" || value === null) return schema.parse(value);
+    let bySchema = SupervisionStore.parsedRows.get(value);
+    if (!bySchema) SupervisionStore.parsedRows.set(value, bySchema = new Map());
+    if (!bySchema.has(schema)) bySchema.set(schema, schema.parse(value));
+    return bySchema.get(schema) as T;
+  }
   private validateIndexes(frames: Map<string, Frame>): void {
     const get = (kind: Frame["kind"], id: string) => frames.get(key(kind, id))?.value;
     // A project exception must retain the owner judgment and original checked logical input.
@@ -747,7 +987,7 @@ export class SupervisionStore {
       const scopeId = frame.kind === "scope" ? frame.id : value.ownerScopeId ?? value.scopeId;
       if (scopeId && !get("scope", String(scopeId))) fail("UNKNOWN_OWNER", "A row has no registered scope owner.");
       if (frame.kind === "binding") {
-        const binding = SupervisionBindingSchema.parse(value);
+        const binding = this.parseRow(SupervisionBindingSchema, value);
         if (binding.configurationId) {
           const command = get("command", binding.configurationId) as z.infer<typeof AcceptedScopedCommandSchema> | undefined;
           const configuration = command?.result.supervisorConfiguration;
@@ -769,7 +1009,7 @@ export class SupervisionStore {
         }
       }
       if (frame.kind === "task") {
-        const task = SupervisionTaskSchema.parse(value), alias = JSON.stringify([task.hostId.trim().toLowerCase(), task.projectId, task.nodeId]);
+        const task = this.parseRow(SupervisionTaskSchema, value), alias = JSON.stringify([task.hostId.trim().toLowerCase(), task.projectId, task.nodeId]);
         const owner = get("scope", task.ownerScopeId) as z.infer<typeof SupervisionScopeSchema>;
         if (!owner.projectIds.includes(task.projectId)) fail("UNKNOWN_OWNER", "Task project is outside its registered scope.");
         if (aliases.has(alias)) fail("CONFLICT", "Task/host/project identity already has an owner."); aliases.add(alias);
@@ -780,7 +1020,7 @@ export class SupervisionStore {
         if (task.currentAttempt && attempt?.taskId !== task.id) fail("CONFLICT", "Task current attempt does not match.");
       }
       if (frame.kind === "attempt") {
-        const attempt = SupervisionAttemptSchema.parse(value), task = get("task", attempt.taskId) as z.infer<typeof SupervisionTaskSchema> | undefined;
+        const attempt = this.parseRow(SupervisionAttemptSchema, value), task = get("task", attempt.taskId) as z.infer<typeof SupervisionTaskSchema> | undefined;
         const effect = get("effect", attempt.launchEffectId) as z.infer<typeof SupervisionEffectSchema> | undefined;
         const ordinal = key(attempt.taskId, String(attempt.ordinal));
         if (attempt.importedFrom) {
@@ -802,7 +1042,7 @@ export class SupervisionStore {
         if (ordinals.has(ordinal)) fail("CONFLICT", "Duplicate attempt ordinal."); ordinals.add(ordinal);
       }
       if (frame.kind === "effect") {
-        const effect = SupervisionEffectSchema.parse(value);
+        const effect = this.parseRow(SupervisionEffectSchema, value);
         if (effect.configurationId) {
           const command = get("command", effect.configurationId) as z.infer<typeof AcceptedScopedCommandSchema> | undefined;
           const configuration = command?.result.supervisorConfiguration;
@@ -836,7 +1076,7 @@ export class SupervisionStore {
         if (!backend || backend.ownerScopeId !== row.scopeId || backend.backend !== "scoped") fail("UNKNOWN_OWNER", "Continuation and scoped plan owner must agree.");
       }
       if (frame.kind === "decision") {
-        const row = ScopedDecisionSchema.parse(value), backend = get("backend", row.planId) as z.infer<typeof SupervisionBackendSchema> | undefined;
+        const row = this.parseRow(ScopedDecisionSchema, value), backend = get("backend", row.planId) as z.infer<typeof SupervisionBackendSchema> | undefined;
         if (row.maintenance) {
           const job = get("maintenance-job", row.maintenance.jobId) as z.infer<typeof MaintenanceJobSchema> | undefined;
           const incident = get("maintenance-incident", row.maintenance.incidentId) as z.infer<typeof MaintenanceIncidentSchema> | undefined;
@@ -852,7 +1092,7 @@ export class SupervisionStore {
         }
       }
       if (frame.kind === "outbox") {
-        const row = ScopedOutboxSchema.parse(value), backend = get("backend", row.planId) as z.infer<typeof SupervisionBackendSchema> | undefined;
+        const row = this.parseRow(ScopedOutboxSchema, value), backend = get("backend", row.planId) as z.infer<typeof SupervisionBackendSchema> | undefined;
         const maintenanceDecision = row.decisionId ? get("decision", row.decisionId) as z.infer<typeof ScopedDecisionSchema> | undefined : undefined;
         const introduced = get("command", row.causationId) as z.infer<typeof AcceptedScopedCommandSchema> | undefined;
         const input = introduced?.result.projectInput, project = input ? get("project", input.projectId) as { scopeId: string } | undefined : undefined;
@@ -878,13 +1118,13 @@ export class SupervisionStore {
       }
     }
   }
-  private async scanFull(): Promise<Scan> {
-    const result: Scan = { frames: new Map(), transactions: [], sequence: 0, hash: null, problems: [], initialized: false, ownership: [], pending: null, bytes: 0, coordinators: [], prefixDigest: emptyPrefix };
+  private async scanFull(options: { verifyAllProjections?: boolean; anchorPlan?: AnchorPlanEntry[] } = {}): Promise<Scan> {
+    const result: Scan = { frames: new Map(), transactions: [], sequence: 0, hash: null, problems: [], initialized: false, ownership: [], pending: null, bytes: 0, coordinators: [], prefixDigest: emptyPrefix, projection: emptyFrameDigest, projectionSet: projectionSetHash(emptyProjectionAcc()), projectionXor: "0".repeat(64), legacyAnchors: 0 };
     try {
       let names: string[];
       try { names = await readdir(this.root); }
       catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return result; throw error; }
-      if (names.some(n => !["identity.json", "capacity.json", "transactions", "coordinators", "blobs", "checkpoint.json"].includes(n) && !/^(?:identity|capacity|checkpoint)\.json\.[0-9a-f-]+\.tmp$/.test(n))) fail("HELD", "Unknown supervision root metadata.");
+      if (names.some(n => !["identity.json", "capacity.json", "transactions", "coordinators", "blobs", "checkpoint.json", "anchor-migration.json"].includes(n) && !/^(?:identity|capacity|checkpoint|anchor-migration)\.json\.[0-9a-f-]+\.tmp$/.test(n))) fail("HELD", "Unknown supervision root metadata.");
       await this.loadCapacity();
       const identity = IdentitySchema.parse(await readCanonical(join(this.root, "identity.json")));
       if (identity.homeId !== this.homeId) fail("HELD", "Supervision home identity mismatch.");
@@ -918,48 +1158,96 @@ export class SupervisionStore {
       const anchorReads = new Map<string, Promise<SettledRead>>();
       const tipNames = durable.filter(n => /\.tip\.json$/.test(n)), publicationNames = durable.filter(n => /\.publication\.json$/.test(n));
       const aheadAnchors = (names: string[], n: number) => { for (const name of names.slice(n, n + 16)) if (!anchorReads.has(name)) anchorReads.set(name, settledRead(join(this.root, "transactions", name))); };
+      // Retained ownership from anchors of either generation, in sequence order. /1 capsules
+      // are self-contained; /2 capsules rebuild cumulatively from deltas, seeded by the last
+      // /1 capsule and restarted by every reset anchor. A delta that does not reconstruct its
+      // recorded digest breaks the chain until the next reset, exactly like a damaged capsule.
+      const anchorState = { acc: null as OwnershipAcc | null, lastFull: null as z.infer<typeof OwnershipSchema> | null, accDigest: null as string | null, broken: false };
+      const resetAnchorState = () => { anchorState.acc = null; anchorState.lastFull = null; anchorState.accDigest = null; anchorState.broken = false; };
+      const retainFromAnchor = (anchor: AnyAnchor, raw: unknown) => {
+        if (!isAnchor2(anchor)) {
+          anchorState.lastFull = anchor.ownership; anchorState.acc = null; anchorState.broken = false;
+          const retained = ownershipDigest((raw as Anchor).ownership); anchorState.accDigest = retained;
+          if (!retainedDigests.has(retained)) { retainedDigests.add(retained); result.ownership.push(anchor.ownership); }
+          return;
+        }
+        if (anchorState.broken && !anchor.ownershipDelta.reset) return;
+        anchorState.acc ??= anchorState.lastFull ? ownershipAccFrom(anchorState.lastFull) : emptyOwnershipAcc();
+        applyOwnershipDelta(anchorState.acc, anchor.ownershipDelta); anchorState.broken = false;
+        if (!anchor.ownershipDelta.entries.length && !anchor.ownershipDelta.reset && anchor.ownershipDigest === anchorState.accDigest) return;
+        const built = buildOwnership(anchorState.acc);
+        if (ownershipDigest(built) !== anchor.ownershipDigest) { anchorState.broken = true; fail("HELD", "Anchor ownership delta does not reconstruct its recorded ownership."); }
+        anchorState.accDigest = anchor.ownershipDigest;
+        if (!retainedDigests.has(anchor.ownershipDigest)) { retainedDigests.add(anchor.ownershipDigest); result.ownership.push(built); }
+      };
       const validTips = new Set<number>();
-      const checkAnchors = async (names: string[], markTip: (anchor: Anchor) => void) => {
+      const checkAnchors = async (input: string[], markTip: (anchor: AnyAnchor) => void) => {
+      const names = [...input].sort((a, b) => Number(basename(a).slice(0, 12)) - Number(basename(b).slice(0, 12)));
       for (const [anchorIndex, name] of names.entries()) {
         try {
-          aheadAnchors(names, anchorIndex); const rawAnchor = takenRead(await anchorReads.get(name)!); anchorReads.delete(name); const anchor = parseVerified(AnchorSchema, rawAnchor);
+          aheadAnchors(names, anchorIndex); const rawAnchor = takenRead(await anchorReads.get(name)!); anchorReads.delete(name); const anchor = parseVerified(AnyAnchorSchema, rawAnchor);
           if (anchor.homeId !== this.homeId || name.replaceAll("\\", "/") !== this.file(anchor.sequence, anchor.format.includes("publication") ? "publication" : "tip").slice(join(this.root, "transactions").length + 1).replaceAll("\\", "/")) fail("HELD", "Anchor identity mismatch.");
           markTip(anchor);
-          const retained = ownershipDigest((rawAnchor as Anchor).ownership);
-          if (!retainedDigests.has(retained)) {
-            retainedDigests.add(retained); result.ownership.push(anchor.ownership);
-          }
+          retainFromAnchor(anchor, rawAnchor);
         } catch (error) { result.problems.push(`Damaged retained ownership ${name}: ${String(error)}`); }
       }
       };
       try {
         result.coordinators = await this.coordinators();
         const requestIds = new Set<string>();
+        let projectionAcc = emptyProjectionAcc();
         const reads = new Map<string, Promise<SettledRead>>();
         const ahead = (n: number) => { for (const seq of sequences.slice(n, n + 16)) for (const kind of ["tip", "event", "publication"] as const) { const key = `${seq}:${kind}`; if (!reads.has(key)) reads.set(key, settledRead(this.file(seq, kind))); } };
         const take = async (seq: number, kind: "tip" | "event" | "publication") => { const key = `${seq}:${kind}`; const value = takenRead(await reads.get(key)!); reads.delete(key); return value; };
         for (let index = 0; index < sequences.length; index++) {
           const sequence = sequences[index]!;
           if (sequence !== index + 1) fail("HELD", "Transaction history has a gap; retained publications cannot reset it.");
-          ahead(index); const rawTip = await take(sequence, "tip"); const tip = parseVerified(AnchorSchema, rawTip);
-          if (tip.homeId === this.homeId && tip.sequence === sequence) { const retained = ownershipDigest((rawTip as Anchor).ownership); if (!retainedDigests.has(retained)) { retainedDigests.add(retained); result.ownership.push(tip.ownership); } }
-          if (tip.format !== "firstmate.supervision-tip/1" || tip.homeId !== this.homeId || tip.sequence !== sequence || tip.previous !== result.hash) fail("HELD", "Expected tip is inconsistent with the committed prefix.");
+          ahead(index); const rawTip = await take(sequence, "tip"); const tip = parseVerified(AnyAnchorSchema, rawTip);
+          if (tip.homeId === this.homeId && tip.sequence === sequence) { if (!isAnchor2(tip)) result.legacyAnchors++; retainFromAnchor(tip, rawTip); }
+          if (!tip.format.includes("tip") || tip.homeId !== this.homeId || tip.sequence !== sequence || tip.previous !== result.hash) fail("HELD", "Expected tip is inconsistent with the committed prefix.");
           const event = parseVerified(TransactionSchema, await take(sequence, "event"));
+          if (event.format.endsWith("/2") && !isAnchor2(tip)) fail("HELD", "A /2 transaction requires its /2 anchors.");
           if (event.homeId !== this.homeId || event.sequence !== sequence || event.previous !== result.hash || tip.transactionHash !== event.hash ||
             tip.requestId !== event.requestId || tip.requestHash !== event.requestHash || tip.generation !== event.generation || cachedDigest(event.body) !== event.requestHash ||
             result.coordinators[event.generation - 1]?.hash !== event.coordinatorHash || requestIds.has(event.requestId)) fail("HELD", "Transaction chain, request or coordinator identity mismatch.");
           await this.checkBlobs(event.body.mutations);
           checkInboxRequest(event.body.mutations, event.requestId);
           const next = this.apply(result.frames, event.body);
-          if (digest(next.changes) !== digest(event.changes) || ownershipDigestOf(next.frames) !== ownershipDigest((rawTip as Anchor).ownership) || (sequence % 64 === 0 && frameDigest(next.frames) !== event.projectionHash)) fail("HELD", "Transaction projection or retained ownership mismatch.");
+          const nextProjectionAcc = advanceProjection(projectionAcc, result.frames, next.frames, next.changes);
+          const projectionSet = projectionSetHash(nextProjectionAcc);
+          // A /2 anchor's delta must be exactly the contributions replay changed - comparing
+          // the small delta replaces hashing the whole ownership text per transaction; the
+          // cumulative reconstruction above already verified its full recorded digest.
+          if (digest(next.changes) !== digest(event.changes) ||
+            (isAnchor2(tip) ? cachedDigest(tip.ownershipDelta) !== cachedDigest(ownershipDeltaFor(next.changes, next.frames, anchorReset(sequence)))
+              : ownershipDigestOf(next.frames) !== anchorOwnershipDigest(tip, (rawTip as Anchor).ownership)) ||
+            (event.format.endsWith("/2") ? projectionSet !== event.projectionHash
+              : (isAnchor2(tip) && tip.projectionSet !== projectionSet) || ((options.verifyAllProjections || sequence % 64 === 0) && frameDigest(next.frames) !== event.projectionHash)))
+            fail("HELD", "Transaction projection or retained ownership mismatch.");
           if (!durableNames.has(`${pad(sequence)}.publication.json`)) {
             if (index !== sequences.length - 1) fail("HELD", "Unpublished transaction precedes later history.");
             result.pending = { event, tip }; fail("HELD", "Final transaction awaits publication.");
           }
-          const rawMarker = await take(sequence, "publication"); verifyHash(rawMarker as Anchor); const marker = rawMarker as Anchor;
+          const rawMarker = await take(sequence, "publication"); verifyHash(rawMarker as AnyAnchor); const marker = rawMarker as AnyAnchor;
           // The publication is pinned to its fully schema-checked tip: same keys, same fields,
           // same ownership digest - as strong as re-parsing it, without a second schema walk.
-          if (Object.keys(marker).sort().join(",") !== "format,generation,hash,homeId,ownership,previous,requestHash,requestId,sequence,transactionHash" || marker.format !== "firstmate.supervision-publication/1" || marker.homeId !== tip.homeId || marker.sequence !== tip.sequence || marker.previous !== tip.previous || marker.transactionHash !== tip.transactionHash || marker.requestId !== tip.requestId || marker.requestHash !== tip.requestHash || marker.generation !== tip.generation || ownershipDigest(marker.ownership) !== ownershipDigest((rawTip as Anchor).ownership)) fail("HELD", "Publication does not match its expected tip.");
+          // A same-generation publication is pinned byte-for-byte to its tip. A mixed pair is
+          // an interrupted anchor migration (one file replaced, its pair not yet): both files
+          // are hash- and schema-checked and must agree on every shared field and on the
+          // ownership digest - the same capsule in its two encodings.
+          if (anchorVersion(marker) === anchorVersion(tip)
+            ? marker.format !== publicationFormat(anchorVersion(tip)) ||
+              (isAnchor2(tip) ? digest({ ...(marker as Anchor2), format: tip.format, hash: tip.hash }) !== digest(tip)
+                : Object.keys(marker).sort().join(",") !== "format,generation,hash,homeId,ownership,previous,requestHash,requestId,sequence,transactionHash" || marker.homeId !== tip.homeId || marker.sequence !== tip.sequence || marker.previous !== tip.previous || marker.transactionHash !== tip.transactionHash || marker.requestId !== tip.requestId || marker.requestHash !== tip.requestHash || marker.generation !== tip.generation || ownershipDigest((marker as Anchor).ownership) !== ownershipDigest((rawTip as Anchor).ownership))
+            : marker.format !== publicationFormat(anchorVersion(marker)) || digest((() => { const parsed = parseVerified(AnyAnchorSchema, rawMarker); return { homeId: parsed.homeId, sequence: parsed.sequence, previous: parsed.previous, transactionHash: parsed.transactionHash, requestId: parsed.requestId, requestHash: parsed.requestHash, generation: parsed.generation, ownership: anchorOwnershipDigest(parsed) }; })()) !== digest({ homeId: tip.homeId, sequence: tip.sequence, previous: tip.previous, transactionHash: tip.transactionHash, requestId: tip.requestId, requestHash: tip.requestHash, generation: tip.generation, ownership: anchorOwnershipDigest(tip, isAnchor2(tip) ? undefined : (rawTip as Anchor).ownership) })) fail("HELD", "Publication does not match its expected tip.");
+          if (options.anchorPlan) {
+            const capsule = { homeId: this.homeId, sequence, previous: event.previous, transactionHash: event.hash, requestId: event.requestId, requestHash: event.requestHash,
+              generation: event.generation, ownershipDigest: anchorOwnershipDigest(tip, isAnchor2(tip) ? undefined : (rawTip as Anchor).ownership),
+              ownershipDelta: ownershipDeltaFor(next.changes, next.frames, anchorReset(sequence)), projectionSet };
+            options.anchorPlan.push({ sequence, oldTipHash: tip.hash, oldPublicationHash: marker.hash,
+              nextTip: hashed({ format: "firstmate.supervision-tip/2" as const, ...capsule }), nextPublication: hashed({ format: "firstmate.supervision-publication/2" as const, ...capsule }) });
+          }
+          projectionAcc = nextProjectionAcc; result.projectionSet = projectionSet; result.projectionXor = projectionAcc.xor.toString("hex");
           result.frames = next.frames; result.transactions.push(indexedTransaction(event)); requestIds.add(event.requestId); result.sequence = sequence; result.hash = event.hash;
           result.prefixDigest = extendPrefix(result.prefixDigest, event, tip, marker);
         }
@@ -971,7 +1259,10 @@ export class SupervisionStore {
         // once (the same value the checkpoint binds) pins what these frames replayed to. The
         // bounded warm tail (at most 32) keeps its per-transaction check.
         const head = result.transactions.at(-1);
-        if (head && frameDigest(result.frames) !== head.projectionHash) fail("HELD", "Transaction projection or retained ownership mismatch.");
+        if (head) {
+          if (head.format.endsWith("/2")) result.projection = result.projectionSet;
+          else if ((result.projection = frameDigest(result.frames)) !== head.projectionHash) fail("HELD", "Transaction projection or retained ownership mismatch.");
+        }
         if (this.capacity && (this.capacity.baseSequence > result.sequence || (this.capacity.baseSequence ? result.transactions[this.capacity.baseSequence - 1]?.hash : null) !== this.capacity.baseHash))
           fail("HELD", "Capacity upgrade prefix is missing or changed.");
         if ((!this.capacity && result.sequence > SUPERVISION_INDEX_LIMITS.transactions) || this.projectionSize(result) > (this.capacity?.projectionBytes ?? SUPERVISION_INDEX_LIMITS.projectionBytes))
@@ -980,6 +1271,7 @@ export class SupervisionStore {
         result.problems.push(error instanceof Error ? error.message : String(error));
         // Retain capsules from anchors the walk never reached (or whose tip it refused), so a
         // damaged record cannot lose the ownership history after it. Failure path only.
+        resetAnchorState();
         await checkAnchors(tipNames, anchor => validTips.add(anchor.sequence));
         await checkAnchors(publicationNames.filter(n => !validTips.has(Number(basename(n).slice(0, 12)))), () => {});
       }
@@ -1019,10 +1311,10 @@ export class SupervisionStore {
     if (!sequence) return null;
     await Promise.all(["event", "tip", "publication"].map(suffix => stat(this.file(sequence, suffix))));
     const event = verifyHash(TransactionSchema.parse(await readCanonical(this.file(sequence, "event"))));
-    const tip = verifyHash(AnchorSchema.parse(await readCanonical(this.file(sequence, "tip"))));
-    const marker = verifyHash(AnchorSchema.parse(await readCanonical(this.file(sequence, "publication"))));
+    const tip = verifyHash(AnyAnchorSchema.parse(await readCanonical(this.file(sequence, "tip"))));
+    const marker = verifyHash(AnyAnchorSchema.parse(await readCanonical(this.file(sequence, "publication"))));
     if (event.homeId !== this.homeId || event.sequence !== sequence || tip.homeId !== this.homeId || tip.sequence !== sequence ||
-      tip.format !== "firstmate.supervision-tip/1" || tip.transactionHash !== event.hash ||
+      !tip.format.includes("tip") || marker.format !== publicationFormat(anchorVersion(tip)) || tip.transactionHash !== event.hash ||
       digest({ ...marker, format: tip.format, hash: tip.hash }) !== digest(tip)) fail("HELD", "Checkpoint anchor identity mismatch.");
     await this.checkBlobs(event.body.mutations);
     return digest({ event: event.hash, tip: tip.hash, publication: marker.hash });
@@ -1037,7 +1329,7 @@ export class SupervisionStore {
   private async checkpointFor(snapshot: Scan): Promise<Checkpoint> {
     return hashed({ format: "firstmate.supervision-checkpoint/1" as const, homeId: this.homeId,
       sequence: snapshot.sequence, transactionHash: snapshot.hash, prefixDigest: snapshot.prefixDigest,
-      projectionHash: frameDigest(snapshot.frames), anchorHash: await this.anchorHash(snapshot.sequence) });
+      projectionHash: snapshot.projection, anchorHash: await this.anchorHash(snapshot.sequence) });
   }
   private async blobIdentities(): Promise<BlobIdentities> {
     const directory = join(this.root, "blobs"), names = await readdir(directory);
@@ -1088,9 +1380,9 @@ export class SupervisionStore {
       await this.cache(snapshot, checkpoint, await this.directories());
     } finally { await rm(temporary, { force: true }); }
   }
-  private async checkedFullScan(): Promise<Scan> {
+  private async checkedFullScan(options: { verifyAllProjections?: boolean; anchorPlan?: AnchorPlanEntry[] } = {}): Promise<Scan> {
     this.cached = null;
-    const snapshot = await this.scanFull();
+    const snapshot = await this.scanFull(options);
     if (!snapshot.initialized || snapshot.problems.length) return snapshot;
     try {
       const before = await this.directories(), checkpoint = await this.readCheckpoint();
@@ -1142,22 +1434,44 @@ export class SupervisionStore {
       const next = { ...cached.scan, frames: new Map(cached.scan.frames), transactions: [...cached.scan.transactions], ownership: [...cached.scan.ownership],
         bytes: cached.scan.bytes + blobs.bytes };
       const seen = new Set(next.transactions.map(t => t.requestId));
+      let tailProjection: ProjectionAcc = { xor: Buffer.from(cached.scan.projectionXor, "hex"), count: cached.scan.frames.size };
+      let tailOwnership: OwnershipAcc | null = null, tailOwnershipDigest: string | null = null;
       for (let sequence = next.sequence + 1; sequence <= checkpoint.sequence; sequence++) {
         const event = parseVerified(TransactionSchema, await readCanonical(this.file(sequence, "event")));
-        const rawTip = await readCanonical(this.file(sequence, "tip")); const tip = parseVerified(AnchorSchema, rawTip);
-        const rawMarker = await readCanonical(this.file(sequence, "publication")); const marker = parseVerified(AnchorSchema, rawMarker);
+        const rawTip = await readCanonical(this.file(sequence, "tip")); const tip = parseVerified(AnyAnchorSchema, rawTip);
+        const rawMarker = await readCanonical(this.file(sequence, "publication")); const marker = parseVerified(AnyAnchorSchema, rawMarker);
         if (event.homeId !== this.homeId || event.sequence !== sequence || event.previous !== next.hash || tip.previous !== next.hash ||
-          tip.homeId !== this.homeId || tip.sequence !== sequence || tip.format !== "firstmate.supervision-tip/1" || tip.transactionHash !== event.hash ||
+          tip.homeId !== this.homeId || tip.sequence !== sequence || !tip.format.includes("tip") || marker.format !== publicationFormat(anchorVersion(tip)) || (event.format.endsWith("/2") && !isAnchor2(tip)) || tip.transactionHash !== event.hash ||
           tip.requestId !== event.requestId || tip.requestHash !== event.requestHash || tip.generation !== event.generation ||
           cachedDigest(event.body) !== event.requestHash || next.coordinators[event.generation - 1]?.hash !== event.coordinatorHash || seen.has(event.requestId) ||
           digest({ ...marker, format: tip.format, hash: tip.hash }) !== digest(tip)) fail("HELD", "Checkpoint tail chain/identity mismatch.");
         await this.checkBlobs(event.body.mutations); checkInboxRequest(event.body.mutations, event.requestId);
         const applied = this.apply(next.frames, event.body);
-        if (digest(applied.changes) !== digest(event.changes) || frameDigest(applied.frames) !== event.projectionHash ||
-          ownershipDigestOf(applied.frames) !== ownershipDigest(tip.ownership)) fail("HELD", "Checkpoint tail projection mismatch.");
+        const appliedProjection = advanceProjection(tailProjection, next.frames, applied.frames, applied.changes);
+        const appliedSet = projectionSetHash(appliedProjection);
+        const appliedFrameDigest = event.format.endsWith("/2") ? null : frameDigest(applied.frames);
+        if (digest(applied.changes) !== digest(event.changes) ||
+          (event.format.endsWith("/2") ? appliedSet !== event.projectionHash : appliedFrameDigest !== event.projectionHash || (isAnchor2(tip) && tip.projectionSet !== appliedSet)) ||
+          (isAnchor2(tip) ? cachedDigest(tip.ownershipDelta) !== cachedDigest(ownershipDeltaFor(applied.changes, applied.frames, anchorReset(sequence)))
+            : ownershipDigestOf(applied.frames) !== anchorOwnershipDigest(tip))) fail("HELD", "Checkpoint tail projection mismatch.");
+        tailProjection = appliedProjection; next.projectionSet = appliedSet; next.projectionXor = appliedProjection.xor.toString("hex");
+        next.projection = event.format.endsWith("/2") ? appliedSet : appliedFrameDigest!;
         next.frames = applied.frames; next.transactions.push(indexedTransaction(event)); seen.add(event.requestId);
-        const tipOwnership = ownershipDigest(tip.ownership);
-        if (!next.ownership.some(o => ownershipDigest(o) === tipOwnership)) next.ownership.push(tip.ownership);
+        if (isAnchor2(tip)) {
+          tailOwnership ??= ownershipAccFrom(ownership(cached.scan.frames));
+          applyOwnershipDelta(tailOwnership, tip.ownershipDelta);
+          if (tip.ownershipDelta.entries.length || tip.ownershipDelta.reset || tip.ownershipDigest !== tailOwnershipDigest) {
+            const built = buildOwnership(tailOwnership);
+            if (ownershipDigest(built) !== tip.ownershipDigest) fail("HELD", "Checkpoint tail projection mismatch.");
+            tailOwnershipDigest = tip.ownershipDigest;
+            if (!next.ownership.some(o => ownershipDigest(o) === tip.ownershipDigest)) next.ownership.push(built);
+          }
+        } else {
+          next.legacyAnchors++;
+          const tipOwnership = ownershipDigest(tip.ownership);
+          if (!next.ownership.some(o => ownershipDigest(o) === tipOwnership)) next.ownership.push(tip.ownership);
+          tailOwnership = null; tailOwnershipDigest = tipOwnership;
+        }
         next.sequence = sequence; next.hash = event.hash; next.prefixDigest = extendPrefix(next.prefixDigest, event, tip, marker);
         next.bytes += Buffer.byteLength(canonical(event) + canonical(tip) + canonical(marker)) + 3;
       }
@@ -1207,16 +1521,23 @@ export class SupervisionStore {
     const at = checkpoint.sequence, transaction = at ? snapshot.transactions[at - 1] : undefined;
     if (at > snapshot.sequence)
       fail("HELD", `Integrity incident: the checkpoint records sequence ${at} but the journal ends at ${snapshot.sequence}; published history may be lost. Reconcile deliberately, never rebuild.`);
-    if (checkpoint.transactionHash !== (transaction?.hash ?? null) || checkpoint.projectionHash !== (transaction?.projectionHash ?? frameDigest(new Map())) ||
-      checkpoint.prefixDigest !== await this.prefixAt(snapshot, at) || checkpoint.anchorHash !== await this.anchorHash(at))
+    if (checkpoint.transactionHash !== (transaction?.hash ?? null) || checkpoint.projectionHash !== (transaction?.projectionHash ?? emptyFrameDigest) ||
+      checkpoint.prefixDigest !== await this.prefixAt(snapshot, at) || checkpoint.anchorHash !== await this.anchorHash(at)) {
+      // An interrupted anchor migration is the one expected divergence: the old checkpoint
+      // still binds the pre-migration prefix the published receipt recorded. Resuming the
+      // migration (never a silent index rebuild over half-replaced anchors) is the repair.
+      const migration = await this.readAnchorMigration().catch(() => null);
+      if (migration && migration.sequence === at && migration.headHash === checkpoint.transactionHash && migration.oldPrefixDigest === checkpoint.prefixDigest)
+        fail("HELD", "Anchor migration is incomplete; resume it (the next writer does) before index recovery.");
       fail("HELD", `Integrity incident: the checkpoint at sequence ${at} diverges from the validated journal prefix. Reconcile deliberately, never rebuild.`);
+    }
     return checkpoint;
   }
   private async prefixAt(snapshot: Scan, sequence: number): Promise<string> {
     let prefix = emptyPrefix;
     for (const event of snapshot.transactions.slice(0, sequence)) {
-      const tip = verifyHash(AnchorSchema.parse(await readCanonical(this.file(event.sequence, "tip"))));
-      const marker = verifyHash(AnchorSchema.parse(await readCanonical(this.file(event.sequence, "publication"))));
+      const tip = verifyHash(AnyAnchorSchema.parse(await readCanonical(this.file(event.sequence, "tip"))));
+      const marker = verifyHash(AnyAnchorSchema.parse(await readCanonical(this.file(event.sequence, "publication"))));
       prefix = extendPrefix(prefix, event, tip, marker);
     }
     return prefix;
@@ -1318,13 +1639,20 @@ export class SupervisionStore {
       const oldPending = inboxProjection(snapshot.frames).assignments.filter(a => a.primaryEventId === a.id && !terminal(a)).length;
       if (pending > oldPending && pending > (this.options.maxPendingEvents ?? INBOX_LIMITS.pending)) fail("HELD", "Pending event alarm; ingress baseline has not advanced.");
       await this.checkBlobs(body.mutations);
-      const event = hashed({ format: "firstmate.supervision-transaction/1" as const, homeId: this.homeId,
+      const version: 1 | 2 = this.options.legacyFormat ? 1 : 2;
+      const nextProjectionAcc = advanceProjection({ xor: Buffer.from(snapshot.projectionXor, "hex"), count: snapshot.frames.size }, snapshot.frames, next.frames, next.changes);
+      const projectionSet = projectionSetHash(nextProjectionAcc);
+      const event = hashed({ format: version === 2 ? "firstmate.supervision-transaction/2" as const : "firstmate.supervision-transaction/1" as const, homeId: this.homeId,
         sequence: snapshot.sequence + 1, previous: snapshot.hash, generation: coordinator.generation, coordinatorHash: coordinator.hash,
-        requestId, requestHash, at: new Date().toISOString(), body, changes: next.changes, projectionHash: frameDigest(next.frames), outbox: [] as never[] });
-      const capsule = { homeId: this.homeId, sequence: event.sequence, previous: event.previous, transactionHash: event.hash,
-        requestId, requestHash, generation: event.generation, ownership: nextOwnership };
-      const tip = hashed({ format: "firstmate.supervision-tip/1" as const, ...capsule });
-      const marker = hashed({ format: "firstmate.supervision-publication/1" as const, ...capsule });
+        requestId, requestHash, at: new Date().toISOString(), body, changes: next.changes, projectionHash: version === 2 ? projectionSet : frameDigest(next.frames), outbox: [] as never[] });
+      const capsuleBase = { homeId: this.homeId, sequence: event.sequence, previous: event.previous, transactionHash: event.hash,
+        requestId, requestHash, generation: event.generation };
+      const tip: AnyAnchor = version === 2
+        ? hashed({ format: "firstmate.supervision-tip/2" as const, ...capsuleBase, ownershipDigest: nextDigest, ownershipDelta: ownershipDeltaFor(next.changes, next.frames, anchorReset(event.sequence)), projectionSet })
+        : hashed({ format: "firstmate.supervision-tip/1" as const, ...capsuleBase, ownership: nextOwnership });
+      const marker: AnyAnchor = version === 2
+        ? hashed({ format: "firstmate.supervision-publication/2" as const, ...capsuleBase, ownershipDigest: nextDigest, ownershipDelta: ownershipDeltaFor(next.changes, next.frames, anchorReset(event.sequence)), projectionSet })
+        : hashed({ format: "firstmate.supervision-publication/1" as const, ...capsuleBase, ownership: nextOwnership });
       const bytes = Buffer.byteLength(canonical(event) + canonical(tip) + canonical(marker)) + 3;
       const candidate = { ...snapshot, frames: next.frames, ownership: retainedOwnership, bytes: snapshot.bytes + bytes,
         transactions: [...snapshot.transactions, indexedTransaction(event)] };
@@ -1339,7 +1667,8 @@ export class SupervisionStore {
         await this.publish(this.file(event.sequence, "event"), event, "event");
         await this.publish(this.file(event.sequence, "publication"), marker, "publication");
         await this.saveCheckpoint({ ...snapshot, frames: next.frames, transactions: [...snapshot.transactions, indexedTransaction(event)], sequence: event.sequence,
-          hash: event.hash, prefixDigest: extendPrefix(snapshot.prefixDigest, event, tip, marker), ownership: retainedOwnership, bytes: snapshot.bytes + bytes });
+          hash: event.hash, prefixDigest: extendPrefix(snapshot.prefixDigest, event, tip, marker), ownership: retainedOwnership, bytes: snapshot.bytes + bytes,
+          projection: event.projectionHash, projectionSet, projectionXor: nextProjectionAcc.xor.toString("hex"), legacyAnchors: snapshot.legacyAnchors + (version === 1 ? 1 : 0) });
       } catch (error) {
         fail("HELD", `Publication interrupted; reread/reconcile the original request without repeating an effect: ${String(error)}`);
       }
@@ -1361,7 +1690,7 @@ export class SupervisionStore {
       if (!snapshot.pending) { await this.saveCheckpoint(snapshot); return null; }
       const { event, tip } = snapshot.pending;
       const { hash: _hash, ...body } = tip;
-      await this.publish(this.file(event.sequence, "publication"), hashed({ ...body, format: "firstmate.supervision-publication/1" }), "publication");
+      await this.publish(this.file(event.sequence, "publication"), hashed({ ...body, format: publicationFormat(anchorVersion(tip)) }), "publication");
       await this.saveCheckpoint(await this.scanFull());
       return this.receipt(event);
     });
