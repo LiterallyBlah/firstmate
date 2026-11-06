@@ -14,7 +14,8 @@
  * and accounted by the succeeded `workspace.open` effect's receipt, and rediscovered by
  * `findWorkspace`; it is never silently dropped. */
 import {
-  REMOTE_PROMPT_MAX_CHARS, type AgentCreateIntent, type AgentObservation, type GatewayReceiver,
+  REMOTE_PROMPT_MAX_CHARS, REMOTE_QUESTION_TOOL, type AgentCreateIntent, type AgentObservation, type GatewayReceiver,
+  type PendingPermission, type PermitAnswer,
   type ReceiverCapabilities, type WorkspaceIntent, type WorkspaceReceipt,
 } from "../shared/supervision-effects";
 import { runPaseo } from "./cli";
@@ -175,6 +176,35 @@ export class SupervisionRemoteReceiver implements GatewayReceiver {
     await this.call(["send", agentId, "--", prompt]);
   }
   async interrupt(agentId: string): Promise<void> { await this.call(["stop", agentId]); }
+  /** `permit ls` for the whole host, narrowed to this agent. The CLI passes no request input: the tool
+   * name (and the catalog's `recentTools`/logs) is the whole decision context a Supervisor judges from. */
+  async listPermissions(agentId: string): Promise<PendingPermission[]> {
+    return rows(await this.call(["permit", "ls"]))
+      .filter((row) => text(row.agentId) === agentId)
+      .map((row) => ({ id: text(row.id), tool: text(row.name, row.tool) || "unknown" }))
+      .filter((row) => row.id);
+  }
+  /** One exact request, once. Deny carries `--message`; allow carries `--input` and only ever answers a
+   * Claude question. `--all` is never emitted (the bridge refuses it too). A reply that does not name
+   * this request is not evidence it was answered: it throws and the effect stays uncertain, never resent.
+   * The deny reply shape comes from the slice 0 probe (`permission:deny`); allow was not exercised live,
+   * so a rowless allow reply is accepted only when it carries no contradicting request row. */
+  async permit(agentId: string, answer: PermitAnswer): Promise<void> {
+    if (answer.action === "allow") {
+      const pending = await this.listPermissions(agentId);
+      const request = pending.find((row) => row.id === answer.requestId);
+      // Nothing was sent yet: this is a definite refusal, not an uncertain outcome.
+      if (!request) throw new ReceiverRejected("The exact permission request is no longer pending; nothing was sent.", "refused");
+      if (request.tool !== REMOTE_QUESTION_TOOL)
+        throw new ReceiverRejected(`Remote allow answers ${REMOTE_QUESTION_TOOL} questions only; ${request.tool} is denied or escalated, never allowed directly.`, "unsupported");
+    }
+    const args = answer.action === "deny"
+      ? ["permit", "deny", agentId, answer.requestId, "--message", answer.message, ...(answer.interrupt ? ["--interrupt"] : [])]
+      : ["permit", "allow", agentId, answer.requestId, "--input", answer.input];
+    const result = rows(await this.call(args));
+    if (result.length && !result.some((row) => text(row.requestId, row.id) === answer.requestId && text(row.agentId) === agentId))
+      throw new Error("The permit reply does not name this exact request; retain uncertainty, never resend.");
+  }
   async archive(_agentId: string): Promise<never> {
     throw new ReceiverRejected("No persisted remote inventory exists through the CLI bridge; archive is refused.", "unsupported");
   }

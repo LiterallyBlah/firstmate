@@ -201,7 +201,8 @@ describe("S08 remote catalog observation", () => {
     let s = await f.store.read();
     expect(s.sequence).toBe(once);
     expect(s.inbox.sources.filter(c => c.kind === "remote").map(c => [c.agentId, c.gaps])).toEqual(expect.arrayContaining([[null, ["no-cursor", "outage"]], ["remote-a", ["no-cursor", "outage"]]]));
-    expect(supervisionInboxStatus(s, { scopeId: r.scope, pageKind: "sources" }, now).counts.sourcesWithGaps).toBe(1);
+    // Worker source and its host catalog: both gaps are visible to the scope that runs there.
+    expect(supervisionInboxStatus(s, { scopeId: r.scope, pageKind: "sources" }, now).counts.sourcesWithGaps).toBe(2);
     await f.sources.observeRemote(snapshot({}, [worker({ updatedAt: at(7) })]), now);
     s = await f.store.read();
     expect(s.inbox.assignments.map(a => a.state)).toEqual(["assigned", "superseded"]);
@@ -215,6 +216,49 @@ describe("S08 remote catalog observation", () => {
     const f = await fixture(); await withRemote(f);
     await f.sources.observeRemote(snapshot({}, [worker({ status: "running" })]), now);
     expect((await f.store.read()).inbox.assignments[0]).toMatchObject({ state: "observed", result: { kind: "no-action" } });
+  });
+
+  it("newly assigned remote events name their scope as a wake; quiet polls, running progress and outages wake nobody", async () => {
+    const f = await fixture(), r = await withRemote(f);
+    // Running progress is observed only.
+    expect(await f.sources.observeRemote(snapshot({}, [worker({ status: "running", lastMessage: "working: still going" })]), now)).toMatchObject({ events: 1, wakes: [] });
+    // The settled turn is assigned: exactly one wake for its scope, and it completes nothing.
+    const before = await f.store.read();
+    expect(await f.sources.observeRemote(snapshot({}, [worker()]), now)).toMatchObject({ wakes: [r.scope] });
+    const after = await f.store.read();
+    expect(after.plans).toEqual(before.plans); expect(after.tasks).toEqual(before.tasks); expect(after.attempts).toEqual(before.attempts);
+    // The identical poll repeated is quiet: no second wake for the same finished turn.
+    expect(await f.sources.observeRemote(snapshot({}, [worker()]), now)).toMatchObject({ events: 0, wakes: [] });
+    // An outage records gaps only; it wakes nobody and, on reconnect, nothing is replayed as new.
+    expect(await f.sources.observeRemote(snapshot({ online: false, error: "socket closed" }, [worker()]), now)).toMatchObject({ wakes: [] });
+    expect(await f.sources.observeRemote(snapshot({}, [worker()]), now)).toMatchObject({ wakes: [] });
+    // A genuinely new turn (changed content) wakes again.
+    expect(await f.sources.observeRemote(snapshot({}, [worker({ updatedAt: at(9), lastMessage: "working: second turn done" })]), now)).toMatchObject({ wakes: [r.scope] });
+  });
+
+  it("a new pending permission on a still-running worker is assigned with its tool and recent tools, and wakes its scope", async () => {
+    const f = await fixture(), r = await withRemote(f);
+    const waiting = worker({ status: "running", lastMessage: "working: writing the file", permissions: 1,
+      pendingPermissions: [{ id: "permission-1", tool: "Write" }], recentTools: ["[Write] /tmp/out.txt"] });
+    expect(await f.sources.observeRemote(snapshot({}, [waiting]), now)).toMatchObject({ wakes: [r.scope] });
+    const s = await f.store.read();
+    expect(s.inbox.assignments.at(-1)).toMatchObject({ scopeId: r.scope, state: "assigned" });
+    const payload = JSON.parse(await readFile(join(f.store.root, "blobs", s.inbox.events.at(-1)!.envelope.payloadRef.slice(5)), "utf8"));
+    expect(payload.permissions).toEqual([{ id: "permission-1", tool: "Write" }]);
+    expect(payload.recentTools).toEqual(["[Write] /tmp/out.txt"]);
+    // The same pending permission on the next poll is not a second wake.
+    expect(await f.sources.observeRemote(snapshot({}, [waiting]), now)).toMatchObject({ wakes: [] });
+  });
+
+  it("the scoped status read carries the remote catalog source, with outage and clock-skew gaps", async () => {
+    const f = await fixture(), r = await withRemote(f);
+    await f.sources.observeRemote(snapshot({ online: false, error: "socket closed", clockSkew: { seconds: -3600, measuredAt: at(0), agentId: "z" } }, [worker()]), now);
+    const s = await f.store.read();
+    const read = supervisionInboxStatus(s, { scopeId: r.scope, pageKind: "sources" }, now);
+    // Worker source and the host catalog are both visible to the scope that runs there.
+    expect(read.sources.map(c => [c.agentId, c.gaps])).toEqual(expect.arrayContaining([
+      [null, expect.arrayContaining(["outage", "clock-skew"])], ["remote-a", expect.arrayContaining(["outage"])]]));
+    expect(read.sources.every(c => c.coverage === "gap")).toBe(true);
   });
 
   it("remote mutation of a scoped worker is refused before any request; legacy workers are untouched", async () => {

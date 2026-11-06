@@ -2,7 +2,8 @@ import { createHash, randomUUID } from "node:crypto";
 import { readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { NOT_CREATED_PROOF_MIN_AGE_MS, SupervisionGateway, effectLogicalKey, requireGatewayOperation } from "./supervision-effects";
+import { NOT_CREATED_PROOF_MIN_AGE_MS, ReceiverRejected, SupervisionGateway, effectLogicalKey, requireGatewayOperation } from "./supervision-effects";
+import { liveGateAnswered } from "../shared/workflow-plans";
 import { SupervisorSessions } from "./supervisor-sessions";
 import { recordContinuation } from "./supervision-continuation";
 import { oneAtATime } from "./mate";
@@ -341,7 +342,8 @@ describe("label-bound remote worker receiver (fake CLI bridge, probe shapes)", {
   const FIXTURE_PAIRS = [{ cliVersion: "0.14.0", daemonVersion: "0.14.0" }];
   async function remoteReady(fx: S04Fixture, bridge: FakeCliBridge, cliVersion = "0.14.0", pairs: readonly { cliVersion: string; daemonVersion: string }[] | null = FIXTURE_PAIRS) {
     const scope = await fx.addScope(3, "plan-r", ["r-trial", "r-build"], true, REMOTE_HOST);
-    await fx.draft(scope, [{ id: "r-trial" }, { id: "r-build", kind: "ship", after: [{ node: "r-trial", on: "done" }] }]);
+    // Delegated (firstmate mode): a Supervisor may answer its worker's permissions directly.
+    await fx.draft(scope, [{ id: "r-trial" }, { id: "r-build", kind: "ship", after: [{ node: "r-trial", on: "done" }] }], true);
     const receiver = new SupervisionRemoteReceiver(bridge, REMOTE_HOST, async () => REMOTE_CWD, { cliVersion: async () => cliVersion });
     const gateway = new SupervisionGateway(fx.store, fx.commands, fx.home, fx.receiver,
       { enabled: true, receiverFor: (host) => host === REMOTE_HOST ? receiver : undefined, ...(pairs ? { remotePairs: pairs } : {}) });
@@ -377,6 +379,175 @@ describe("label-bound remote worker receiver (fake CLI bridge, probe shapes)", {
     expect(bridge.calls.filter((args) => args[0] === "stop")).toEqual([["stop", agentId, "--json"]]);
     await expect(gateway.propose({ scopeId: scope.id, epoch: 1, attemptId: started.attemptId!, operation: "agent.archive", causation: "test-archive", requestId: randomUUID() }, owner))
       .rejects.toMatchObject({ code: "UNSUPPORTED" });
+  });
+
+  async function remoteWorker(fx: S04Fixture, bridge: FakeCliBridge) {
+    const { scope, gateway } = await remoteReady(fx, bridge);
+    const started = await startRemote(fx, gateway, scope);
+    await gateway.dispatch(started.effects!.workspace);
+    await gateway.dispatch(started.effects!.create);
+    await gateway.verifyWorker(started.attemptId!);
+    await gateway.dispatch(started.effects!.send);
+    return { scope, gateway, started, agentId: [...bridge.agents.keys()][0]!, owner: await fx.actorFor(scope) };
+  }
+  const permitCalls = (bridge: FakeCliBridge) => bridge.calls.filter((args) => args[0] === "permit" && args[1] !== "ls");
+
+  it("answers one exact remote permission by deny, once; allow is for Claude questions only", async () => {
+    const fx = await s04Fixture(), bridge = new FakeCliBridge(), { scope, gateway, started, agentId, owner } = await remoteWorker(fx, bridge);
+    bridge.addPermission(agentId, "permission-write", "Write");
+    bridge.addPermission(agentId, "permission-ask", "AskUserQuestion");
+    // Allow of a non-question refuses before any reservation and sends nothing.
+    const before = await fx.store.read();
+    await expect(gateway.proposePermit({ scopeId: scope.id, epoch: 1, attemptId: started.attemptId!, causation: "permit:permission-write",
+      requestId: randomUUID(), answer: { requestId: "permission-write", action: "allow", input: "{}" } }, owner)).rejects.toMatchObject({ code: "UNSUPPORTED" });
+    expect((await fx.store.read()).effects).toHaveLength(before.effects.length);
+    expect(permitCalls(bridge)).toEqual([]);
+    // An unknown request ID refuses before reservation too.
+    await expect(gateway.proposePermit({ scopeId: scope.id, epoch: 1, attemptId: started.attemptId!, causation: "permit:permission-missing",
+      requestId: randomUUID(), answer: { requestId: "permission-missing", action: "deny", message: "No." } }, owner)).rejects.toMatchObject({ code: "HELD" });
+    // Deny: proposed, pinned, dispatched exactly once against the exact request.
+    const denyId = randomUUID();
+    const deny = await gateway.proposePermit({ scopeId: scope.id, epoch: 1, attemptId: started.attemptId!, causation: "permit:permission-write",
+      requestId: denyId, answer: { requestId: "permission-write", action: "deny", message: "Do not write outside the worktree." } }, owner);
+    expect(deny).toMatchObject({ state: "reserved", operation: "agent.permit", receiverKey: "permission-write" });
+    // The accepted proposal replays to the same effect without rereading the receiver.
+    const replay = await gateway.proposePermit({ scopeId: scope.id, epoch: 1, attemptId: started.attemptId!, causation: "permit:permission-write",
+      requestId: denyId, answer: { requestId: "permission-write", action: "deny", message: "Do not write outside the worktree." } }, owner);
+    expect(replay.id).toBe(deny.id);
+    expect((await gateway.dispatch(deny.id))).toMatchObject({ state: "succeeded", receiptRef: "permitted:deny:permission-write" });
+    expect(permitCalls(bridge)).toEqual([["permit", "deny", agentId, "permission-write", "--message", "Do not write outside the worktree.", "--json"]]);
+    expect(bridge.calls.flat()).not.toContain("--all");
+    // A settled answer is never resent.
+    expect((await gateway.dispatch(deny.id)).state).toBe("succeeded");
+    expect(permitCalls(bridge)).toHaveLength(1);
+    // Allow answers the Claude question, with its input.
+    const allow = await gateway.proposePermit({ scopeId: scope.id, epoch: 1, attemptId: started.attemptId!, causation: "permit:permission-ask",
+      requestId: randomUUID(), answer: { requestId: "permission-ask", action: "allow", input: "{\"answers\":{\"Continue?\":\"Yes\"}}" } }, owner);
+    expect((await gateway.dispatch(allow.id))).toMatchObject({ state: "succeeded", receiptRef: "permitted:allow:permission-ask" });
+    expect(permitCalls(bridge)).toEqual(expect.arrayContaining([["permit", "allow", agentId, "permission-ask", "--input", "{\"answers\":{\"Continue?\":\"Yes\"}}", "--json"]]));
+    expect(bridge.permissions.get(agentId)).toEqual([]);
+  });
+
+  it("an uncertain permit answer stays uncertain and is never resent", async () => {
+    const fx = await s04Fixture(), bridge = new FakeCliBridge(), { scope, gateway, started, agentId, owner } = await remoteWorker(fx, bridge);
+    bridge.addPermission(agentId, "permission-write", "Write");
+    const deny = await gateway.proposePermit({ scopeId: scope.id, epoch: 1, attemptId: started.attemptId!, causation: "permit:permission-write",
+      requestId: randomUUID(), answer: { requestId: "permission-write", action: "deny", message: "Stop." } }, owner);
+    bridge.fault = "lose-permit";
+    expect((await gateway.dispatch(deny.id)).state).toBe("uncertain");
+    await expect(gateway.dispatch(deny.id)).rejects.toMatchObject({ code: "UNCERTAIN" });
+    expect(await gateway.reconcile(deny.id)).toMatchObject({ state: "uncertain" });
+    expect(permitCalls(bridge)).toHaveLength(1);
+  });
+
+  it("continuing permit answers are new work: off the qualified pair allow and plain deny refuse at the claim, deny-interrupt still stops the worker", async () => {
+    const fx = await s04Fixture(), bridge = new FakeCliBridge(), { scope, gateway, started, agentId, owner } = await remoteWorker(fx, bridge);
+    bridge.addPermission(agentId, "permission-ask", "AskUserQuestion");
+    bridge.addPermission(agentId, "permission-write", "Write");
+    bridge.addPermission(agentId, "permission-bash", "Bash");
+    // The host upgraded off its qualified pair (a safe stop of the created worker stayed possible above).
+    bridge.daemonVersion = "0.20.0";
+    const allow = await gateway.proposePermit({ scopeId: scope.id, epoch: 1, attemptId: started.attemptId!, causation: "permit:permission-ask",
+      requestId: randomUUID(), answer: { requestId: "permission-ask", action: "allow", input: "{}" } }, owner);
+    await expect(gateway.dispatch(allow.id)).rejects.toMatchObject({ code: "UNSUPPORTED", message: expect.stringContaining("qualified version pair") });
+    expect((await effect(fx, allow.id)).state).toBe("reserved");
+    const deny = await gateway.proposePermit({ scopeId: scope.id, epoch: 1, attemptId: started.attemptId!, causation: "permit:permission-write",
+      requestId: randomUUID(), answer: { requestId: "permission-write", action: "deny", message: "Carry on inside the worktree." } }, owner);
+    await expect(gateway.dispatch(deny.id)).rejects.toMatchObject({ code: "UNSUPPORTED", message: expect.stringContaining("qualified version pair") });
+    expect(permitCalls(bridge)).toEqual([]);
+    // The safe stop grants nothing: it still dispatches, with --interrupt, off the pair.
+    const stop = await gateway.proposePermit({ scopeId: scope.id, epoch: 1, attemptId: started.attemptId!, causation: "permit:permission-bash",
+      requestId: randomUUID(), answer: { requestId: "permission-bash", action: "deny", message: "Stop here.", interrupt: true } }, owner);
+    expect((await gateway.dispatch(stop.id))).toMatchObject({ state: "succeeded", receiptRef: "permitted:deny:permission-bash" });
+    expect(permitCalls(bridge)).toEqual([["permit", "deny", agentId, "permission-bash", "--message", "Stop here.", "--interrupt", "--json"]]);
+  });
+
+  it("a captain-mode plan's permission is not answered directly: continuing answers refuse, the safe stop stays open", async () => {
+    const fx = await s04Fixture(), bridge = new FakeCliBridge();
+    const scope = await fx.addScope(3, "plan-cap", ["c-trial"], true, REMOTE_HOST);
+    await fx.draft(scope, [{ id: "c-trial" }]); // no delegation: captain mode
+    const receiver = new SupervisionRemoteReceiver(bridge, REMOTE_HOST, async () => REMOTE_CWD, { cliVersion: async () => "0.14.0" });
+    const gateway = new SupervisionGateway(fx.store, fx.commands, fx.home, fx.receiver,
+      { enabled: true, receiverFor: (host) => host === REMOTE_HOST ? receiver : undefined, remotePairs: FIXTURE_PAIRS });
+    const started = await gateway.startWorker(await fx.input(scope, { op: "start", plan: scope.planId, node: "c-trial" }), await fx.actorFor(scope));
+    await gateway.dispatch(started.effects!.workspace); await gateway.dispatch(started.effects!.create);
+    await gateway.verifyWorker(started.attemptId!); await gateway.dispatch(started.effects!.send);
+    const agentId = [...bridge.agents.keys()][0]!, owner = await fx.actorFor(scope);
+    bridge.addPermission(agentId, "permission-ask", "AskUserQuestion");
+    bridge.addPermission(agentId, "permission-write", "Write");
+    const before = (await fx.store.read()).effects.length;
+    await expect(gateway.proposePermit({ scopeId: scope.id, epoch: 1, attemptId: started.attemptId!, causation: "permit:permission-ask",
+      requestId: randomUUID(), answer: { requestId: "permission-ask", action: "allow", input: "{}" } }, owner))
+      .rejects.toMatchObject({ code: "HELD", message: expect.stringContaining("belongs to the captain under the plan's mode") });
+    await expect(gateway.proposePermit({ scopeId: scope.id, epoch: 1, attemptId: started.attemptId!, causation: "permit:permission-write",
+      requestId: randomUUID(), answer: { requestId: "permission-write", action: "deny", message: "Answer in words: cancel and continue." } }, owner))
+      .rejects.toMatchObject({ code: "HELD", message: expect.stringContaining("escalate it as a plan decision") });
+    expect((await fx.store.read()).effects).toHaveLength(before);
+    expect(permitCalls(bridge)).toEqual([]);
+    const stop = await gateway.proposePermit({ scopeId: scope.id, epoch: 1, attemptId: started.attemptId!, causation: "permit:permission-write",
+      requestId: randomUUID(), answer: { requestId: "permission-write", action: "deny", message: "Stop; this goes to the captain.", interrupt: true } }, owner);
+    expect((await gateway.dispatch(stop.id)).state).toBe("succeeded");
+    expect(permitCalls(bridge)).toEqual([["permit", "deny", agentId, "permission-write", "--message", "Stop; this goes to the captain.", "--interrupt", "--json"]]);
+  });
+
+  it("an allow whose request vanished before the receiver sends is a definite refusal, not uncertain", async () => {
+    const bridge = new FakeCliBridge();
+    const receiver = new SupervisionRemoteReceiver(bridge, REMOTE_HOST, async () => REMOTE_CWD, { cliVersion: async () => "0.14.0" });
+    await expect(receiver.permit("agent-gone", { requestId: "permission-gone", action: "allow", input: "{}" }))
+      .rejects.toBeInstanceOf(ReceiverRejected);
+    expect(bridge.calls.filter((args) => args[0] === "permit" && args[1] === "allow")).toEqual([]);
+  });
+
+  it("a remote live step starts only after its same-effect gate is answered, and is reserved once", async () => {
+    const fx = await s04Fixture(), bridge = new FakeCliBridge();
+    const scope = await fx.addScope(4, "plan-live", ["go-live", "r-release"], true, REMOTE_HOST);
+    await fx.draft(scope, [{ id: "go-live", decision: "captain", effect: "release" },
+      { id: "r-release", kind: "ship", effect: "release", after: [{ node: "go-live", on: "answered" }] }]);
+    const receiver = new SupervisionRemoteReceiver(bridge, REMOTE_HOST, async () => REMOTE_CWD, { cliVersion: async () => "0.14.0" });
+    const gateway = new SupervisionGateway(fx.store, fx.commands, fx.home, fx.receiver,
+      { enabled: true, receiverFor: (host) => host === REMOTE_HOST ? receiver : undefined, remotePairs: FIXTURE_PAIRS });
+    const start = async () => gateway.startWorker(await fx.input(scope, { op: "start", plan: scope.planId, node: "r-release" }), await fx.actorFor(scope));
+    await expect(start()).rejects.toThrow(/answered release decision/);
+    const refused = await fx.store.read();
+    expect(refused.attempts).toEqual([]); expect(refused.effects).toEqual([]); expect(bridge.calls).toEqual([]);
+    const plan = refused.plans.find(p => p.scopeId === scope.id)!.plan;
+    await fx.run(scope, { op: "captain", plan: scope.planId, revision: plan.revision, subjectHash: planSubjectHash(plan), action: "answer", node: "go-live", option: "yes", text: "Release it." }, captain);
+    const started = await start();
+    await gateway.dispatch(started.effects!.workspace);
+    await gateway.dispatch(started.effects!.create);
+    expect(bridge.runs()).toHaveLength(1);
+    // A second release is never a resend of this node: starting it again refuses and creates nothing.
+    await expect(start()).rejects.toThrow();
+    expect(bridge.runs()).toHaveLength(1);
+    expect((await fx.store.read()).attempts).toHaveLength(1);
+  });
+
+  it("the final-claim live gate uses the shared any-answer predicate: unanswered is false, an answered 'no' still passes the claim", async () => {
+    const fx = await s04Fixture(), bridge = new FakeCliBridge();
+    const scope = await fx.addScope(4, "plan-live-no", ["go-live", "r-release"], true, REMOTE_HOST);
+    await fx.draft(scope, [{ id: "go-live", decision: "captain", effect: "release" },
+      { id: "r-release", kind: "ship", effect: "release", after: [{ node: "go-live", on: "answered" }] }]);
+    const receiver = new SupervisionRemoteReceiver(bridge, REMOTE_HOST, async () => REMOTE_CWD, { cliVersion: async () => "0.14.0" });
+    const gateway = new SupervisionGateway(fx.store, fx.commands, fx.home, fx.receiver,
+      { enabled: true, receiverFor: (host) => host === REMOTE_HOST ? receiver : undefined, remotePairs: FIXTURE_PAIRS });
+    const plan = () => fx.store.read().then(s => s.plans.find(p => p.scopeId === scope.id)!.plan);
+    const release = async () => (await plan()).definition.nodes.find(n => n.id === "r-release")!;
+    // The predicate the dispatch claim applies, in its refusing direction: no answer, and a
+    // same-node decision with a different effect, both leave the gate unanswered.
+    expect(liveGateAnswered(await plan(), await release())).toBe(false);
+    const wrongEffect = structuredClone(await plan());
+    const gate = wrongEffect.definition.nodes.find(n => n.id === "go-live")!; if (gate.kind === "decision") gate.effect = "deploy";
+    wrongEffect.nodes["go-live"]!.answer = "yes";
+    expect(liveGateAnswered(wrongEffect, wrongEffect.definition.nodes.find(n => n.id === "r-release")!)).toBe(false);
+    // Any recorded answer satisfies the gate (the chosen option's meaning rides the brief, stated in
+    // workflows.md): answering "no" reserves the step and the final dispatch claim lets it start.
+    const current = await plan();
+    await fx.run(scope, { op: "captain", plan: scope.planId, revision: current.revision, subjectHash: planSubjectHash(current), action: "answer", node: "go-live", option: "no", text: "Decided: no release; the brief carries that." }, captain);
+    expect(liveGateAnswered(await plan(), await release())).toBe(true);
+    const started = await gateway.startWorker(await fx.input(scope, { op: "start", plan: scope.planId, node: "r-release" }), await fx.actorFor(scope));
+    await gateway.dispatch(started.effects!.workspace);
+    expect((await gateway.dispatch(started.effects!.create)).state).toBe("succeeded");
+    expect(bridge.runs()).toHaveLength(1);
   });
 
   it("an uncertain create is never resent; label discovery binds exactly one, and a duplicate stays held", async () => {

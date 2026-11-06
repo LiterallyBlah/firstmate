@@ -394,6 +394,7 @@ export class SupervisionSources {
   async observeRemote(snapshot: RemoteSnapshot, now = this.options.now?.() ?? new Date()) {
     const status = await this.store.read(), coverage = remoteCoverage(snapshot, now);
     let events = 0;
+    const fresh: string[] = [];
     for (const host of snapshot.hosts) {
       const hostId = normalHost(host.serverId), report = coverage.find(c => c.serverId === host.serverId)!;
       const hostGaps = report.gaps as InboxSource["gaps"];
@@ -412,15 +413,25 @@ export class SupervisionSources {
         // A settled update with equal content is flagged by admit as a possible hidden turn (content-collision).
         const admitted = await this.admit({ kind: "remote", hostId, agentId, scopeId, sourceName: "worker", gaps: hostGaps, coverage: "unknown",
           stream: ["remote", hostId, agentId], subject: { agentId }, identity: [fingerprint, running ? null : worker.updatedAt], consequence: fingerprint, certainty: "inferred",
-          critical: !running && worker.status !== "initializing",
+          // A settled turn needs its owner's judgment, and so does a new pending permission: the worker
+          // still reads "running" while it waits, so the permission itself is what makes this critical.
+          critical: !running && worker.status !== "initializing" || (worker.pendingPermissions?.length ?? 0) > 0,
           payload: { format: "firstmate.remote-observation/1", status: worker.status, updatedAt: worker.updatedAt, fingerprint,
-            permissions: (worker.pendingPermissions ?? []).map(p => p.id).slice(0, 32), skewSeconds: report.clockSkewSeconds,
+            // The permission decision context the CLI can give: each request's ID and tool, plus the
+            // worker's latest tool calls. The request input itself never crosses the bridge.
+            permissions: (worker.pendingPermissions ?? []).map(p => ({ id: p.id, tool: p.tool })).slice(0, 32),
+            recentTools: (worker.recentTools ?? []).slice(0, 3), skewSeconds: report.clockSkewSeconds,
             // Worker prose is untrusted evidence. It never completes a task, even when it reads "done:".
             lastMessage: worker.lastMessage === undefined ? null : { trust: "untrusted-worker-text", digest: digest(worker.lastMessage), quoted: JSON.stringify(worker.lastMessage.slice(0, SOURCE_LIMITS.answerChars)) } } });
-        if (admitted.written && admitted.eventId && !admitted.duplicate) events++;
+        if (admitted.written && admitted.eventId && !admitted.duplicate) { events++; fresh.push(admitted.eventId); }
       }
     }
-    return { coverage, events };
+    // Newly assigned events wake their Supervisor; observed (running) progress, duplicates, quiet
+    // repeats and outage gaps do not. A finished turn stays an observation for the Supervisor to judge:
+    // nothing here records a completion, whatever the worker's final words claim.
+    const wakes = fresh.length ? [...new Set((await this.store.read()).inbox.assignments
+      .filter(a => fresh.includes(a.id) && a.state === "assigned" && a.scopeId).map(a => a.scopeId!))] : [];
+    return { coverage, events, wakes };
   }
 }
 
@@ -574,7 +585,7 @@ export function isScopedSourceWorker(status: SupervisionStatus, hostId: string, 
 /** Remote mutation of scoped work is disabled until S11's qualified receiver contract. */
 export function refuseScopedRemoteMutation(status: SupervisionStatus, serverId: string, agentId: string): void {
   if (isScopedSourceWorker(status, serverId, agentId)) throw new SupervisionError("UNSUPPORTED",
-    "This remote worker belongs to a scoped supervisor. Remote steer, interrupt and end stay disabled until a qualified receiver contract exists.");
+    "This remote worker belongs to a scoped supervisor. Remote steer, interrupt, end and permission answers stay disabled here; they are the Supervisor's through the checked gateway.");
 }
 
 // ---- Scoped board steer -------------------------------------------------------------------------

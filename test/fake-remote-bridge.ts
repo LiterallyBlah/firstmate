@@ -23,7 +23,14 @@ export class FakeCliBridge implements RemoteBridge {
   byAttempt = new Map<string, string[]>();
   /** lose-run: the run lands, then its reply is lost. connect: refused before any submission.
    * refuse-run: the run is definitely refused before submission (after any workspace create). */
-  fault: "lose-run" | "connect" | "refuse-run" | null = null;
+  fault: "lose-run" | "connect" | "refuse-run" | "lose-permit" | null = null;
+  /** Pending permissions per agent, as `permit ls`/`inspect` report them (slice 0 probe shapes). */
+  permissions = new Map<string, { id: string; tool: string }[]>();
+  addPermission(agentId: string, id: string, tool: string) {
+    this.permissions.set(agentId, [...(this.permissions.get(agentId) ?? []), { id, tool }]);
+    const detail = this.agents.get(agentId);
+    if (detail) detail.PendingPermissions = (this.permissions.get(agentId) ?? []).map((row) => ({ id: row.id, tool: row.tool }));
+  }
   daemonVersion: string | null = "0.14.0";
   clockSkewSeconds = 0;
   /** Applied to every inspect answer, to model a host that ignored part of the request. */
@@ -53,6 +60,19 @@ export class FakeCliBridge implements RemoteBridge {
         CreatedAt: new Date(Date.now() + this.clockSkewSeconds * 1000).toISOString(), ParentAgentId: null, Archived: false, ArchivedAt: null, PendingPermissions: [] });
       if (this.fault === "lose-run") { this.fault = null; throw new Error("Remote command failed: Connection timed out"); }
       return { ...probeStep("create"), agentId: id, cwd: REMOTE_CWD };
+    }
+    if (args[0] === "permit" && args[1] === "ls")
+      return [...this.permissions.entries()].flatMap(([agentId, rows]) => rows.map((row) => ({ id: row.id, agentId, agentShortId: agentId.slice(0, 8), name: row.tool, description: "-" })));
+    if (args[0] === "permit" && (args[1] === "deny" || args[1] === "allow")) {
+      const agentId = args[2]!, requestId = args[3]!;
+      const row = (this.permissions.get(agentId) ?? []).find((entry) => entry.id === requestId);
+      if (!row) throw new Error("Remote command failed: Permission request not found");
+      this.permissions.set(agentId, (this.permissions.get(agentId) ?? []).filter((entry) => entry.id !== requestId));
+      const detail = this.agents.get(agentId);
+      if (detail) detail.PendingPermissions = (this.permissions.get(agentId) ?? []).map((entry) => ({ id: entry.id, tool: entry.tool }));
+      // The answer landed, then its reply was lost: the caller must stay uncertain and never resend.
+      if (this.fault === "lose-permit") { this.fault = null; throw new Error("Remote command failed: Connection timed out"); }
+      return [{ requestId, agentId, agentShortId: agentId.slice(0, 8), name: row.tool, result: args[1] === "deny" ? "denied" : "allowed" }];
     }
     if (args[0] === "inspect") {
       const detail = this.agents.get(args[1]!);

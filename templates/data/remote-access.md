@@ -110,8 +110,9 @@ them. Answer in one of two ways:
   "<your answer>"`. The worker sees the denial and your message, and carries on
   with it. Use this when you cannot tell which question is asked.
 
-Always give the request ID: `permit allow <agent-id>` without one allows every
-pending request of that agent.
+Always give the request ID. The bridge refuses every blanket form outright: `permit … --all`,
+`permit … --all=<anything>`, and `permit allow|deny <agent-id>` with no request ID (or no agent ID) —
+each of those would otherwise answer every pending request of the agent.
 
 ## Reading files in a remote worktree
 
@@ -172,6 +173,30 @@ captain. Use the same host selector
 for inspection, supervision and cleanup. Host removal in Paseo revokes this
 bridge on its next desktop sync, but does not stop or archive workers already
 running there.
+
+## Supervised remote work and live steps
+
+A plan Supervisor (see `data/supervisors.md`) may run a plan's workers on a saved host while the
+Supervisor itself stays on this machine. Those workers are not launched with this helper: they go
+through the checked scope gateway, are bound by their scope/attempt labels (a qualified weaker
+identity than a local reserved ID — the CLI takes no caller-chosen ID and creates only with the
+brief as its prompt), and report back through the poll as observations that wake their Supervisor.
+Do not steer, interrupt, end or answer permissions for a scoped remote worker from here: this
+helper's `send`, `stop`, `archive` and `permit allow|deny` refuse a scoped worker exactly as the
+board does. The Supervisor answers its worker's permissions itself through
+`tools/scope.mjs permit-worker` — one exact request, deny with words or allow a Claude question
+only, judged from the tool name, `recentTools` and logs because the CLI passes no request input.
+
+Release, deploy and live product actions on a remote host (for example a product's Resume or
+Cancel-and-continue) are remote worker nodes like any other, with the plan's gate: the run is marked
+with its effect, a decision with the same effect stands answered before it, and who answers follows
+the plan's mode (`data/workflows.md`). There is no remote release executor and no helper command for
+one. The node is reserved once and never resent; its brief names the product's supported procedure,
+makes the action idempotent or evident from the product's own state, and says what evidence comes
+back — in the final message, or as files pushed on the worker's branch, since nothing can be read
+from its worktree. `landed` is recorded only from that evidence, and a second release is a new node
+or revision, never a repeated send. If the host drops mid-step, the outcome is uncertain: diagnose
+against live state read-only, then replan deliberately.
 
 ## Following the captain's own sessions
 

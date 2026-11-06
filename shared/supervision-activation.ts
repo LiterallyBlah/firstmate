@@ -6,7 +6,7 @@ import { SupervisionHash, SupervisionUuid } from "./supervision";
 import { AgentProfileSchema } from "./supervision-effects";
 import { ScopedCommandResultSchema } from "./supervision-policy";
 import { MigrationReceiptSchema, LegacyDeliveryDispositionSchema } from "./supervision-migration";
-import { PlanId } from "./workflow-plans";
+import { PlanId, PlanModeSchema } from "./workflow-plans";
 export const ActivationSnapshotSchema = z.object({ pause: z.string().nullable().optional(), enabled: z.boolean(), operatorEnabled: z.boolean().optional(), homeId: z.string(), problems: z.array(z.string()),
   resumeMigrations: z.array(z.object({ migrationId: SupervisionUuid, plan: PlanId, scopeId: SupervisionUuid, projectId: SupervisionUuid,
     prerequisites: MigrationReceiptSchema.shape.prerequisites }).strict()).optional(),
@@ -17,6 +17,8 @@ export const ActivationSnapshotSchema = z.object({ pause: z.string().nullable().
     /** Existing audited attachment only; no new identity or opening can be supplied on resume. */
     resumeRequestId: SupervisionUuid.nullable().optional(),
     readiness: z.object({ ready: z.boolean(), reasons: z.array(z.string()) }).strict().optional(),
+    /** Non-local hosts the plan's workers run on (serverIds), and who decides; the Supervisor runs locally. */
+    workerHosts: z.array(z.string()).optional(), planMode: PlanModeSchema.optional(), modeLabel: z.string().optional(),
   }).strict()), migrations: z.array(MigrationReceiptSchema), dispositions: z.array(LegacyDeliveryDispositionSchema),
 }).strict();
 export type ActivationSnapshot = z.infer<typeof ActivationSnapshotSchema>;

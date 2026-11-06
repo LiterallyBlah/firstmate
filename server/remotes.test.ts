@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SavedHosts, type RemoteProfile } from "../shared/remotes";
-import { commandArguments, connectionTarget, redact, remoteEnvironment, remoteError, RemoteConnectRefused, RemoteService } from "./remotes";
+import { commandArguments, connectionTarget, redact, remoteEnvironment, remoteError, remoteMutationAgent, RemoteConnectRefused, RemoteService } from "./remotes";
 import { fill, readTemplate, TEMPLATES } from "./templates";
 
 const run = promisify(execFile);
@@ -19,7 +19,7 @@ afterEach(async () => {
   if (root) await rm(root, { recursive: true, force: true });
   root = ""; vi.unstubAllEnvs();
 });
-async function fixture(execute: ConstructorParameters<typeof RemoteService>[0], tasks?: ConstructorParameters<typeof RemoteService>[1]) {
+async function fixture(execute: ConstructorParameters<typeof RemoteService>[0], tasks?: ConstructorParameters<typeof RemoteService>[1], scopedGuard?: ConstructorParameters<typeof RemoteService>[3]) {
   root = await mkdtemp(join(tmpdir(), "firstmate-remotes-"));
   vi.stubEnv("PASEO_HOME", root);
   await writeFile(join(root, "server-id"), local.serverId);
@@ -29,7 +29,7 @@ async function fixture(execute: ConstructorParameters<typeof RemoteService>[0], 
   await mkdir(join(home, "tools"));
   await writeFile(join(home, "AGENTS.md"), "# Isolated fixture\n");
   await writeFile(join(directory, "config.json"), JSON.stringify({ home }));
-  service = new RemoteService(execute, tasks);
+  service = new RemoteService(execute, tasks, undefined, scopedGuard);
   await service.sync([local, remote]);
   return { directory, home, service };
 }
@@ -148,6 +148,21 @@ describe("independent remote access", () => {
     expect(commandArguments(["send", "agent", "--", "- guidance"], "owner")).toEqual(["send", "agent", "--no-wait", "--json", "--", "- guidance"]);
     expect(() => commandArguments(["send", "agent", "--prompt-file", "C:\\anywhere.txt"], "owner")).toThrow("helper's --prompt-file");
     expect(() => commandArguments(["run", "--host", "x", "--", "brief"], "owner")).toThrow("overridden");
+    expect(() => commandArguments(["permit", "allow", "agent", "--all"], "owner")).toThrow("one exact request");
+    expect(() => commandArguments(["permit", "deny", "agent", "--all"], "owner")).toThrow("one exact request");
+    expect(() => commandArguments(["permit", "deny", "agent", "--all=true"], "owner")).toThrow("one exact request");
+    expect(() => commandArguments(["permit", "allow", "agent"], "owner")).toThrow("exact request ID");
+    expect(() => commandArguments(["permit", "deny", "agent", "--message", "No."], "owner")).toThrow("exact request ID");
+    expect(() => commandArguments(["permit", "allow"], "owner")).toThrow("exact request ID");
+    expect(commandArguments(["permit", "ls"], "owner")).toEqual(["permit", "ls", "--json"]);
+    expect(remoteMutationAgent(["send", "a1", "--json"])).toBe("a1");
+    expect(remoteMutationAgent(["stop", "a2", "--json"])).toBe("a2");
+    expect(remoteMutationAgent(["archive", "a3", "--json"])).toBe("a3");
+    expect(remoteMutationAgent(["permit", "deny", "a4", "req", "--json"])).toBe("a4");
+    expect(remoteMutationAgent(["permit", "ls", "--json"])).toBeNull();
+    expect(remoteMutationAgent(["run", "brief"])).toBeNull();
+    expect(remoteMutationAgent(["inspect", "a1"])).toBeNull();
+    expect(commandArguments(["permit", "deny", "agent", "permission-1", "--message", "No."], "owner")).toEqual(["permit", "deny", "agent", "permission-1", "--message", "No.", "--json"]);
   });
   it("returns the remote CLI's own error, redacted, and keeps the authentication mapping", async () => {
     const relayHost: RemoteProfile = { ...remote, connections: [...remote.connections, { id: "relay", type: "relay", relayEndpoint: "relay.example.test:443", daemonPublicKeyB64: "public-key-value" }] };
@@ -352,6 +367,29 @@ describe("independent remote access", () => {
     expect(asked).toBe(2);
     expect(lookups).toHaveLength(2);
     expect((await service.read()).hosts[0]?.workers[0]?.task).toBe("fix-login");
+  });
+  it("refuses helper-origin mutations of scoped workers before connecting; gateway origin, own crew and reads pass", async () => {
+    const calls: string[][] = [], guarded: [string, string][] = [];
+    const { service } = await fixture(async (args) => {
+      calls.push(args);
+      return args[0] === "status" ? success({ serverId: remote.serverId, connectedDaemon: "reachable" }) : success({ ok: true });
+    }, undefined, async (serverId, agentId) => {
+      guarded.push([serverId, agentId]);
+      if (agentId === "scoped-1") throw new Error("This remote worker belongs to a scoped supervisor.");
+    });
+    for (const args of [
+      ["send", "scoped-1", "--", "steer"], ["stop", "scoped-1"], ["archive", "scoped-1"],
+      ["permit", "allow", "scoped-1", "req-1"], ["permit", "deny", "scoped-1", "req-1", "--message", "No."],
+    ]) await expect(service.request("Remote", args, { helper: true })).rejects.toThrow("scoped supervisor");
+    expect(calls).toEqual([]); // Refused before any connection or command reached the host.
+    expect(guarded).toEqual(Array(5).fill([remote.serverId, "scoped-1"]));
+    // The checked gateway's own receiver (no helper origin) still answers its worker's permission.
+    await expect(service.request("Remote", ["permit", "deny", "scoped-1", "req-1", "--message", "No."])).resolves.toEqual({ ok: true });
+    // General's own crew and read-only helper calls are unaffected.
+    await expect(service.request("Remote", ["send", "crew-1", "--", "hi"], { helper: true })).resolves.toEqual({ ok: true });
+    await expect(service.request("Remote", ["permit", "ls"], { helper: true })).resolves.toEqual({ ok: true });
+    await expect(service.request("Remote", ["inspect", "scoped-1"], { helper: true })).resolves.toEqual({ ok: true });
+    expect(guarded).toHaveLength(6); // Only the crew send added a guard check after the refusals.
   });
   it("executes a native terminal helper through the daemon queue", async () => {
     const { directory, home, service } = await fixture(async (args) => args[0] === "status" ? success({ serverId: remote.serverId, connectedDaemon: "reachable" }) : success([{ projectId: "remote-project" }]));

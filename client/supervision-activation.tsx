@@ -17,6 +17,8 @@ import { workflowRequestId, useWorkflowPlans } from "./workflow-plans";
 import { errorText } from "./format";
 import { MigrationOperations } from "./migration-operations";
 import { activationHasHistory } from "./ownership-state";
+import { remoteWorkerHostLine } from "./remote-host-line";
+import { useRemotes } from "./remotes";
 type Plan = ActivationSnapshot["plans"][number];
 function Action({ theme, label, onPress, disabled = false }: { theme: PluginTheme; label: string; onPress(): void; disabled?: boolean }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress}
@@ -27,6 +29,8 @@ function Action({ theme, label, onPress, disabled = false }: { theme: PluginThem
 /** `assignWatches`: off where the surrounding view already offers watch-input assignment (Supervisors). */
 export function SupervisionActivationBoard({ theme, compact, advanced = false, planId, navigation, assignWatches = true }: { theme: PluginTheme; compact: boolean; advanced?: boolean; planId?: string; navigation?: PluginSurfaceProps["navigation"] | undefined; assignWatches?: boolean }) {
   const { activation, activationError: readError, updateActivation } = useWorkflowPlans();
+  const remotes = useRemotes((activation?.plans ?? []).some(p => (p.workerHosts?.length ?? 0) > 0));
+  const hostLabel = (serverId: string) => remotes.data?.hosts.find(h => h.serverId === serverId)?.label ?? serverId;
   const data = activation && planId ? { ...activation, plans: activation.plans.filter(p => p.plan === planId),
     migrations: activation.migrations.filter(m => m.planId === planId), dispositions: activation.dispositions.filter(d => d.planId === planId),
     audits: activation.audits.filter(a => a.plan === planId), resumeMigrations: activation.resumeMigrations?.filter(m => m.plan === planId) } : activation;
@@ -44,6 +48,8 @@ export function SupervisionActivationBoard({ theme, compact, advanced = false, p
       <Text style={{ color: theme.colors.foreground }}>{planId ? plan.binding === "active" && plan.opening === "succeeded" ? "Plan helper is ready." : !plan.binding ? "Ready for Attach review." : "Saved helper setup needs checking. Inspect its attachment before continuing." : `${plan.title} · ${plan.binding ?? "No supervisor"}${plan.opening ? ` · opening ${plan.opening}` : ""}`}</Text>
       {showDetails ? <Text selectable style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>Plan {plan.plan} · scope {plan.scopeId} · version {plan.scopeVersion} · supervisor {plan.supervisorId}</Text> : null}
       {showDetails && plan.readiness ? <Text style={{ color: theme.colors.foregroundMuted }}>{plan.readiness.ready ? "Stored readiness checks met; live qualification still required." : `Readiness held: ${plan.readiness.reasons.join(" ")}`}</Text> : null}
+      {remoteWorkerHostLine(plan.workerHosts ?? [], hostLabel) ? <Text style={{ color: theme.colors.foregroundMuted }}>{remoteWorkerHostLine(plan.workerHosts ?? [], hostLabel)}</Text> : null}
+      {plan.modeLabel ? <Text style={{ color: theme.colors.foregroundMuted }}>Decisions: {plan.modeLabel}</Text> : null}
       {plan.binding ? <SupervisorControlsButton theme={theme} compact={compact} homeId={data.homeId} scopeId={plan.scopeId} navigation={navigation} /> : null}
       {plan.canAttach ? <Action theme={theme} label={planId ? "Attach plan helper" : `Attach supervisor to ${plan.title}`} disabled={!!readError || !data.enabled} onPress={() => select(plan)} /> : null}
       {plan.resumeRequestId ? <Action theme={theme} label={`Resume attachment to ${plan.title}`} disabled={!!readError || !data.enabled} onPress={() => select(plan)} /> : null}
@@ -67,6 +73,8 @@ export function AttachConfirmation({ theme, compact, homeId, plan, stale, onClos
   theme: PluginTheme; compact: boolean; homeId: string; plan: Plan; stale: boolean; onClose(): void; onRead(snapshot: ActivationSnapshot): void; plain?: boolean;
 }) {
   const attach = useRpc(attachSupervisorFromUi), catalog = useRpc(migrationTargets);
+  const remotes = useRemotes((plan.workerHosts?.length ?? 0) > 0);
+  const hostLine = remoteWorkerHostLine(plan.workerHosts ?? [], serverId => remotes.data?.hosts.find(h => h.serverId === serverId)?.label ?? serverId);
   const resuming = !!plan.resumeRequestId;
   const models = useQuery({ queryKey: ["firstmate", "attach-models", homeId], queryFn: () => catalog({}), enabled: !resuming });
   const [provider, setProvider] = useState(""), [mode, setMode] = useState(""), [thinking, setThinking] = useState<string | undefined>(undefined), [opening, setOpening] = useState("");
@@ -95,6 +103,8 @@ export function AttachConfirmation({ theme, compact, homeId, plan, stale, onClos
     <Modal.Content>
       <View testID="supervision-attach-confirmation" style={{ gap: 16 }}>
         <Text selectable style={{ color: theme.colors.foreground }}>Plan: {plan.title}{plain ? "" : ` (${plan.plan})`}</Text>
+        {hostLine ? <Text style={{ color: theme.colors.foregroundMuted }}>{hostLine}</Text> : null}
+        {plan.modeLabel ? <Text style={{ color: theme.colors.foregroundMuted }}>Decisions: {plan.modeLabel}</Text> : null}
         {!plain || details ? <Text selectable style={{ color: theme.colors.foreground }}>Supervisor: {plan.supervisorId}{provider ? ` · ${provider}` : ""}</Text> : null}
         <Text style={{ color: theme.colors.foregroundMuted }}>{resuming ? "Resume the recorded attachment after inspecting this reserved supervisor. Recovery looks up its exact identity and sends the saved opening only if it has not been dispatched." : plain ? "This creates one separate plan helper and sends the opening below. One session and one opening turn count against the recorded budget, including uncertain outcomes." : "This creates one independent supervisor and sends the opening below."} {plain ? "Only the captain should press Attach. Paseo cannot verify who pressed this button; the action is recorded for review." : "This is a captain action by convention, not verified. Paseo supplies no caller identity. The board records “client UI (unverified)”."}</Text>
         {resuming ? !plain || details ? <Text selectable style={{ color: theme.colors.foregroundMuted }}>Saved attachment request: {plan.resumeRequestId}</Text> : null : <>

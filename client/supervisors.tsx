@@ -18,6 +18,8 @@ import { SupervisorControlsButton } from "./supervisor-controls";
 import { WatchSupervisorButton } from "./watch-supervisors";
 import { ProjectSupervisorAdd } from "./project-supervisor";
 import { CONTROL_HEIGHT } from "./control-size";
+import { remoteWorkerHostLine } from "./remote-host-line";
+import { useRemotes } from "./remotes";
 
 const KIND: Record<SupervisorListRow["kind"], string> = { plan: "Plan", project: "Project", maintenance: "Routine checks" };
 const STATE: Record<string, string> = { active: "Active", paused: "Paused", "change-pending": "Change pending after current work", uncertain: "Needs checking",
@@ -42,6 +44,8 @@ export function SupervisorsEntry({ theme, compact, hostId = "local", navigation,
     queryFn: async () => ProjectRuntimeSnapshotSchema.parse(await readProjects({})), refetchInterval: 5000 });
   const checks = useQuery({ queryKey: ["firstmate", "maintenance-ownership", hostId],
     queryFn: async () => MaintenanceRuntimeSnapshotSchema.parse(await readChecks({})), refetchInterval: 5000 });
+  const remotes = useRemotes((list.data?.rows ?? []).some(r => r.workerHosts.length > 0));
+  const hostLabel = (serverId: string) => remotes.data?.hosts.find(h => h.serverId === serverId)?.label ?? serverId;
   const [open, setOpen] = useState(false);
   // Which watches feed each plan Supervisor; read only while the list is open.
   const watches = useQuery({ queryKey: ["firstmate", "watch-supervisors"], queryFn: async () => WatchSupervisorSnapshotSchema.parse(await readWatches({})), enabled: open, retry: false });
@@ -96,11 +100,14 @@ export function SupervisorsEntry({ theme, compact, hostId = "local", navigation,
         {rows.map(row => {
           const fed = row.kind === "plan" ? (watches.data?.watches ?? []).filter(w => w.assignment && w.assignment.stage !== "aborted" && w.assignment.target.scopeId === row.scopeId).map(w => w.name) : [];
           const openNative = row.agentId && navigation ? () => { navigation.openAgent({ agentId: row.agentId!, ...(hostId === "local" ? {} : { serverId: hostId }) }); setOpen(false); } : undefined;
+          const hostLine = remoteWorkerHostLine(row.workerHosts, hostLabel);
           return <View key={row.scopeId} testID="supervisor-row" style={{ gap: 4, paddingVertical: 8, borderTopWidth: 1, borderColor: colors.border }}>
             <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "600" }}>{row.title}</Text>
             <Text style={note}>{KIND[row.kind]}{fed.length ? ` · fed by ${fed.join(", ")}` : ""} · {STATE[row.state] ?? row.state}</Text>
             <Text selectable style={note}>{profileText(row)}</Text>
             <Text style={note}>{usage(row)}</Text>
+            {hostLine ? <Text style={note}>{hostLine}</Text> : null}
+            {row.modeLabel ? <Text style={note}>Decisions: {row.modeLabel}</Text> : null}
             {row.lastFailure ? <Text accessibilityRole="alert" style={{ color: colors.statusWarning, fontSize: 13 }}>Last failure: {row.lastFailure}</Text> : null}
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
               {row.agentId && list.data ? <SupervisorControlsButton theme={theme} compact={compact} homeId={list.data.homeId} scopeId={row.scopeId} onOpenNative={openNative} /> : null}

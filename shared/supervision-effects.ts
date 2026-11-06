@@ -5,9 +5,27 @@ import { z } from "zod";
 import { SupervisionUuid } from "./supervision";
 
 /** Local, bounded effects only. Release operations have no adapter (A03-C04). */
-export const GatewayOperation = z.enum(["workspace.open", "agent.create", "agent.send", "agent.interrupt", "agent.archive"]);
+export const GatewayOperation = z.enum(["workspace.open", "agent.create", "agent.send", "agent.interrupt", "agent.archive", "agent.permit"]);
 export type GatewayOperation = z.infer<typeof GatewayOperation>;
 export const RELEASE_OPERATIONS = ["merge", "deploy", "discard", "publish", "release", "install"] as const;
+
+/** The one tool a remote `permit allow --input` may answer: Claude's question tool. For any other tool
+ * `--input` would replace what the tool runs, so it is never answered directly; it is denied or escalated. */
+export const REMOTE_QUESTION_TOOL = "AskUserQuestion";
+/** One exact remote permission answer. Deny carries the words the worker carries on with; allow carries
+ * the `--input` JSON for a Claude question only. There is no `--all` and no blanket allow.
+ * A deny with `interrupt` is a safe stop (the CLI's `permit deny --interrupt`): the worker does not
+ * carry on, so it stays available under new-work holds and in every plan mode. `allow` and a plain
+ * deny continue the worker's turn: they are new work and a decision, and the gateway treats them so. */
+export const PermitAnswerSchema = z.discriminatedUnion("action", [
+  z.object({ requestId: z.string().min(1).max(256), action: z.literal("deny"), message: z.string().trim().min(1).max(4000), interrupt: z.boolean().optional() }).strict(),
+  z.object({ requestId: z.string().min(1).max(256), action: z.literal("allow"), input: z.string().trim().min(1).max(8000) }).strict(),
+]);
+export type PermitAnswer = z.infer<typeof PermitAnswerSchema>;
+/** True only for the safe-stop answer: a deny that also interrupts the worker's turn. */
+export const permitStopsWork = (answer: PermitAnswer): boolean => answer.action === "deny" && answer.interrupt === true;
+/** One pending permission as the CLI reports it: request ID and tool name; the request input never crosses. */
+export interface PendingPermission { id: string; tool: string }
 
 /** What the receiving host has been shown to support. Nothing is assumed from a newer document:
  * absent features are false. Send receipts (U1) and conditional archive (U3) are not installed
@@ -101,6 +119,10 @@ export interface GatewayReceiver {
   /** The local-clock window a label-bound create was submitted in, for CreatedAt verification. */
   creationWindow?(agentId: string): Promise<{ sentAt: number; receivedAt: number } | null>;
   send(agentId: string, text: string, messageId: string): Promise<void>;
+  /** Label-bound remote permissions: the exact pending requests of one agent (IDs and tool names only). */
+  listPermissions?(agentId: string): Promise<PendingPermission[]>;
+  /** Answer one exact pending permission once. Absent means this receiver cannot answer permissions. */
+  permit?(agentId: string, answer: PermitAnswer): Promise<void>;
   interrupt(agentId: string): Promise<void>;
   archive(agentId: string): Promise<{ archivedAt: string }>;
   /** Must throw unless the inventory is complete; a live-only listing is not an archive inventory. */

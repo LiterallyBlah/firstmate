@@ -142,6 +142,21 @@ export function decisionOwner(plan: WorkflowPlan, node: PlanNode): "captain" | "
   if (node.criterion) return planMode(plan) === "firstmate" ? "firstmate" : "captain";
   return node.authority === "captain" ? "captain" : modeOwner(planMode(plan));
 }
+/** Whether an effect-marked run's same-effect gate stands answered before it. Any recorded answer
+ * satisfies the gate: the gate records that its owner decided, and the brief carries what the chosen
+ * option means — there is no separate "affirmative" option in the contract. Used identically at
+ * start (`checkNewWorkflowAction`) and at the gateway's final dispatch claim. */
+export function liveGateAnswered(plan: WorkflowPlan, node: PlanNode): boolean {
+  if (node.kind !== "run" || !node.effect) return true;
+  return node.after.some(edge => {
+    const gate = plan.definition.nodes.find(n => n.id === edge.node);
+    return edge.on === "answered" && gate?.kind === "decision" && gate.effect === node.effect && !!plan.nodes[gate.id]?.answer;
+  });
+}
+/** The non-local saved hosts a plan's run nodes launch on, as written; empty for a purely local plan. */
+export function planWorkerHosts(plan: WorkflowPlan): string[] {
+  return [...new Set(plan.definition.nodes.flatMap(n => n.kind === "run" && n.launch.host.trim().toLowerCase() !== "local" ? [n.launch.host] : []))];
+}
 export function planModeLabel(mode: PlanMode, escalate: readonly string[] = [], liveSteps: "pivotal" | "routine" = "pivotal"): string {
   if (mode === "captain") return "Captain";
   if (mode === "firstmate") return "FirstMate (routine plan progression)";

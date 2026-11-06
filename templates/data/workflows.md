@@ -213,13 +213,26 @@ states the default explicitly. On a gate with an `effect`, the effect alone deci
 Live steps are release, deploy and live product actions (for example, a product's Resume or
 Cancel-and-continue). Mark the run that performs one with `"effect":"release"|"deploy"|"live-action"`, and
 put a decision with the same `effect` before it (`reason:"decision"`, `on:"answered"`). The run cannot start
-until that decision is answered. Who answers follows the mode at the time: FirstMate under `firstmate`, the
+until that decision is answered. Any recorded answer satisfies the gate — there is no separate
+"affirmative" option: the gate records that its owner decided, so word the brief for the option they
+chose (if "no" must stop the step, the answer's consequence and the brief carry that, or replan).
+Who answers follows the mode at the time: FirstMate under `firstmate`, the
 Captain under `captain`, and under `firstmate-pivotal` the Captain unless they recorded `liveSteps:"routine"`.
 A switch changes who answers open gates only: a gate already answered stays answered, and its step can
 start.
 Installation, access, discarding work and spending beyond the approved caps stay with the Captain in every
 mode: mark their gates `"effect":"installation"|"access"|"discard"|"spend"`. User holds and other external
 effect approvals also stay with the Captain.
+
+A live step may run on a saved remote host (`launch.host`): the host changes where the worker runs,
+never who decides. The same same-effect gate must be answered first, whoever the mode gives it to, and
+the checked gateway rechecks it before the remote worker is created. The node is reserved once and
+never resent, so its brief makes the action itself idempotent or evident from the product's own state:
+name the supported procedure, the pre-state to read, and the evidence that proves the outcome (the
+final message, the PR and head, or report files pushed on the worker's branch — a remote worktree
+cannot be read back). Record `landed` only from that evidence. A second release is a new node or a
+revision, never a repeat of the first; if the host is unreachable the step simply waits, held, with
+nothing resent on reconnect.
 
 Under `firstmate-pivotal`, when a point matches one of the Captain's criteria, make it a decision with
 `"authority":"captain"` and `"criterion":"<that criterion>"`, and quote the criterion in its

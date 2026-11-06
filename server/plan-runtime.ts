@@ -4,7 +4,7 @@ import { checkPlanSupervisorAuthority, planSupervisorAuthority } from "./plan-su
 /** Default-off production composition over Build A's single owned home runtime. */
 import { z } from "zod";
 import type { PluginServerContext } from "@getpaseo/plugin/server";
-import type { GatewayReceiver } from "../shared/supervision-effects";
+import type { GatewayReceiver, QualifiedRemotePair } from "../shared/supervision-effects";
 import { PolicyRuleSchema, PolicySourceSchema } from "../shared/supervision-policy";
 import { PlanRuleRecordSchema } from "../shared/plan-rules";
 import { planSupervisorLimits } from "../shared/plan-supervisor-limits";
@@ -49,6 +49,9 @@ const Import = z.object({ sources: z.array(PolicySourceSchema).max(64), rules: z
   reviewedHolds: z.array(z.object({ id: z.uuid(), version: z.number().int().positive() }).strict()).max(64).optional() }).strict();
 export interface PlanRuntimeOptions { enabled?: boolean; config?: typeof readFirstmateConfig;
   receiver?: (paseo: PaseoApi, store: SupervisionStore) => GatewayReceiver; slots?: number; headroom?: number; readPr?: PullRequestReader;
+  /** Qualification seams for tests: production passes neither, so the gateway uses the (empty,
+   * fail-closed) qualified-pair table and the receiver probes the installed CLI version itself. */
+  remotePairs?: readonly QualifiedRemotePair[]; remoteCliVersion?: () => Promise<string>;
   bootstrap?: (home: string, generalId: string) => Promise<{ paseo: PaseoApi; close(): Promise<void> } | null> }
 type Components = ReturnType<PlanRuntime["compose"]>;
 type LifecycleHook = (event: unknown, context: unknown) => unknown;
@@ -130,7 +133,8 @@ export class PlanRuntime {
     const receiverFor = (hostId: string) => {
       if (!this.remoteBridge) return undefined;
       let remote = remoteReceivers.get(hostId);
-      if (!remote) { remote = new SupervisionRemoteReceiver(this.remoteBridge, hostId, directory); remoteReceivers.set(hostId, remote); }
+      if (!remote) { remote = new SupervisionRemoteReceiver(this.remoteBridge, hostId, directory,
+        this.options.remoteCliVersion ? { cliVersion: this.options.remoteCliVersion } : {}); remoteReceivers.set(hostId, remote); }
       return remote;
     };
     const allocation = (s: SupervisionStatus, input: import("../shared/scoped-commands").ScopedPlanCommand) => {
@@ -145,6 +149,7 @@ export class PlanRuntime {
       if (scope?.kind === "plan") await checkPlanSupervisorAuthority(home, s, scopeId);
     };
     const gateway = new SupervisionGateway(store, commands, home, receiver, { enabled: true, rules, recovery: true, receiverFor,
+      ...(this.options.remotePairs ? { remotePairs: this.options.remotePairs } : {}),
       featurePolicy: async () => this.runtime.features?.reservation(home, "planSupervisors"),
       policyFence: this.runtime.features?.gateway(home, async e => (await store.read()).scopes.find(s => s.id === e.scopeId)?.kind === "project" ? "projectMates" : "planSupervisors", () => store.read()),
       reserveStart: run => withScopeAdmission(store.homeId, run),
@@ -160,6 +165,10 @@ export class PlanRuntime {
         const bindings = relevant(s);
         for (const binding of bindings) {
           if (binding.kind !== "pull-request") continue;
+          // A permit answer admits no work on the bound PR's head: it continues (or stops) the worker
+          // that is already running. Its suited admission rule is the binding-membership and source
+          // stability validation returned below, not an exact-head reread — a proposal pins no head.
+          if (e.operation === "agent.permit") continue;
           if (!e.admissionHead) refuse("HELD", "Bound PR sources require the exact selected source head.");
           const read = await sources.admissionCheck(this.options.readPr ?? ghPullRequestReader(), { repository: binding.repository, pr: binding.pr, expectedHead: e.admissionHead, requiredApprovals: 0 });
           if (read.code) refuse(read.code, read.message);
@@ -174,7 +183,7 @@ export class PlanRuntime {
       admissionCheck: async (s, e) => {
         await admissionCheck(s, e.scopeId);
         if (e.attemptId) await sources.checkWatchAdmission(e.scopeId);
-        if (e.attemptId && !["agent.interrupt", "agent.archive"].includes(e.operation)) {
+        if (e.attemptId && !["agent.interrupt", "agent.archive", "agent.permit"].includes(e.operation)) {
           checkPlanAllocation(s, e.scopeId, false);
           const cap = await this.capacity(home); await checkGeneralHeadroom(s, receiver, cap.slots, cap.generalHeadroom, e.id);
         }
@@ -338,7 +347,13 @@ export class PlanRuntime {
   async remote(snapshot: RemoteSnapshot) {
     if ((!this.options.enabled && !this.runtime.features) || this.closed) return;
     const home = resolveHome(await this.config());
-    for (const [store, c] of this.components) if (store.homeId === workflowHomeIdentity(home)) await c.sources.observeRemote(snapshot);
+    for (const [store, c] of this.components) if (store.homeId === workflowHomeIdentity(home)) {
+      // A newly assigned remote observation (a finished turn, a new permission) wakes its Supervisor on
+      // the poll's latency; quiet polls, running progress and outage gaps wake nobody and resend nothing.
+      const { wakes } = await c.sources.observeRemote(snapshot);
+      const results = await Promise.allSettled(wakes.map(scopeId => c.lifecycle.wake(scopeId, "event")));
+      results.forEach(r => { if (r.status === "rejected") console.error("[firstmate] scoped remote wake held:", r.reason); });
+    }
   }
   /** Direct structured watch input; independent scope queues and existing lifecycle, never General's lock. */
   private async admitWatch(home: string, fact: WatchFact, sources: SupervisionSources, retainedEventId?: string) {

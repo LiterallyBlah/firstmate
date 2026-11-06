@@ -39,7 +39,7 @@ import type { z } from "zod";
 import { MigrationSettings } from "./migration-settings";
 import { digest } from "./submissions";
 import { checkPolicySource, policyRef, sameVector } from "./supervision-policy";
-import { planFinished, planOwner } from "../shared/workflow-plans";
+import { planEscalate, planFinished, planLiveSteps, planMode, planModeLabel, planOwner, planWorkerHosts } from "../shared/workflow-plans";
 import { planBudgetUsed } from "../shared/workflow-plan-summary";
 import type { NeedsYouSnapshot } from "../shared/needs-you";
 import { SETTLING_PROBLEM } from "./needs-you-service";
@@ -77,6 +77,7 @@ export function activationSnapshot(status: SupervisionStatus, enabled: boolean, 
         supervisorId: binding?.agentId ?? proposedSupervisor(scopeId), binding: binding?.state ?? null, opening: effects?.send?.state ?? null,
         resumeRequestId,
         readiness: { ready: readiness.ready, reasons: readiness.dependencies.flatMap(d => d.reasons) },
+        workerHosts: planWorkerHosts(plan), planMode: planMode(plan), modeLabel: planModeLabel(planMode(plan), planEscalate(plan), planLiveSteps(plan)),
         canAttach: enabled && status.freshness === "current" && !status.storage.admissionsHeld && !binding && scope.state === "active" &&
           migrations.some(m => m.state === "committed") && migrations.every(m => ["committed", "aborted"].includes(m.state)) &&
           status.backends.filter(b => b.ownerScopeId === scopeId).every(b => b.backend === "scoped" && b.state === "active") }];

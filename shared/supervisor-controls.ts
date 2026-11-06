@@ -2,6 +2,7 @@ import { defineRpc } from "@getpaseo/plugin";
 import { z } from "zod";
 import { SupervisionBindingSchema, SupervisionHash, SupervisionUuid } from "./supervision";
 import { SupervisorCatalogSchema, SupervisorConfigurationSchema, SupervisorProfileSchema, SupervisorReplacementInputSchema } from "./supervisor-profile";
+import { PlanModeSchema } from "./workflow-plans";
 const target = { requestId: SupervisionUuid, homeId: z.string(), scopeId: SupervisionUuid, expectedEpoch: z.number().int().positive(), bindingDigest: SupervisionHash.nullable(), planHash: SupervisionHash.nullable().optional() };
 export const SupervisorControlInputSchema = z.discriminatedUnion("op", [
   z.object({ ...target, op: z.literal("stage"), profile: SupervisorProfileSchema, limits: SupervisorConfigurationSchema.shape.limits, policyDigest: SupervisionHash }).strict(),
@@ -29,7 +30,11 @@ export const readSupervisorControls = defineRpc({ name: "firstmate.supervisor.co
 const SupervisorListRowSchema = z.object({ scopeId: SupervisionUuid, kind: z.enum(["plan", "project", "maintenance"]), title: z.string(), planId: z.string().nullable(),
   state: z.string(), agentId: z.string().nullable(), epoch: z.number().int().positive().nullable(),
   profile: z.object({ provider: z.string(), modeId: z.string().nullable(), thinkingOptionId: z.string().nullable() }).strict().nullable(),
-  sessions: z.number().int().min(0), turns: z.number().int().min(0), limits: SupervisorConfigurationSchema.shape.limits.nullable(), lastFailure: z.string().nullable() }).strict();
+  sessions: z.number().int().min(0), turns: z.number().int().min(0), limits: SupervisorConfigurationSchema.shape.limits.nullable(), lastFailure: z.string().nullable(),
+  /** Non-local hosts this scope's workers run on (serverIds); the Supervisor itself always runs locally. */
+  workerHosts: z.array(z.string()).default([]),
+  /** The plan's ownership mode and its label, for plan scopes; null otherwise. */
+  planMode: PlanModeSchema.nullable().default(null), modeLabel: z.string().nullable().default(null) }).strict();
 export type SupervisorListRow = z.infer<typeof SupervisorListRowSchema>;
 export const SupervisorListSchema = z.object({ homeId: z.string(), rows: z.array(SupervisorListRowSchema), problems: z.array(z.string()) }).strict();
 export type SupervisorList = z.infer<typeof SupervisorListSchema>;

@@ -170,6 +170,18 @@ export default function contribute(server: PluginServerContext) {
   const remotes = new RemoteService(undefined, async (host) =>
     remoteTaskQueries(await readBacklog(resolveHome(await readFirstmateConfig())), host, (await remotes.read()).localServerId),
     snapshot => { attention.catalog(snapshot); void plans.remote(snapshot).catch(error => console.error("[firstmate] scoped remote observations:", error)); },
+    // The mate helper's queue is General's path: scoped remote workers refuse there as on the board,
+    // so steer/stop/permit/archive of a Supervisor's worker cannot bypass the checked gateway.
+    async (serverId, agentId) => {
+      let status: Awaited<ReturnType<typeof readSupervision>>;
+      try { status = await readSupervision(undefined, true); }
+      catch (error) {
+        // As on the board: an unreadable journal must not stop General ending its own legacy crew.
+        console.error("[firstmate] supervision status unavailable for the helper scoped-worker guard:", error);
+        return;
+      }
+      refuseScopedRemoteMutation(status, serverId, agentId);
+    },
   );
   remotes.start();
   plans.useRemoteBridge(remotes);
