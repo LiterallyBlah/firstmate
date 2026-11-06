@@ -10,7 +10,7 @@ import { expected, seed } from "../test/supervision-fixture";
 import { inboxFixture, ids, now, second, timelinePage } from "../test/supervision-inbox-fixture";
 import { supervisionInboxStatus } from "./supervision-status";
 import {
-  ScopedBoardSteer, SupervisionSources, ghPullRequestReader, normalizePullRequest, prReadiness, refuseScopedRemoteMutation, remoteCoverage, remoteFingerprint,
+  ScopedBoardSteer, SupervisionSources, ghPullRequestReader, normalizePullRequest, prReadiness, refuseScopedRemoteMutation, remoteCoverage, scopedRemoteGuard, remoteFingerprint,
 } from "./supervision-sources";
 import { SupervisionStore, type SupervisionMutation } from "./supervision-store";
 import type { PaseoApi } from "./host-types";
@@ -266,6 +266,21 @@ describe("S08 remote catalog observation", () => {
     const s = await f.store.read();
     expect(() => refuseScopedRemoteMutation(s, "SRV-REMOTE", "remote-a")).toThrow(/stay disabled/);
     expect(() => refuseScopedRemoteMutation(s, "srv-remote", "legacy-crew")).not.toThrow();
+  });
+
+  it("an unreadable journal refuses the remote mutation instead of letting it through", async () => {
+    const f = await fixture(); await withRemote(f);
+    const s = await f.store.read();
+    const quiet = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const unreadable = scopedRemoteGuard(async () => { throw new Error("journal corrupt"); }, "helper");
+      // Whether the worker is scoped cannot be known, so neither a scoped nor a legacy worker passes.
+      for (const agent of ["remote-a", "legacy-crew"])
+        await expect(unreadable("srv-remote", agent)).rejects.toMatchObject({ code: "HELD", message: expect.stringMatching(/could not be read/) });
+      const readable = scopedRemoteGuard(async () => s, "helper");
+      await expect(readable("srv-remote", "remote-a")).rejects.toThrow(/stay disabled/);
+      await expect(readable("srv-remote", "legacy-crew")).resolves.toBeUndefined();
+    } finally { quiet.mockRestore(); }
   });
 });
 

@@ -48,7 +48,7 @@ import { readTimerInventory } from "./server/watch-service";
 import { WatchConfigStore } from "./server/watch-config";
 import { legacyAdapters } from "./server/supervision-migrate";
 import { supervisionInboxStatus, hasScopedWorker } from "./server/supervision-status";
-import { isScopedSourceWorker, refuseScopedRemoteMutation } from "./server/supervision-sources";
+import { isScopedSourceWorker, scopedRemoteGuard } from "./server/supervision-sources";
 import { readSupervisionInbox } from "./shared/supervision-rpc";
 import { registerScopeRpcs } from "./server/scope-rpc";
 import { ScopeRuntime } from "./server/scope-runtime";
@@ -172,16 +172,8 @@ export default function contribute(server: PluginServerContext) {
     snapshot => { attention.catalog(snapshot); void plans.remote(snapshot).catch(error => console.error("[firstmate] scoped remote observations:", error)); },
     // The mate helper's queue is General's path: scoped remote workers refuse there as on the board,
     // so steer/stop/permit/archive of a Supervisor's worker cannot bypass the checked gateway.
-    async (serverId, agentId) => {
-      let status: Awaited<ReturnType<typeof readSupervision>>;
-      try { status = await readSupervision(undefined, true); }
-      catch (error) {
-        // As on the board: an unreadable journal must not stop General ending its own legacy crew.
-        console.error("[firstmate] supervision status unavailable for the helper scoped-worker guard:", error);
-        return;
-      }
-      refuseScopedRemoteMutation(status, serverId, agentId);
-    },
+    // An unreadable journal refuses too: it cannot say the worker is not scoped.
+    scopedRemoteGuard(() => readSupervision(undefined, true), "helper"),
   );
   remotes.start();
   plans.useRemoteBridge(remotes);
@@ -339,16 +331,8 @@ export default function contribute(server: PluginServerContext) {
     if (card.agent) return isScopedSourceWorker(status, "local", card.agent.id);
     return card.remote?.serverId != null && card.remote.worker != null && isScopedSourceWorker(status, card.remote.serverId, card.remote.worker.id);
   };
-  const remoteGuard = async (serverId: string, agentId: string) => {
-    let status: Awaited<ReturnType<typeof readSupervision>>;
-    try { status = await readSupervision(undefined, true); }
-    catch (error) {
-      // The journal is not authoritative for legacy remote crew; an unreadable journal must not stop the captain ending one.
-      console.error("[firstmate] supervision status unavailable for the remote scoped-worker guard:", error);
-      return;
-    }
-    refuseScopedRemoteMutation(status, serverId, agentId);
-  };
+  // Fail closed as the helper's guard does: while the journal cannot be read, no remote card mutation passes.
+  const remoteGuard = scopedRemoteGuard(() => readSupervision(undefined, true), "remote");
   server.handle(readItemThread, async ({ key }) => readThread(await requireHome(resolveHome(await readFirstmateConfig())), key));
   server.handle(sendItemThread, async (input, { paseo }) => {
     const config = await readFirstmateConfig();

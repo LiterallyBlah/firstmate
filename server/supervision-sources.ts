@@ -587,6 +587,20 @@ export function refuseScopedRemoteMutation(status: SupervisionStatus, serverId: 
   if (isScopedSourceWorker(status, serverId, agentId)) throw new SupervisionError("UNSUPPORTED",
     "This remote worker belongs to a scoped supervisor. Remote steer, interrupt, end and permission answers stay disabled here; they are the Supervisor's through the checked gateway.");
 }
+/** The board's and the mate helper's guard on a remote mutation, reading the journal through `read`.
+ * Fail closed: a journal that cannot be read cannot say the worker is not scoped, so nothing passes. */
+export function scopedRemoteGuard(read: () => Promise<SupervisionStatus>, origin: string) {
+  return async (serverId: string, agentId: string): Promise<void> => {
+    let status: SupervisionStatus;
+    try { status = await read(); }
+    catch (error) {
+      console.error(`[firstmate] supervision status unavailable for the ${origin} scoped-worker guard:`, error);
+      throw new SupervisionError("HELD",
+        "The supervision journal could not be read, so whether this remote worker belongs to a scoped supervisor is unknown. Remote steer, interrupt, end and permission answers are refused until it can be read.");
+    }
+    refuseScopedRemoteMutation(status, serverId, agentId);
+  };
+}
 
 // ---- Scoped board steer -------------------------------------------------------------------------
 

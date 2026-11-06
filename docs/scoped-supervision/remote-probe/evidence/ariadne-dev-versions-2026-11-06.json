@@ -1,0 +1,49 @@
+{
+  "probe": "firstmate-remote-supervisors-followup",
+  "mode": "read-only",
+  "at": "2026-11-06T16:10:10Z",
+  "host": { "serverId": "srv_sY4CFeHq0_8l", "label": "ariadne-dev" },
+  "note": "Version and status reads only, through the home's tools/remote.mjs; nothing created or changed on any host. The DGX host was not contacted. The slice 0 live probe (live.json, 2026-11-04T11:28Z) recorded no remote daemon version, so these reads do not show which daemon version that behaviour was observed on.",
+  "steps": [
+    {
+      "name": "local-cli-version",
+      "command": "%PASEO_CLI% --version",
+      "cli": "C:\\Users\\micha\\AppData\\Local\\Programs\\Paseo\\resources\\bin\\paseo.cmd",
+      "stdout": "0.14.0"
+    },
+    {
+      "name": "status-direct",
+      "command": "node tools/remote.mjs srv_sY4CFeHq0_8l status --json",
+      "code": 1,
+      "stderr": "Unsupported remote command",
+      "finding": "status is not in the helper's allowlist; RemoteService.connect runs status --json before every request and the minute poll and keeps daemonVersion in the catalog."
+    },
+    {
+      "name": "catalog-hosts",
+      "command": "node tools/remote.mjs hosts",
+      "at": "2026-11-06T16:09:17.306Z",
+      "entry": { "serverId": "srv_sY4CFeHq0_8l", "label": "ariadne-dev", "online": true, "error": null, "daemonVersion": "0.13.0",
+        "clockSkew": { "seconds": 0, "measuredAt": "2026-11-06T03:15:34.916Z", "agentId": "a046801a-e854-498d-98fb-055584e8c9ae" } }
+    },
+    {
+      "name": "slice0-probe-label-discovery",
+      "command": "node tools/remote.mjs srv_sY4CFeHq0_8l ls -g -a --label firstmate.probe=s0-0421617c --json",
+      "code": 0,
+      "parsed": [{ "id": "1472a1d3-6953-4d98-8a5d-85441b0e7748", "provider": "claude/claude-haiku-4-5", "status": "closed", "cwd": "/home/ariadne/work" }]
+    },
+    {
+      "name": "slice0-probe-inspect",
+      "command": "node tools/remote.mjs srv_sY4CFeHq0_8l inspect 1472a1d3-6953-4d98-8a5d-85441b0e7748 --json",
+      "code": 0,
+      "parsed": { "Provider": "claude", "Model": "claude-haiku-4-5", "Thinking": "auto", "Mode": "default", "Cwd": "/home/ariadne/work", "Status": "closed",
+        "Archived": true, "ArchivedAt": "2026-11-04T11:29:40.175Z", "CreatedAt": "2026-11-04T11:28:43.252Z", "PendingPermissions": [], "ParentAgentId": null }
+    },
+    {
+      "name": "recent-run-inspect",
+      "command": "node tools/remote.mjs srv_sY4CFeHq0_8l inspect a046801a-e854-498d-98fb-055584e8c9ae --json",
+      "code": 0,
+      "parsed": { "Provider": "claude", "Model": "claude-opus-5-5", "Thinking": "medium", "Mode": "bypassPermissions", "Status": "closed",
+        "Archived": true, "CreatedAt": "2026-11-06T03:15:34.263Z", "ParentAgentId": null }
+    }
+  ]
+}
