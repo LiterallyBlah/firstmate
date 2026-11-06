@@ -8,12 +8,13 @@ import { SupervisionSources, normalizePullRequest } from "./supervision-sources"
 import { startWorkflowService } from "./workflow-service";
 
 const delay = (ms: number) => new Promise(done => setTimeout(done, ms));
-async function replyWithin(directory: string, id: string, ms: number): Promise<string | null> {
+async function replyWithin(directory: string, id: string, ms: number, beat?: () => void): Promise<string | null> {
   const deadline = Date.now() + ms;
   for (;;) {
     try { return await readFile(join(directory, `${id}.reply.json`), "utf8"); }
     catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
     if (Date.now() >= deadline) return null;
+    beat?.(); // Later clock beats, in case an earlier fast pass was still running at the first.
     await delay(25);
   }
 }
@@ -43,10 +44,10 @@ it("a scope read is answered on the next clock while the scoped tick is still in
     await entered;
     const id = await f.queue(scope, "read", { scopeId: scope.id, epoch: 1, page: "state" });
     clock!(); // Next second, tick still stalled: the request must not wait for it.
-    const reply = await replyWithin(f.directory, id, 5000);
+    const reply = await replyWithin(f.directory, id, 5000, () => clock!());
     expect(reply, "scope request sat unanswered behind the stalled tick").not.toBeNull();
     expect(JSON.parse(reply!)).toMatchObject({ ok: true });
-    clock!(); // A later pass is a same-UUID replay: the retained reply is left exactly as published.
+    clock!(); // A later pass sees the retained reply in its listing and skips the request, leaving it exactly as published.
     await delay(300);
     expect(await readFile(join(f.directory, `${id}.reply.json`), "utf8")).toBe(reply);
     await expect(stat(join(f.directory, `${id}.json`))).resolves.toBeDefined();

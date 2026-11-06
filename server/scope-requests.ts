@@ -173,10 +173,14 @@ export async function processScopeRequests(home: string, handlers: ScopeHandlers
   const { absolute: directory } = await resolveInHome(home, "data/scope-requests");
   return serialized(directory, async () => {
     let files: string[]; try { files = await readdir(directory); } catch (e) { if ((e as NodeJS.ErrnoException).code === "ENOENT") return; throw e; }
+    const names = new Set(files);
     let processed = 0;
     for (const name of files.filter(f => /^[\da-f-]{36}\.json$/.test(f)).sort()) {
       const reply = join(directory, name.replace(/\.json$/, ".reply.json"));
-      try { await stat(reply); continue; } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e; }
+      // Answered requests are retained and replies publish only under this serialized pass,
+      // so the listing above is authoritative here; stat-ing every reply made each pass's
+      // cost grow with the unpruned directory (thousands of pairs on a busy home).
+      if (names.has(name.replace(/\.json$/, ".reply.json"))) continue;
       if (processed++ >= 20) break;
       let result: unknown;
       try {

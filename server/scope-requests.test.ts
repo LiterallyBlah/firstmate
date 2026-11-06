@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
+import * as fs from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { describe, expect, it, vi } from "vitest";
@@ -13,6 +14,10 @@ import { SupervisionGateway } from "./supervision-effects";
 import { SupervisionRemoteReceiver } from "./supervision-remote-receiver";
 import { FakeCliBridge, REMOTE_CWD, REMOTE_HOST } from "../test/fake-remote-bridge";
 
+vi.mock("node:fs/promises", async importOriginal => {
+  const actual = await importOriginal<typeof import("node:fs/promises")>();
+  return { ...actual, stat: vi.fn(actual.stat) };
+});
 const run = promisify(execFile);
 async function legacyStore(home: string) { return new WorkflowPlanStore(join(home, "legacy-plans"), home); }
 async function request(home: string, actor: string, command: unknown) {
@@ -108,5 +113,24 @@ describe("S04 legacy/scoped dispatch partition", { timeout: 60000 }, () => {
     const guest = await helper("guest", ["--request-id", id]);
     expect(JSON.parse(guest.stdout)).toMatchObject({ ok: true, result: "queued" });
     expect(JSON.parse(await readFile(join(fx.home, "data/scope-requests", `${id}.json`), "utf8"))).toEqual({ id, actor: "agent-x", kind: "plan", input: {} });
+  });
+
+  it("a pass skips retained answered requests from its listing, without stat-ing each reply", async () => {
+    const fx = await s04Fixture(), scope = await fx.addScope(1, "listing-scope", ["ls-trial"]);
+    const handlers = { commands: fx.commands, gateway: fx.gateway, store: fx.store, legacy: await legacyStore(fx.home), globalMateId: async () => "general-first-mate" };
+    const directory = join(fx.home, "data/scope-requests"); await mkdir(directory, { recursive: true });
+    const answered = new Map<string, string>();
+    for (let n = 0; n < 25; n++) {
+      const id = randomUUID(), reply = JSON.stringify({ ok: true, result: `retained-${n}` });
+      await writeFile(join(directory, `${id}.json`), JSON.stringify({ id, actor: scope.owner.id, kind: "read", input: { scopeId: scope.id, epoch: 1, page: "state" } }));
+      await writeFile(join(directory, `${id}.reply.json`), reply); answered.set(id, reply);
+    }
+    const pending = randomUUID();
+    await writeFile(join(directory, `${pending}.json`), JSON.stringify({ id: pending, actor: "neighbour", kind: "read", input: { scopeId: scope.id, epoch: 1, page: "state" } }));
+    vi.mocked(fs.stat).mockClear();
+    await processScopeRequests(fx.home, handlers);
+    expect(JSON.parse(await readFile(join(directory, `${pending}.reply.json`), "utf8"))).toMatchObject({ ok: false, code: "UNKNOWN_OWNER" });
+    for (const [id, reply] of answered) expect(await readFile(join(directory, `${id}.reply.json`), "utf8")).toBe(reply);
+    expect(vi.mocked(fs.stat).mock.calls.map(call => String(call[0])).filter(path => path.endsWith(".reply.json"))).toEqual([]);
   });
 });
