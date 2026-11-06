@@ -70,7 +70,11 @@ export async function handoverEvidence(store: SupervisionStore, home: string, re
     const plan = await workflowStore(home).get(review.plan);
     // A name must come from the same plan history as the inspected inventory.
     if (!plan || plan.hash !== dry.receipt.source.tip.hash) throw new Error("Plan changed during inventory read");
-    result.inventory = { hash: digest({ source: dry.sourceHash, dispositions: dry.dispositions, launches: dry.receipt.launches, dependents: dry.receipt.dependents, capacity: dry.capacity }),
+    // The capacity snapshot's sequence and ceiling follow the whole journal, which every unrelated plan,
+    // timer and tick advances; pinning them made an unchanged plan's evidence stale within seconds. The
+    // cutover re-checks capacity live against the journal as it is at prepare, and a failed check is a problem here.
+    const { sequence: _sequence, ceiling: _ceiling, problem: _problem, ...capacity } = dry.capacity;
+    result.inventory = { hash: digest({ source: dry.sourceHash, dispositions: dry.dispositions, launches: dry.receipt.launches, dependents: dry.receipt.dependents, capacity }),
       summary: [`${dry.dispositions.length} saved item${dry.dispositions.length === 1 ? "" : "s"} checked before handover.`, ...dry.dispositions.map(d => {
         const node = dry.receipt.imported.attempts.find(a => a.attempt === d.original.attemptId)?.node;
         return deliveryExplanation(d, plan.definition.title, plan.definition.nodes.find(n => n.id === node)?.title);
