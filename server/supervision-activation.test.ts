@@ -199,7 +199,8 @@ it("N1: real approved work has plain next steps, exact hidden diagnostics and un
       plan: "scheduler", scopeId: review.scopeId, projectId: review.projectId!, migrationId: review.migrationId, prerequisites: prepare.prerequisites });
     const evidence = await handlers.get("firstmate.supervision.plan-help.evidence")!({ homeId: prepare.homeId, plan: "scheduler", folder: "data" });
     expect(evidence.problems).toEqual([]); expect(evidence.inventory.problems).toEqual(dry.problems);
-    expect(evidence.inventory.hash).toBe(digest({ source: dry.sourceHash, dispositions: dry.dispositions, launches: dry.receipt.launches, dependents: dry.receipt.dependents, capacity: dry.capacity }));
+    const { sequence: _sequence, ceiling: _ceiling, problem: _problem, ...capacity } = dry.capacity;
+    expect(evidence.inventory.hash).toBe(digest({ source: dry.sourceHash, dispositions: dry.dispositions, launches: dry.receipt.launches, dependents: dry.receipt.dependents, capacity }));
     const ordinary = evidence.inventory.summary.join("\n");
     expect(ordinary).toContain("2 saved items checked"); expect(ordinary).toContain("Scheduler");
     expect(ordinary).toContain("Wait for FirstMate to confirm that “Database trial” has finished");
@@ -411,6 +412,84 @@ it("a first-mate prepare re-checks its evidence without listing a data/ folder o
     await expect(activation.migrate({ ...command, evidence: { ...selected, rollback: { ...selected.rollback, hash: "a".repeat(64) } } }, mate)).rejects.toMatchObject({ code: "STALE" });
     const prepared = await activation.migrate(command, mate);
     expect(prepared.migrations[0]).toMatchObject({ planId: "scheduler" });
+  } finally { await activation.stop(); await runtime.stop(); }
+});
+async function unrelatedActivity(runtime: SupervisionRuntime, transactions: number) {
+  // Another plan's helper, a scoped tick or a timer: journal transactions that touch nothing of this plan.
+  await runtime.mutate(home, async store => {
+    for (let n = 0; n < transactions; n++) await store.transactCommand(randomUUID(), "a".repeat(64), { kind: "system", id: "load", source: "isolated-unrelated-activity" },
+      async () => ({ expectedVersions: [], mutations: [], result: { planId: null, planHash: null, decisionId: null, outboxId: null } }));
+  });
+}
+async function selectedEvidence(rollbackPath: string) {
+  const review = await activation.planHelp(prepare.homeId, "scheduler");
+  expect(review.problems).toEqual([]);
+  const evidence = await activation.evidence({ homeId: prepare.homeId, plan: "scheduler", folder: "data", rollbackPath });
+  expect(evidence.problems).toEqual([]); expect(evidence.inventory?.problems).toEqual([]);
+  const selected = { inventory: evidence.inventory!.hash, policy: evidence.policy!.hash, rollback: { path: evidence.rollback!.path, hash: evidence.rollback!.hash } };
+  return { review, selected, command: { ...prepare, scopeId: review.scopeId, projectId: review.projectId!, migrationId: review.migrationId, reviewHash: review.reviewHash,
+    evidence: selected, prerequisites: evidenceReferences(selected) } };
+}
+it("handover evidence is stable across unrelated journal activity, and the first mate's prepare is not refused for it", async () => {
+  const mate = { kind: "mate-chat", id: "general", source: SUPERVISE_ACTOR_SOURCE } as const;
+  const { runtime } = await guided();
+  try {
+    await writeFile(join(home, "data/rollback.md"), "Retained FirstMate build: isolated tested build.\nRecovery test: verified.\n");
+    const first = await selectedEvidence("data/rollback.md"), before = await runtime.read(home);
+    const dryRun = () => new SupervisionMigrator({ home, store: new SupervisionStore(pluginDir(), home), legacy: workflowStore(home), adapters: legacyAdapters(null, () => ledger.read()), enabled: true })
+      .dryRun({ plan: "scheduler", scopeId: first.review.scopeId, projectId: first.review.projectId!, migrationId: first.review.migrationId, prerequisites: prepare.prerequisites });
+    const dryBefore = await dryRun();
+    await unrelatedActivity(runtime, 5);
+    const after = await runtime.read(home), dryAfter = await dryRun();
+    // The journal's sequence and size moved; nothing the handover depends on did.
+    expect(after.sequence).toBeGreaterThan(before.sequence); expect(after.storage.bytes).toBeGreaterThan(before.storage.bytes);
+    // The volatile part of the dry run is its capacity snapshot of the journal: sequence and ceiling.
+    expect(dryAfter.capacity.sequence).toBeGreaterThan(dryBefore.capacity.sequence);
+    const { sequence: _s1, ceiling: _c1, ...stableBefore } = dryBefore.capacity, { sequence: _s2, ceiling: _c2, ...stableAfter } = dryAfter.capacity;
+    expect(stableAfter).toEqual(stableBefore);
+    expect({ source: dryAfter.sourceHash, dispositions: dryAfter.dispositions, launches: dryAfter.receipt.launches, dependents: dryAfter.receipt.dependents })
+      .toEqual({ source: dryBefore.sourceHash, dispositions: dryBefore.dispositions, launches: dryBefore.receipt.launches, dependents: dryBefore.receipt.dependents });
+    const second = await selectedEvidence("data/rollback.md");
+    expect(second.selected).toEqual(first.selected);
+    await unrelatedActivity(runtime, 3);
+    const prepared = await activation.migrate(first.command, mate);
+    expect(prepared.migrations[0]).toMatchObject({ planId: "scheduler" });
+    // Capacity is still checked live by the cutover itself, against the journal as it is now.
+    expect(prepared.migrations[0]!.capacity.sequenceAtFreeze).toBeGreaterThan(after.sequence);
+  } finally { await activation.stop(); await runtime.stop(); }
+});
+it("a real change to launches, dependents, deliveries or the plan still refuses a first-mate prepare as stale", async () => {
+  const mate = { kind: "mate-chat", id: "general", source: SUPERVISE_ACTOR_SOURCE } as const;
+  const { runtime } = await guided();
+  try {
+    await writeFile(join(home, "data/rollback.md"), "Retained FirstMate build: isolated tested build.\nRecovery test: verified.\n");
+    const legacy = workflowStore(home), stale = { code: "STALE", message: expect.stringContaining("Handover evidence changed") };
+    // A new launch record for one of the plan's own steps.
+    let { command } = await selectedEvidence("data/rollback.md");
+    await mkdir(join(home, "data/trial/launches"), { recursive: true });
+    await writeFile(join(home, "data/trial/launches/1.json"), JSON.stringify({ state: "abandoned" }));
+    await expect(activation.migrate(command, mate)).rejects.toMatchObject(stale);
+    // A new plan with a step that depends on this one.
+    ({ command } = await selectedEvidence("data/rollback.md"));
+    const fixture = workflowFixture(), base = fixture.nodes.find(n => n.id === "trial")!;
+    await legacy.execute({ op: "draft", definition: { ...fixture, id: "dependent", title: "Dependent",
+      nodes: [{ ...base, id: "follow-up", title: "Follow up", launch: { ...(base as any).launch, id: "follow-up", agentTitle: "follow-up", brief: { file: "data/follow-up/brief.md" } }, after: [{ node: "trial", reason: "builds-on", on: "done" }] }] } as never }, randomUUID(), "general");
+    await expect(activation.migrate(command, mate)).rejects.toMatchObject(stale);
+    // The plan itself: a captain action is recorded on it (refused by the plan review, not the inventory).
+    ({ command } = await selectedEvidence("data/rollback.md"));
+    const plan = (await legacy.get("scheduler"))!;
+    await legacy.execute({ op: "captain", plan: "scheduler", revision: plan.revision, subjectHash: planSubjectHash(plan), action: "approve", text: "" }, randomUUID(), "board:captain");
+    await expect(activation.migrate(command, mate)).rejects.toMatchObject({ code: "STALE" });
+    // A pending delivery alone: that action's note is now queued for the first mate, the plan unchanged.
+    ({ command } = await selectedEvidence("data/rollback.md"));
+    const action = (await legacy.get("scheduler"))!.captainEvents!.at(-1)!;
+    await updateFirstmateConfig({ mateNotes: [{ id: `firstmate-plan-${action.id}`, text: "The captain approved Scheduler." }] });
+    expect((await activation.planHelp(prepare.homeId, "scheduler")).reviewHash).toBe(command.reviewHash);
+    await expect(activation.migrate(command, mate)).rejects.toMatchObject(stale);
+    expect(await legacy.cutover("scheduler")).toBe(null); expect(receiver.calls).toEqual([]);
+    // With nothing further changed, a fresh read prepares.
+    ({ command } = await selectedEvidence("data/rollback.md"));
+    expect((await activation.migrate(command, mate)).migrations[0]).toMatchObject({ planId: "scheduler" });
   } finally { await activation.stop(); await runtime.stop(); }
 });
 it("F6: a first mate replaced between migrate's entry and inner checks refuses before any write", async () => {
