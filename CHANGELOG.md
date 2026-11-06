@@ -186,19 +186,32 @@ Git repository or local directory; it is marked private to prevent accidental np
   a second instead of three.
 - **A restart no longer replays the whole Supervisor journal before Needs you can answer.** The
   last fully validated projection is kept in a derived `projection-cache.json`, bound to the
-  checkpoint that witnessed it; a cold read re-binds it to the on-disk checkpoint and anchor
-  chain, validates the tail, and serves, while a background full audit re-verifies every event
-  and anchor off the read path and surfaces held on the next read if anything diverges. Anything
+  checkpoint that witnessed it; a cold read recomputes the projection and the ownership
+  digest from the cached frames themselves (a forged or edited cache is rejected at load,
+  never served), re-binds it to the on-disk checkpoint and anchor chain, validates the
+  tail, and serves, while a background audit re-verifies every event and anchor up to the
+  served prefix off the read path and compares the frames, transaction index and ownership
+  actually served against the replayed journal. Writes wait for that audit, so nothing
+  commits on top of unverified cache contents, and a divergence holds the journal loudly
+  for the process (the cache file is still healed from the validated truth for the next
+  one). Anything
   durable beyond the checkpoint (a crashed partial publication) still forces the ordinary full
   scan. Measured on a copy of the large home at 4,584 transactions: the first decisions snapshot
   answers in about 6.6 s after a restart (journal part about 1.3 s from cache, against 13.5 s for
   a full check and 33 s before the anchor migration below), so "still loading" no longer outlives
   the 15 s budget. The one-time anchor migration is also safer to interrupt: the audit runs
   unlocked while the old form keeps serving, replacement proceeds in bounded chunks with the
-  /1 originals kept under `anchor-backup/`, a failure reports held instead of stranding the
-  coordinator claim, and `rollbackAnchors` restores the pre-/2 form (refused once /2
-  transactions exist) until an operator discards the backup deliberately. On that journal the
-  migration took about 132 s including backups of the 568 MB of originals.
+  /1 originals kept under `anchor-backup/`, a failure — thrown or reported held — releases
+  the coordinator claim without registering the writer so the next writer retries, and
+  `rollbackAnchors` restores the pre-/2 form. The way back to an older plugin is genuinely
+  open while the backup is retained: new records keep the /1 form an older plugin can read,
+  until an operator discards the backup, which flips writing to /2 for good; until then
+  about a journal's worth of /1 originals stays on disk. The migration also writes the
+  restart cache over the new checkpoint, so the first restart after it is a cache restart,
+  not another full check. On that journal the migration took about 132 s including backups
+  of the 568 MB of originals; at 5,355 transactions (747 MB in /1 form) it took about
+  161 s, the migrated journal is 23 MB, a restart from the cache reads in about 2 s
+  including the load-time recomputation, and an uncontended cold full check takes about 16 s.
 - **The Supervisor journal's anchors stop growing with its history.** Each transaction's tip and
   publication used to embed the whole retained ownership — 89 KB apiece at 3,349 transactions,
   duplicated in both files: 365 MB of anchors over 7 MB of events, so the journal's bytes and its

@@ -345,3 +345,148 @@ it("serves a restart from the verified projection cache and catches later tamper
   for (let i = 0; i < 60 && !held; i++) { await new Promise(r => setTimeout(r, 250)); held = (await victim.read()).freshness === "held"; }
   expect(held).toBe(true);
 }, 300_000);
+
+/** Read the restart cache, mutate it, and rewrite it with a valid file hash (the reviewer's forge). */
+async function forgeCache(root: string, mutate: (cache: any) => void): Promise<void> {
+  const path = join(root, "projection-cache.json");
+  const cache = JSON.parse(await readFile(path, "utf8"));
+  mutate(cache);
+  const { hash: _hash, ...unsigned } = cache; cache.hash = digest(unsigned);
+  await writeFile(path, `${canonical(cache)}\n`);
+}
+
+async function untilHeld(reader: SupervisionStore): Promise<boolean> {
+  for (let i = 0; i < 80; i++) { if ((await reader.read()).freshness === "held") return true; await new Promise(r => setTimeout(r, 250)); }
+  return false;
+}
+
+it("never serves a forged restart cache whose frames do not hash to the witnessed projection", async () => {
+  const { store, home, data } = await journal(24, false, true);
+  const truth = await store.read();
+  await store.releaseCoordinator();
+  const claimer = new SupervisionStore(data, home, { writable: true, processIdentity: identity });
+  await claimer.acquireCoordinator(); await claimer.releaseCoordinator();
+  // Forge: rewrite one cached scope's projectIds and rehash the file (checkpoint untouched).
+  await forgeCache(store.root, cache => {
+    const entry = cache.frames.find(([, frame]: any) => frame.kind === "scope");
+    entry[1].value.projectIds = [randomUUID()];
+  });
+  const reader = new SupervisionStore(data, home);
+  const served = await reader.read();
+  // The forged contents are rejected at load (projection recomputed from the frames); the
+  // ordinary validated read serves the journal's truth, and no audit can resurrect the forge.
+  expect(served.freshness).toBe("current");
+  expect(served).toEqual(truth);
+  expect((await new SupervisionStore(data, home).read()).scopes.map(s => s.projectIds)).toEqual(truth.scopes.map(s => s.projectIds));
+}, 300_000);
+
+it("catches a forged cached transaction index in the audit and refuses writes on top of it", async () => {
+  const { store, home, data } = await journal(24, false, true);
+  await store.releaseCoordinator();
+  const claimer = new SupervisionStore(data, home, { writable: true, processIdentity: identity });
+  await claimer.acquireCoordinator(); await claimer.releaseCoordinator();
+  await forgeCache(store.root, cache => { cache.transactions[2].requestId = randomUUID(); });
+  const victim = new SupervisionStore(data, home);
+  await victim.read();
+  // The index is not covered by the frame projection; the audit compares the SERVED index
+  // against the replayed journal and must poison every instance when they diverge.
+  expect(await untilHeld(victim)).toBe(true);
+  const writer = new SupervisionStore(data, home, { writable: true, processIdentity: identity });
+  // Even the coordinator claim is refused while the divergence stands: no write path opens.
+  await expect(writer.acquireCoordinator()).rejects.toMatchObject({ code: "HELD" });
+  const mutation = [{ kind: "scope" as const, value: { ...scope(store.homeId), id: randomUUID(), version: 1 } }];
+  await expect(writer.transact(expected(mutation, 0), randomUUID(), mutation)).rejects.toThrow();
+  await writer.releaseCoordinator().catch(() => {});
+}, 300_000);
+
+it("finishes the restart audit under steady writes and surfaces damage below the cache", async () => {
+  const { store, home, data } = await journal(32, false, true);
+  await store.releaseCoordinator();
+  const claimer = new SupervisionStore(data, home, { writable: true, processIdentity: identity });
+  await claimer.acquireCoordinator(); await claimer.releaseCoordinator();
+  // Corrupt an early event below the cache head, keeping its own hashes self-consistent.
+  const eventPath = join(store.root, "transactions", fileName(3, "event"));
+  const event = JSON.parse(await readFile(eventPath, "utf8"));
+  event.body.mutations[0].value.projectIds = [randomUUID()];
+  event.requestHash = digest(event.body);
+  const { hash: _hash, ...unsignedEvent } = event; event.hash = digest(unsignedEvent);
+  await writeFile(eventPath, `${canonical(event)}\n`);
+  // A cache-loaded writer appends steadily while its audit is still running. The audit is
+  // bounded to the served prefix, so the appends can neither reset it nor make it give up:
+  // the write that waits for it (or the next read) must surface held.
+  const writer = new SupervisionStore(data, home, { writable: true, processIdentity: identity });
+  await writer.acquireCoordinator();
+  await writer.read();
+  let refused = false;
+  for (let i = 0; i < 60 && !refused; i++) {
+    await new Promise(r => setTimeout(r, 100));
+    const mutation = [{ kind: "scope" as const, value: { ...scope(store.homeId), id: randomUUID(), version: 1 } }];
+    try { await writer.transact(expected(mutation, 0), randomUUID(), mutation); }
+    catch (error) { refused = (error as { code?: string }).code === "HELD"; if (!refused) throw error; }
+  }
+  expect(refused || await untilHeld(writer)).toBe(true);
+  await writer.releaseCoordinator().catch(() => {});
+}, 300_000);
+
+it("treats a held post-claim migration like a failure: claim released, writer not registered", async () => {
+  const { store, home, data } = await journal(4, true, true);
+  await store.releaseCoordinator();
+  let created = 0, holdMigration = true;
+  const runtime = new SupervisionRuntime(data, (root, h) => {
+    created++;
+    const createdStore = new SupervisionStore(root, h, { writable: true, processIdentity: identity });
+    const original = createdStore.migrateAnchors.bind(createdStore);
+    createdStore.migrateAnchors = async () =>
+      holdMigration && (createdStore as any).coordinator ? { migrated: 0, sequence: 4, held: true } : original();
+    return createdStore;
+  });
+  try {
+    await expect(runtime.mutate(home, async () => {})).rejects.toMatchObject({ code: "HELD" });
+    const next = new SupervisionStore(data, home, { writable: true, processIdentity: identity });
+    await expect(next.acquireCoordinator()).resolves.toBeGreaterThan(0);
+    await next.releaseCoordinator();
+    // No writer was registered over the held migration: the next mutate builds a fresh one
+    // and the migration is retried (and now completes).
+    holdMigration = false;
+    await runtime.stop();
+    const runtime2 = new SupervisionRuntime(data, (root, h) => { created++; return new SupervisionStore(root, h, { writable: true, processIdentity: identity }); });
+    try { await expect(runtime2.mutate(home, async () => {})).resolves.toBeUndefined(); } finally { await runtime2.stop(); }
+    expect(created).toBeGreaterThan(1);
+  } catch (error) { await runtime.stop().catch(() => {}); throw error; }
+}, 120_000);
+
+it("keeps the rollback window genuinely open: post-migration records stay /1 until the backup is discarded", async () => {
+  const { store, home, data } = await journal(6, true, true);
+  await store.releaseCoordinator();
+  const migrator = new SupervisionStore(data, home, { writable: true, processIdentity: identity });
+  await migrator.acquireCoordinator();
+  await migrator.migrateAnchors();
+  // Appends while the backup is retained are /1 records an older plugin can read.
+  for (let i = 0; i < 3; i++) {
+    const mutation = [{ kind: "scope" as const, value: { ...scope(store.homeId), id: randomUUID(), version: 1 } }];
+    await migrator.transact(expected(mutation, 0), randomUUID(), mutation);
+  }
+  const appended = JSON.parse(await readFile(join(store.root, "transactions", fileName(9, "event")), "utf8"));
+  expect(appended.format).toBe("firstmate.supervision-transaction/1");
+  const headBeforeRollback = await migrator.read();
+  expect(headBeforeRollback).toMatchObject({ freshness: "current", sequence: 9 });
+  // A later writer does not silently convert the tail and close the window.
+  await expect(migrator.migrateAnchors()).resolves.toMatchObject({ migrated: 0, held: false });
+  // Rollback is available across the window's writes and restores an all-/1 journal.
+  await expect(migrator.rollbackAnchors()).resolves.toMatchObject({ restored: 12, sequence: 9 });
+  const rolledBack = await new SupervisionStore(data, home, { legacyFormat: true }).read();
+  expect(rolledBack.freshness).toBe("current");
+  expect(rolledBack.sequence).toBe(9);
+  expect(rolledBack.scopes).toEqual(headBeforeRollback.scopes);
+  await migrator.releaseCoordinator();
+  // Discard is the point of no return: writing flips to /2.
+  const second = new SupervisionStore(data, home, { writable: true, processIdentity: identity });
+  await second.acquireCoordinator();
+  await second.migrateAnchors();
+  await second.discardAnchorBackup();
+  const mutation = [{ kind: "scope" as const, value: { ...scope(store.homeId), id: randomUUID(), version: 1 } }];
+  await second.transact(expected(mutation, 0), randomUUID(), mutation);
+  const flipped = JSON.parse(await readFile(join(store.root, "transactions", fileName(10, "event")), "utf8"));
+  expect(flipped.format).toBe("firstmate.supervision-transaction/2");
+  await second.releaseCoordinator();
+}, 300_000);

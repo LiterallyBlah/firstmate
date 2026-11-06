@@ -185,7 +185,7 @@ const IndexedTransactionSchema = z.object({ format: z.enum(["firstmate.supervisi
 const ProjectionCacheSchema = z.object({ format: z.literal("firstmate.supervision-projection-cache/1"), homeId: z.string(),
   sequence: z.number().int().nonnegative(), transactionHash: SupervisionHash.nullable(), prefixDigest: SupervisionHash,
   projection: SupervisionHash, projectionSet: SupervisionHash, projectionVector: z.string().regex(/^[0-9a-f]{256}$/),
-  checkpoint: CheckpointSchema, legacyAnchors: z.number().int().nonnegative(), directories: z.string(), bytes: z.number().int().nonnegative(),
+  checkpoint: CheckpointSchema, legacyAnchors: z.number().int().nonnegative(), directories: z.string(), bytes: z.number().int().nonnegative(), ownershipDigest: SupervisionHash,
   frames: z.array(z.tuple([z.string(), z.object({ kind: z.string(), id: z.string(), version: z.number().int().nonnegative(), value: z.unknown() }).strict()])),
   transactions: z.array(IndexedTransactionSchema), ownership: z.array(z.unknown()), hash: SupervisionHash }).strict();
 type ProjectionCache = z.infer<typeof ProjectionCacheSchema>;
@@ -204,11 +204,11 @@ function publicationFor(root: string): StorePublication {
 }
 /** One background audit per journal per process, shared by every instance serving it: its
  * failure must poison all of them, not just the instance that happened to schedule it. */
-type StoreAudit = { running: boolean; failure: string[] | null };
+type StoreAudit = { running: boolean; failure: string[] | null; promise: Promise<void> | null; target: number; divergence: string | null };
 const audits = new Map<string, StoreAudit>();
 function auditFor(root: string): StoreAudit {
   let state = audits.get(root);
-  if (!state) { state = { running: false, failure: null }; audits.set(root, state); }
+  if (!state) { state = { running: false, failure: null, promise: null, target: -1, divergence: null }; audits.set(root, state); }
   return state;
 }
 /** Sentinel: journal metadata moved while a warm read was checking it. */
@@ -343,6 +343,15 @@ function frameEntryVector(k: string, frame: Frame): Buffer {
 type ProjectionAcc = { vector: Buffer; count: number };
 const emptyProjectionAcc = (): ProjectionAcc => ({ vector: Buffer.alloc(PROJECTION_VECTOR_BYTES), count: 0 });
 const projectionSetHash = (acc: ProjectionAcc) => digest({ format: "firstmate.supervision-projection-set/1", count: acc.count, vector: acc.vector.toString("hex") });
+/** The set accumulator over a whole frame map (addition is order-independent). */
+function projectionAccOf(frames: Map<string, Frame>): ProjectionAcc {
+  const vector = Buffer.alloc(PROJECTION_VECTOR_BYTES);
+  for (const [k, frame] of frames) {
+    const entry = frameEntryVector(k, frame);
+    for (let lane = 0; lane < PROJECTION_VECTOR_BYTES / 2; lane++) vector.writeUInt16LE((vector.readUInt16LE(lane * 2) + entry.readUInt16LE(lane * 2)) & 0xffff, lane * 2);
+  }
+  return { vector, count: frames.size };
+}
 function advanceProjection(acc: ProjectionAcc, before: Map<string, Frame>, after: Map<string, Frame>, changes: SupervisionExpected[]): ProjectionAcc {
   const vector = Buffer.from(acc.vector);
   const add = (entry: Buffer, sign: 1 | -1) => { for (let lane = 0; lane < PROJECTION_VECTOR_BYTES / 2; lane++) vector.writeUInt16LE((vector.readUInt16LE(lane * 2) + sign * entry.readUInt16LE(lane * 2)) & 0xffff, lane * 2); };
@@ -475,7 +484,9 @@ export class SupervisionStore {
   private projectionCacheTried = false;
   private coldCacheTail = false;
 
-  private cacheServed: { sequence: number; hash: string | null; prefixDigest: string; projection: string } | null = null;
+  private formatPinnedLegacy: boolean | null = null;
+  private cacheServed: { sequence: number; hash: string | null; prefixDigest: string; projection: string;
+    transactionsDigest: string; ownershipDigest: string; framesDigest: string } | null = null;
   private shared: { epoch: number; scan: Promise<Scan> } | null = null;
   private readonly actor: SupervisionActor;
   constructor(dataRoot: string, home: string, private readonly options: SupervisionStoreOptions = {}) {
@@ -629,6 +640,14 @@ export class SupervisionStore {
    * left byte-for-byte intact. Runs on the runtime's first writer after upgrade (and before
    * its coordinator claim when a receipt says a previous attempt was interrupted, since the
    * resulting stale checkpoint is what blocks claiming). */
+  /** A migration receipt whose /1 backups are still on disk: the rollback window is open. */
+  private async anchorBackupRetained(): Promise<boolean> {
+    try {
+      if (!(await this.readAnchorMigration().catch(() => null))) return false;
+      await stat(join(this.root, "anchor-backup"));
+      return true;
+    } catch { return false; }
+  }
   private async migrateAnchorsOnce(): Promise<{ migrated: number; sequence: number; held: boolean }> {
     let receipt: AnchorMigration | null;
     try { receipt = await this.readAnchorMigration(); }
@@ -639,7 +658,17 @@ export class SupervisionStore {
       return { migrated: 0, sequence: this.cached.scan.sequence, held: false };
     const current = await this.scan();
     if (!current.initialized || !current.sequence) return { migrated: 0, sequence: current.sequence, held: false };
-    if (current.problems.length && !receipt) return { migrated: 0, sequence: current.sequence, held: true };
+    // Journal problems with nothing to migrate (no receipt, no legacy anchors) are not a
+    // migration failure: the ordinary held/recovery machinery owns them, and writer creation
+    // must not strand crash recovery by treating them as an unfinished upgrade.
+    if (current.problems.length && !receipt) return { migrated: 0, sequence: current.sequence, held: current.legacyAnchors > 0 };
+    if (receipt && !current.problems.length && current.transactions[receipt.sequence - 1]?.hash === receipt.headHash &&
+      current.transactions.every(tx => !tx.format.endsWith("/2")) && await this.anchorBackupRetained()) {
+      // Migration complete, rollback window open: /1 records beyond the migration point are
+      // deliberate. Converting them now would silently close the way back to an older plugin.
+      this.formatPinnedLegacy = true;
+      return { migrated: 0, sequence: current.sequence, held: false };
+    }
     if (!current.legacyAnchors && !current.problems.length) {
       // Completed (possibly long ago and since grown): the checked scan already validated the
       // checkpoint over the current anchors; verify the receipt still binds its head.
@@ -716,12 +745,16 @@ export class SupervisionStore {
         const existing = await readCanonical(join(this.root, "checkpoint.json")).catch(() => null);
         if (migrated || !existing || digest(existing) !== digest(await this.checkpointFor(next))) await this.saveCheckpoint(next);
         else await this.cache(next, verifyHash(CheckpointSchema.parse(existing)), await this.directories());
+        // The first restart after migration must not pay a full check: write the restart
+        // cache over the new checkpoint and anchors (the claim-time cache binds the old ones).
+        await this.writeProjectionCache(next, await this.checkpointFor(next), await this.directories(), true);
       });
     } catch {
       // Replacement or publication failed midway: the mixed journal and its receipt are the
       // resumable state. Report held; never strand the caller with a thrown upgrade.
       return { migrated, sequence: snapshot.sequence, held: true };
     }
+    this.formatPinnedLegacy = await this.anchorBackupRetained();
     return { migrated, sequence: snapshot.sequence, held: false };
   }
   /** Supported way back: restore the backed-up /1 anchors and remove every trace a pre-/2
@@ -737,8 +770,8 @@ export class SupervisionStore {
       if (!receipt) fail("HELD", "No anchor migration receipt; nothing to roll back.");
       const snapshot = await this.scanFull();
       if (snapshot.problems.length) fail("HELD", `Anchor rollback needs a validated journal first: ${snapshot.problems.join(" | ")}`);
-      if (snapshot.sequence !== receipt.sequence || snapshot.transactions.some(t => t.format.endsWith("/2")))
-        fail("HELD", "Transactions beyond the migration point (or in /2 format) exist; an older plugin could not read them, so anchor rollback is refused.");
+      if (snapshot.transactions.some(t => t.format.endsWith("/2")) || snapshot.transactions[receipt.sequence - 1]?.hash !== receipt.headHash)
+        fail("HELD", "/2 transactions exist (or history moved at the migration point); an older plugin could not read them, so anchor rollback is refused.");
       let restored = 0;
       for (const row of receipt.old) {
         for (const [kind, expected] of [["tip", row.tip], ["publication", row.publication]] as const) {
@@ -755,7 +788,7 @@ export class SupervisionStore {
       this.cached = null;
       await rm(join(this.root, "projection-cache.json"), { force: true });
       const restoredScan = await this.scanFull();
-      if (restoredScan.problems.length || restoredScan.prefixDigest !== receipt.oldPrefixDigest)
+      if (restoredScan.problems.length || await this.prefixAt(restoredScan, receipt.sequence) !== receipt.oldPrefixDigest)
         fail("HELD", "Restored anchors do not revalidate against the pre-migration prefix; reconcile deliberately.");
       await this.saveCheckpoint(restoredScan);
       return { restored, sequence: restoredScan.sequence };
@@ -771,8 +804,10 @@ export class SupervisionStore {
       const receipt = await this.readAnchorMigration();
       if (!receipt) fail("HELD", "No anchor migration receipt; no backup to discard.");
       const snapshot = await this.scan();
-      if (snapshot.problems.length || snapshot.legacyAnchors || snapshot.transactions[receipt.sequence - 1]?.hash !== receipt.headHash)
-        fail("HELD", "Anchor backup discard needs a verified journal on /2 anchors bound to the migration receipt.");
+      if (snapshot.problems.length || snapshot.transactions[receipt.sequence - 1]?.hash !== receipt.headHash)
+        fail("HELD", "Anchor backup discard needs a verified journal bound to the migration receipt.");
+      // Point of no return: writing flips to /2 and any /1 tail migrates on the next writer.
+      this.formatPinnedLegacy = false;
       await rm(join(this.root, "anchor-migration.json"), { force: true });
       await rm(join(this.root, "anchor-backup"), { recursive: true, force: true });
       this.cached = null;
@@ -886,9 +921,13 @@ export class SupervisionStore {
       // Absorb our own just-published claim into the validated cache: the record's exact
       // contents are known and the exclusive publish just succeeded under this lock, so the
       // next read need not re-validate the whole journal for coordinator metadata it wrote.
-      if (this.cached) { const now = await this.directories(); if (this.onlyCoordinatorsMoved(now, this.cached.directories)) this.cached = { ...this.cached, scan: { ...this.cached.scan, coordinators: [...this.cached.scan.coordinators, record] }, directories: now }; }
+      // Snapshot the cache locally: a background audit failing on this same instance can
+      // clear this.cached between awaits; a claim must never crash on that race.
+      const cachedAtClaim = this.cached;
+      if (cachedAtClaim) { const now = await this.directories(); if (this.onlyCoordinatorsMoved(now, cachedAtClaim.directories)) this.cached = { ...cachedAtClaim, scan: { ...cachedAtClaim.scan, coordinators: [...cachedAtClaim.scan.coordinators, record] }, directories: now }; }
       // A freshly claimed writer's validated projection becomes the restart cache once per claim.
-      if (this.cached) await this.writeProjectionCache(this.cached.scan, this.cached.checkpoint, this.cached.directories);
+      const cachedForCache = this.cached;
+      if (cachedForCache) await this.writeProjectionCache(cachedForCache.scan, cachedForCache.checkpoint, cachedForCache.directories);
       return record.generation;
     });
   }
@@ -1294,7 +1333,7 @@ export class SupervisionStore {
       }
     }
   }
-  private async scanFull(options: { verifyAllProjections?: boolean; anchorPlan?: AnchorPlanEntry[] } = {}): Promise<Scan> {
+  private async scanFull(options: { verifyAllProjections?: boolean; anchorPlan?: AnchorPlanEntry[]; upto?: number } = {}): Promise<Scan> {
     const result: Scan = { frames: new Map(), transactions: [], sequence: 0, hash: null, problems: [], initialized: false, ownership: [], pending: null, bytes: 0, coordinators: [], prefixDigest: emptyPrefix, projection: emptyFrameDigest, projectionSet: projectionSetHash(emptyProjectionAcc()), projectionVector: "0".repeat(256), legacyAnchors: 0 };
     try {
       let names: string[];
@@ -1314,7 +1353,7 @@ export class SupervisionStore {
       result.bytes += await storageBytes(join(this.root, "blobs"), blobs);
       const durableNames = new Set(durable.map(n => basename(n)));
       if (durableNames.size !== durable.length) fail("HELD", "Duplicate transaction page identity.");
-      const sequences = [...new Set(durable.map(n => Number(basename(n).slice(0, 12))))].sort((a, b) => a - b);
+      const sequences = [...new Set(durable.map(n => Number(basename(n).slice(0, 12))))].sort((a, b) => a - b).filter(seq => options.upto === undefined || seq <= options.upto);
       // Retain independently checked capsules even when an earlier authority record is damaged.
       // Hash each checked capsule once. Rehashing every saved capsule for every anchor made a
       // scan quadratic in history size (and repeated gateway reads amplified that cost).
@@ -1579,16 +1618,16 @@ export class SupervisionStore {
   }
   /** Persist the just-validated projection as the restart cache. Best-effort and writable
    * writers only: the cache is a derived index, its absence only costs a full first scan. */
-  private async writeProjectionCache(snapshot: Scan, checkpoint: Checkpoint, directories: string): Promise<void> {
+  private async writeProjectionCache(snapshot: Scan, checkpoint: Checkpoint, directories: string, force = false): Promise<void> {
     if (!this.options.writable || !snapshot.initialized || snapshot.problems.length) return;
-    if (snapshot.sequence <= this.projectionCacheWritten) return;
+    if (!force && snapshot.sequence <= this.projectionCacheWritten) return;
     try {
       // The signature must name the cache file itself: it is usually captured before the file exists.
       const dirs = JSON.parse(directories) as string[][];
       if (!dirs[0]!.includes("projection-cache.json")) dirs[0] = [dirs[0]![0]!, dirs[0]![1]!, ...dirs[0]!.slice(2).concat("projection-cache.json").sort()];
       const value = ProjectionCacheSchema.parse(hashed({ format: "firstmate.supervision-projection-cache/1" as const, homeId: this.homeId,
         sequence: snapshot.sequence, transactionHash: snapshot.hash, prefixDigest: snapshot.prefixDigest, projection: snapshot.projection,
-        projectionSet: snapshot.projectionSet, projectionVector: snapshot.projectionVector, checkpoint, legacyAnchors: snapshot.legacyAnchors, directories: canonical(dirs), bytes: snapshot.bytes,
+        projectionSet: snapshot.projectionSet, projectionVector: snapshot.projectionVector, checkpoint, legacyAnchors: snapshot.legacyAnchors, directories: canonical(dirs), bytes: snapshot.bytes, ownershipDigest: ownershipDigestOf(snapshot.frames),
         frames: [...snapshot.frames.entries()], transactions: snapshot.transactions, ownership: snapshot.ownership }));
       await this.replaceFile(join(this.root, "projection-cache.json"), value);
       this.projectionCacheWritten = snapshot.sequence;
@@ -1620,6 +1659,15 @@ export class SupervisionStore {
         problems: [], initialized: true, ownership: file.ownership as Scan["ownership"], pending: null, bytes: 0,
         coordinators: await this.coordinators(), prefixDigest: file.prefixDigest, projection: file.projection,
         projectionSet: file.projectionSet, projectionVector: file.projectionVector, legacyAnchors: file.legacyAnchors };
+      // Verify the CONTENTS, never the cache's claims about them: recompute the projection
+      // and the ownership digest from the loaded frames and bind them to the checkpoint.
+      // A forged or edited cache file whose frames do not hash to the witnessed projection
+      // is rejected here and never served (the ordinary full scan decides instead).
+      const recomputedSet = projectionSetHash(projectionAccOf(scan.frames));
+      const v2Head = file.sequence > 0 && scan.transactions[file.sequence - 1]!.format.endsWith("/2");
+      const recomputedProjection = file.sequence === 0 ? emptyFrameDigest : v2Head ? recomputedSet : frameDigest(scan.frames);
+      if (recomputedSet !== file.projectionSet || recomputedProjection !== file.projection ||
+        recomputedProjection !== file.checkpoint.projectionHash || ownershipDigestOf(scan.frames) !== file.ownershipDigest) return false;
       // Light prefix pass: hash-verify each anchor without schema-parsing it (the audit does
       // that); batched reads keep it near a second even at thousands of transactions.
       {
@@ -1649,7 +1697,9 @@ export class SupervisionStore {
       const dirs = JSON.parse(file.directories) as string[][], nowDirs = JSON.parse(await this.directories()) as string[][];
       dirs[3] = nowDirs[3]!;
       await this.cache(scan, file.checkpoint, JSON.stringify(dirs));
-      this.cacheServed = { sequence: file.sequence, hash: file.transactionHash, prefixDigest: file.prefixDigest, projection: file.projection };
+      this.cacheServed = { sequence: file.sequence, hash: file.transactionHash, prefixDigest: file.prefixDigest, projection: file.projection,
+        transactionsDigest: digest(scan.transactions), ownershipDigest: digest(scan.ownership),
+        framesDigest: file.sequence > 0 && !v2Head ? recomputedProjection : frameDigest(scan.frames) };
       this.projectionCacheWritten = file.sequence;
       this.coldCacheTail = true;
       this.scheduleAudit();
@@ -1661,43 +1711,56 @@ export class SupervisionStore {
    * cache to the audited head; a dirty one poisons every instance of this journal so the next read runs the
    * ordinary checked scan and surfaces held with the exact problems. History moving under
    * the audit retries instead of judging a torn snapshot. */
-  private scheduleAudit(): void {
-    const audit = auditFor(this.root);
-    if (audit.running || this.migrating) return;
-    audit.running = true;
-    const running = (async () => {
+  private scheduleAudit(): void {    if (!this.cacheServed) return;
+    const state = auditFor(this.root);
+    if (state.failure) return;
+    if (state.running) {
+      // An audit of an earlier serve may cover less than this serve: chain one for ours.
+      if (state.target < this.cacheServed.sequence) void state.promise?.then(() => this.scheduleAudit());
+      return;
+    }
+    state.running = true; state.target = this.cacheServed.sequence;
+    const run = this.auditCacheServe().catch(() => undefined).finally(() => { state.running = false; state.promise = null; });
+    state.promise = run;
+  }
+  /**
+   * The one outstanding promise of a cache serve: re-verify every event, anchor and
+   * recorded /1 projection hash up to the SERVED prefix and compare the result against
+   * what was actually served - frames, transaction index and ownership, digested from
+   * the served objects, never the cache file's stored claims. The audit is bounded to
+   * the served sequence, so appends after it can neither disturb it nor make it give
+   * up; it always finishes, and a divergence (or an audit that cannot complete) holds
+   * every instance of this root in this process. Writes await a running audit, so a
+   * new transaction is never committed on top of unverified cache contents.
+   */
+  private async auditCacheServe(): Promise<void> {
+    const state = auditFor(this.root);
+    const served = this.cacheServed; if (!served) return;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (this.migrating) { await new Promise(r => setTimeout(r, 100)); continue; }
       try {
-        for (let attempt = 0; attempt < 3; attempt++) {
-          const before = await this.directories().catch(() => null);
-          const snapshot = await this.scanFull({ verifyAllProjections: true });
-          const after = await this.directories().catch(() => null);
-          if (!snapshot.initialized) return;
-          if (before !== after) continue;
-          const served = this.cacheServed;
-          let diverged = false;
-          if (served && snapshot.sequence >= served.sequence) {
-            if (served.sequence > 0 && snapshot.transactions[served.sequence - 1]?.hash !== served.hash) diverged = true;
-            if (snapshot.sequence === served.sequence && (snapshot.prefixDigest !== served.prefixDigest || snapshot.projection !== served.projection)) diverged = true;
-          }
-          if (snapshot.problems.length || diverged) {
-            audit.failure = snapshot.problems.length ? snapshot.problems :
-              ["Background audit: the audited history diverges from the restart cache that was served."];
-            this.cached = null;
-            return;
-          }
-          try {
-            const checkpoint = verifyHash(CheckpointSchema.parse(await readCanonical(join(this.root, "checkpoint.json"))));
-            if (digest(checkpoint) === digest(await this.checkpointFor(snapshot))) await this.writeProjectionCache(snapshot, checkpoint, before!);
-          } catch { /* derived cache only */ }
+        const snapshot = await this.scanFull({ verifyAllProjections: true, upto: served.sequence });
+        if (!snapshot.initialized) return;
+        const diverged = snapshot.sequence !== served.sequence || snapshot.hash !== served.hash ||
+          (served.sequence > 0 && snapshot.prefixDigest !== served.prefixDigest) || snapshot.projection !== served.projection ||
+          digest(snapshot.transactions) !== served.transactionsDigest || digest(snapshot.ownership) !== served.ownershipDigest ||
+          frameDigest(snapshot.frames) !== served.framesDigest;        if (snapshot.problems.length || diverged) {
+          if (!snapshot.problems.length) state.divergence = "Background audit: the verified journal prefix does not match the restart cache that was served.";
+          state.failure = snapshot.problems.length ? snapshot.problems :
+            ["Background audit: the verified journal prefix does not match the restart cache that was served."];
           return;
         }
-      } catch {
-        audit.failure = ["Background journal audit failed; full validation is required before serving again."];
-        this.cached = null;
-      } finally { audit.running = false; }
-    })();
-    // The audit reports through auditFailure on the next read, never as an unhandled rejection.
-    void running.catch(() => {});
+        // Audited truth replaces the cache file at the served sequence (never a re-entrant
+        // scan on the serving instance). If the head has since moved, the next writer claim
+        // or checked scan refreshes it instead; load-time recomputation guards every serve.
+        try {
+          const checkpoint = await this.checkpointFor(snapshot);
+          if (digest(await this.readCheckpoint()) === digest(checkpoint))
+            await this.writeProjectionCache(snapshot, checkpoint, await this.directories(), true);
+        } catch { /* derived cache only */ }
+        return;
+      } catch { if (attempt === 2) { state.failure = ["Background journal audit could not complete; the journal is unverified."]; } }
+    }
   }
   private async checkedFullScan(options: { verifyAllProjections?: boolean; anchorPlan?: AnchorPlanEntry[] } = {}): Promise<Scan> {
     this.cached = null;
@@ -1708,9 +1771,13 @@ export class SupervisionStore {
       if (digest(checkpoint) !== digest(await this.checkpointFor(snapshot)) || before !== await this.directories())
         fail("HELD", "Checkpoint is stale or mismatches the validated prefix; explicit index recovery required.");
       const validated = await this.cache(snapshot, checkpoint, before, await this.blobIdentities());
-      auditFor(this.root).failure = null;
-      await this.writeProjectionCache(snapshot, checkpoint, before);
-      return validated;
+      // A cache-versus-journal divergence stays held for this process even though the
+      // journal itself validates: the cache file below is healed from truth, but the
+      // forgery must surface loudly instead of silently resuming as if nothing happened.
+      const auditState = auditFor(this.root);
+      if (!auditState.divergence) auditState.failure = null;
+      await this.writeProjectionCache(snapshot, checkpoint, before, !!auditState.divergence);
+      return auditState.divergence ? { ...validated, problems: [auditState.divergence] } : validated;
     } catch (error) {
       snapshot.problems.push(`Checkpoint validation failed; full history was checked, admissions held until explicit recovery: ${String(error)}`);
       // Keep independent ownership reservations, but do not expose an unaccepted projection.
@@ -1944,6 +2011,14 @@ export class SupervisionStore {
     });
   }
   private async commit(snapshot: Scan, body: z.infer<typeof BodySchema>, requestId: string, requestHash: string): Promise<SupervisionReceipt> {
+      // A write never lands on top of unverified cache contents: wait out a running
+      // restart audit first (a failed audit then holds this commit through scan()).
+      const pendingAudit = auditFor(this.root).promise;
+      if (pendingAudit) {
+        await pendingAudit;
+        const auditFailure = auditFor(this.root).failure;
+        if (auditFailure) fail("HELD", `Restart audit failed: ${auditFailure.join(" ")}`);
+      }
       // Both transaction entry points must publish a replay marker for this exact request.
       checkInboxRequest(body.mutations, requestId);
       this.writable();
@@ -1965,7 +2040,11 @@ export class SupervisionStore {
       const oldPending = inboxProjection(snapshot.frames).assignments.filter(a => a.primaryEventId === a.id && !terminal(a)).length;
       if (pending > oldPending && pending > (this.options.maxPendingEvents ?? INBOX_LIMITS.pending)) fail("HELD", "Pending event alarm; ingress baseline has not advanced.");
       await this.checkBlobs(body.mutations);
-      const version: 1 | 2 = this.options.legacyFormat ? 1 : 2;
+      // While the migration backup is retained, new records stay in /1 form: the rollback
+      // window (an older plugin reading this journal again) stays genuinely open until an
+      // operator discards the backup, which flips writing to /2 for good.
+      if (this.formatPinnedLegacy === null) this.formatPinnedLegacy = await this.anchorBackupRetained();
+      const version: 1 | 2 = this.options.legacyFormat || this.formatPinnedLegacy ? 1 : 2;
       const nextProjectionAcc = advanceProjection({ vector: Buffer.from(snapshot.projectionVector, "hex"), count: snapshot.frames.size }, snapshot.frames, next.frames, next.changes);
       const projectionSet = projectionSetHash(nextProjectionAcc);
       const event = hashed({ format: version === 2 ? "firstmate.supervision-transaction/2" as const : "firstmate.supervision-transaction/1" as const, homeId: this.homeId,
