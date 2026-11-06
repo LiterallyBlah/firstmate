@@ -211,9 +211,20 @@ answering whatever is pending now.
 
 - `answer: {requestId, action: "deny", message}` — the worker sees the denial and your words, and
   carries on with them.
+- `answer: {requestId, action: "deny", message, interrupt: true}` — the safe stop: the worker is
+  denied and its turn interrupted, so it does not carry on. This is the one answer that stays open
+  under holds (a held or invalidated node, a policy or configuration hold, a host that moved off its
+  qualified version pair) and in every plan mode, because it grants nothing.
 - `answer: {requestId, action: "allow", input}` — **Claude questions (`AskUserQuestion`) only**, with
   the question `--input` JSON. For any other tool, allow would replace what the tool runs, so it is
   refused here. There is no `--all` and no blanket allow; the bridge refuses `--all` too.
+- `allow` and a plain deny **continue the worker's turn**, so the gateway admits them like new work:
+  holds, plan and node state, policy, plan rules and the qualified version pair all recheck at the
+  dispatch claim, and a hold refuses them (use the safe stop, or wait for the hold to lift). They
+  also follow the plan's mode like any decision, enforced at proposal and at the claim: under
+  `captain` — and on an effect-marked node whose effect the mode gives to the Captain (a pivotal live
+  step, or installation/access/discard/spend in every mode) — a continuing answer is refused and you
+  escalate the request as a plan decision instead.
 - Judge from what the CLI can give: the request's tool name, the worker's `recentTools` and its logs,
   all in the observation that woke you. The request input itself never crosses the bridge, so a remote
   permission judgment is weaker than a local one. If you cannot judge it on that, do not stall and do

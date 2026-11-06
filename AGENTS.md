@@ -138,14 +138,20 @@ operation (`gateway.proposePermit`, scope kind `permit-worker`): bound owner onl
 pinned with its tool (the CLI passes no request input; tool name, `recentTools` and logs in the
 observation payload are the context), deny with `--message` or allow with `--input` for
 `AskUserQuestion` only, the pending request reread at the claim, uncertain never resent, and the
-bridge refuses `permit --all`. A permission the Supervisor cannot judge is escalated as a decision
-under the plan's mode (reserved effects always captain); guides are `data/supervisors.md`'s remote
+bridge refuses every blanket permit form (`--all`, `--all=…`, or no request ID). `allow` and a plain
+deny continue the worker's turn, so they are new work at the claim (holds, plan/node state, policy,
+plan rules, qualified pair) and follow the plan's mode (`checkPermitAuthority`, at proposal and at
+the claim; a bound PR takes the binding-stability rule in `prepareAdmission`, never an exact-head
+reread); only deny with `--interrupt` is the safe stop, open under holds and in every mode. A
+permission the Supervisor cannot judge, or whose mode gives it to the captain, is escalated as a
+decision under the plan's mode (reserved effects always captain); guides are `data/supervisors.md`'s remote
 section, `data/remote-access.md` and `data/workflows.md`. Live steps (release/deploy/live-action) are
 effect-marked remote worker nodes: reservation already refuses before the same-effect gate is
 answered (`checkNewWorkflowAction`), and the gateway rechecks the answered gate at the final claim
 on any host; reserved once, idempotent-or-evident by brief, `landed` only from evidence, a second
 release a new node or revision. `refuseScopedRemoteMutation` still refuses captain steer/interrupt/end
-for scoped remote workers. The Supervisors list and plan-help/Attach review show each plan's worker
+for scoped remote workers, and the mate helper's queue (`RemoteService` helper origin) refuses its
+send/stop/permit/archive for them too; the gateway's own receiver calls without that origin. The Supervisors list and plan-help/Attach review show each plan's worker
 hosts (`workerHosts`, labelled from the remote catalog) and ownership mode
 (`planMode`/`modeLabel` from `supervisorList` and `activationSnapshot`).
 

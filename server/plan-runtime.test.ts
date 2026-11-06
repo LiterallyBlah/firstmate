@@ -26,7 +26,9 @@ import { WatchConfigStore } from "./watch-config";
 import { pluginDir } from "./data-dir";
 import { watchPolicyDigest } from "./supervision-source-state";
 import { cutoverGate } from "./supervision-gate";
-import { FakeCliBridge } from "../test/fake-remote-bridge";
+import { FakeCliBridge, REMOTE_CWD, REMOTE_HOST } from "../test/fake-remote-bridge";
+import { SupervisionGateway } from "./supervision-effects";
+import { SupervisionRemoteReceiver } from "./supervision-remote-receiver";
 
 async function fixture(realOwners = false) {
   const f = await s04Fixture(), scopes: ScopeHandle[] = [];
@@ -297,6 +299,49 @@ it("production final admission rereads a bound PR and refuses a moved head befor
       attempt: started.attemptId!, state: "done", evidence: "Old-head report cannot earn completion" }), planRules: ruleRef(f.records[0]!), head: "a".repeat(40) })).rejects.toThrow("bound PR head");
     expect(f.receiver.calls).toHaveLength(0); await checked.stop();
   } finally { await f.service.stop(); await f.runtime.stop(); }
+});
+it("production admission answers a remote worker's permission with a bound PR, while a headless start effect still refuses", async () => {
+  const f = await s04Fixture(), bridge = new FakeCliBridge();
+  const scope = await f.addScope(7, "permit-pr", ["pp-trial"], true, REMOTE_HOST);
+  await f.draft(scope, [{ id: "pp-trial" }], true); // firstmate mode: the Supervisor answers directly
+  const pairs = [{ cliVersion: "0.14.0", daemonVersion: "0.14.0" }];
+  const setupReceiver = new SupervisionRemoteReceiver(bridge, REMOTE_HOST, async () => REMOTE_CWD, { cliVersion: async () => "0.14.0" });
+  const setup = new SupervisionGateway(f.store, f.commands, f.home, f.receiver,
+    { enabled: true, receiverFor: host => host === REMOTE_HOST ? setupReceiver : undefined, remotePairs: pairs });
+  const started = await setup.startWorker(await f.input(scope, { op: "start", plan: scope.planId, node: "pp-trial" }), scope.owner);
+  await setup.dispatch(started.effects!.workspace); await setup.dispatch(started.effects!.create);
+  await setup.verifyWorker(started.attemptId!);
+  const agentId = [...bridge.agents.keys()][0]!;
+  await new SupervisionSources(f.store).bindPullRequest({ scopeId: scope.id, attemptId: started.attemptId!, repository: "me/web", pr: 42 });
+  // The production composition: rules, production prepareAdmission/admissionCheck, production receiverFor.
+  const runtime = new SupervisionRuntime(join(f.home, "store"), () => f.store); await runtime.mutate(f.home, async () => {});
+  let prReads = 0;
+  const service = new PlanRuntime(runtime, { enabled: true, slots: 10,
+    config: async () => FirstmateConfigSchema.parse({ home: f.home, mateAgentId: "general" }), receiver: () => f.receiver,
+    remotePairs: pairs, remoteCliVersion: async () => "0.14.0",
+    readPr: async () => { prReads++; throw new Error("permit admission must not reread the PR head"); } });
+  try {
+    service.useRemoteBridge(bridge);
+    const api = { agents: { list: vi.fn(async () => ({ entries: [], pageInfo: { hasMore: false } })) } } as unknown as PaseoApi;
+    const c = service.compose(f.store, f.home, "general", api);
+    const s = await f.store.read(), plan = s.plans.find(p => p.scopeId === scope.id)!.plan, na = { applies: false, reason: "Bounded fixture." };
+    const record = PlanRuleRecordSchema.parse({ format: "firstmate.plan-rules/1", id: stableId("plan-rules", s.homeId, scope.planId, plan.revision), version: 1,
+      homeId: s.homeId, scopeId: scope.id, planId: scope.planId, revision: plan.revision, sources: [policyRef("policy-source", s.policySources[0]!)],
+      supervisorLimits: { sessions: 1, turns: 8 },
+      nodes: [{ nodeId: "pp-trial", checks: [{ id: "unit", command: "node check.mjs", passCriterion: "exit zero" }], design: na, performance: na, longRun: na, heavyTests: na }] });
+    await c.rules.import(randomUUID(), record, { kind: "mate-chat", id: "general", source: "fixture rules import" });
+    // Negative control: the still-reserved send (no admissionHead) keeps the exact-head refusal.
+    await expect(c.gateway.dispatch(started.effects!.send)).rejects.toMatchObject({ code: "HELD", message: expect.stringContaining("exact selected source head") });
+    // The permit answer takes its suited rule instead: no head is pinned and none is reread.
+    bridge.addPermission(agentId, "permission-1", "Write");
+    const permit = await c.gateway.proposePermit({ scopeId: scope.id, epoch: 1, attemptId: started.attemptId!, causation: "permit:permission-1",
+      requestId: randomUUID(), answer: { requestId: "permission-1", action: "deny", message: "Stay in the worktree." } }, scope.owner);
+    expect(permit.admissionHead).toBeUndefined();
+    expect(await c.gateway.dispatch(permit.id)).toMatchObject({ state: "succeeded", receiptRef: "permitted:deny:permission-1" });
+    expect(prReads).toBe(0);
+    expect(bridge.calls.filter(args => args[0] === "permit" && args[1] === "deny"))
+      .toEqual([["permit", "deny", agentId, "permission-1", "--message", "Stay in the worktree.", "--json"]]);
+  } finally { await service.stop(); await runtime.stop(); }
 });
 it("the worker project resolver refuses a host mismatch in both directions", async () => {
   const f = await s04Fixture(), scope = await f.addScope(9, "resolver", ["node"], true, "srv_remote");

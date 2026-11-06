@@ -13,12 +13,17 @@ export const RELEASE_OPERATIONS = ["merge", "deploy", "discard", "publish", "rel
  * `--input` would replace what the tool runs, so it is never answered directly; it is denied or escalated. */
 export const REMOTE_QUESTION_TOOL = "AskUserQuestion";
 /** One exact remote permission answer. Deny carries the words the worker carries on with; allow carries
- * the `--input` JSON for a Claude question only. There is no `--all` and no blanket allow. */
+ * the `--input` JSON for a Claude question only. There is no `--all` and no blanket allow.
+ * A deny with `interrupt` is a safe stop (the CLI's `permit deny --interrupt`): the worker does not
+ * carry on, so it stays available under new-work holds and in every plan mode. `allow` and a plain
+ * deny continue the worker's turn: they are new work and a decision, and the gateway treats them so. */
 export const PermitAnswerSchema = z.discriminatedUnion("action", [
-  z.object({ requestId: z.string().min(1).max(256), action: z.literal("deny"), message: z.string().trim().min(1).max(4000) }).strict(),
+  z.object({ requestId: z.string().min(1).max(256), action: z.literal("deny"), message: z.string().trim().min(1).max(4000), interrupt: z.boolean().optional() }).strict(),
   z.object({ requestId: z.string().min(1).max(256), action: z.literal("allow"), input: z.string().trim().min(1).max(8000) }).strict(),
 ]);
 export type PermitAnswer = z.infer<typeof PermitAnswerSchema>;
+/** True only for the safe-stop answer: a deny that also interrupts the worker's turn. */
+export const permitStopsWork = (answer: PermitAnswer): boolean => answer.action === "deny" && answer.interrupt === true;
 /** One pending permission as the CLI reports it: request ID and tool name; the request input never crosses. */
 export interface PendingPermission { id: string; tool: string }
 

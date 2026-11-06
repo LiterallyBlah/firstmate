@@ -4,7 +4,7 @@ import type { Dirent } from "node:fs";
 import { mkdir, readFile, readdir, rename, writeFile, stat, rm } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { z } from "zod";
-import { PlanId, PlanLaunchSchema, PlanDefinitionSchema, PlanPostureSourceSchema, WorkflowCommandSchema, captainReviewRequired, decisionOwner, planOwner, planMode, planEscalate, planLiveSteps, modeOwner, planModeLabel, quotes, sameWords, type PlanMode, planAwaitingReview, planFinished, planPosture, planProblems, planSpent, planWorstCase, type AgendaItem, type PlanDefinition, type WorkflowCommand, type WorkflowPlan, type PlanNode } from "../shared/workflow-plans";
+import { PlanId, PlanLaunchSchema, PlanDefinitionSchema, PlanPostureSourceSchema, WorkflowCommandSchema, captainReviewRequired, decisionOwner, liveGateAnswered, planOwner, planMode, planEscalate, planLiveSteps, modeOwner, planModeLabel, quotes, sameWords, type PlanMode, planAwaitingReview, planFinished, planPosture, planProblems, planSpent, planWorstCase, type AgendaItem, type PlanDefinition, type WorkflowCommand, type WorkflowPlan, type PlanNode } from "../shared/workflow-plans";
 import { readPlanPosture } from "./workflow-posture";
 import { digest, digestCached, publish } from "./submissions";
 import { serialized } from "./serialize";
@@ -174,10 +174,8 @@ export function checkNewWorkflowAction(command: WorkflowCommand, previous: Workf
   if (command.op === "revise" && planOwner(previous) === "firstmate") assertDelegatedRevision(previous, command.definition, plans);
   if (command.op === "start") {
     const node = previous.definition.nodes.find(n => n.id === command.node);
-    if (node?.kind === "run" && node.effect && !node.after.some(edge => {
-      const gate = previous.definition.nodes.find(n => n.id === edge.node);
-      return edge.on === "answered" && gate?.kind === "decision" && gate.effect === node.effect && !!previous.nodes[gate.id]?.answer;
-    })) throw new Error(`This ${node.effect} step needs its answered ${node.effect} decision before it starts.`);
+    if (node?.kind === "run" && node.effect && !liveGateAnswered(previous, node))
+      throw new Error(`This ${node.effect} step needs its answered ${node.effect} decision before it starts.`);
   }
   if (command.op === "start" && planOwner(previous) === "firstmate") {
     const node = previous.definition.nodes.find(n => n.id === command.node);

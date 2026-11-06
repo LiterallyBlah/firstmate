@@ -263,7 +263,10 @@ export class PlanRules {
       stage: c.op === "record" || c.op === "close" || c.op === "validate" ? "completion" : "dispatch" });
   }
   async effect(s: SupervisionStatus, e: SupervisionEffect) {
-    if (!e.attemptId || ["agent.interrupt", "agent.archive", "agent.permit"].includes(e.operation)) return;
+    // Interrupt/archive stop work and need no rule admission. A permit effect reaches here only for a
+    // continuing answer (the gateway skips this for the deny-with-interrupt safe stop), and its
+    // proposal pinned the plan's current rule record and subject like a start.
+    if (!e.attemptId || ["agent.interrupt", "agent.archive"].includes(e.operation)) return;
     const a = s.attempts.find(a => a.id === e.attemptId), t = s.tasks.find(t => t.id === a?.taskId);
     if (!t) throw new SupervisionError("HELD", "Rule admission requires the retained task.");
     const p = s.plans.find(p => p.plan.definition.id === t.planId)?.plan;

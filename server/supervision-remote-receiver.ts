@@ -193,12 +193,13 @@ export class SupervisionRemoteReceiver implements GatewayReceiver {
     if (answer.action === "allow") {
       const pending = await this.listPermissions(agentId);
       const request = pending.find((row) => row.id === answer.requestId);
-      if (!request) throw new Error("The exact permission request is no longer pending; retain uncertainty.");
+      // Nothing was sent yet: this is a definite refusal, not an uncertain outcome.
+      if (!request) throw new ReceiverRejected("The exact permission request is no longer pending; nothing was sent.", "refused");
       if (request.tool !== REMOTE_QUESTION_TOOL)
         throw new ReceiverRejected(`Remote allow answers ${REMOTE_QUESTION_TOOL} questions only; ${request.tool} is denied or escalated, never allowed directly.`, "unsupported");
     }
     const args = answer.action === "deny"
-      ? ["permit", "deny", agentId, answer.requestId, "--message", answer.message]
+      ? ["permit", "deny", agentId, answer.requestId, "--message", answer.message, ...(answer.interrupt ? ["--interrupt"] : [])]
       : ["permit", "allow", agentId, answer.requestId, "--input", answer.input];
     const result = rows(await this.call(args));
     if (result.length && !result.some((row) => text(row.requestId, row.id) === answer.requestId && text(row.agentId) === agentId))

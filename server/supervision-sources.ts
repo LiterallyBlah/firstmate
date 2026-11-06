@@ -585,7 +585,7 @@ export function isScopedSourceWorker(status: SupervisionStatus, hostId: string, 
 /** Remote mutation of scoped work is disabled until S11's qualified receiver contract. */
 export function refuseScopedRemoteMutation(status: SupervisionStatus, serverId: string, agentId: string): void {
   if (isScopedSourceWorker(status, serverId, agentId)) throw new SupervisionError("UNSUPPORTED",
-    "This remote worker belongs to a scoped supervisor. Remote steer, interrupt and end stay disabled until a qualified receiver contract exists.");
+    "This remote worker belongs to a scoped supervisor. Remote steer, interrupt, end and permission answers stay disabled here; they are the Supervisor's through the checked gateway.");
 }
 
 // ---- Scoped board steer -------------------------------------------------------------------------

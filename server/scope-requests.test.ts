@@ -73,7 +73,7 @@ describe("S04 legacy/scoped dispatch partition", { timeout: 60000 }, () => {
   it("permit-worker answers one exact remote permission through the gateway; the global mate cannot use it", async () => {
     const fx = await s04Fixture(), bridge = new FakeCliBridge();
     const scope = await fx.addScope(3, "permit-plan", ["p-trial"], true, REMOTE_HOST);
-    await fx.draft(scope, [{ id: "p-trial" }]);
+    await fx.draft(scope, [{ id: "p-trial" }], true); // firstmate mode: the Supervisor answers directly
     const receiver = new SupervisionRemoteReceiver(bridge, REMOTE_HOST, async () => REMOTE_CWD, { cliVersion: async () => "0.14.0" });
     const gateway = new SupervisionGateway(fx.store, fx.commands, fx.home, fx.receiver,
       { enabled: true, receiverFor: host => host === REMOTE_HOST ? receiver : undefined, remotePairs: [{ cliVersion: "0.14.0", daemonVersion: "0.14.0" }] });

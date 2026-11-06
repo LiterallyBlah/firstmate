@@ -65,12 +65,27 @@ export function commandArguments(args: string[], owner: string): string[] {
   if (options.some((arg, i) => (arg === "--label" && /^firstmate\.(?:owner|role)=/.test(options[i + 1] ?? "")) || /^--label=firstmate\.(?:owner|role)=/.test(arg))) throw new Error("Reserved ownership label");
   // The CLI's own --prompt-file would read any file the daemon can; the helper's reads only the home.
   if (options.some((arg) => /^--prompt-file(?:=|$)/.test(arg))) throw new Error("Use the helper's --prompt-file, which reads the file from the home");
-  // A permission answer names one exact request. `--all` would answer every pending request of the agent.
-  if (command === "permit" && options.some((arg) => arg === "--all")) throw new Error("Remote permissions are answered one exact request at a time; --all is refused");
+  // A permission answer names one exact request. `--all` (either spelling) would answer every pending
+  // request of the agent, and so would an allow/deny with no request ID — both blanket forms refuse.
+  if (command === "permit" && options.some((arg) => /^--all(?:=|$)/.test(arg))) throw new Error("Remote permissions are answered one exact request at a time; --all is refused");
+  if (command === "permit" && (options[1] === "allow" || options[1] === "deny")) {
+    const agent = options[2], requestId = options[3];
+    if (!agent || agent.startsWith("-") || !requestId || requestId.startsWith("-"))
+      throw new Error("Remote permissions are answered one exact request at a time; name the agent and the exact request ID");
+  }
   if (command === "run") options.push("--no-wait", "--label", "firstmate.role=crew", "--label", `firstmate.owner=${owner}`);
   if (command === "send") options.push("--no-wait");
   if (!options.includes("--json")) options.push("--json");
   return end < 0 ? options : [...options, ...args.slice(end)];
+}
+/** The agent a mutating remote command targets, or null for reads and creations. The helper queue
+ * refuses these for scoped workers (they are their Supervisor's, through the checked gateway);
+ * the gateway's own receiver and the board's already-guarded path do not take the helper origin. */
+export function remoteMutationAgent(args: string[]): string | null {
+  const positional = (value: string | undefined) => value && !value.startsWith("-") ? value : null;
+  if (["send", "stop", "archive"].includes(args[0] ?? "")) return positional(args[1]);
+  if (args[0] === "permit" && (args[1] === "allow" || args[1] === "deny")) return positional(args[2]);
+  return null;
 }
 const MAX_ERROR_CHARS = 1500;
 /** More than a few minutes: the delay of a remote run can never account for it. */
@@ -165,6 +180,8 @@ export class RemoteService {
     private readonly execute = runPaseo,
     private readonly taskQueries: (host: RemoteHost) => Promise<string[]> = async () => [],
     private readonly observedPoll?: (snapshot: RemoteSnapshot) => void,
+    /** Refuses helper-queue mutations of scoped workers; absent means no scoped journal is wired. */
+    private readonly scopedGuard?: (serverId: string, agentId: string) => Promise<void>,
   ) { this.ready = this.load(); }
   private async load() {
     await mkdir(pluginDir(), { recursive: true });
@@ -244,12 +261,19 @@ export class RemoteService {
     if (/password|unauthori[sz]ed|authentication/i.test(reason)) reason = "authentication failed";
     throw new RemoteConnectRefused(`Host unreachable or authentication failed; reconnect it in Paseo${reason ? ` (last attempt: ${reason.slice(0, 500)})` : ""}`);
   }
-  async request(selector: string, args: string[]): Promise<unknown> {
+  /** `helper` marks the mate-helper queue origin: scoped workers refuse there, exactly as on the
+   * board. The checked gateway's remote receiver calls without it — answering its own workers'
+   * permissions is its job, already admitted inside its dispatch claim. */
+  async request(selector: string, args: string[], origin?: { helper?: boolean }): Promise<unknown> {
     await this.ready;
     const matches = this.hosts.filter((host) => host.serverId === selector || host.label === selector);
     if (matches.length !== 1) throw new Error("Host is unknown or its name is ambiguous; use its serverId from hosts");
     const host = matches[0]!;
     const command = commandArguments(args, this.owner);
+    if (origin?.helper && this.scopedGuard) {
+      const agent = remoteMutationAgent(command);
+      if (agent) await this.scopedGuard(host.serverId, agent);
+    }
     const connection = await this.connect(host);
     // Exactly one attempt once a command may change remote state. A timeout
     // is uncertain; never retry creation automatically.
@@ -459,7 +483,7 @@ export class RemoteService {
         let response;
         try {
           if (Date.now() - request.createdAt > 180000) throw new Error("Request expired before execution");
-          response = { id: request.id, ok: true, result: await this.request(request.host, request.args) };
+          response = { id: request.id, ok: true, result: await this.request(request.host, request.args, { helper: true }) };
         } catch (error) { response = { id: request.id, ok: false, error: error instanceof Error && !/password|#offer=|relay:\/\//i.test(error.message) ? error.message : "Remote command failed" }; }
         const warning = this.clockWarning(request.host);
         await atomic(join(remoteQueue(), `${request.id}.response.json`), warning ? { ...response, warning } : response);

@@ -14,10 +14,10 @@ import { readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { CREW_LABELS } from "../shared/fleet";
 import type { SupervisionActor, SupervisionAttempt, SupervisionEffect, SupervisionExpected, SupervisionScope, SupervisionStatus, SupervisionTask } from "../shared/supervision";
-import type { PlanLaunch, WorkflowPlan } from "../shared/workflow-plans";
+import { effectOwner, liveGateAnswered, modeOwner, planMode, type PlanLaunch, type PlanNode, type WorkflowPlan } from "../shared/workflow-plans";
 import type { VersionRef } from "../shared/supervision-policy";
 import {
-  AgentProfileSchema, EffectCauseSchema, GatewayOperation, PermitAnswerSchema, QUALIFIED_REMOTE_PAIRS, RELEASE_OPERATIONS, REMOTE_PROMPT_MAX_CHARS, REMOTE_QUESTION_TOOL, ReceiverCapabilitiesSchema, SCOPE_KIND_LABEL, SCOPE_LABELS, SUPERVISOR_ROLE, qualifiedRemote, supervisorKind, supervisorRoleKind,
+  AgentProfileSchema, EffectCauseSchema, GatewayOperation, PermitAnswerSchema, QUALIFIED_REMOTE_PAIRS, RELEASE_OPERATIONS, REMOTE_PROMPT_MAX_CHARS, REMOTE_QUESTION_TOOL, ReceiverCapabilitiesSchema, SCOPE_KIND_LABEL, SCOPE_LABELS, SUPERVISOR_ROLE, permitStopsWork, qualifiedRemote, supervisorKind, supervisorRoleKind,
   type PendingPermission, type PermitAnswer,
   WorkspaceReceiptSchema, type AgentObservation, type AgentProfile, type EffectCause, type GatewayReceiver,
   type QualifiedRemotePair, type ReceiverCapabilities, type WorkspaceIntent, type WorkspaceReceipt,
@@ -27,7 +27,7 @@ import { digest } from "./submissions";
 import { SupervisionError, type SupervisionMutation, type SupervisionStore } from "./supervision-store";
 import { checkDependencyRoute, type ScopedPlanCommand, type SupervisionCommands } from "./supervision-commands";
 import { applicableRules, checkPolicySource, currentPolicyVector, policyRef, sameVector, type PolicyTarget } from "./supervision-policy";
-import { ruleSubjectHash, type PlanRules } from "./plan-rules";
+import { ruleRef, ruleSubjectHash, type PlanRules } from "./plan-rules";
 import { replaySupervisionWorkflow } from "./supervision-workflows";
 
 /** Thrown by a receiver only when it definitely refused before admitting the request (server-only: no class in shared code). */
@@ -68,6 +68,24 @@ export function parsePermitPayload(text: string): PermitAnswer & { tool: string 
   const answer = PermitAnswerSchema.safeParse(row.answer);
   if (!answer.success || typeof row.tool !== "string" || !row.tool) refuse("HELD", "Permit payload is corrupt.");
   return { ...answer.data, tool: row.tool };
+}
+/** Who may answer a worker's permission directly, under the plan's mode like any decision: a worker on
+ * an effect-marked node follows that effect's owner (reserved effects — installation, access, discard,
+ * spend — stay with the captain in every mode; live steps are pivotal under `firstmate-pivotal` unless
+ * recorded routine), and any other worker follows the mode's owner. No readable plan fails closed. */
+export function permitAnswerOwner(plan: WorkflowPlan | null | undefined, node: PlanNode | undefined): "captain" | "firstmate" {
+  if (!plan) return "captain";
+  if (node?.kind === "run" && node.effect) return effectOwner(plan, node.effect);
+  return modeOwner(planMode(plan));
+}
+/** A continuing answer (`allow`, or a plain deny whose words the worker carries on with) is a decision:
+ * when the plan's mode gives it to the captain the Supervisor must not answer directly — it escalates
+ * the request as a plan decision instead. The safe stop (deny with interrupt) grants nothing and
+ * stays open in every mode. Checked at proposal and again inside the final dispatch claim. */
+export function checkPermitAuthority(plan: WorkflowPlan | null | undefined, node: PlanNode | undefined, answer: PermitAnswer): void {
+  if (permitStopsWork(answer)) return;
+  if (permitAnswerOwner(plan, node) !== "captain") return;
+  refuse("HELD", "This permission answer belongs to the captain under the plan's mode; escalate it as a plan decision instead of answering directly. Deny with interrupt stays available as the safe stop.");
 }
 export function requireGatewayOperation(operation: string): GatewayOperation {
   if ((RELEASE_OPERATIONS as readonly string[]).includes(operation)) refuse("UNSUPPORTED", "Release operations have no S04 adapter, even with an approved plan.");
@@ -344,7 +362,12 @@ export class SupervisionGateway {
     if (effect.state === "succeeded") return effect;
     if (["dispatching", "uncertain", "accepted"].includes(effect.state)) refuse("UNCERTAIN", "This effect may already have crossed its boundary; reconcile it, never resend.");
     if (effect.state !== "reserved") refuse("HELD", `Effect is ${effect.state}; a new step needs a new logical cause.`);
-    const stopping = ["agent.interrupt", "agent.archive", "agent.permit"].includes(effect.operation);
+    // A permit answer is pinned at proposal; read it now, because only the safe stop (deny with
+    // interrupt) is a stopping answer. `allow` and a plain deny continue the worker's turn, so they
+    // take the policy fence and every new-work check below like any other continuing effect.
+    const permitAnswer = effect.operation === "agent.permit" ? parsePermitPayload(await this.payload(effect)) : undefined;
+    const stopping = ["agent.interrupt", "agent.archive"].includes(effect.operation) ||
+      (permitAnswer !== undefined && permitStopsWork(permitAnswer));
     const fence = stopping ? undefined : await this.options.policyFence?.capture(effect);
     const operation = requireGatewayOperation(effect.operation);
     // Receiver and file reads happen before the writer lock; the claim then rechecks against them.
@@ -358,10 +381,10 @@ export class SupervisionGateway {
       ? pre.effects.find(e => e.attemptId === effect.attemptId && e.operation === "agent.send") : undefined;
     const text = operation === "agent.send" ? await this.payload(effect) : sendSibling ? await this.payload(sendSibling) : null;
     const inventoryKey = operation === "agent.archive" && target ? await this.checkInventory(capabilities, target, effect.receiverKey, receiver) : null;
-    const validate = operation === "agent.interrupt" || operation === "agent.archive" ? undefined : await this.options.prepareAdmission?.(effect);
+    const validate = stopping ? undefined : await this.options.prepareAdmission?.(effect);
     // A permit answer is pinned at proposal; the pending list is reread so the claim can refuse a
     // request that was already answered (or never existed) instead of answering whatever is pending now.
-    const permitAnswer = operation === "agent.permit" ? parsePermitPayload(await this.payload(effect)) : undefined;
+    // (the pinned permit answer itself was read above, before the fence)
     const permissions = operation === "agent.permit" && target && receiver.listPermissions ? await receiver.listPermissions(target) : undefined;
     // Production filesystem/project preparation can yield. Finish it before the fence,
     // then use only a native-initiating function under the claim/policy boundary.
@@ -411,7 +434,10 @@ export class SupervisionGateway {
     if (status.freshness !== "current" || status.storage.admissionsHeld) refuse("HELD", "Store is held; no new external effect.");
     if (!scope || !binding || binding.epoch !== effect.epoch || ["retired", "suspect"].includes(binding.state)) refuse("STALE", "The effect's owner epoch is no longer current.");
     if (!isLocalHost(binding.hostId)) refuse("UNSUPPORTED", "A remote Supervisor binding is unsupported; Supervisors stay local.");
-    const supervisor = effect.attemptId === null, stopping = operation === "agent.interrupt" || operation === "agent.archive" || operation === "agent.permit";
+    // Only interrupt, archive and the permit safe stop (deny with interrupt) stop work. A continuing
+    // permit answer (`allow`, plain deny) is new work: every hold below applies to it.
+    const supervisor = effect.attemptId === null, stopping = operation === "agent.interrupt" || operation === "agent.archive" ||
+      (operation === "agent.permit" && fresh.permitAnswer !== undefined && permitStopsWork(fresh.permitAnswer));
     if (!stopping) await this.options.admissionCheck?.(status, effect);
     if (!stopping) await this.options.rules?.effect(status, effect);
     if (!stopping) fresh.validate?.(status);
@@ -455,14 +481,17 @@ export class SupervisionGateway {
       else if (!stopping) {
         if (plan.status !== "active" || !["starting", "running"].includes(node.state) || node.held || node.invalidated)
           refuse("HELD", "The node is no longer an admitted, live start.");
-        checkDependencies(status, effect, definition.after, scope.id);
+        // A continuing permit answer follows the plan's mode, rechecked here in case ownership
+        // transferred after the proposal. (The safe stop never reaches this new-work block.)
+        if (operation === "agent.permit") checkPermitAuthority(plan, definition, fresh.permitAnswer ?? refuse("HELD", "Permit effect has no pinned answer."));
+        // A permit continues an already-admitted attempt; its prerequisites were checked at start
+        // and the proposal pins no dependency bindings of its own, so only starts re-resolve them.
+        if (operation !== "agent.permit") checkDependencies(status, effect, definition.after, scope.id);
         // A live step (release/deploy/live-action, and the reserved effects) is re-gated at this final
         // claim, on any host: its same-effect decision must be answered in the current plan, not merely
         // have been answered when the attempt was reserved. The remote receiver is only reached past here.
-        if (definition.kind === "run" && definition.effect && !definition.after.some(edge => {
-          const gate = plan!.definition.nodes.find(n => n.id === edge.node);
-          return edge.on === "answered" && gate?.kind === "decision" && gate.effect === definition.effect && !!plan!.nodes[gate.id]?.answer;
-        })) refuse("HELD", `This ${definition.effect} step needs its answered ${definition.effect} decision before it starts.`);
+        if (definition.kind === "run" && definition.effect && !liveGateAnswered(plan, definition))
+          refuse("HELD", `This ${definition.effect} step needs its answered ${definition.effect} decision before it starts.`);
         launch = launchFor(status, task);
         // A send's model policy is evaluated on the freshly observed recipient, validated against its verified reservation.
         const profile = operation === "agent.send" ? await this.validatedRecipient(status, effect, fresh.observed) : launch.agent;
@@ -815,7 +844,9 @@ export class SupervisionGateway {
   /** Guarded remote permission proposal: only the current bound owner, for its current verified remote
    * worker, bound to one exact pending request. The answer and the tool it was judged against are pinned
    * as the effect payload before dispatch; an uncertain dispatch is never resent (the gateway's rule).
-   * Allow answers Claude questions only; anything else is denied here or escalated as a plan decision. */
+   * Allow answers Claude questions only; anything else is denied here or escalated as a plan decision.
+   * A continuing answer follows the plan's mode (`checkPermitAuthority`) and is admitted at dispatch
+   * like new work; only deny-with-interrupt is a safe stop, open under holds and in every mode. */
   async proposePermit(input: { scopeId: string; epoch: number; attemptId: string; causation: string; requestId: string; answer: PermitAnswer }, actor: SupervisionActor): Promise<SupervisionEffect> {
     this.enabled();
     const parsed = PermitAnswerSchema.safeParse(input.answer);
@@ -843,11 +874,22 @@ export class SupervisionGateway {
       if (attempt.worker.agentId !== worker) refuse("STALE", "The worker changed while its pending permissions were read.");
       if (!blob) refuse("HELD", "Permit proposal has no pinned answer payload.");
       const plan = status.plans.find(p => p.plan.definition.id === currentTask.planId)?.plan;
+      // Answering follows the plan's mode like any decision; the claim rechecks it at dispatch.
+      checkPermitAuthority(plan, plan?.definition.nodes.find(n => n.id === currentTask.nodeId), answer);
       const key = effectLogicalKey({ scopeId: scope.id, subject: `attempt:${attempt.id}`, operation: "agent.permit", causation: input.causation, objectiveRevision: plan?.revision ?? 0 });
       if (status.index.effectKeys[key]) refuse("CONFLICT", `Logical effect already reserved as ${status.index.effectKeys[key]}.`);
+      // A continuing answer is admitted at its claim like new work, so the reservation pins the same
+      // read set a start pins: configuration generation, feature policy, start/model-use policy and,
+      // where the plan has one, its current rule record. The safe stop skips those checks at dispatch.
+      const featurePolicy = await this.options.featurePolicy?.();
+      const ruleRecord = plan ? status.planRules?.find(r => r.planId === currentTask.planId && r.scopeId === scope.id && r.revision === plan.revision) : undefined;
+      const base = { scopeId: scope.id, planId: currentTask.planId, projectIds: scope.projectIds, hostId: currentTask.hostId };
       const effect: SupervisionEffect = { id: stableId("effect", key), logicalKey: key, requestId: input.requestId, requestHash: digest({ ...input, answer }), scopeId: scope.id,
+        ...(binding.configurationId ? { configurationId: binding.configurationId } : {}), ...(featurePolicy ? { featurePolicy } : {}),
+        ...(ruleRecord && plan ? { planRules: ruleRef(ruleRecord), ruleSubjectHash: ruleSubjectHash(plan, currentTask.nodeId) } : {}),
         epoch: binding.epoch, attemptId: attempt.id, operation: "agent.permit", planRevision: plan?.revision || null, subjectHash: digest({ attempt: attempt.id, causation: input.causation, permit: answer.requestId }),
-        policyVector: [], evidenceVector: [], approvalId: null, resourceIds: [`agent:${attempt.worker.agentId}`, `permission:${answer.requestId}`], state: "reserved",
+        policyVector: unionVectors(currentPolicyVector(status, { ...base, operation: "plan.start" }), currentPolicyVector(status, { ...base, operation: "model.use" })),
+        evidenceVector: [], approvalId: null, resourceIds: [`agent:${attempt.worker.agentId}`, `permission:${answer.requestId}`], state: "reserved",
         receiverKey: answer.requestId, payloadDigest: blob.id, receiptRef: null, version: 1 };
       const mutations: SupervisionMutation[] = [{ kind: "effect", value: effect },
         ...(status.versions.some(v => v.kind === "blob" && v.id === blob!.id) ? [] : [{ kind: "blob" as const, value: blob }])];

@@ -110,8 +110,9 @@ them. Answer in one of two ways:
   "<your answer>"`. The worker sees the denial and your message, and carries on
   with it. Use this when you cannot tell which question is asked.
 
-Always give the request ID: `permit allow <agent-id>` without one allows every
-pending request of that agent. The bridge refuses `permit … --all` outright, for the same reason.
+Always give the request ID. The bridge refuses every blanket form outright: `permit … --all`,
+`permit … --all=<anything>`, and `permit allow|deny <agent-id>` with no request ID (or no agent ID) —
+each of those would otherwise answer every pending request of the agent.
 
 ## Reading files in a remote worktree
 
@@ -180,8 +181,9 @@ Supervisor itself stays on this machine. Those workers are not launched with thi
 through the checked scope gateway, are bound by their scope/attempt labels (a qualified weaker
 identity than a local reserved ID — the CLI takes no caller-chosen ID and creates only with the
 brief as its prompt), and report back through the poll as observations that wake their Supervisor.
-Do not steer, interrupt, end or answer permissions for a scoped remote worker from here: the board
-refuses those for scoped work, and the Supervisor answers its worker's permissions itself through
+Do not steer, interrupt, end or answer permissions for a scoped remote worker from here: this
+helper's `send`, `stop`, `archive` and `permit allow|deny` refuse a scoped worker exactly as the
+board does. The Supervisor answers its worker's permissions itself through
 `tools/scope.mjs permit-worker` — one exact request, deny with words or allow a Claude question
 only, judged from the tool name, `recentTools` and logs because the CLI passes no request input.
 

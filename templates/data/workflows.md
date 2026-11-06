@@ -213,7 +213,10 @@ states the default explicitly. On a gate with an `effect`, the effect alone deci
 Live steps are release, deploy and live product actions (for example, a product's Resume or
 Cancel-and-continue). Mark the run that performs one with `"effect":"release"|"deploy"|"live-action"`, and
 put a decision with the same `effect` before it (`reason:"decision"`, `on:"answered"`). The run cannot start
-until that decision is answered. Who answers follows the mode at the time: FirstMate under `firstmate`, the
+until that decision is answered. Any recorded answer satisfies the gate — there is no separate
+"affirmative" option: the gate records that its owner decided, so word the brief for the option they
+chose (if "no" must stop the step, the answer's consequence and the brief carry that, or replan).
+Who answers follows the mode at the time: FirstMate under `firstmate`, the
 Captain under `captain`, and under `firstmate-pivotal` the Captain unless they recorded `liveSteps:"routine"`.
 A switch changes who answers open gates only: a gate already answered stays answered, and its step can
 start.
