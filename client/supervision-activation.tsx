@@ -29,7 +29,7 @@ function Action({ theme, label, onPress, disabled = false }: { theme: PluginThem
 /** `assignWatches`: off where the surrounding view already offers watch-input assignment (Supervisors). */
 export function SupervisionActivationBoard({ theme, compact, advanced = false, planId, navigation, assignWatches = true }: { theme: PluginTheme; compact: boolean; advanced?: boolean; planId?: string; navigation?: PluginSurfaceProps["navigation"] | undefined; assignWatches?: boolean }) {
   const { activation, activationError: readError, updateActivation } = useWorkflowPlans();
-  const remotes = useRemotes();
+  const remotes = useRemotes((activation?.plans ?? []).some(p => (p.workerHosts?.length ?? 0) > 0));
   const hostLabel = (serverId: string) => remotes.data?.hosts.find(h => h.serverId === serverId)?.label ?? serverId;
   const data = activation && planId ? { ...activation, plans: activation.plans.filter(p => p.plan === planId),
     migrations: activation.migrations.filter(m => m.planId === planId), dispositions: activation.dispositions.filter(d => d.planId === planId),
@@ -73,7 +73,7 @@ export function AttachConfirmation({ theme, compact, homeId, plan, stale, onClos
   theme: PluginTheme; compact: boolean; homeId: string; plan: Plan; stale: boolean; onClose(): void; onRead(snapshot: ActivationSnapshot): void; plain?: boolean;
 }) {
   const attach = useRpc(attachSupervisorFromUi), catalog = useRpc(migrationTargets);
-  const remotes = useRemotes();
+  const remotes = useRemotes((plan.workerHosts?.length ?? 0) > 0);
   const hostLine = remoteWorkerHostLine(plan.workerHosts ?? [], serverId => remotes.data?.hosts.find(h => h.serverId === serverId)?.label ?? serverId);
   const resuming = !!plan.resumeRequestId;
   const models = useQuery({ queryKey: ["firstmate", "attach-models", homeId], queryFn: () => catalog({}), enabled: !resuming });

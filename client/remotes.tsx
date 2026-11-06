@@ -9,13 +9,16 @@ import { readRemotes, type RemoteHost } from "../shared/remotes";
 /** A host clock this far off gets a line, as the helper warns from the same distance. */
 const SKEW_WARNING_SECONDS = 180;
 
-/** The remote snapshot, shared by the board's host tabs and compact host health. */
-export function useRemotes() {
+/** The remote snapshot, shared by the board's host tabs and compact host health. Callers that only
+ * label a remote host when one is present pass `enabled: false` until then, so a purely local view
+ * performs no remote read at all. */
+export function useRemotes(enabled = true) {
   const read = useRpc(readRemotes);
   return useQuery({
     queryKey: ["firstmate", "remotes"],
     queryFn: () => read({}),
     refetchInterval: 10000,
+    enabled,
   });
 }
 

@@ -44,7 +44,7 @@ export function SupervisorsEntry({ theme, compact, hostId = "local", navigation,
     queryFn: async () => ProjectRuntimeSnapshotSchema.parse(await readProjects({})), refetchInterval: 5000 });
   const checks = useQuery({ queryKey: ["firstmate", "maintenance-ownership", hostId],
     queryFn: async () => MaintenanceRuntimeSnapshotSchema.parse(await readChecks({})), refetchInterval: 5000 });
-  const remotes = useRemotes();
+  const remotes = useRemotes((list.data?.rows ?? []).some(r => r.workerHosts.length > 0));
   const hostLabel = (serverId: string) => remotes.data?.hosts.find(h => h.serverId === serverId)?.label ?? serverId;
   const [open, setOpen] = useState(false);
   // Which watches feed each plan Supervisor; read only while the list is open.
