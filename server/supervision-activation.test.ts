@@ -463,23 +463,29 @@ it("a real change to launches, dependents, deliveries or the plan still refuses 
   const { runtime } = await guided();
   try {
     await writeFile(join(home, "data/rollback.md"), "Retained FirstMate build: isolated tested build.\nRecovery test: verified.\n");
-    const legacy = workflowStore(home);
+    const legacy = workflowStore(home), stale = { code: "STALE", message: expect.stringContaining("Handover evidence changed") };
     // A new launch record for one of the plan's own steps.
     let { command } = await selectedEvidence("data/rollback.md");
     await mkdir(join(home, "data/trial/launches"), { recursive: true });
     await writeFile(join(home, "data/trial/launches/1.json"), JSON.stringify({ state: "abandoned" }));
-    await expect(activation.migrate(command, mate)).rejects.toMatchObject({ code: "STALE" });
+    await expect(activation.migrate(command, mate)).rejects.toMatchObject(stale);
     // A new plan with a step that depends on this one.
     ({ command } = await selectedEvidence("data/rollback.md"));
     const fixture = workflowFixture(), base = fixture.nodes.find(n => n.id === "trial")!;
     await legacy.execute({ op: "draft", definition: { ...fixture, id: "dependent", title: "Dependent",
       nodes: [{ ...base, id: "follow-up", title: "Follow up", launch: { ...(base as any).launch, id: "follow-up", agentTitle: "follow-up", brief: { file: "data/follow-up/brief.md" } }, after: [{ node: "trial", reason: "builds-on", on: "done" }] }] } as never }, randomUUID(), "general");
-    await expect(activation.migrate(command, mate)).rejects.toMatchObject({ code: "STALE" });
-    // A saved message about the plan, pending delivery.
+    await expect(activation.migrate(command, mate)).rejects.toMatchObject(stale);
+    // The plan itself: a captain action is recorded on it (refused by the plan review, not the inventory).
     ({ command } = await selectedEvidence("data/rollback.md"));
     const plan = (await legacy.get("scheduler"))!;
     await legacy.execute({ op: "captain", plan: "scheduler", revision: plan.revision, subjectHash: planSubjectHash(plan), action: "approve", text: "" }, randomUUID(), "board:captain");
     await expect(activation.migrate(command, mate)).rejects.toMatchObject({ code: "STALE" });
+    // A pending delivery alone: that action's note is now queued for the first mate, the plan unchanged.
+    ({ command } = await selectedEvidence("data/rollback.md"));
+    const action = (await legacy.get("scheduler"))!.captainEvents!.at(-1)!;
+    await updateFirstmateConfig({ mateNotes: [{ id: `firstmate-plan-${action.id}`, text: "The captain approved Scheduler." }] });
+    expect((await activation.planHelp(prepare.homeId, "scheduler")).reviewHash).toBe(command.reviewHash);
+    await expect(activation.migrate(command, mate)).rejects.toMatchObject(stale);
     expect(await legacy.cutover("scheduler")).toBe(null); expect(receiver.calls).toEqual([]);
     // With nothing further changed, a fresh read prepares.
     ({ command } = await selectedEvidence("data/rollback.md"));

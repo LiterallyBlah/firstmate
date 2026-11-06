@@ -166,6 +166,13 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Fixed
 
+- **A plan handover's checked evidence no longer goes stale by itself.** Its inventory fingerprint
+  included how full the shared supervision journal was, which every other plan, timer and check moves,
+  so a first mate's prepare was refused with "Handover evidence changed" seconds after reading it, with
+  nothing about the plan changed. The fingerprint now covers only what the handover depends on —
+  pending deliveries, work starts, dependent steps and the plan's own capacity needs — and the journal's
+  room is checked live when the handover is prepared. A real change to any of those still refuses.
+
 - **A plan Supervisor no longer sits idle after a worker finishes.** When enough facts piled up for
   one page, the page plus the Supervisor's own context came to more than the 24 KiB a wake may carry,
   and every wake from then on — restarts included — was refused, so the Supervisor waited until
