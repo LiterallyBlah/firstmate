@@ -142,6 +142,10 @@ export function decisionOwner(plan: WorkflowPlan, node: PlanNode): "captain" | "
   if (node.criterion) return planMode(plan) === "firstmate" ? "firstmate" : "captain";
   return node.authority === "captain" ? "captain" : modeOwner(planMode(plan));
 }
+/** The non-local saved hosts a plan's run nodes launch on, as written; empty for a purely local plan. */
+export function planWorkerHosts(plan: WorkflowPlan): string[] {
+  return [...new Set(plan.definition.nodes.flatMap(n => n.kind === "run" && n.launch.host.trim().toLowerCase() !== "local" ? [n.launch.host] : []))];
+}
 export function planModeLabel(mode: PlanMode, escalate: readonly string[] = [], liveSteps: "pivotal" | "routine" = "pivotal"): string {
   if (mode === "captain") return "Captain";
   if (mode === "firstmate") return "FirstMate (routine plan progression)";

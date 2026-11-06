@@ -17,7 +17,8 @@ import type { SupervisionActor, SupervisionAttempt, SupervisionEffect, Supervisi
 import type { PlanLaunch, WorkflowPlan } from "../shared/workflow-plans";
 import type { VersionRef } from "../shared/supervision-policy";
 import {
-  AgentProfileSchema, EffectCauseSchema, GatewayOperation, QUALIFIED_REMOTE_PAIRS, RELEASE_OPERATIONS, REMOTE_PROMPT_MAX_CHARS, ReceiverCapabilitiesSchema, SCOPE_KIND_LABEL, SCOPE_LABELS, SUPERVISOR_ROLE, qualifiedRemote, supervisorKind, supervisorRoleKind,
+  AgentProfileSchema, EffectCauseSchema, GatewayOperation, PermitAnswerSchema, QUALIFIED_REMOTE_PAIRS, RELEASE_OPERATIONS, REMOTE_PROMPT_MAX_CHARS, REMOTE_QUESTION_TOOL, ReceiverCapabilitiesSchema, SCOPE_KIND_LABEL, SCOPE_LABELS, SUPERVISOR_ROLE, qualifiedRemote, supervisorKind, supervisorRoleKind,
+  type PendingPermission, type PermitAnswer,
   WorkspaceReceiptSchema, type AgentObservation, type AgentProfile, type EffectCause, type GatewayReceiver,
   type QualifiedRemotePair, type ReceiverCapabilities, type WorkspaceIntent, type WorkspaceReceipt,
 } from "../shared/supervision-effects";
@@ -57,6 +58,17 @@ export function effectLogicalKey(cause: EffectCause): string {
   return `s04/${c.operation}/${digest(c)}`;
 }
 export const sendMessageId = (effectId: string) => `firstmate-s04-${effectId}`;
+/** A permit effect's pinned payload: the exact answer plus the tool it was judged against. The CLI
+ * passes no request input, so the tool name (with the catalog's recentTools and the worker's logs) is
+ * the decision context; pinning it lets dispatch refuse if the pending request is no longer that tool. */
+export function parsePermitPayload(text: string): PermitAnswer & { tool: string } {
+  let parsed: unknown;
+  try { parsed = JSON.parse(text); } catch { refuse("HELD", "Permit payload is corrupt."); }
+  const row = (parsed ?? {}) as Record<string, unknown>;
+  const answer = PermitAnswerSchema.safeParse(row.answer);
+  if (!answer.success || typeof row.tool !== "string" || !row.tool) refuse("HELD", "Permit payload is corrupt.");
+  return { ...answer.data, tool: row.tool };
+}
 export function requireGatewayOperation(operation: string): GatewayOperation {
   if ((RELEASE_OPERATIONS as readonly string[]).includes(operation)) refuse("UNSUPPORTED", "Release operations have no S04 adapter, even with an approved plan.");
   const parsed = GatewayOperation.safeParse(operation);
@@ -154,6 +166,8 @@ export interface GatewayOptions {
 export interface StartedAttempt { attemptId: string | null; effects: { workspace: string; create: string; send: string } | null }
 type Call = { run: () => Promise<string>; after?: (status: SupervisionStatus) => SupervisionMutation[] };
 interface Preflight { capabilities: ReceiverCapabilities; receiver: GatewayReceiver; remote: boolean; observed: AgentObservation | null; text: string | null; inventoryKey: string | null; validate?: ((status: SupervisionStatus) => void) | undefined;
+  /** For `agent.permit`: the target's pending requests and the pinned answer, read before the claim. */
+  permissions?: PendingPermission[] | undefined; permitAnswer?: (PermitAnswer & { tool: string }) | undefined;
   reusedObserved?: AgentObservation | null | undefined;
   workspace?: { intentHash: string; start: () => Promise<WorkspaceReceipt> } | undefined }
 
@@ -330,7 +344,7 @@ export class SupervisionGateway {
     if (effect.state === "succeeded") return effect;
     if (["dispatching", "uncertain", "accepted"].includes(effect.state)) refuse("UNCERTAIN", "This effect may already have crossed its boundary; reconcile it, never resend.");
     if (effect.state !== "reserved") refuse("HELD", `Effect is ${effect.state}; a new step needs a new logical cause.`);
-    const stopping = ["agent.interrupt", "agent.archive"].includes(effect.operation);
+    const stopping = ["agent.interrupt", "agent.archive", "agent.permit"].includes(effect.operation);
     const fence = stopping ? undefined : await this.options.policyFence?.capture(effect);
     const operation = requireGatewayOperation(effect.operation);
     // Receiver and file reads happen before the writer lock; the claim then rechecks against them.
@@ -345,6 +359,10 @@ export class SupervisionGateway {
     const text = operation === "agent.send" ? await this.payload(effect) : sendSibling ? await this.payload(sendSibling) : null;
     const inventoryKey = operation === "agent.archive" && target ? await this.checkInventory(capabilities, target, effect.receiverKey, receiver) : null;
     const validate = operation === "agent.interrupt" || operation === "agent.archive" ? undefined : await this.options.prepareAdmission?.(effect);
+    // A permit answer is pinned at proposal; the pending list is reread so the claim can refuse a
+    // request that was already answered (or never existed) instead of answering whatever is pending now.
+    const permitAnswer = operation === "agent.permit" ? parsePermitPayload(await this.payload(effect)) : undefined;
+    const permissions = operation === "agent.permit" && target && receiver.listPermissions ? await receiver.listPermissions(target) : undefined;
     // Production filesystem/project preparation can yield. Finish it before the fence,
     // then use only a native-initiating function under the claim/policy boundary.
     let workspace: Preflight["workspace"];
@@ -357,7 +375,7 @@ export class SupervisionGateway {
       await this.store.transactCommand(stableId("dispatch-claim", effect.id), digest({ claim: effect.id, version: effect.version }), GATEWAY, async status => {
         const current = status.effects.find(e => e.id === effect.id);
         if (!current || current.version !== effect.version || current.state !== "reserved") refuse("STALE", "The effect changed before its claim; reread.");
-        call = await this.admit(status, current, operation, { capabilities, receiver, remote, observed, text, inventoryKey, validate, reusedObserved, workspace });
+        call = await this.admit(status, current, operation, { capabilities, receiver, remote, observed, text, inventoryKey, validate, reusedObserved, workspace, permissions, permitAnswer });
         claimed = { ...current, state: "dispatching", version: current.version + 1 };
         const mutations: SupervisionMutation[] = [{ kind: "effect", value: claimed }];
         const plan = planOf(status, current);
@@ -393,7 +411,7 @@ export class SupervisionGateway {
     if (status.freshness !== "current" || status.storage.admissionsHeld) refuse("HELD", "Store is held; no new external effect.");
     if (!scope || !binding || binding.epoch !== effect.epoch || ["retired", "suspect"].includes(binding.state)) refuse("STALE", "The effect's owner epoch is no longer current.");
     if (!isLocalHost(binding.hostId)) refuse("UNSUPPORTED", "A remote Supervisor binding is unsupported; Supervisors stay local.");
-    const supervisor = effect.attemptId === null, stopping = operation === "agent.interrupt" || operation === "agent.archive";
+    const supervisor = effect.attemptId === null, stopping = operation === "agent.interrupt" || operation === "agent.archive" || operation === "agent.permit";
     if (!stopping) await this.options.admissionCheck?.(status, effect);
     if (!stopping) await this.options.rules?.effect(status, effect);
     if (!stopping) fresh.validate?.(status);
@@ -438,6 +456,13 @@ export class SupervisionGateway {
         if (plan.status !== "active" || !["starting", "running"].includes(node.state) || node.held || node.invalidated)
           refuse("HELD", "The node is no longer an admitted, live start.");
         checkDependencies(status, effect, definition.after, scope.id);
+        // A live step (release/deploy/live-action, and the reserved effects) is re-gated at this final
+        // claim, on any host: its same-effect decision must be answered in the current plan, not merely
+        // have been answered when the attempt was reserved. The remote receiver is only reached past here.
+        if (definition.kind === "run" && definition.effect && !definition.after.some(edge => {
+          const gate = plan!.definition.nodes.find(n => n.id === edge.node);
+          return edge.on === "answered" && gate?.kind === "decision" && gate.effect === definition.effect && !!plan!.nodes[gate.id]?.answer;
+        })) refuse("HELD", `This ${definition.effect} step needs its answered ${definition.effect} decision before it starts.`);
         launch = launchFor(status, task);
         // A send's model policy is evaluated on the freshly observed recipient, validated against its verified reservation.
         const profile = operation === "agent.send" ? await this.validatedRecipient(status, effect, fresh.observed) : launch.agent;
@@ -494,6 +519,20 @@ export class SupervisionGateway {
         exactTarget(fresh.observed, target);
         if (fresh.inventoryKey === null || fresh.inventoryKey !== effect.receiverKey) refuse("STALE", "Inventory changed since the proposal.");
         return { run: async () => `archived:${(await fresh.receiver.archive(target)).archivedAt}` };
+      }
+      case "agent.permit": {
+        const target = attempt?.worker?.agentId ?? refuse("HELD", "Permit needs a verified current worker.");
+        exactTarget(fresh.observed, target);
+        const answer = fresh.permitAnswer ?? refuse("HELD", "Permit effect has no pinned answer.");
+        if (effect.receiverKey !== answer.requestId) refuse("STALE", "The permit effect's request changed; retain the original effect.");
+        if (!fresh.receiver.permit || !fresh.permissions) refuse("UNSUPPORTED", "This receiver cannot answer remote permissions; the request stays pending for its owner.");
+        const pending = fresh.permissions.find(p => p.id === answer.requestId);
+        if (!pending) refuse("HELD", "The exact permission request is no longer pending; nothing is answered in its place.");
+        if (pending.tool !== answer.tool) refuse("STALE", "The pending request's tool changed since the answer was pinned.");
+        if (answer.action === "allow" && pending.tool !== REMOTE_QUESTION_TOOL)
+          refuse("UNSUPPORTED", `Remote allow answers ${REMOTE_QUESTION_TOOL} questions only; ${pending.tool} is denied or escalated as a decision under the plan's mode.`);
+        const { tool: _tool, ...permit } = answer;
+        return { run: async () => { await fresh.receiver.permit!(target, permit); return `permitted:${answer.action}:${answer.requestId}`; } };
       }
     }
   }
@@ -650,7 +689,7 @@ export class SupervisionGateway {
       const target = status.attempts.find(a => a.id === effect.attemptId)?.worker?.agentId;
       const observed = target ? await receiver.findAgent(target) : null;
       found = observed?.id === target && observed?.archivedAt ? `archived:${observed.archivedAt}` : null;
-    } // Sends and interrupts have no receipt lookup (U1): they remain uncertain for deliberate review.
+    } // Sends, interrupts and permit answers have no receipt lookup (U1): they remain uncertain for deliberate review, never resent.
     const current = (await this.store.read()).effects.find(e => e.id === effectId)!;
     if (current.version !== effect.version) return current;
     if (found) return this.settle(current, { state: "succeeded", receiptRef: found });
@@ -767,6 +806,52 @@ export class SupervisionGateway {
         receiverKey: inventoryKey, receiptRef: null, version: 1 };
       const mutations: SupervisionMutation[] = [{ kind: "effect", value: effect }];
       return { expectedVersions: expectedFor(status, mutations), mutations, result: { planId: task.planId, planHash: plan?.hash ?? null, decisionId: null, outboxId: null } };
+    });
+    const status = await this.store.read();
+    const id = receipt.versions.find(v => v.kind === "effect")?.id;
+    return status.effects.find(e => e.id === id)!;
+  }
+
+  /** Guarded remote permission proposal: only the current bound owner, for its current verified remote
+   * worker, bound to one exact pending request. The answer and the tool it was judged against are pinned
+   * as the effect payload before dispatch; an uncertain dispatch is never resent (the gateway's rule).
+   * Allow answers Claude questions only; anything else is denied here or escalated as a plan decision. */
+  async proposePermit(input: { scopeId: string; epoch: number; attemptId: string; causation: string; requestId: string; answer: PermitAnswer }, actor: SupervisionActor): Promise<SupervisionEffect> {
+    this.enabled();
+    const parsed = PermitAnswerSchema.safeParse(input.answer);
+    if (!parsed.success) refuse("HELD", "A permit answer names one exact request: deny with a message, or allow with question input.");
+    const answer = parsed.data;
+    const pre = await this.store.read(), replay = pre.commands.some(c => c.id === input.requestId);
+    const worker = pre.attempts.find(a => a.id === input.attemptId)?.worker?.agentId;
+    const task = pre.tasks.find(t => t.id === pre.attempts.find(a => a.id === input.attemptId)?.taskId);
+    let blob: { id: string; bytes: number } | null = null;
+    if (!replay && worker) {
+      const receiver = this.pick(task?.hostId ?? "local");
+      if (!receiver.permit || !receiver.listPermissions) refuse("UNSUPPORTED", "This receiver cannot answer remote permissions; the request stays pending for its owner.");
+      const pending = await receiver.listPermissions(worker), request = pending.find(p => p.id === answer.requestId);
+      if (!request) refuse("HELD", "The exact permission request is not pending on this worker; nothing is answered in its place.");
+      if (answer.action === "allow" && request.tool !== REMOTE_QUESTION_TOOL)
+        refuse("UNSUPPORTED", `Remote allow answers ${REMOTE_QUESTION_TOOL} questions only; ${request.tool} is denied or escalated as a decision under the plan's mode, never allowed directly.`);
+      blob = await this.store.putBlob(Buffer.from(JSON.stringify({ answer, tool: request.tool }), "utf8"));
+    }
+    const { receipt } = await this.store.transactCommand(input.requestId, digest({ proposePermit: { ...input, answer } }), actor, async status => {
+      const scope = status.scopes.find(s => s.id === input.scopeId), binding = status.bindings.find(b => b.scopeId === input.scopeId);
+      if (!scope || scope.state !== "active" || binding?.state !== "active" || binding.epoch !== input.epoch) refuse("STALE", "Owner epoch is not current.");
+      if (actor.kind !== "agent" || actor.id !== binding.agentId) refuse("UNKNOWN_OWNER", "Only the bound plan owner proposes a worker permission answer; General is not a bypass.");
+      const attempt = status.attempts.find(a => a.id === input.attemptId), currentTask = attempt ? status.tasks.find(t => t.id === attempt.taskId) : undefined;
+      if (!attempt?.worker || !currentTask || currentTask.ownerScopeId !== scope.id || currentTask.currentAttempt !== attempt.id) refuse("UNKNOWN_OWNER", "Target is not this owner's verified current worker.");
+      if (attempt.worker.agentId !== worker) refuse("STALE", "The worker changed while its pending permissions were read.");
+      if (!blob) refuse("HELD", "Permit proposal has no pinned answer payload.");
+      const plan = status.plans.find(p => p.plan.definition.id === currentTask.planId)?.plan;
+      const key = effectLogicalKey({ scopeId: scope.id, subject: `attempt:${attempt.id}`, operation: "agent.permit", causation: input.causation, objectiveRevision: plan?.revision ?? 0 });
+      if (status.index.effectKeys[key]) refuse("CONFLICT", `Logical effect already reserved as ${status.index.effectKeys[key]}.`);
+      const effect: SupervisionEffect = { id: stableId("effect", key), logicalKey: key, requestId: input.requestId, requestHash: digest({ ...input, answer }), scopeId: scope.id,
+        epoch: binding.epoch, attemptId: attempt.id, operation: "agent.permit", planRevision: plan?.revision || null, subjectHash: digest({ attempt: attempt.id, causation: input.causation, permit: answer.requestId }),
+        policyVector: [], evidenceVector: [], approvalId: null, resourceIds: [`agent:${attempt.worker.agentId}`, `permission:${answer.requestId}`], state: "reserved",
+        receiverKey: answer.requestId, payloadDigest: blob.id, receiptRef: null, version: 1 };
+      const mutations: SupervisionMutation[] = [{ kind: "effect", value: effect },
+        ...(status.versions.some(v => v.kind === "blob" && v.id === blob!.id) ? [] : [{ kind: "blob" as const, value: blob }])];
+      return { expectedVersions: expectedFor(status, mutations), mutations, result: { planId: currentTask.planId, planHash: plan?.hash ?? null, decisionId: null, outboxId: null } };
     });
     const status = await this.store.read();
     const id = receipt.versions.find(v => v.kind === "effect")?.id;

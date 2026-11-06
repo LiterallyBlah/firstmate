@@ -17,10 +17,11 @@ import type { WorkflowPlanStore } from "./workflow-plans";
 import { InboxResultSchema } from "../shared/supervision-inbox";
 import { SupervisionUuid } from "../shared/supervision";
 import type { SupervisionInbox } from "./supervision-inbox";
-import { supervisionInboxStatus } from "./supervision-status";
+import { scopeSources, supervisionInboxStatus } from "./supervision-status";
 import { SupervisionError } from "./supervision-store";
 import type { PlanRules } from "./plan-rules";
 import { readProjectContext } from "./supervision-memory";
+import { PermitAnswerSchema } from "../shared/supervision-effects";
 
 import { commandPlan, scopeRoute } from "./supervision-routing";
 export { commandPlan, scopeRoute, legacyRoute } from "./supervision-routing";
@@ -35,7 +36,7 @@ const ScopeOutboxCommand = z.object({ requestId: SupervisionUuid, scopeId: Super
 const ScopeReadCommand = z.object({ scopeId: SupervisionUuid, epoch: z.number().int().positive(),
   page: z.enum(["inbox", "outbox", "audit", "state", "context"]), after: z.number().int().nonnegative().default(0) }).strict();
 export const ScopeRequestSchema = z.object({ id: z.uuid(), actor: z.string().min(1).max(256),
-  kind: z.enum(["plan", "continuation", "inbox", "outbox", "read", "rule-verification", "rule-failure", "policy-evidence", "policy", "rules", "pr-bind", "artifact", "project-result", "stop-worker"]), input: z.unknown() }).strict();
+  kind: z.enum(["plan", "continuation", "inbox", "outbox", "read", "rule-verification", "rule-failure", "policy-evidence", "policy", "rules", "pr-bind", "artifact", "project-result", "stop-worker", "permit-worker"]), input: z.unknown() }).strict();
 export interface ScopeHandlers {
   commands: SupervisionCommands; gateway: SupervisionGateway | null; store: SupervisionStore; legacy: WorkflowPlanStore;
   globalMateId: () => Promise<string | null>; continuationsEnabled?: boolean; inbox?: SupervisionInbox;
@@ -48,7 +49,7 @@ export interface ScopeHandlers {
 }
 /** Whether a request can only be served through the S04 gateway's host-backed effects. */
 export function needsHost(request: z.infer<typeof ScopeRequestSchema>): boolean {
-  if (request.kind === "stop-worker") return true;
+  if (request.kind === "stop-worker" || request.kind === "permit-worker") return true;
   if (request.kind !== "plan") return false;
   const parsed = ScopedPlanCommandSchema.safeParse(request.input);
   return parsed.success && ["start", "implicit", "claim", "replace", "retire"].includes(parsed.data.command.op);
@@ -74,6 +75,12 @@ export async function handleScopeRequest(request: z.infer<typeof ScopeRequestSch
     if (!handlers.gateway) throw new Error("Checked worker stops are disabled.");
     const input = z.object({ scopeId: z.uuid(), epoch: z.number().int().positive(), attemptId: z.uuid(), causation: z.string().min(1).max(512) }).strict().parse(request.input);
     const effect = await handlers.gateway.propose({ ...input, requestId: request.id, operation: "agent.interrupt" }, actor);
+    return effect.state === "reserved" ? handlers.gateway.dispatch(effect.id) : effect;
+  }
+  if (request.kind === "permit-worker") {
+    if (!handlers.gateway) throw new Error("Checked remote permission answers are disabled.");
+    const input = z.object({ scopeId: z.uuid(), epoch: z.number().int().positive(), attemptId: z.uuid(), causation: z.string().min(1).max(512), answer: PermitAnswerSchema }).strict().parse(request.input);
+    const effect = await handlers.gateway.proposePermit({ ...input, requestId: request.id }, actor);
     return effect.state === "reserved" ? handlers.gateway.dispatch(effect.id) : effect;
   }
   if (request.kind === "policy-evidence") {
@@ -119,6 +126,9 @@ export async function handleScopeRequest(request: z.infer<typeof ScopeRequestSch
         conflicts: status.projects?.conflicts.filter(c => c.ownerScopeId === input.scopeId).slice(-8),
         memory: status.projects?.memory.filter(m => m.scopeId === input.scopeId).slice(-32),
         proposals: status.projects?.memoryProposals.filter(m => m.scopeId === input.scopeId && m.state === "proposed").slice(-8),
+        // Source coverage stays honest here: gaps (outage, clock skew, content collision) and each
+        // source's observedAt (poll latency) ride the state read; coverage is never claimed complete.
+        sources: scopeSources(status, input.scopeId),
         violations: status.ruleViolations?.filter(v => v.scopeId === input.scopeId).slice(-8), nextAfter: input.after + entries.length,
         hasMore: input.after + entries.length < ownTasks.length };
     }

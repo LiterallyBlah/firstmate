@@ -145,7 +145,10 @@ describe("prepareHome and the charter", () => {
     // offered it as charter.new.md. e0b749cb695c5df6 was the charter as it moved into templates/.
     // Supervisors as a tool for captain and first mate alike (supervise tool); shared brief parts expand before fingerprinting.
     // Plan modes: three modes drafted from the captain's words, live steps follow the mode, reserved effects stay captain.
-    expect(fingerprint(await pluginCharterTemplate())).toBe("1840f6d5d8a976c6");
+    // Remote-host Supervisors slice 2: a local Supervisor's remote workers, gated live steps and
+    // scoped remote permissions stay with that Supervisor, never the board or the remote helper.
+    expect(fingerprint(await pluginCharterTemplate())).toBe("56752424a2f97d66");
+    expect(agents).toContain("scoped remote workers");
     expect(agents).toContain("`firstmate-pivotal` (you decide routine matters, and pivotal points go to the Captain)");
     expect(agents).toContain("installation, access, discarding work, spending beyond the approved caps");
     expect(agents).not.toContain("Keep captain-only decisions, release, installation");

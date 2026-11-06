@@ -221,6 +221,16 @@ Installation, access, discarding work and spending beyond the approved caps stay
 mode: mark their gates `"effect":"installation"|"access"|"discard"|"spend"`. User holds and other external
 effect approvals also stay with the Captain.
 
+A live step may run on a saved remote host (`launch.host`): the host changes where the worker runs,
+never who decides. The same same-effect gate must be answered first, whoever the mode gives it to, and
+the checked gateway rechecks it before the remote worker is created. The node is reserved once and
+never resent, so its brief makes the action itself idempotent or evident from the product's own state:
+name the supported procedure, the pre-state to read, and the evidence that proves the outcome (the
+final message, the PR and head, or report files pushed on the worker's branch — a remote worktree
+cannot be read back). Record `landed` only from that evidence. A second release is a new node or a
+revision, never a repeat of the first; if the host is unreachable the step simply waits, held, with
+nothing resent on reconnect.
+
 Under `firstmate-pivotal`, when a point matches one of the Captain's criteria, make it a decision with
 `"authority":"captain"` and `"criterion":"<that criterion>"`, and quote the criterion in its
 rationale. Add one mid-plan by revision. The store refuses a criterion that does not match one in the

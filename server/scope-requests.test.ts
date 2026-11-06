@@ -9,6 +9,9 @@ import { SupervisionStore } from "./supervision-store";
 import { processWorkflowRequests } from "./workflow-service";
 import { WorkflowPlanStore } from "./workflow-plans";
 import { planDefinition, s04Fixture } from "../test/supervision-s04-fixture";
+import { SupervisionGateway } from "./supervision-effects";
+import { SupervisionRemoteReceiver } from "./supervision-remote-receiver";
+import { FakeCliBridge, REMOTE_CWD, REMOTE_HOST } from "../test/fake-remote-bridge";
 
 const run = promisify(execFile);
 async function legacyStore(home: string) { return new WorkflowPlanStore(join(home, "legacy-plans"), home); }
@@ -65,6 +68,30 @@ describe("S04 legacy/scoped dispatch partition", { timeout: 60000 }, () => {
     await writeFile(join(fx.home, "data/scope-requests", `${id}.json`), JSON.stringify({ id, actor: "neighbour", kind: "plan", input: { ...start, requestId: randomUUID() } }));
     await processScopeRequests(fx.home, handlers);
     expect(JSON.parse(await readFile(join(fx.home, "data/scope-requests", `${id}.reply.json`), "utf8"))).toMatchObject({ ok: false, code: "UNKNOWN_OWNER" });
+  });
+
+  it("permit-worker answers one exact remote permission through the gateway; the global mate cannot use it", async () => {
+    const fx = await s04Fixture(), bridge = new FakeCliBridge();
+    const scope = await fx.addScope(3, "permit-plan", ["p-trial"], true, REMOTE_HOST);
+    await fx.draft(scope, [{ id: "p-trial" }]);
+    const receiver = new SupervisionRemoteReceiver(bridge, REMOTE_HOST, async () => REMOTE_CWD, { cliVersion: async () => "0.14.0" });
+    const gateway = new SupervisionGateway(fx.store, fx.commands, fx.home, fx.receiver,
+      { enabled: true, receiverFor: host => host === REMOTE_HOST ? receiver : undefined, remotePairs: [{ cliVersion: "0.14.0", daemonVersion: "0.14.0" }] });
+    const started = await gateway.startWorker(await fx.input(scope, { op: "start", plan: scope.planId, node: "p-trial" }), scope.owner);
+    await gateway.dispatch(started.effects!.workspace); await gateway.dispatch(started.effects!.create);
+    await gateway.verifyWorker(started.attemptId!); await gateway.dispatch(started.effects!.send);
+    const agentId = [...bridge.agents.keys()][0]!;
+    bridge.addPermission(agentId, "permission-1", "Bash");
+    const handlers = { commands: fx.commands, gateway, store: fx.store, legacy: await legacyStore(fx.home), globalMateId: async () => "general-first-mate" };
+    const input = { scopeId: scope.id, epoch: 1, attemptId: started.attemptId!, causation: "permit:permission-1",
+      answer: { requestId: "permission-1", action: "deny" as const, message: "Stay in the worktree." } };
+    await expect(handleScopeRequest({ id: randomUUID(), actor: "general-first-mate", kind: "permit-worker", input }, handlers)).rejects.toThrow(/not a scope principal/);
+    const result = await handleScopeRequest({ id: randomUUID(), actor: scope.owner.id, kind: "permit-worker", input }, handlers) as { state: string; receiptRef: string };
+    expect(result).toMatchObject({ state: "succeeded", receiptRef: "permitted:deny:permission-1" });
+    expect(bridge.calls.filter(args => args[0] === "permit" && args[1] === "deny")).toEqual([["permit", "deny", agentId, "permission-1", "--message", "Stay in the worktree.", "--json"]]);
+    // The state read carries source coverage (gaps and observedAt), never a completeness claim.
+    const state = await handleScopeRequest({ id: randomUUID(), actor: scope.owner.id, kind: "read", input: { scopeId: scope.id, epoch: 1, page: "state" } }, handlers) as { sources: unknown[] };
+    expect(Array.isArray(state.sources)).toBe(true);
   });
 
   it("the scope helper refuses the global first mate before writing anything", async () => {

@@ -21,7 +21,7 @@ export const captain: SupervisionActor = { kind: "captain-ui", id: "fixture-capt
 const sha = (v: string) => createHash("sha256").update(v).digest("hex");
 const ORDERS = "Pilot implementation and isolated tests only.\n";
 export const BRIEF = "Synthetic checked brief.";
-export type NodeSpec = { id: string; kind?: "scout" | "ship"; after?: { node: string; on: "done" | "landed" | "answered" }[]; decision?: "owner" | "captain" };
+export type NodeSpec = { id: string; kind?: "scout" | "ship"; after?: { node: string; on: "done" | "landed" | "answered" }[]; decision?: "owner" | "captain"; effect?: "release" | "deploy" | "live-action" | "installation" | "access" | "discard" | "spend" };
 export interface ScopeHandle { id: string; projectId: string; project: string; planId: string; owner: SupervisionActor; nodes: string[]; hostId: string }
 
 export function planDefinition(id: string, project: string, nodes: NodeSpec[], budget = 6, delegated = false, host = "local"): PlanDefinition {
@@ -30,10 +30,10 @@ export function planDefinition(id: string, project: string, nodes: NodeSpec[], b
     agent: { provider: "codex/gpt-6.1-sol", modeId: "full-access", thinkingOptionId: "high" }, backlog: { existing: "none" } });
   return PlanDefinitionSchema.parse({ format: "firstmate.plan/1", id, title: `Goal ${id}`, request: { text: `Deliver ${id} end to end.`, at: "2026-10-20T12:00:00Z" },
     ...(delegated ? { ownership: { owner: "firstmate", evidence: "Captain: delegate routine stages and answers for this goal." } } : {}),
-    budget: { agents: budget, turns: budget }, nodes: nodes.map(n => n.decision ? { kind: "decision", id: n.id, title: `Decide ${n.id}`, summary: "Choose.",
+    budget: { agents: budget, turns: budget }, nodes: nodes.map(n => n.decision ? { kind: "decision", id: n.id, title: `Decide ${n.id}`, summary: "Choose.", ...(n.effect ? { effect: n.effect } : {}),
       after: (n.after ?? []).map(a => ({ ...a, reason: "needs-evidence" })), ...(n.decision === "captain" ? { authority: "captain" } : {}),
       options: [{ id: "yes", label: "Yes", consequence: "Proceed." }, { id: "no", label: "No", consequence: "Stop." }], recommendation: "yes", rationale: "Bounded." } :
-      { kind: "run", id: n.id, title: `Run ${n.id}`, summary: `Bounded ${n.id}.`, workflow: n.kind === "ship" ? "task@1" : "scout@1", launch: launch(n),
+      { kind: "run", id: n.id, title: `Run ${n.id}`, summary: `Bounded ${n.id}.`, workflow: n.kind === "ship" ? "task@1" : "scout@1", launch: launch(n), ...(n.effect ? { effect: n.effect } : {}),
         after: (n.after ?? []).map(a => ({ ...a, reason: a.on === "answered" ? "decision" : "builds-on" })) }) });
 }
 

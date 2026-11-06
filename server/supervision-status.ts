@@ -4,6 +4,16 @@ import { INBOX_LIMITS } from "../shared/supervision-inbox";
 import { terminal } from "./supervision-inbox-state";
 import { SOURCE_LIMITS } from "../shared/supervision-sources";
 
+/** The inbox sources one scope can see: its workers' sources, its explicitly owned agentless sources,
+ * and the remote catalog of every host one of its attempts runs on. Their gaps and `observedAt` are the
+ * honest coverage statement (poll latency, outage, clock skew, content collision); never "complete". */
+export function scopeSources(status: SupervisionStatus, scopeId: string | null) {
+  const ids = new Set(status.tasks.filter(t => t.ownerScopeId === scopeId).map(t => t.id));
+  const agents = new Set(status.attempts.filter(a => ids.has(a.taskId)).map(a => a.worker?.agentId));
+  const hosts = new Set(status.attempts.filter(a => ids.has(a.taskId)).flatMap(a => a.worker ? [a.worker.hostId.trim().toLowerCase()] : []));
+  return status.inbox.sources.filter(s => !scopeId || (s.agentId !== null ? agents.has(s.agentId) : s.scopeId === scopeId || (s.kind === "remote" && hosts.has(s.hostId))));
+}
+
 /** Pure stored projection. Source coverage is separate from journal freshness. No timeline/model reads. */
 export function supervisionInboxStatus(status: SupervisionStatus, input: { scopeId?: string | undefined; pageKind?: "events" | "sources" | "offers"; after?: number; limit?: number } = {}, now = new Date()): SupervisionInboxStatus {
   const scopeId = input.scopeId ?? null, { inbox } = status;
@@ -15,11 +25,9 @@ export function supervisionInboxStatus(status: SupervisionStatus, input: { scope
   const pending = scoped.filter(a => !terminal(a)), triage = pending.filter(a => !a.scopeId && !inbox.assignments.find(p => p.id === a.primaryEventId)?.scopeId);
   const oldestPendingAt = pending.map(a => inbox.events.find(e => e.id === a.id)!.envelope.observedAt).sort()[0] ?? null;
   const after = input.after ?? 0, pageKind = input.pageKind ?? "events";
-  const ids = new Set(status.tasks.filter(t => t.ownerScopeId === scopeId).map(t => t.id));
-  const agents = new Set(status.attempts.filter(a => ids.has(a.taskId)).map(a => a.worker?.agentId));
   const offers = inbox.offers.filter(o => (!scopeId || o.scopeId === scopeId) && o.state !== "retired" && o.state !== "acknowledged");
-  // S08: an agentless source (a bound pull request, a remote host) belongs to a scope only by its recorded owner.
-  const sources = inbox.sources.filter(s => !scopeId || (s.agentId !== null ? agents.has(s.agentId) : s.scopeId === scopeId));
+  // S08: an agentless source (a bound pull request) belongs to a scope only by its recorded owner; a remote catalog belongs to every scope with an attempt on that host (see scopeSources).
+  const sources = scopeSources(status, scopeId);
   // S08: a captain board message with an unknown outcome stays visible outside chat until a typed read settles it.
   // F6b: past the observation ceiling S08 sources record nothing more, so their stored coverage may look
   // fresher than it is. Say so whenever the journal is there, and treat counts as a lower bound.

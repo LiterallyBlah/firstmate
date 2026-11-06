@@ -174,7 +174,7 @@ export class PlanRuntime {
       admissionCheck: async (s, e) => {
         await admissionCheck(s, e.scopeId);
         if (e.attemptId) await sources.checkWatchAdmission(e.scopeId);
-        if (e.attemptId && !["agent.interrupt", "agent.archive"].includes(e.operation)) {
+        if (e.attemptId && !["agent.interrupt", "agent.archive", "agent.permit"].includes(e.operation)) {
           checkPlanAllocation(s, e.scopeId, false);
           const cap = await this.capacity(home); await checkGeneralHeadroom(s, receiver, cap.slots, cap.generalHeadroom, e.id);
         }
@@ -338,7 +338,13 @@ export class PlanRuntime {
   async remote(snapshot: RemoteSnapshot) {
     if ((!this.options.enabled && !this.runtime.features) || this.closed) return;
     const home = resolveHome(await this.config());
-    for (const [store, c] of this.components) if (store.homeId === workflowHomeIdentity(home)) await c.sources.observeRemote(snapshot);
+    for (const [store, c] of this.components) if (store.homeId === workflowHomeIdentity(home)) {
+      // A newly assigned remote observation (a finished turn, a new permission) wakes its Supervisor on
+      // the poll's latency; quiet polls, running progress and outage gaps wake nobody and resend nothing.
+      const { wakes } = await c.sources.observeRemote(snapshot);
+      const results = await Promise.allSettled(wakes.map(scopeId => c.lifecycle.wake(scopeId, "event")));
+      results.forEach(r => { if (r.status === "rejected") console.error("[firstmate] scoped remote wake held:", r.reason); });
+    }
   }
   /** Direct structured watch input; independent scope queues and existing lifecycle, never General's lock. */
   private async admitWatch(home: string, fact: WatchFact, sources: SupervisionSources, retainedEventId?: string) {

@@ -46,7 +46,7 @@ export async function main(argv) {
     if (!["file", "request-id"].includes(key) || key in options || !rest[i + 1]) throw new Error("Invalid or repeated option.");
     options[key] = rest[i + 1];
   }
-  if (!["plan", "continuation", "inbox", "outbox", "read", "rule-verification", "rule-failure", "policy-evidence", "policy", "rules", "pr-bind", "artifact", "project-result", "stop-worker"].includes(kind) || !options.file) throw new Error("Usage: scope.mjs <kind> --file <json> [--request-id <uuid>]");
+  if (!["plan", "continuation", "inbox", "outbox", "read", "rule-verification", "rule-failure", "policy-evidence", "policy", "rules", "pr-bind", "artifact", "project-result", "stop-worker", "permit-worker"].includes(kind) || !options.file) throw new Error("Usage: scope.mjs <kind> --file <json> [--request-id <uuid>]");
   const input = JSON.parse((await readFile(await inside(options.file), "utf8")).replace(/^﻿/, ""));
   return submit(kind, input, options["request-id"]);
 }

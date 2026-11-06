@@ -552,6 +552,10 @@ from the daemon independently of the app. Local MCP tools address this host; rou
 Remote workers report through `remote-watch`. Give each one `--label firstmate.task=<id>`, and record its
 host and agent ID on its backlog line as `(host: <serverId>) (agent: <agent-id>)`: that is how the board
 files it in its columns, with its live status, beside the local crew.
+A plan Supervisor stays on this machine even when its plan's workers run on a saved host through the
+checked gateway (`data/supervisors.md`): gated live steps there follow the plan's mode exactly as
+locally, an unreachable host simply pauses the loop with nothing resent, and scoped remote workers
+are their Supervisor's to steer, stop and permit — never the board's or this helper's.
 
 ## 10. Bearings and ahoy
 

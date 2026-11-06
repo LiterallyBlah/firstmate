@@ -148,6 +148,9 @@ describe("independent remote access", () => {
     expect(commandArguments(["send", "agent", "--", "- guidance"], "owner")).toEqual(["send", "agent", "--no-wait", "--json", "--", "- guidance"]);
     expect(() => commandArguments(["send", "agent", "--prompt-file", "C:\\anywhere.txt"], "owner")).toThrow("helper's --prompt-file");
     expect(() => commandArguments(["run", "--host", "x", "--", "brief"], "owner")).toThrow("overridden");
+    expect(() => commandArguments(["permit", "allow", "agent", "--all"], "owner")).toThrow("one exact request");
+    expect(() => commandArguments(["permit", "deny", "agent", "--all"], "owner")).toThrow("one exact request");
+    expect(commandArguments(["permit", "deny", "agent", "permission-1", "--message", "No."], "owner")).toEqual(["permit", "deny", "agent", "permission-1", "--message", "No.", "--json"]);
   });
   it("returns the remote CLI's own error, redacted, and keeps the authentication mapping", async () => {
     const relayHost: RemoteProfile = { ...remote, connections: [...remote.connections, { id: "relay", type: "relay", relayEndpoint: "relay.example.test:443", daemonPublicKeyB64: "public-key-value" }] };

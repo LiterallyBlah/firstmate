@@ -5,6 +5,7 @@ import { s04Fixture, captain } from "../test/supervision-s04-fixture";
 import { activationEffects, SupervisorSessions, supervisorSpend } from "./supervisor-sessions";
 import { SupervisorControls } from "./supervisor-controls";
 import { supervisorList } from "./supervisor-configuration";
+import { activationSnapshot } from "./supervision-activation";
 import { SupervisionStore } from "./supervision-store";
 import { digest } from "./submissions";
 import { expected } from "../test/supervision-fixture";
@@ -33,12 +34,27 @@ describe("Supervisor foundation checked app lifecycle", { timeout: 60000 }, () =
     const rows = supervisorList(before, () => ({ supervisorSessions: 3, supervisorTurns: 10 }));
     expect(rows).toEqual([{ scopeId: fx.scope.id, kind: "plan", title: expect.any(String), planId: null, state: "active", agentId: binding.agentId, epoch: 1,
       profile: { provider: profile.provider, modeId: profile.modeId, thinkingOptionId: profile.thinkingOptionId }, sessions: 1, turns: 1,
-      limits: { supervisorSessions: 3, supervisorTurns: 10 }, lastFailure: null }]);
+      limits: { supervisorSessions: 3, supervisorTurns: 10 }, lastFailure: null, workerHosts: [], planMode: null, modeLabel: null }]);
     expect(rows.some(r => r.scopeId === unbound.id)).toBe(false);
     await fx.stage();
     expect(supervisorList(await fx.store.read(), () => null)).toEqual([expect.objectContaining({ state: "change-pending", limits: null,
       profile: { provider: profile.provider, modeId: profile.modeId, thinkingOptionId: "high" } })]);
     expect(fx.receiver.calls.length).toBe(calls);
+  });
+  it("lists a remote plan's worker host and ownership mode; the Supervisor binding stays local", async () => {
+    const fx = await s04Fixture(), scope = await fx.addScope(7, "remote-list", ["r-build"], false, "srv_remote");
+    const sessions = new SupervisorSessions(fx.store, fx.gateway, fx.receiver, { enabled: true, limits: { supervisorSessions: 3, supervisorTurns: 10 }, globalMateId: async () => "general" });
+    await sessions.prepare({ requestId: randomUUID(), scopeId: scope.id, scopeVersion: 1, profile, opening: "Original checkpoint" }, captain);
+    const effects = activationEffects(await fx.store.read(), scope.id, 1);
+    await fx.gateway.dispatch(effects.workspace!.id); await fx.gateway.dispatch(effects.create!.id); await sessions.verify(scope.id, 1); await fx.gateway.dispatch(effects.send!.id);
+    await fx.draft(scope, [{ id: "r-build" }]);
+    const status = await fx.store.read();
+    expect(status.bindings.find(b => b.scopeId === scope.id)?.hostId).toBe("local");
+    expect(supervisorList(status, () => null).find(r => r.scopeId === scope.id))
+      .toMatchObject({ workerHosts: ["srv_remote"], planMode: "captain", modeLabel: "Captain" });
+    // The plan-help/Attach review carries the same host and mode, from stored truth alone.
+    expect(activationSnapshot(status, true).plans.find(p => p.scopeId === scope.id))
+      .toMatchObject({ workerHosts: ["srv_remote"], planMode: "captain", modeLabel: "Captain" });
   });
   it("lists a reviewed replacement's own cap, not the allocation ceiling, where the runtime refuses the next turn", async () => {
     const fx = await fixture();

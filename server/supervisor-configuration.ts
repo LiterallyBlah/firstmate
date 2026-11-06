@@ -5,6 +5,7 @@ import { refuse } from "./supervision-effects";
 import type { SupervisorConfiguration } from "../shared/supervisor-profile";
 import type { GatewayLimits } from "../shared/supervision-effects";
 import type { SupervisorListRow } from "../shared/supervisor-controls";
+import { planEscalate, planLiveSteps, planMode, planModeLabel, planWorkerHosts } from "../shared/workflow-plans";
 /** The reviewed subject is pinned through reservation and each not-yet-admitted opening effect. */
 export function checkSupervisorTarget(status: SupervisionStatus, config: SupervisorConfiguration) {
   const scope = status.scopes.find(s => s.id === config.scopeId), plan = status.plans.find(p => p.scopeId === config.scopeId)?.plan;
@@ -76,6 +77,11 @@ export function supervisorList(status: SupervisionStatus, limits: (scopeId: stri
       planId: plan?.definition.id ?? null, state: scope.state === "retired" ? "retired" : view.state, agentId: view.binding?.agentId ?? null, epoch: view.binding?.epoch ?? null,
       profile: profile ? { provider: profile.provider, modeId: profile.modeId || null, thinkingOptionId: profile.thinkingOptionId || null } : null,
       sessions: view.sessions, turns: view.turns, limits: effective,
-      lastFailure: failure ? `${failure.operation} failed${failure.receiptRef ? ` (${failure.receiptRef})` : ""}` : null }];
+      lastFailure: failure ? `${failure.operation} failed${failure.receiptRef ? ` (${failure.receiptRef})` : ""}` : null,
+      workerHosts: [...new Set([...(plan ? planWorkerHosts(plan) : []),
+        ...status.tasks.filter(t => t.ownerScopeId === scope.id && t.hostId.trim().toLowerCase() !== "local").map(t => t.hostId),
+        ...(project?.owner && project.owner.hostId.trim().toLowerCase() !== "local" ? [project.owner.hostId] : [])])],
+      planMode: plan ? planMode(plan) : null,
+      modeLabel: plan ? planModeLabel(planMode(plan), planEscalate(plan), planLiveSteps(plan)) : null }];
   });
 }

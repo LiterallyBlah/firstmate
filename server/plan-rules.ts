@@ -263,7 +263,7 @@ export class PlanRules {
       stage: c.op === "record" || c.op === "close" || c.op === "validate" ? "completion" : "dispatch" });
   }
   async effect(s: SupervisionStatus, e: SupervisionEffect) {
-    if (!e.attemptId || ["agent.interrupt", "agent.archive"].includes(e.operation)) return;
+    if (!e.attemptId || ["agent.interrupt", "agent.archive", "agent.permit"].includes(e.operation)) return;
     const a = s.attempts.find(a => a.id === e.attemptId), t = s.tasks.find(t => t.id === a?.taskId);
     if (!t) throw new SupervisionError("HELD", "Rule admission requires the retained task.");
     const p = s.plans.find(p => p.plan.definition.id === t.planId)?.plan;

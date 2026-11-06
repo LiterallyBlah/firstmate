@@ -65,6 +65,8 @@ export function commandArguments(args: string[], owner: string): string[] {
   if (options.some((arg, i) => (arg === "--label" && /^firstmate\.(?:owner|role)=/.test(options[i + 1] ?? "")) || /^--label=firstmate\.(?:owner|role)=/.test(arg))) throw new Error("Reserved ownership label");
   // The CLI's own --prompt-file would read any file the daemon can; the helper's reads only the home.
   if (options.some((arg) => /^--prompt-file(?:=|$)/.test(arg))) throw new Error("Use the helper's --prompt-file, which reads the file from the home");
+  // A permission answer names one exact request. `--all` would answer every pending request of the agent.
+  if (command === "permit" && options.some((arg) => arg === "--all")) throw new Error("Remote permissions are answered one exact request at a time; --all is refused");
   if (command === "run") options.push("--no-wait", "--label", "firstmate.role=crew", "--label", `firstmate.owner=${owner}`);
   if (command === "send") options.push("--no-wait");
   if (!options.includes("--json")) options.push("--json");

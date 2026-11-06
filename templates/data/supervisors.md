@@ -101,7 +101,8 @@ nonempty bytes (512 KiB maximum). `policy-evidence` retains current-subject
 check/review artifacts without granting an operation or approval. A GitHub
 same-account approval is separate from independent agent review evidence.
 `pr-bind` names `{scopeId,attemptId,repository,pr}`. Bound PR facts go to this
-mailbox; General receives no routine copy. Remote catalogs are observations only.
+mailbox; General receives no routine copy. Remote catalog observations wake this scope's owner
+(see "Workers on a remote host"); they complete nothing by themselves.
 
 Before dispatch, every build declares named automatic checks and pass criteria.
 Visual work pins an approved baseline and viewport/state captures; performance
@@ -132,7 +133,8 @@ first; missing report evidence alone is not a reason to rerun the work.
 
 At exhaustion, hold new paid effects and inspect the retained stop request.
 `stop-worker` accepts `{scopeId,epoch,attemptId,causation}` and reserves the checked
-interrupt for that exact verified current local worker. Unknown cancellation
+interrupt for that exact verified current worker (on a remote host, the receiver's `stop`;
+archive stays refused there: no persisted remote inventory exists). Unknown cancellation
 stays unknown. Never reset spend or infer a missing launch absent. Escalate only
 a true scope, authority or budget exception, or a point matching the plan's
 recorded pivotal criteria, as one captain-authority decision
@@ -163,6 +165,75 @@ no retained dependents and no unsettled effects. Imported live callbacks remain
 held until the known original owner is explicitly drained/reconciled. Migration
 controls use an approved independent verified snapshot and retention; restoration
 still requires external-effect reconciliation and never refunds spend.
+
+## Workers on a remote host
+
+A plan's run may name a saved remote host (`launch.host`). Its worker then runs there through the
+checked gateway, never through `tools/remote.mjs`; this Supervisor stays local. Nothing below changes
+who decides, the caps, or the evidence rules: only where the worker runs.
+
+- **Identity is label-bound, and weaker.** The remote CLI cannot take a caller-chosen agent ID or create
+  unprompted, so the worker is created with the pinned brief at create, bound by its scope/attempt
+  labels, and verified after creation (exactly one owner-filtered label match, its reported profile and
+  directory, parentless, created inside the submission window). Say so plainly in reports; never
+  present it as the local reserved-ID guarantee. Two sessions carrying one attempt's labels are a held
+  duplicate: nothing is bound, archived or relabelled for you.
+- **Completion reaches you by poll, with its latency.** There is no remote callback. The minute poll's
+  fingerprint of a registered remote worker becomes an inbox observation, and a newly assigned one (a
+  finished turn, a new pending permission) wakes you on that latency. Running progress, quiet repeat
+  polls and outage gaps wake nobody. A finished turn is an observation to judge, never a completion
+  record: record outcomes only from verified report/PR/head evidence, as locally.
+- **Coverage is stated, never complete.** Read `sources` with the `state` page: each remote source
+  carries its `observedAt` (the poll latency you are deciding under) and its gaps — `outage`, `stale`,
+  `clock-skew`, `content-collision` (equal final content under a new update can hide a turn). Equal
+  content is flagged, never silently treated as the same turn.
+- **Offline means held, never resent.** If the host is unreachable the loop pauses: reservations,
+  attempts and spend stay as they are, and nothing is resent on reconnect. A failure before submission
+  is a definite refusal; one after submission is uncertain and reconciled by label discovery or left
+  for deliberate review. Never create a replacement to escape that uncertainty.
+- **Archive is refused.** There is no persisted remote inventory through the CLI, so a remote worker
+  cannot be archived through the gateway; `stop-worker` (the receiver's `stop`) is the safe stop. The
+  captain's board likewise refuses steer, interrupt and end for scoped remote workers: they are yours
+  through `tools/scope.mjs`, not the board's.
+- **Evidence returns in words or on the branch.** A remote worker cannot write this home and its files
+  cannot be read back. Its report comes in its final message (quoted, untrusted, in the observation),
+  or as files it commits and pushes on its branch: record the PR/head and fetch pushed report files
+  from the branch. Keep remote briefs lean (brief plus rules over 28,000 characters refuse before
+  reservation); put bulk in the repository.
+
+### Answering a remote worker's permission
+
+`permit-worker` accepts `{scopeId,epoch,attemptId,causation,answer}` and answers **one exact pending
+request** of that attempt's verified remote worker, once, through the same propose/dispatch claim as
+`stop-worker`. Name the causation for the request (for example `permit:<request-id>`). An uncertain
+result is retained and never resent; an already-answered or vanished request refuses instead of
+answering whatever is pending now.
+
+- `answer: {requestId, action: "deny", message}` — the worker sees the denial and your words, and
+  carries on with them.
+- `answer: {requestId, action: "allow", input}` — **Claude questions (`AskUserQuestion`) only**, with
+  the question `--input` JSON. For any other tool, allow would replace what the tool runs, so it is
+  refused here. There is no `--all` and no blanket allow; the bridge refuses `--all` too.
+- Judge from what the CLI can give: the request's tool name, the worker's `recentTools` and its logs,
+  all in the observation that woke you. The request input itself never crosses the bridge, so a remote
+  permission judgment is weaker than a local one. If you cannot judge it on that, do not stall and do
+  not guess: escalate it as a decision under the plan's mode (above), with the tool, the recent tools
+  and the quoted log lines as its evidence. Who answers follows the mode like any decision; a
+  permission that is really installation, access, discarding work or spending beyond the caps is
+  escalated with that reserved effect and stays with the captain in every mode.
+
+### Live steps on a remote host
+
+Release, deploy and live product actions (for example a product's Resume or Cancel-and-continue) are
+ordinary remote worker nodes with the gate tightened, exactly as `data/workflows.md` describes: the run
+carries its `effect`, a same-effect decision stands before it, and who answers follows the plan's mode.
+The gateway rechecks that answered gate at reservation and again at the final dispatch claim, so the
+remote receiver cannot start the step first. The node is reserved once and its worker created under
+the never-resent rule: make the consequential action inside the turn idempotent or evident from the
+product's own state in the pinned brief (name the supported procedure, the pre-state to read, and the
+evidence to return). Record `landed` only from that evidence. A second release is a new node or a
+revision, never a resend; an uncertain live step is diagnosed read-only against live state, then
+deliberately replanned.
 
 ## A project Supervisor
 

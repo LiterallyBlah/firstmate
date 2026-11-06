@@ -111,6 +111,60 @@ it("A9: typed watch input advances its independent owner while General and anoth
     expect((await f.store.read()).inbox.assignments.filter(a => a.state === "assigned" || a.state === "offered")).toHaveLength(2);
   } finally { releaseOwner?.(); releaseGeneral?.(); await blocked?.catch(() => {}); await general; await f.service.stop(); await f.runtime.stop(); }
 }, 90_000);
+it("a finished remote turn wakes its Supervisor once and completes nothing; a quiet repoll wakes nobody", async () => {
+  const f = await fixture(true);
+  try {
+    // A third scope whose task and attempt are remote from birth (identity is retained, never rewritten),
+    // with a real local Supervisor session, sponsor claim and rules like the fixture's own scopes.
+    const scope = await f.addScope(3, "chain-remote", ["build-remote"], false, "srv_remote");
+    await f.sessions.prepare({ requestId: randomUUID(), scopeId: scope.id, scopeVersion: (await f.store.read()).scopes.find(s => s.id === scope.id)!.version,
+      profile: { provider: "codex/gpt-6.1-sol", modeId: "full-access", thinkingOptionId: "high" }, opening: "Synthetic isolated owner" }, captain);
+    const binding = (await f.store.read()).bindings.find(b => b.scopeId === scope.id)!; scope.owner.id = binding.agentId;
+    const e = activationEffects(await f.store.read(), scope.id, binding.epoch);
+    await f.gateway.dispatch(e.workspace!.id); await f.gateway.dispatch(e.create!.id); await f.sessions.verify(scope.id, binding.epoch); await f.gateway.dispatch(e.send!.id); f.receiver.finish(binding.agentId);
+    await f.draft(scope, [{ id: "build-remote" }], true);
+    const seeded = await f.store.read(), projectScope = randomUUID(), own = seeded.scopes.find(s => s.id === scope.id)!;
+    const sponsor: SupervisionMutation[] = [
+      { kind: "scope", value: { ...own, sponsorId: projectScope, version: own.version + 1 } },
+      { kind: "scope", value: { id: projectScope, version: 1, kind: "project", homeId: seeded.homeId, projectIds: [scope.projectId], sponsorId: null, mode: "scoped", state: "active" } },
+      { kind: "project", value: { id: scope.projectId, version: 1, scopeId: projectScope, name: scope.project, aliases: [], state: "admitted", budget: { agents: 6, turns: 6 },
+        sourceVector: [policyRef("policy-source", seeded.policySources[0]!)], provenance: captain } },
+      { kind: "plan-sponsor", value: { id: scope.id, version: 1, sponsorScopeId: projectScope, projectIds: [scope.projectId], claims: [{ projectId: scope.projectId, agents: 6, turns: 6, priority: 1 }], queuedAt: 1, state: "granted", provenance: captain } },
+    ]; await f.store.transact(expectedFor(seeded, sponsor), randomUUID(), sponsor);
+    const planNow = (await f.store.read()).plans.find(p => p.scopeId === scope.id)!.plan;
+    const na = { applies: false, reason: "Bounded server-only chain; no visual/performance/heavy-test or long-work change." };
+    const record = PlanRuleRecordSchema.parse({ format: "firstmate.plan-rules/1", id: stableId("plan-rules", seeded.homeId, scope.planId, planNow.revision), version: 1,
+      homeId: seeded.homeId, scopeId: scope.id, planId: scope.planId, revision: planNow.revision, sources: [policyRef("policy-source", seeded.policySources[0]!)], supervisorLimits: { sessions: 1, turns: 8 },
+      nodes: [{ nodeId: "build-remote", checks: [{ id: "unit", command: "node check.mjs", passCriterion: "exit zero, every assertion passes" }], design: na, performance: na, longRun: na, heavyTests: na }] });
+    await f.queue("general", "rules", record); await f.service.tick();
+    const s = await f.store.read(), task = s.tasks.find(t => t.ownerScopeId === scope.id && t.nodeId === "build-remote")!;
+    const attemptId = randomUUID(), effectId = randomUUID();
+    const mutations: SupervisionMutation[] = [
+      { kind: "task", value: { ...task, currentAttempt: attemptId, version: task.version + 1 } },
+      { kind: "attempt", value: { id: attemptId, taskId: task.id, ordinal: 1, briefHash: digest("brief"), launchEffectId: effectId,
+        worker: { hostId: "srv_remote", agentId: "remote-a", workspaceId: "remote-ws" }, originalNotificationOwner: null,
+        notificationStatus: "known", spentAgents: 1, spentTurns: 1, state: "prompted", evidenceIds: [], version: 1, reservedAt: new Date().toISOString() } },
+      { kind: "effect", value: { id: effectId, logicalKey: "test/" + effectId, requestId: randomUUID(), requestHash: digest("request"), scopeId: scope.id,
+        epoch: binding.epoch, attemptId, operation: "agent.create", planRevision: 1, subjectHash: digest("subject"), policyVector: [], evidenceVector: [],
+        approvalId: null, resourceIds: ["agent:remote-a"], state: "succeeded", receiverKey: "remote-a", receiptRef: "agent:remote-a", version: 1 } },
+    ];
+    await f.store.transact(expectedFor(s, mutations), randomUUID(), mutations);
+    const snapshot = { version: 1 as const, localServerId: "srv_local", syncedAt: new Date().toISOString(), syncError: null,
+      hosts: [{ serverId: "srv_remote", label: "Remote", online: true, checkedAt: new Date().toISOString(), error: null, projects: [], workspaces: [], providers: [], clockSkew: null,
+        workers: [{ id: "remote-a", name: "Remote A", status: "idle", updatedAt: new Date().toISOString(), permissions: 0, output: "", lastMessage: "done: PR https://example.invalid/pr/1" }] }] };
+    const before = f.receiver.sends.length;
+    await f.service.remote(snapshot);
+    expect(f.receiver.sends.slice(before).some(send => send.agentId === binding.agentId)).toBe(true);
+    expect(f.receiver.sends.every(send => send.agentId !== "general")).toBe(true);
+    const after = await f.store.read();
+    // The finished turn is an observation for the Supervisor to judge: no completion was recorded.
+    expect(after.plans.find(p => p.scopeId === scope.id)!.plan.nodes[scope.nodes[0]!]!.state).toBe("planned");
+    expect(after.inbox.assignments.some(a => a.scopeId === scope.id && a.state !== "observed")).toBe(true);
+    const settled = f.receiver.sends.length;
+    await f.service.remote(snapshot);
+    expect(f.receiver.sends).toHaveLength(settled);
+  } finally { await f.service.stop(); await f.runtime.stop(); }
+}, 90_000);
 it("the first callback after restart is journaled before any view/tick, with one root subscription and one consequence", async () => {
   const f = await fixture(), scope = f.scopes[0]!, launched = await f.launch(scope, scope.nodes[0]!), hooks = new Map<string, (...args: unknown[]) => unknown>();
   const restarted = new PlanRuntime(f.runtime, { enabled: true, config: async () => FirstmateConfigSchema.parse({ home: f.home, mateAgentId: "general" }), receiver: () => f.receiver });

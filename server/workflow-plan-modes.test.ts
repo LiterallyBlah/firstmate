@@ -296,6 +296,25 @@ it("P11: a captain-owned revision cannot detach one of two dependents from an es
   await expect(store().execute({ op: "revise", definition: detachSetup(plan.definition), expected: plan.hash, reason: "Setup no longer waits" }, randomUUID(), "mate-v1")).rejects.toThrow();
 });
 
+it("a live step on a remote host follows the mode exactly as a local one does", async () => {
+  const definition = liveFixture({ owner: "firstmate", mode: "firstmate-pivotal", evidence: WORDS, escalate: [CRITERION] });
+  const release = definition.nodes.find(n => n.id === "release")!;
+  if (release.kind !== "run") throw new Error("fixture");
+  release.launch.host = "srv_remote";
+  await store().execute({ op: "draft", definition }, randomUUID(), "mate-v1");
+  const plan = await current();
+  // The remote host changes where the worker runs, never who decides: pivotal live steps stay captain.
+  expect(decisionOwner(plan, node(plan, "go-live"))).toBe("captain");
+  await expect(start("release")).rejects.toThrow("release");
+  await expect(mateAnswer("go-live")).rejects.toThrow("belongs to the captain");
+  await captainAnswer("go-live");
+  const started: any = await start("release");
+  expect(started.launch.workflow.attempt).toBeTruthy();
+  expect(started.launch.host).toBe("srv_remote");
+  // Recording the release landed still needs evidence, exactly as locally: a status line is not proof.
+  expect((await current()).nodes["release"]?.state).toBe("starting");
+});
+
 it("P12: on a sailing plan the detachment is refused and the plan stays as it was", async () => {
   await store().execute({ op: "draft", definition: escalatedFixture({ owner: "firstmate", mode: "firstmate-pivotal", evidence: WORDS, escalate: [CRITERION] }, true) }, randomUUID(), "mate-v1");
   await reviewCaptain({ action: "transfer", mode: "captain" }, "Captain: I own this now.");
