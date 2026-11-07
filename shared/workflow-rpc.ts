@@ -1,5 +1,6 @@
 import { defineRpc } from "@getpaseo/plugin";
 import { z } from "zod";
+import { RuleViolationSchema } from "./plan-rules";
 import { PlanCaptainCommandSchema, PlanDefinitionSchema, PlanLaunchSchema, PlanNodeSchema, PlanPostureSourceSchema, type PlanNodeState } from "./workflow-plans";
 const NodeStateSchema: z.ZodType<PlanNodeState> = z.lazy(() => z.object({ state: z.enum(["planned", "starting", "running", "done", "landed", "failed", "cancelled", "unresolved"]), held: z.union([z.boolean(), z.string()]).optional(), attempt: z.string().optional(), claimed: z.boolean().optional(),
   agentId: z.string().optional(), workspaceId: z.string().optional(), evidence: z.string().optional(), briefHash: z.string().optional(), answer: z.string().optional(), launch: PlanLaunchSchema.optional(), invalidated: z.string().optional(), spent: z.number().optional(), completedAt: z.string().optional(), priorAttempts: z.array(NodeStateSchema).optional(),
@@ -24,6 +25,8 @@ export const PlanNeedSchema = z.object({ plan: z.string(), node: z.string().opti
 });
 export type PlanNeed = z.infer<typeof PlanNeedSchema>;
 export const WorkflowSnapshotSchema = z.object({ homeId: z.string(), version: z.string(), plans: z.array(WorkflowPlanSchema), subjects: z.record(z.string(), z.string()), now: z.array(PlanNeedSchema), comingUp: z.array(PlanNeedSchema), problems: z.array(z.string()).optional(), warnings: z.array(z.string()).optional(),
+  /** Immutable refusals remain inspectable after later accepted progress; this is never rule authority. */
+  ruleRefusals: z.array(z.object({ record: RuleViolationSchema, historical: z.boolean() }).strict()).optional(),
   /** Navigation only, including a freeze interrupted before its migration receipt. Never a decision. */
   planHelpPending: z.array(z.object({ plan: z.string(), title: z.string() }).strict()).optional() });
 export type WorkflowSnapshot = z.infer<typeof WorkflowSnapshotSchema>;

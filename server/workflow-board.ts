@@ -7,7 +7,8 @@ import { RemoteSnapshot } from "../shared/remotes";
 import { captainReviewRequired, decisionOwner, planOwner, planFinished, type WorkflowPlan } from "../shared/workflow-plans";
 import { compactWorkflowBearings } from "../shared/workflow-plan-summary";
 import { workflowNodeOwnsCard } from "../shared/workflow-identity";
-import { dependenciesMet, planSubjectHash, planBacklogLine, backlogSection, samePlanItem } from "./workflow-plans";
+import { dependenciesMet, planSubjectHash, planBacklogLine, backlogSection, samePlanItem, legacyCutoverWarning } from "./workflow-plans";
+import { historicalCrewReport, historicalRuleRefusal } from "./workflow-reporting";
 import { workflowStore } from "./workflow-service";
 import { cutoverGate, cutoverProblems } from "./supervision-gate";
 import { digest } from "./submissions";
@@ -85,8 +86,12 @@ export async function workflowSnapshot(home: string, scoped?: ScopedStatus): Pro
   scoped = await scopedRead;
   const scopedPlans = scoped?.freshness === "current" ? scoped.plans.filter(p => scoped!.backends.some(b => b.planId === p.plan.definition.id && b.ownerScopeId === p.scopeId && b.backend === "scoped")) : [];
   const currentScoped = new Set(scopedPlans.map(p => p.plan.definition.id));
+  // The successful overlay is the current owner. Keep the notice if that owner cannot be read.
+  const replacedLegacyNotices = new Set([...currentScoped].map(id => legacyCutoverWarning(id, "committed")));
+  read.warnings = (read.warnings ?? []).filter(w => !replacedLegacyNotices.has(w));
   if (scoped?.freshness === "held") read.problems.push("Scoped plans are held; their retained legacy copies remain historical.");
-  for (const violation of (scoped?.ruleViolations ?? []).slice(-32))
+  const ruleRefusals = (scoped?.ruleViolations ?? []).map(record => ({ record, historical: historicalRuleRefusal(scoped!, record) }));
+  for (const { record: violation } of ruleRefusals.filter(r => !r.historical).slice(-32))
     read.warnings = [...(read.warnings ?? []), `Retained rule refusal ${violation.planId}/${violation.nodeId}: ${violation.conditions.join("; ")}`];
   const allPlans = [...read.plans.filter(p => !currentScoped.has(p.definition.id)), ...scopedPlans.map(p => scoped!.backends.some(b => b.planId === p.plan.definition.id && b.state === "retired") ? { ...p.plan, status: "abandoned" as const } : p.plan)], held = new Set<string>(), folders = await store.cutoverFolders();
   for (const plan of allPlans) if (!currentScoped.has(plan.definition.id) && await store.cutover(plan.definition.id, folders).catch(() => "damaged")) held.add(plan.definition.id);
@@ -108,9 +113,9 @@ export async function workflowSnapshot(home: string, scoped?: ScopedStatus): Pro
       if (decisionOwner(plan, node) === "captain") (planDecisionReady(plan, node, allPlans, unavailableDependencies) ? now : comingUp).push(need);
     }
   }
-  return { homeId: workflowHomeId(home), version: digest({ plans: allPlans.map(p => p.hash), held: [...held].sort(), problems: read.problems, warnings: read.warnings ?? [], unavailableDependencies: [...unavailableDependencies].sort() }), plans,
+  return { homeId: workflowHomeId(home), version: digest({ plans: allPlans.map(p => p.hash), held: [...held].sort(), problems: read.problems, warnings: read.warnings ?? [], ruleRefusals, unavailableDependencies: [...unavailableDependencies].sort() }), plans,
     ...(held.size ? { planHelpPending: allPlans.filter(p => held.has(p.definition.id)).map(p => ({ plan: p.definition.id, title: p.definition.title })) } : {}),
-    subjects: Object.fromEntries(plans.map(p => [p.definition.id, planSubjectHash(p)])), now, comingUp, problems: read.problems, warnings: read.warnings ?? [] };
+    subjects: Object.fromEntries(plans.map(p => [p.definition.id, planSubjectHash(p)])), now, comingUp, problems: read.problems, warnings: read.warnings ?? [], ruleRefusals };
 }
 async function backlog(home: string) { return parseBacklog(await readFile((await resolveInHome(home, "data/backlog.md")).absolute, "utf8")); }
 async function catalog(home: string) {
@@ -175,10 +180,13 @@ export async function withWorkflowCards(cards: FleetCard[], home: string, workfl
   return result;
 }
 /** Fleet and Needs you share a single plan read/publication snapshot. */
-export async function withWorkflowFleet(fleet: Fleet): Promise<Fleet> {
-  const view = await workflowSnapshot(fleet.home);
+export async function withWorkflowFleet(fleet: Fleet, workflow?: WorkflowSnapshot): Promise<Fleet> {
+  const view = workflow ?? await workflowSnapshot(fleet.home);
+  // Only a warning carried by its exact card can be superseded; all unrelated/read-failure alerts survive.
+  // An incomplete plan read is insufficient evidence even if it retained an older successful projection.
+  const historicalReports = new Set((view.problems?.length ? [] : fleet.cards.filter(c => c.reportWarning && historicalCrewReport(c, view.plans))).flatMap(c => c.reportWarning ? [c.reportWarning] : []));
   return { ...fleet, cards: await withWorkflowCards(fleet.cards, fleet.home, view), ...(fleet.needsYou ? { needsYou: await withWorkflowNeeds(fleet.needsYou, fleet.home, view) } : {}),
-    warnings: [...fleet.warnings, ...[...(view.problems ?? []), ...(view.warnings ?? [])].map(p => `Workflow: ${p}`)] };
+    warnings: [...fleet.warnings.filter(w => !historicalReports.has(w)), ...[...(view.problems ?? []), ...(view.warnings ?? [])].map(p => `Workflow: ${p}`)] };
 }
 export async function workflowBearings(home: string): Promise<string> {
   const snapshot = await workflowSnapshot(home);
