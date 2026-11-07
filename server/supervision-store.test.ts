@@ -30,6 +30,61 @@ async function tree(path: string): Promise<unknown> {
     row.isDirectory() ? await tree(join(path, row.name)) : (await readFile(join(path, row.name))).toString("base64")]));
 }
 describe("scoped transaction authority", () => {
+  it("audits recovery startup, writes and the hourly backstop, but not unchanged idle beats", async () => {
+    await commit([{ kind: "scope", value: scope(store.homeId) }]);
+    const scan = vi.spyOn(store as unknown as { scanFull: () => Promise<unknown> }, "scanFull");
+    const beat = () => store.recoveryPass("heartbeat", async status => status);
+    let now = Date.now(); const clock = vi.spyOn(Date, "now").mockImplementation(() => now);
+    try {
+      expect((await beat()).freshness).toBe("current"); expect(scan).toHaveBeenCalledTimes(1);
+      for (let n = 0; n < 4; n++) { now += 60_000; expect((await beat()).freshness).toBe("current"); }
+      expect(scan, "idle heartbeat replayed full history").toHaveBeenCalledTimes(1);
+      await store.transact(expected([{ kind: "scope", value: scope(store.homeId) }], 1), randomUUID(),
+        [{ kind: "scope", value: { ...scope(store.homeId), version: 2 } }]);
+      await beat(); expect(scan).toHaveBeenCalledTimes(2);
+      now += 60 * 60_000; await beat(); expect(scan).toHaveBeenCalledTimes(3);
+      await store.recoveryPass("restart", async status => status); expect(scan).toHaveBeenCalledTimes(4);
+    } finally { clock.mockRestore(); }
+  });
+  it("shares one forced audit across recovery actions and expires its lease after the pass", async () => {
+    await commit([{ kind: "scope", value: scope(store.homeId) }]);
+    const scan = vi.spyOn(store as unknown as { scanFull: () => Promise<unknown> }, "scanFull");
+    await store.recoveryPass("restart", async () => { await Promise.all([store.audit(), store.audit(), store.auditRecoveryAction()]); });
+    expect(scan).toHaveBeenCalledTimes(1);
+    // An unchanged beat can skip initially, but an actual action still forces one full audit.
+    await store.recoveryPass("heartbeat", async () => { await Promise.all([store.audit(), store.auditRecoveryAction()]); });
+    expect(scan).toHaveBeenCalledTimes(2);
+    await store.audit(); expect(scan).toHaveBeenCalledTimes(3);
+  });
+  it("falls back to a full audit on fingerprint failure and still detects old corruption", async () => {
+    await commit([{ kind: "scope", value: scope(store.homeId) }]);
+    const beat = () => store.recoveryPass("heartbeat", async status => status);
+    await beat();
+    await writeFile(file(1, "event"), "{damaged");
+    expect((await beat()).freshness).toBe("held");
+  });
+  it("does not skip the audit when the fingerprint probe fails", async () => {
+    await commit([{ kind: "scope", value: scope(store.homeId) }]);
+    const beat = () => store.recoveryPass("heartbeat", async status => status);
+    await beat();
+    const scan = vi.spyOn(store as unknown as { scanFull: () => Promise<unknown> }, "scanFull");
+    const probe = vi.spyOn(store as unknown as { journalFingerprint: () => Promise<string> }, "journalFingerprint").mockRejectedValueOnce(Error("unreadable stat"));
+    try { expect((await beat()).freshness).toBe("current"); expect(scan).toHaveBeenCalledTimes(1); }
+    finally { probe.mockRestore(); }
+  });
+  it("detects old prefix corruption at the hourly backstop even when the warm fingerprint is unchanged", async () => {
+    await commit([{ kind: "scope", value: scope(store.homeId) }]);
+    const next = [{ kind: "scope" as const, value: { ...scope(store.homeId), version: 2 } }];
+    await store.transact(expected(next, 1), randomUUID(), next);
+    const beat = () => store.recoveryPass("heartbeat", async status => status);
+    await beat();
+    // In-place historical edits do not change any path in the head fingerprint.
+    await writeFile(file(1, "event"), "{old-corruption");
+    expect((await beat()).freshness).toBe("current");
+    const clock = vi.spyOn(Date, "now").mockReturnValue(Date.now() + 3600_000);
+    try { expect((await beat()).freshness).toBe("held"); }
+    finally { clock.mockRestore(); }
+  });
   it.each(["blobs", "transactions"] as const)("keeps a current read when an inert %s temp is unlinked between listing and stat", async directory => {
     await commit([{ kind: "scope", value: scope(store.homeId) }]);
     const before = await store.read(), temp = join(store.root, directory, directory === "blobs" ? `${hash}.${randomUUID()}.tmp` : `000000000099.event.json.${randomUUID()}.tmp`);

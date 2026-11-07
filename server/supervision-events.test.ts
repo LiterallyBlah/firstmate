@@ -13,6 +13,41 @@ import type { PluginLifecycleEvents } from "@getpaseo/plugin/server";
 import { digest } from "./submissions";
 
 describe("S02 durable local ingress", () => {
+  it("keeps repeated boot and unchanged catalog sweeps inert, but reads a changed agent", async () => {
+    const f = await inboxFixture(), read = vi.fn(async () => timelinePage());
+    const agent = { id: "worker-a", status: "idle", updatedAt: now.toISOString(), pendingPermissions: [] } as unknown as PaseoAgent;
+    await f.events.boot(); await f.events.catalog([agent], api(read));
+    const first = await f.store.read();
+    for (let n = 0; n < 3; n++) { await f.events.boot(); await f.events.catalog([agent], api(read)); }
+    expect(read).toHaveBeenCalledTimes(1); expect((await f.store.read()).sequence).toBe(first.sequence);
+    await f.events.catalog([{ ...agent, updatedAt: "changed" }], api(read)); expect(read).toHaveBeenCalledTimes(2);
+    expect((await f.store.read()).sequence).toBeGreaterThan(first.sequence);
+  });
+  it("coalesces catalog timeline reads and backs off failures even when updatedAt changes", async () => {
+    const f = await inboxFixture(); let release!: () => void;
+    const read = vi.fn(() => new Promise<never>((_, reject) => { release = () => reject(Error("offline")); }));
+    const agent = { id: "worker-a", status: "idle", updatedAt: "one", pendingPermissions: [] } as unknown as PaseoAgent;
+    const first = f.events.catalog([agent], api(read)); await vi.waitFor(() => expect(read).toHaveBeenCalledTimes(1));
+    const second = f.events.catalog([{ ...agent, updatedAt: "two" }], api(read)); release(); await Promise.all([first, second]);
+    const clock = vi.spyOn(Date, "now").mockReturnValue(Date.now() + 29_000);
+    try { await f.events.catalog([{ ...agent, updatedAt: "three" }], api(read)); expect(read).toHaveBeenCalledTimes(1); }
+    finally { clock.mockRestore(); }
+    const retry = vi.fn(async () => timelinePage()), later = vi.spyOn(Date, "now").mockReturnValue(Date.now() + 31_000);
+    try { await f.events.catalog([{ ...agent, updatedAt: "four" }], api(retry)); expect(retry).toHaveBeenCalledTimes(1); }
+    finally { later.mockRestore(); }
+  });
+  it("never polls a closed timeline repeatedly, and does not journal the same missing-agent gap", async () => {
+    const f = await inboxFixture(), read = vi.fn(async () => { throw Error("offline"); });
+    const agent = { id: "worker-a", status: "closed", updatedAt: "one", pendingPermissions: [] } as unknown as PaseoAgent;
+    await f.events.catalog([agent], api(read));
+    const clock = vi.spyOn(Date, "now").mockReturnValue(Date.now() + 3600_000);
+    try { await f.events.catalog([{ ...agent, updatedAt: "two" }], api(read)); expect(read).toHaveBeenCalledTimes(1); }
+    finally { clock.mockRestore(); }
+    await f.events.recordGap("catalog", "worker-a", null, ["fetch-failed"]);
+    const sequence = (await f.store.read()).sequence;
+    await f.events.recordGap("catalog", "worker-a", null, ["fetch-failed"]);
+    expect((await f.store.read()).sequence).toBe(sequence);
+  });
   it("deduplicates repeated source deliveries and joins cross-source provenance into one consequence", async () => {
     const f = await inboxFixture(), requestId = randomUUID(), original = observation();
     const first = await f.events.admit(original, requestId);

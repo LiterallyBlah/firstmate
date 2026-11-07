@@ -141,9 +141,11 @@ interface ReportRead {
   updatedAt: string;
   cached?: CachedReport;
   pending?: Promise<void>;
-  failure?: { updatedAt: string; retryAfter: number };
+  failure?: { attempts: number; retryAfter: number };
+  closedAttempted?: boolean;
 }
 const REPORT_RETRY_MS = 30_000;
+const REPORT_MAX_RETRY_MS = 5 * 60_000;
 
 /** Each crewmate's last status line, re-read only when the agent has moved. */
 export class ReportCache {
@@ -154,11 +156,16 @@ export class ReportCache {
     if (!entry) { entry = { active: true, updatedAt: agent.updatedAt }; this.reports.set(agent.id, entry); }
     entry.active = true; entry.updatedAt = agent.updatedAt;
     const current = entry;
+    if (agent.status !== "closed") delete current.closedAttempted;
     // A running turn has not closed yet, so its timeline holds no new status
     // line; the previous one stays on the card until it does.
     if (agent.status === "running" || agent.status === "initializing" || current.cached?.updatedAt === agent.updatedAt)
       return { report: current.cached?.report ?? null, state: "current" };
-    if (!current.pending && !(current.failure?.updatedAt === agent.updatedAt && current.failure.retryAfter > Date.now())) {
+    // Provider errors and daemon updates can move updatedAt without yielding a new timeline.
+    // Back off the agent, not a single timestamp. A closed session gets at most one attempt
+    // until it reopens; polling it must never keep reopening its provider helper.
+    if (!current.pending && !current.closedAttempted && !(current.failure && current.failure.retryAfter > Date.now())) {
+      if (agent.status === "closed") current.closedAttempted = true;
       const version = agent.updatedAt;
       const work = Promise.resolve().then(() => paseo.agents.ref(agent.id).timeline.refetch({ direction: "tail", limit: REPORT_TAIL, projection: "projected" }))
         .then(page => {
@@ -167,7 +174,8 @@ export class ReportCache {
             delete current.failure;
           }
         }).catch((error: unknown) => {
-          current.failure = { updatedAt: version, retryAfter: Date.now() + REPORT_RETRY_MS };
+          const attempts = (current.failure?.attempts ?? 0) + 1;
+          current.failure = { attempts, retryAfter: Date.now() + Math.min(REPORT_MAX_RETRY_MS, REPORT_RETRY_MS * 2 ** Math.min(attempts - 1, 4)) };
           console.error(`[firstmate] could not read the status line of ${agent.id}:`, error);
         }).finally(() => {
           if (current.pending === work) delete current.pending;
@@ -182,7 +190,7 @@ export class ReportCache {
       try { await observeWithin(current, "crew-report", () => work); } catch { /* Unknown, never cancellation or absence. */ }
     }
     return { report: current.cached?.report ?? null,
-      state: current.cached?.updatedAt === agent.updatedAt ? "current" : current.pending || current.failure?.updatedAt !== agent.updatedAt ? "pending" : "unavailable" };
+      state: current.cached?.updatedAt === agent.updatedAt ? "current" : current.pending ? "pending" : current.failure || current.closedAttempted ? "unavailable" : "pending" };
   }
 
   /** Drops agents no longer in the crew, so the map cannot grow for the life of the daemon. */

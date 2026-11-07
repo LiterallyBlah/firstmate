@@ -46,6 +46,33 @@ it("does not let an old pending version overwrite a new observation or reinsert 
   expect(await cache.reportFor(paseo, agent("two"))).toEqual({ report: { state: "done", text: "current" }, state: "current" });
   expect(read).toHaveBeenCalledTimes(3);
 });
+it("backs off repeated provider failures across updatedAt changes, caps retries, and resets after success", async () => {
+  vi.useFakeTimers(); vi.spyOn(console, "error").mockImplementation(() => {});
+  const cache = new ReportCache(), read = vi.fn().mockRejectedValue(new Error("Provider unavailable")), paseo = api(read);
+  await cache.reportFor(paseo, agent());
+  for (let n = 0; n < 10; n++) await cache.reportFor(paseo, agent(`noise-${n}`));
+  expect(read).toHaveBeenCalledTimes(1);
+  for (const [n, delay] of [30_000, 60_000, 120_000, 240_000, 300_000].entries()) {
+    await vi.advanceTimersByTimeAsync(delay - 1); await cache.reportFor(paseo, agent(`before-${n}`));
+    expect(read).toHaveBeenCalledTimes(n + 1);
+    await vi.advanceTimersByTimeAsync(1); await cache.reportFor(paseo, agent(`retry-${n}`));
+    expect(read).toHaveBeenCalledTimes(n + 2);
+  }
+  read.mockResolvedValue(page("done: recovered")); await vi.advanceTimersByTimeAsync(300_000);
+  expect((await cache.reportFor(paseo, agent("recovered"))).state).toBe("current");
+  read.mockRejectedValue(new Error("Provider unavailable")); await cache.reportFor(paseo, agent("new failure"));
+  const calls = read.mock.calls.length; await vi.advanceTimersByTimeAsync(30_000); await cache.reportFor(paseo, agent("retry"));
+  expect(read).toHaveBeenCalledTimes(calls + 1);
+});
+it.each([true, false])("never reopens an unchanged closed agent after a %s successful read; reopening permits recovery", async success => {
+  vi.useFakeTimers(); vi.spyOn(console, "error").mockImplementation(() => {});
+  const cache = new ReportCache(), read = success ? vi.fn().mockResolvedValue(page("done: closed")) : vi.fn().mockRejectedValue(new Error("Timeout")), paseo = api(read);
+  await cache.reportFor(paseo, agent("closed", "closed"));
+  for (let n = 0; n < 10; n++) { await vi.advanceTimersByTimeAsync(3600_000); await cache.reportFor(paseo, agent(`closed-${n}`, "closed")); }
+  expect(read).toHaveBeenCalledTimes(1);
+  read.mockResolvedValue(page("done: reopened"));
+  expect((await cache.reportFor(paseo, agent("open"))).state).toBe("current"); expect(read).toHaveBeenCalledTimes(2);
+});
 it("bridges only a service-read current canonical ledger, retaining legacy answers and rejecting forged/different-home bridges", async () => {
   const home = join(process.env.PASEO_HOME!, "identity"), other = join(process.env.PASEO_HOME!, "other");
   await mkdir(join(home, "data"), { recursive: true }); await mkdir(other);

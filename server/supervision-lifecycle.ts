@@ -93,17 +93,20 @@ export class SupervisionLifecycle {
         return result(offer.state === "uncertain" ? "uncertain" : "awaiting-owner",
           "The current page needs its owner's explicit acknowledgement and per-event results.", effect?.id ?? null, offer.id);
       }
+      if (!offer && !goal.due && !outboxes.length && !s.inbox.assignments.some(a => a.scopeId === scopeId && a.state === "assigned"))
+        return result("idle", goal.reason);
       let observed;
       try { observed = await observeWithin(this.gateway.receiver, `agent:${binding.agentId}`, () => this.gateway.receiver.findAgent(binding.agentId), this.options.observationTimeoutMs); }
       catch { return result("held", "This owner's observation is unavailable; identity and obligations remain unknown, not absent."); }
       // Optional projection metadata, excluded from the continuation's semantic inputs. A status
-      // read may independently observe display status; this bookkeeping cannot wake itself.
+      // read may independently observe display status. Persist state changes only: refreshing
+      // a timestamp every minute invalidated the audit fingerprint even for a closed owner.
+      // An old stored observation still ages to unknown under the projection's existing rule.
       if (observed?.id === binding.agentId) {
         const observedState = observed.archivedAt ? "unknown" as const : observed.status === "idle" ? "dormant" as const : observed.status === "running" || observed.status === "initializing" ? "awake" as const : "unknown" as const;
         const projectionState = await this.store.read(), current = projectionState.bindings.find(b => b.scopeId === scopeId);
         if (current?.epoch === binding.epoch && current.state === binding.state &&
-          (!current.observation || Date.now() - Date.parse(current.observation.at) >= 60000 ||
-            current.observation.state !== observedState)) {
+          (!current.observation || current.observation.state !== observedState)) {
           const mutations = [{ kind: "binding" as const, value: { ...current, observation: {
             state: observedState,
             at: new Date().toISOString() } } }];
@@ -160,6 +163,7 @@ export class SupervisionLifecycle {
     });
   }
   private async deliver(effectId: string, offerId: string | null): Promise<ScopeWake> {
+    await this.store.auditRecoveryAction();
     const effect = await this.gateway.dispatch(effectId);
     if (offerId && effect.state === "succeeded")
       await this.settleOffer(effect, offerId);
@@ -181,37 +185,39 @@ export class SupervisionLifecycle {
    * A read/transport failure affects its own subject, never serializes unrelated scope admissions. */
   async recover(trigger: "restart" | "heartbeat", paseo?: PaseoApi) {
     this.enabled();
-    const before = await this.store.audit();
-    if (before.freshness !== "current") refuse("HELD", "Recovery audit failed; retain authority and reconcile the journal/index before any receiver call.");
-    const selected = before.effects.filter(e => ["dispatching", "uncertain"].includes(e.state)).slice(0, 32);
-    const projects = before.scopes.filter(s => s.kind === "project" && s.state === "active" &&
-      (before.inbox.assignments.some(a => a.scopeId === s.id && !terminal(a)) || before.outbox.some(o => o.ownerScopeId === s.id && o.state === "pending"))).map(s => s.id);
-    const scopeIds = [...new Set([...continuationAgenda(before).map(c => c.scopeId), ...selected.map(e => e.scopeId), ...projects])];
-    const scopes = await Promise.all(scopeIds.map(async scopeId => {
-      let effects: PromiseSettledResult<SupervisionEffect>[] = [], observations: Awaited<ReturnType<typeof livenessScan>> = [];
-      let wake: PromiseSettledResult<ScopeWake>;
-      try {
-        // No all-scope barrier: each owner wakes as soon as its own bounded observations finish.
-        if (paseo) {
-          try { await observeWithin(this.ingress, `${this.store.root}:catalog:${scopeId}`, () => this.ingress.reconcile(paseo, scopeId), this.options.observationTimeoutMs); }
-          catch {
-            const tasks = before.tasks.filter(t => t.ownerScopeId === scopeId);
-            for (const a of before.attempts.filter(a => a.worker?.hostId === "local" && tasks.some(t => t.id === a.taskId)))
-              await this.ingress.recordGap("catalog", a.worker!.agentId, null, ["fetch-failed"]);
+    return this.store.recoveryPass(trigger, async before => {
+      if (before.freshness !== "current") refuse("HELD", "Recovery audit failed; retain authority and reconcile the journal/index before any receiver call.");
+      const selected = before.effects.filter(e => ["dispatching", "uncertain"].includes(e.state)).slice(0, 32);
+      const projects = before.scopes.filter(s => s.kind === "project" && s.state === "active" &&
+        (before.inbox.assignments.some(a => a.scopeId === s.id && !terminal(a)) || before.outbox.some(o => o.ownerScopeId === s.id && o.state === "pending"))).map(s => s.id);
+      const scopeIds = [...new Set([...continuationAgenda(before).map(c => c.scopeId), ...selected.map(e => e.scopeId), ...projects])];
+      const scopes = await Promise.all(scopeIds.map(async scopeId => {
+        let effects: PromiseSettledResult<SupervisionEffect>[] = [], observations: Awaited<ReturnType<typeof livenessScan>> = [];
+        let wake: PromiseSettledResult<ScopeWake>;
+        try {
+          // No all-scope barrier: each owner wakes as soon as its own bounded observations finish.
+          if (paseo) {
+            try { await observeWithin(this.ingress, `${this.store.root}:catalog:${scopeId}`, () => this.ingress.reconcile(paseo, scopeId), this.options.observationTimeoutMs); }
+            catch {
+              const tasks = before.tasks.filter(t => t.ownerScopeId === scopeId);
+              for (const a of before.attempts.filter(a => a.worker?.hostId === "local" && tasks.some(t => t.id === a.taskId)))
+                await this.ingress.recordGap("catalog", a.worker!.agentId, null, ["fetch-failed"]);
+            }
           }
-        }
-        effects = await Promise.allSettled(selected.filter(e => e.scopeId === scopeId).map(e =>
-          observeWithin(this.gateway, `${this.store.root}:effect:${e.id}`, () => this.gateway.reconcile(e.id), this.options.observationTimeoutMs)));
-        observations = await livenessScan(await this.store.read(), this.gateway.receiver, { scopeId, timeoutMs: this.options.observationTimeoutMs ?? RECOVERY_OBSERVATION_TIMEOUT_MS });
-        for (const row of observations) await this.ingress.admit({ agentId: row.agentId, kind: "catalog", turnId: null, outcome: null,
-          permissionId: null, sourceKind: "catalog", sourceKey: digest([row.attemptId, row.observed]), epoch: null, cursor: null, maxSeq: null,
-          gaps: row.observed.startsWith("not visible") ? ["fetch-failed"] : [], coverage: "unknown",
-          payload: { status: row.observed, requiresAttention: row.ownerReview, attemptId: row.attemptId } });
-        wake = { status: "fulfilled", value: await this.wake(scopeId, trigger) };
-      } catch (reason) { wake = { status: "rejected", reason }; }
-      return { effects, observations, wake };
-    }));
-    return { effects: scopes.flatMap(s => s.effects), observations: scopes.flatMap(s => s.observations), wakes: scopes.map(s => s.wake) };
+          effects = await Promise.allSettled(selected.filter(e => e.scopeId === scopeId).map(e =>
+            observeWithin(this.gateway, `${this.store.root}:effect:${e.id}`, () => this.gateway.reconcile(e.id), this.options.observationTimeoutMs)));
+          observations = await livenessScan(await this.store.read(), this.gateway.receiver, { scopeId, timeoutMs: this.options.observationTimeoutMs ?? RECOVERY_OBSERVATION_TIMEOUT_MS,
+            beforeLookup: () => this.store.auditRecoveryAction() });
+          for (const row of observations) await this.ingress.admit({ agentId: row.agentId, kind: "catalog", turnId: null, outcome: null,
+            permissionId: null, sourceKind: "catalog", sourceKey: digest([row.attemptId, row.observed]), epoch: null, cursor: null, maxSeq: null,
+            gaps: row.observed.startsWith("not visible") ? ["fetch-failed"] : [], coverage: "unknown",
+            payload: { status: row.observed, requiresAttention: row.ownerReview, attemptId: row.attemptId } });
+          wake = { status: "fulfilled", value: await this.wake(scopeId, trigger) };
+        } catch (reason) { wake = { status: "rejected", reason }; }
+        return { effects, observations, wake };
+      }));
+      return { effects: scopes.flatMap(s => s.effects), observations: scopes.flatMap(s => s.observations), wakes: scopes.map(s => s.wake) };
+    });
   }
   /** Explicit local operator step after a held checkpoint-only recovery audit. The live
    * attachment must qualify who can invoke it; there is no public request-file/RPC route.
