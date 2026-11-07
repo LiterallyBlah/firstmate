@@ -199,6 +199,9 @@ export class SupervisionActivation {
       }, recoverIndex);
     }));
   }
+  private migrator(home: string, store: SupervisionStore, actor: SupervisionActor) {
+    return new SupervisionMigrator({ home, store, legacy: workflowStore(home), adapters: this.options.adapters(home), enabled: true, actor });
+  }
   async migrate(input: MigrationCommand, actor: SupervisionActor = UI_CALL) {
     if (actor.kind === "mate-chat") await this.checkedConfig(input.homeId, actor.id);
     else if (digest(actor) !== digest(UI_CALL)) refuse("UNKNOWN_OWNER", "Handover is recorded by the captain's app controls or the current first mate.");
@@ -221,6 +224,10 @@ export class SupervisionActivation {
         if (review.reviewHash !== input.reviewHash || review.scopeId !== input.scopeId || review.projectId !== input.projectId || review.migrationId !== input.migrationId)
           refuse("STALE", "The plan, permissions or backup settings changed. Refresh and review plan help again.");
         if (input.evidence) {
+          // Arm the delivery gate first (idempotent, kept once armed): from here every gated send writes a
+          // claim, and pending entries read as preexisting, so the deliveries checked below are exactly the
+          // ones `prepare` freezes. Checking unarmed then arming let a delivery change state in between.
+          if (input.op === "prepare") await this.migrator(home, store, actor).arm();
           // No folder listing: it only feeds the picker, and a busy data/ holds far more than its 200-entry cap.
           const evidence = await handoverEvidence(store, home, review, await store.read(), this.options.adapters(home), null, input.evidence.rollback.path);
           if (evidence.problems.length || !evidence.inventory || evidence.inventory.problems.length || !evidence.policy || !evidence.rollback)
@@ -251,7 +258,7 @@ export class SupervisionActivation {
           await snapshots.verify(snapshot, expected);
         }
       }
-      const migrator = new SupervisionMigrator({ home, store, legacy: workflowStore(home), adapters: this.options.adapters(home), enabled: true, actor });
+      const migrator = this.migrator(home, store, actor);
       switch (checked.op) {
         case "prepare": await migrator.arm(); await migrator.prepare(checked); break;
         case "reconcile": await migrator.reconcile(input.migrationId); break;
