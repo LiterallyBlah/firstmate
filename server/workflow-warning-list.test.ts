@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import { afterEach, expect, it, vi } from "vitest";
 import { FirstmateConfigSchema } from "../shared/fleet";
 import type { SupervisionStatus } from "../shared/supervision";
@@ -13,7 +14,7 @@ import { startWorkflowService, workflowStore } from "./workflow-service";
 import { updateFirstmateConfig } from "./config";
 import { workflowSnapshot, withWorkflowFleet } from "./workflow-board";
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
 const at = "2026-11-05T12:00:00Z", completedAt = "2026-11-06T12:00:00Z";
 async function fixture() {
   const home = join(process.env.PASEO_HOME!, randomUUID());
@@ -123,24 +124,30 @@ it("answers a real workflow-clock request while three native report reads remain
   const { home, paseo } = await fixture();
   await writeFile(join(home, "AGENTS.md"), "# Disposable reporting fixture");
   await updateFirstmateConfig({ home, mateAgentId: "", mateLaunch: null, migration: null });
+  // Freeze only the service/observation timers, leaving filesystem scheduling real. A slow CI
+  // filesystem must not expire the optional history budget before it can answer the request.
+  vi.useFakeTimers({ toFake: ["setInterval", "clearInterval", "setTimeout", "clearTimeout"] });
   let release!: (page: unknown) => void, fleetSettled = false;
   const native = new Promise(done => { release = done; });
-  paseo.agents.ref = () => ({ timeline: { refetch: () => native } });
+  const read = vi.fn(() => native);
+  paseo.agents.ref = () => ({ timeline: { refetch: read } });
   const pendingFleet = loadFleet(paseo, FirstmateConfigSchema.parse({ home }), new ReportCache()).then(result => { fleetSettled = true; return result; });
   const directory = join(home, "data/workflow-requests"), id = randomUUID();
   await mkdir(directory, { recursive: true });
   await writeFile(join(directory, `${id}.json`), JSON.stringify({ id, actor: "mate", command: { op: "show", plan: "scheduler" } }));
   const stop = startWorkflowService();
   try {
-    const deadline = Date.now() + 4000;
+    await vi.advanceTimersByTimeAsync(1000);
+    const deadline = Date.now() + 20000;
     let reply: string | null = null;
     while (Date.now() < deadline && reply === null) {
       try { reply = await readFile(join(directory, `${id}.reply.json`), "utf8"); }
       catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
-      if (reply === null) await new Promise(done => setTimeout(done, 25));
+      if (reply === null) await delay(25);
     }
     expect(reply).not.toBeNull();
     expect(JSON.parse(reply!)).toMatchObject({ ok: true, result: { definition: { id: "scheduler" } } });
+    expect(read).toHaveBeenCalledTimes(3);
     expect(fleetSettled).toBe(false); // Disconfirms a direct reporting/role-lock dependency, not all live-stall causes.
   } finally { release({ entries: [] }); await pendingFleet; await stop(); }
-}, 8000);
+}, 30000);
