@@ -73,7 +73,9 @@ afterEach(async () => {
   launchSnapshot?.(); launchSnapshot = null; // CI diagnostics: observe before the fixture removes its scratch home.
   if (workflowTimer) clearInterval(workflowTimer); workflowTimer = undefined; await workflowPumping; workflowPumping = undefined;
   if (queueTimer) clearInterval(queueTimer); queueTimer = undefined; await pumping; pumping = undefined;
-  await rm(scratch, { recursive: true, force: true });
+  // A child killed at its timeout can leave descendants (git, the stand-in CLI) holding the scratch home open for a
+  // moment on Windows; a single rmdir then failed with EBUSY and turned one slow case into a second failure.
+  await rm(scratch, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
 });
 
 async function remoteFixture(behavior = "ok") {

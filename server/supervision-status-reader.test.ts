@@ -3,7 +3,7 @@ import { mkdir, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterAll, expect, it, vi } from "vitest";
 import { SupervisionStatusReader } from "./supervision-status-reader";
-import { SupervisionStore } from "./supervision-store";
+import { SupervisionStore, supervisionDigestStats } from "./supervision-store";
 import { expected, scope } from "../test/supervision-fixture";
 import { s04Fixture } from "../test/supervision-s04-fixture";
 let bounds: { sourceHead: string | undefined; history: number; historySeedMs: number; warmReadMs: number[]; fullScans: number;
@@ -30,16 +30,24 @@ it("production status reader stays warm across real launches (blob writes) at ab
   }
   let store!: SupervisionStore;
   const reader = new SupervisionStatusReader(join(f.home, "store"), (root, home) => (store = new SupervisionStore(root, home)));
-  expect((await reader.read(f.home)).freshness).toBe("current");
+  const baseline = await reader.read(f.home);
+  expect(baseline.freshness).toBe("current");
   const full = vi.spyOn(store as any, "scanFull");
   const blobsDirectory = async () => (await stat(join(store.root, "blobs"), { bigint: true })).mtimeNs;
   const second = await plan(2), before = await blobsDirectory();
   await f.launch(second, "w2-a");
   expect(await blobsDirectory()).not.toBe(before); // The launch published (deduplicated) brief evidence.
+  // Warmth is work, not wall time (a shared Windows runner stretches any poll past a fixed bound): no full
+  // scan, no whole-projection digest beyond a checkpoint's, and per-row digests only for new transactions.
+  const work = (since: typeof supervisionDigestStats, transactions: number) => {
+    expect(supervisionDigestStats.frameCalls - since.frameCalls).toBeLessThanOrEqual(Math.floor(transactions / 64) + 1);
+    expect(supervisionDigestStats.ownershipCalls - since.ownershipCalls).toBeLessThanOrEqual(transactions * 3 + 8);
+  };
+  let since = { ...supervisionDigestStats }, sequence = baseline.sequence;
   let start = performance.now();
   const afterLaunch = await reader.read(f.home), firstPollMs = performance.now() - start;
   expect(afterLaunch).toMatchObject({ freshness: "current", sequence: (await f.store.read()).sequence });
-  expect(full).not.toHaveBeenCalled(); expect(firstPollMs).toBeLessThan(2000);
+  expect(full).not.toHaveBeenCalled(); work(since, afterLaunch.sequence - sequence);
 
   // Poll continuously (three overlapping callers, with the display routes' settle budget) during a launch.
   const third = await plan(3), polls: { ms: number; sequence: number; freshness: string }[] = [];
@@ -49,6 +57,7 @@ it("production status reader stays warm across real launches (blob writes) at ab
     polls.push({ ms: performance.now() - t, sequence: r.sequence, freshness: r.freshness });
     await new Promise(resolve => setTimeout(resolve, 0));
   } };
+  since = { ...supervisionDigestStats }; sequence = (await f.store.read()).sequence;
   const loops = [poller(), poller(), poller()];
   await f.store.putBlob(Buffer.from(`new evidence ${randomUUID()}`)); // And a newly named blob.
   await f.launch(third, "w3-a"); polling = false; await Promise.all(loops);
@@ -57,7 +66,8 @@ it("production status reader stays warm across real launches (blob writes) at ab
   expect(quiescent).toMatchObject({ freshness: "current", sequence: writer.sequence, hash: writer.hash });
   expect(full).not.toHaveBeenCalled();
   expect(polls.length).toBeGreaterThan(0); expect(polls.every(p => p.freshness === "current")).toBe(true);
-  expect(Math.max(...polls.map(p => p.ms))).toBeLessThan(2000);
+  // Includes the launch's own writes, made in this process alongside the polls.
+  work(since, writer.sequence - sequence);
   warm = { history: writer.sequence, firstPollAfterLaunchMs: firstPollMs, pollsDuringLaunch: polls.length,
     maxPollDuringLaunchMs: Math.max(...polls.map(p => p.ms)), fullScans: full.mock.calls.length };
 }, 120000);
