@@ -113,6 +113,50 @@ it("recovers a lost implicit reply without a new attempt and releases only an un
   await mkdir(join(home, "data/build/launches")); await writeFile(join(home, "data/build/launches/1.json"), JSON.stringify({ state: "issued", workflow: resumed.launch.workflow }));
   await expect(execute({ op: "release", plan: "build", node: "build", attempt: resumed.launch.workflow.attempt, evidence: "No" })).rejects.toThrow("Launch record exists");
 });
+it("relaunches a run cancelled before any worker existed, re-pins its model and keeps its gate and spent budget", async () => {
+  // A real wedge: a start was pinned to one model, the captain changed the crew model, the claim was refused,
+  // and the attempt was recorded cancelled with no workspace or agent. Start, relaunch and gate-revision all refused.
+  const gate = { id: "gate", title: "Rehearse?", summary: "Captain decides", kind: "decision", authority: "captain", after: [{ node: "build", reason: "builds-on", on: "done" }],
+    options: [{ id: "go", label: "Go", consequence: "Rehearse" }, { id: "stop", label: "Stop", consequence: "Stop" }], recommendation: "go", rationale: "Evidence first" };
+  const d = definition("request", [run(), gate as any, { ...run("next"), after: [{ node: "gate", reason: "decision", on: "answered" }] }]);
+  d.request = { ...d.request, posture: "sail", quote: "Go" };
+  await execute({ op: "draft", definition: d });
+  const first = await execute({ op: "start", plan: "request", node: "build" }), attempt = first.launch.workflow.attempt;
+  const { workflow, ...launch } = first.launch;
+  await expect(execute({ op: "claim", ...workflow, launch: { ...launch, agent: { provider: "claude/opus", modeId: "bypassPermissions" } } })).rejects.toThrow("does not match");
+  await execute({ op: "record", plan: "request", node: "build", attempt, state: "cancelled", evidence: "Never launched; re-pin the model" });
+  await expect(execute({ op: "start", plan: "request", node: "build" })).rejects.toThrow("already started");
+  let p = (await store.get("request"))!;
+  // A worker or a launch record for the attempt keeps the old rule: inspect, never create again.
+  await mkdir(join(home, "data/build/launches"), { recursive: true });
+  await writeFile(join(home, "data/build/launches/1.json"), JSON.stringify({ state: "issued", workflow }));
+  await expect(execute({ op: "replace", plan: "request", node: "build", attempt, expected: p.hash, kind: "relaunch", evidence: "x", budget: { agents: 10, turns: 10 } })).rejects.toThrow("Launch record exists");
+  await rm(join(home, "data/build/launches"), { recursive: true });
+  await expect(execute({ op: "replace", plan: "request", node: "build", attempt, expected: p.hash, kind: "promote", evidence: "x", budget: { agents: 10, turns: 10 } })).rejects.toThrow("Replacement requires");
+  await execute({ op: "replace", plan: "request", node: "build", attempt, expected: p.hash, kind: "relaunch", evidence: "Inspected: no launch record, workspace or agent", budget: { agents: 10, turns: 10 } });
+  p = (await store.get("request"))!;
+  expect(p.nodes.build).toMatchObject({ state: "planned", spent: 1, priorAttempts: [{ state: "cancelled", attempt }] });
+  // Planned again, so a revision may re-pin its agent; the gate after it is unchanged.
+  const repinned = structuredClone(p.definition); const build = repinned.nodes[0]!;
+  if (build.kind === "run") build.launch.agent = { provider: "claude/opus", modeId: "bypassPermissions" };
+  await execute({ op: "revise", definition: repinned, expected: p.hash, reason: "Captain changed the crew model" });
+  const second = await execute({ op: "start", plan: "request", node: "build" });
+  expect(second.launch.workflow.attempt).not.toBe(attempt); expect(second.launch.agent.provider).toBe("claude/opus");
+  const { workflow: w2, ...l2 } = second.launch; await execute({ op: "claim", ...w2, launch: l2 });
+  p = (await store.get("request"))!;
+  expect(p.nodes.build).toMatchObject({ state: "starting", claimed: true, spent: 2 });
+  expect(p.definition.nodes.find(n => n.id === "gate")).toEqual(d.nodes[1]);
+});
+it("never relaunches a cancelled attempt that was claimed or accounted a worker", async () => {
+  const d = definition(); d.request = { ...d.request, posture: "sail", quote: "Go" };
+  await execute({ op: "draft", definition: d });
+  const first = await execute({ op: "start", plan: "request", node: "build" }), attempt = first.launch.workflow.attempt;
+  const { workflow, ...launch } = first.launch; await execute({ op: "claim", ...workflow, launch });
+  await execute({ op: "record", plan: "request", node: "build", attempt, state: "cancelled", evidence: "Claimed, then cancelled" });
+  const p = (await store.get("request"))!;
+  // A claimed launch may have created a worker this record never named; that needs inspection, not a relaunch.
+  await expect(execute({ op: "replace", plan: "request", node: "build", attempt, expected: p.hash, kind: "relaunch", evidence: "x", budget: { agents: 10, turns: 10 } })).rejects.toThrow("Replacement requires");
+});
 it("returns the committed intent even if its readable projection fails after publication", async () => {
   const launch = PlanLaunchSchema.parse(run().launch), render = vi.spyOn(store, "render").mockRejectedValueOnce(new Error("projection unavailable"));
   const first = await execute({ op: "implicit", launch }); expect(first.projectionProblem).toContain("Plan committed"); expect(first.launch.workflow.attempt).toBeTruthy();
