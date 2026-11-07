@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rename, rm, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SupervisionStore, supervisionDigestStats, type SupervisionMutation } from "./supervision-store";
@@ -339,6 +339,56 @@ describe("scoped transaction authority", () => {
     await reader.read();
     await writeFile(file(advanced.sequence, "publication"), "{damaged");
     expect((await reader.read()).freshness).toBe("held");
+  });
+  it("a head-anchor rename-over straddling fingerprint establishment never binds the new anchors to the old scan", async () => {
+    await store.enableLongLived();
+    await commit([{ kind: "scope", value: scope(store.homeId) }]);
+    const reader = new SupervisionStore(dataRoot, home);
+    await reader.read(); await reader.read(); // Cold, then warm.
+    // Deterministic start: the next read must take the full warm path and establish, so the
+    // spy's first fingerprint call is the establishment capture, never a serve comparison.
+    (reader as unknown as { cached: { fastRead?: unknown } }).cached.fastRead = undefined;
+    let entered!: () => void, resume!: () => void, paused = true;
+    const atFingerprint = new Promise<void>(resolve => { entered = resolve; }), gate = new Promise<void>(resolve => { resume = resolve; });
+    const original = (reader as unknown as { journalFingerprint: (...args: unknown[]) => Promise<string> }).journalFingerprint.bind(reader);
+    const spy = vi.spyOn(reader as never, "journalFingerprint" as never) as unknown as
+      { mockImplementation(fn: (...args: unknown[]) => Promise<string>): void; mockRestore(): void };
+    spy.mockImplementation(async (...args: unknown[]) => {
+      // Pause after anchor validation, before the establishment stats run: the rename below
+      // then lands entirely before the first capture, which names+checkpoint checks cannot see.
+      if (paused) { paused = false; entered(); await gate; }
+      return original(...args);
+    });
+    try {
+      const establishing = reader.read(); await atFingerprint;
+      // Rename over the head publication under its existing name, checkpoint untouched,
+      // exactly as an anchor migration/rollback replacement lands mid-establishment.
+      const temporary = `${file(1, "publication")}.${randomUUID()}.tmp`;
+      await writeFile(temporary, "{replaced"); await rename(temporary, file(1, "publication"));
+      resume();
+      expect(await establishing).toMatchObject({ freshness: "current", sequence: 1 }); // Validated before the rename.
+    } finally { resume(); spy.mockRestore(); }
+    expect((await reader.read()).freshness).toBe("held"); // Not fast-served on the replacement anchors.
+  });
+  it("a non-ENOENT fingerprint stat failure falls back to the full checked scan, never a fast serve", async () => {
+    await store.enableLongLived();
+    await commit([{ kind: "scope", value: scope(store.homeId) }]);
+    const reader = new SupervisionStore(dataRoot, home);
+    await reader.read(); await reader.read(); // Establishes the fingerprint (generation 2 probe recorded missing).
+    expect((await reader.read()).freshness).toBe("current");
+    // The next-generation coordinator probe's stat now fails with EACCES instead of ENOENT:
+    // that must move the fingerprint, not read as the recorded "missing".
+    const probe = join(store.root, "coordinators", "000000000002.json");
+    const original = (await vi.importActual<typeof filesystem>("node:fs/promises")).stat, spy = vi.mocked(filesystem.stat);
+    const full = vi.spyOn(reader as unknown as Record<string, unknown>, "scanFull" as never) as unknown as ReturnType<typeof vi.fn>;
+    spy.mockImplementation(async (...args) => {
+      if (String(args[0]) === probe) throw Object.assign(new Error("fixture access denied"), { code: "EACCES" });
+      return original(...(args as Parameters<typeof original>));
+    });
+    try {
+      expect(await reader.read()).toMatchObject({ freshness: "current", sequence: 1 });
+      expect(full, "EACCES probe was served as missing instead of falling back").toHaveBeenCalled();
+    } finally { spy.mockReset(); spy.mockImplementation(original); }
   });
   it("retains checked ownership capsules when coordinator authority is corrupt", async () => {
     await commit(seed(store.homeId));

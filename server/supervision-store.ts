@@ -1987,7 +1987,12 @@ export class SupervisionStore {
       ...headBlobs.map(id => join(this.root, "blobs", id))];
     const stats = await Promise.all(paths.map(async path => {
       try { const s = await stat(path, { bigint: true }); return `${s.dev}:${s.ino}:${s.size}:${s.mtimeNs}`; }
-      catch { return "missing"; }
+      catch (error) {
+        // Only a genuinely absent probe is "missing". Any other stat failure must move the
+        // fingerprint, so rethrow: scan() routes it to the full checked scan, never a serve.
+        if (["ENOENT", "ENOTDIR"].includes(String((error as NodeJS.ErrnoException).code))) return "missing";
+        throw error;
+      }
     }));
     return `${sequence}|${stats.join("|")}`;
   }
@@ -1998,6 +2003,22 @@ export class SupervisionStore {
   private async fingerprintStable(directories: string, checkpoint: Checkpoint): Promise<boolean> {
     try { return directories === await this.directories() && (await this.readCheckpoint()).hash === checkpoint.hash; }
     catch { return false; }
+  }
+  /** A fingerprint fit to establish, or null: captured twice around the stable check and
+   * required equal, with the head anchor re-verified last. The double capture catches a
+   * rename-over of the head trio (anchor migration/rollback replace those files under the
+   * same names before rebuilding the checkpoint) landing during establishment; the anchor
+   * re-check catches one that completed before the first capture, which names and the
+   * still-old checkpoint hash cannot see. Establishment is best-effort: any failure just
+   * leaves the next read on the full warm path. */
+  private async establishedFingerprint(directories: string, checkpoint: Checkpoint, scan: Scan, headBlobs: string[], pages: string[]): Promise<string | null> {
+    try {
+      const first = await this.journalFingerprint(pages, scan, headBlobs);
+      if (!await this.fingerprintStable(directories, checkpoint)) return null;
+      if (await this.journalFingerprint(pages, scan, headBlobs) !== first) return null;
+      if (checkpoint.anchorHash !== await this.anchorHash(checkpoint.sequence)) return null;
+      return first;
+    } catch { return null; }
   }
   private async warmScan(cached: CachedScan): Promise<Scan> {
     // The first advance from a restart cache may cross an unbounded tail; later warm reads keep the bound.
@@ -2015,9 +2036,9 @@ export class SupervisionStore {
       fail("HELD", "Checkpoint coordinator identity changed.");
     if (checkpoint.hash === cached.checkpoint.hash && before === cached.directories) {
       const headBlobs = this.lastAnchor?.sequence === checkpoint.sequence ? this.lastAnchor.blobs : [];
-      const pages = this.journalPages(before), fingerprint = await this.journalFingerprint(pages, cached.scan, headBlobs);
+      const pages = this.journalPages(before), fingerprint = await this.establishedFingerprint(before, checkpoint, cached.scan, headBlobs, pages);
       // Establish only if nothing moved while fingerprinting; the validated return is unaffected either way.
-      if (await this.fingerprintStable(before, checkpoint)) cached.fastRead = { fingerprint, headBlobs, pages };
+      if (fingerprint) cached.fastRead = { fingerprint, headBlobs, pages };
       return cached.scan;
     }
     const now = JSON.parse(before) as string[][], prior = JSON.parse(cached.directories) as string[][];
@@ -2082,10 +2103,9 @@ export class SupervisionStore {
       if (before !== await this.directories()) throw changedDuringRead;
       if (digest(checkpoint) !== digest(await this.checkpointFor(next))) fail("HELD", "Checkpoint tail digest mismatch.");
       const headBlobs = this.lastAnchor?.sequence === next.sequence ? this.lastAnchor.blobs : [];
-      const pages = this.journalPages(before), fingerprint = await this.journalFingerprint(pages, next, headBlobs);
-      const stable = await this.fingerprintStable(before, checkpoint);
+      const pages = this.journalPages(before), fingerprint = await this.establishedFingerprint(before, checkpoint, next, headBlobs, pages);
       const advanced = await this.cache(next, checkpoint, before, blobs.identities);
-      if (stable && this.cached?.scan === advanced) this.cached.fastRead = { fingerprint, headBlobs, pages };
+      if (fingerprint && this.cached?.scan === advanced) this.cached.fastRead = { fingerprint, headBlobs, pages };
       return advanced;
     }
     fail("HELD", "Checkpoint is not a bounded advance of the cached prefix.");
