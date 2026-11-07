@@ -48,7 +48,11 @@ call Attach or provisioning captain-app-only describe the builds as first shippe
 An idle beat on either fast lane stops at a cheap unanswered-request listing — no journal read, no
 runtime or directory lock while nothing waits — since a warm journal read costs real CPU every call.
 That read's status projection is memoised on the validated scan's identity (a write publishes a fresh
-scan), so unchanged reads still re-validate anchors but do not re-serialise the whole projection.
+scan), deep-frozen and handed out as-is — callers never get a mutable copy of a store status, so code
+that needs to edit one must `structuredClone` it first. An unchanged warm read also skips the full
+directory listing: it serves the cached scan when a stat fingerprint of the journal (its directories,
+checkpoint and head-anchor files, plus next-sequence probes) is unchanged, and any movement falls
+back to the full warm validation, anchors included.
 
 Build A overlays the historical unwired S09 notes below: `server/supervision-runtime.ts` owns one
 coordinator per home shared with activation; `server/project-runtime.ts` exposes reviewed registry

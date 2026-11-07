@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rename, rm, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SupervisionStore, supervisionDigestStats, type SupervisionMutation } from "./supervision-store";
@@ -295,10 +295,13 @@ describe("scoped transaction authority", () => {
     expect(size).toHaveBeenCalled();
     size.mockClear();
     const second = await store.read();
-    expect(second).toEqual(first); expect(second).not.toBe(first);
+    expect(second).toBe(first); // The frozen memoised master itself, no per-read clone.
     expect(size, "unchanged read re-serialised the whole projection").not.toHaveBeenCalled();
-    // A caller mutating its returned status cannot poison the cached projection (clone kept).
-    second.sequence = -1; second.scopes.length = 0;
+    // A caller mutating its returned status throws instead of poisoning the cached projection.
+    expect(Object.isFrozen(second)).toBe(true); expect(Object.isFrozen(second.scopes)).toBe(true);
+    expect(Object.isFrozen(second.scopes[0])).toBe(true); expect(Object.isFrozen(second.storage)).toBe(true);
+    expect(() => { second.sequence = -1; }).toThrow(TypeError);
+    expect(() => { second.scopes.length = 0; }).toThrow(TypeError);
     const third = await store.read();
     expect(third.sequence).toBe(first.sequence); expect(third.scopes).toHaveLength(first.scopes.length);
     expect(size).not.toHaveBeenCalled();
@@ -309,6 +312,91 @@ describe("scoped transaction authority", () => {
     expect(size).toHaveBeenCalled();
     expect(after.sequence).toBe(first.sequence + 1);
     expect(after.scopes.find(s => s.id === ids.scope)?.version).toBe(2);
+  });
+  it("an unchanged warm read serves from the stat fingerprint without re-listing or re-reading the journal", async () => {
+    await store.enableLongLived();
+    await commit([{ kind: "scope", value: scope(store.homeId) }]);
+    const reader = new SupervisionStore(dataRoot, home);
+    await reader.read(); // Cold validation.
+    const warm = await reader.read(); // Full warm validation; establishes the fingerprint.
+    const directories = vi.spyOn(reader as unknown as Record<string, unknown>, "directories" as never) as unknown as ReturnType<typeof vi.fn>;
+    const anchor = vi.spyOn(reader as unknown as Record<string, unknown>, "anchorHash" as never) as unknown as ReturnType<typeof vi.fn>;
+    const clone = vi.spyOn(globalThis, "structuredClone");
+    try {
+      const fast = await reader.read();
+      expect(fast).toBe(warm); expect(fast.freshness).toBe("current");
+      expect(directories, "unchanged read re-listed every journal file").not.toHaveBeenCalled();
+      expect(anchor, "unchanged read re-read the head anchor").not.toHaveBeenCalled();
+      expect(clone, "unchanged read deep-cloned the status").not.toHaveBeenCalled();
+    } finally { clone.mockRestore(); }
+    // A write by the other (writer) instance is seen on the reader's very next read.
+    await store.transact([{ kind: "scope", id: ids.scope, version: 1 }], randomUUID(),
+      [{ kind: "scope", value: { ...scope(store.homeId), version: 2 } }]);
+    const advanced = await reader.read();
+    expect(advanced.sequence).toBe(warm.sequence + 1);
+    expect(advanced.scopes.find(s => s.id === ids.scope)?.version).toBe(2);
+    // Tampering with the head anchor after the fingerprint is established still holds.
+    await reader.read();
+    await writeFile(file(advanced.sequence, "publication"), "{damaged");
+    expect((await reader.read()).freshness).toBe("held");
+  });
+  it("a head-anchor rename-over straddling fingerprint establishment never binds the new anchors to the old scan", async () => {
+    await store.enableLongLived();
+    await commit([{ kind: "scope", value: scope(store.homeId) }]);
+    const reader = new SupervisionStore(dataRoot, home);
+    await reader.read(); await reader.read(); // Cold, then warm.
+    // Deterministic start: the next read must take the full warm path and establish, so the
+    // spy's first fingerprint call is the establishment capture, never a serve comparison.
+    (reader as unknown as { cached: { fastRead?: unknown } }).cached.fastRead = undefined;
+    let entered!: () => void, resume!: () => void, paused = true;
+    const atFingerprint = new Promise<void>(resolve => { entered = resolve; }), gate = new Promise<void>(resolve => { resume = resolve; });
+    const original = (reader as unknown as { journalFingerprint: (...args: unknown[]) => Promise<string> }).journalFingerprint.bind(reader);
+    const spy = vi.spyOn(reader as never, "journalFingerprint" as never) as unknown as
+      { mockImplementation(fn: (...args: unknown[]) => Promise<string>): void; mockRestore(): void };
+    spy.mockImplementation(async (...args: unknown[]) => {
+      // Pause after anchor validation, before the establishment stats run: the rename below
+      // then lands entirely before the first capture, which names+checkpoint checks cannot see.
+      if (paused) { paused = false; entered(); await gate; }
+      return original(...args);
+    });
+    try {
+      const establishing = reader.read(); await atFingerprint;
+      // Rename over the head publication under its existing name, checkpoint untouched,
+      // exactly as an anchor migration/rollback replacement lands mid-establishment.
+      const temporary = `${file(1, "publication")}.${randomUUID()}.tmp`;
+      await writeFile(temporary, "{replaced");
+      // Same bounded retry as replaceFile: Windows intermittently refuses a rename over a just-read file.
+      for (let attempt = 0; ; attempt++) {
+        try { await rename(temporary, file(1, "publication")); break; }
+        catch (error) {
+          if (!["EPERM", "EBUSY", "EACCES"].includes(String((error as NodeJS.ErrnoException).code)) || attempt >= 39) throw error;
+          await new Promise(resolve => setTimeout(resolve, 25 * Math.min(attempt + 1, 8)));
+        }
+      }
+      resume();
+      expect(await establishing).toMatchObject({ freshness: "current", sequence: 1 }); // Validated before the rename.
+    } finally { resume(); spy.mockRestore(); }
+    expect((await reader.read()).freshness).toBe("held"); // Not fast-served on the replacement anchors.
+  });
+  it("a non-ENOENT fingerprint stat failure falls back to the full checked scan, never a fast serve", async () => {
+    await store.enableLongLived();
+    await commit([{ kind: "scope", value: scope(store.homeId) }]);
+    const reader = new SupervisionStore(dataRoot, home);
+    await reader.read(); await reader.read(); // Establishes the fingerprint (generation 2 probe recorded missing).
+    expect((await reader.read()).freshness).toBe("current");
+    // The next-generation coordinator probe's stat now fails with EACCES instead of ENOENT:
+    // that must move the fingerprint, not read as the recorded "missing".
+    const probe = join(store.root, "coordinators", "000000000002.json");
+    const original = (await vi.importActual<typeof filesystem>("node:fs/promises")).stat, spy = vi.mocked(filesystem.stat);
+    const full = vi.spyOn(reader as unknown as Record<string, unknown>, "scanFull" as never) as unknown as ReturnType<typeof vi.fn>;
+    spy.mockImplementation(async (...args) => {
+      if (String(args[0]) === probe) throw Object.assign(new Error("fixture access denied"), { code: "EACCES" });
+      return original(...(args as Parameters<typeof original>));
+    });
+    try {
+      expect(await reader.read()).toMatchObject({ freshness: "current", sequence: 1 });
+      expect(full, "EACCES probe was served as missing instead of falling back").toHaveBeenCalled();
+    } finally { spy.mockReset(); spy.mockImplementation(original); }
   });
   it("retains checked ownership capsules when coordinator authority is corrupt", async () => {
     await commit(seed(store.homeId));

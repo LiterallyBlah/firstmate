@@ -331,14 +331,16 @@ export class PlanRuntime {
       const s = await store.read();
       logFailures(await Promise.allSettled(s.scopes.filter(scope => scope.kind === "plan" && scope.state === "active").map(scope =>
         serialized(`${store.root}:worker-dispatch:${scope.id}`, async () => {
+          let current = s; // One read per beat for this scope; refreshed only after a dispatch changes the journal.
           for (const attempt of s.attempts.filter(a => !a.importedFrom && s.tasks.some(t => t.id === a.taskId && t.ownerScopeId === scope.id && t.currentAttempt === a.id))) {
-            const ids = effectsFor(await store.read(), attempt.id); if (!ids) continue;
+            const ids = effectsFor(current, attempt.id); if (!ids) continue;
             for (const id of [ids.workspace, ids.create, ids.send]) {
-              const effect = (await store.read()).effects.find(e => e.id === id);
+              const effect = current.effects.find(e => e.id === id);
               if (!effect || effect.state === "succeeded") continue;
               if (effect.state !== "reserved") break; // Unknown is retained; recovery may observe identity, never resend.
               if (id === ids.send) await own.gateway.verifyWorker(attempt.id);
-              if ((await own.gateway.dispatch(id)).state !== "succeeded") break;
+              const dispatched = await own.gateway.dispatch(id); current = await store.read();
+              if (dispatched.state !== "succeeded") break;
             }
           }
         }))));

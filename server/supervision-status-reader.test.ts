@@ -85,14 +85,14 @@ it("production status reader reuses one validated store per home at 176 transact
   expect(stores).toHaveLength(1); expect(scan).not.toHaveBeenCalled(); expect(apply).not.toHaveBeenCalled();
   const historicalReducerCalls = apply.mock.calls.length;
 
-  // Pause an ordinary warm poll at its anchor read. A writer on the same journal must
+  // Pause an ordinary warm poll at its fingerprint check. A writer on the same journal must
   // commit before the poll is released, and the poll must then retry to the new head.
   let entered!: () => void, resume!: () => void;
   const atAnchor = new Promise<void>(resolve => { entered = resolve; });
   const gate = new Promise<void>(resolve => { resume = resolve; });
-  const originalAnchor = (stores[0] as any).anchorHash.bind(stores[0]);
-  vi.spyOn(stores[0] as any, "anchorHash").mockImplementation(async (...args: unknown[]) => {
-    entered(); await gate; return originalAnchor(args[0] as number);
+  const originalFingerprint = (stores[0] as any).journalFingerprint.bind(stores[0]);
+  vi.spyOn(stores[0] as any, "journalFingerprint").mockImplementation(async (...args: unknown[]) => {
+    entered(); await gate; return originalFingerprint(...args);
   });
   const polling = reader.read(f.home); await atAnchor;
   const mutation = [{ kind: "scope" as const, value: { ...scope(f.store.homeId), version: version + 1 } }];

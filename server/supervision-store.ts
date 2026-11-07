@@ -198,7 +198,11 @@ type ProjectionCache = z.infer<typeof ProjectionCacheSchema>;
 /** Durable blob name -> stat identity. Evidence is content-addressed and append-only. */
 type BlobIdentities = Map<string, string>;
 type CachedScan = { scan: Scan; checkpoint: Checkpoint; directories: string; blobs: BlobIdentities; requests: Map<string, IndexedTransaction>;
-  workflowRequests: Map<string, { requestHash: string; eventHash: string; transaction: IndexedTransaction }> };
+  workflowRequests: Map<string, { requestHash: string; eventHash: string; transaction: IndexedTransaction }>;
+  /** Stat fingerprint of the journal as last fully validated by a warm read, plus the blob
+   * ids the head event references (whose files the fingerprint also stats). An unchanged
+   * fingerprint serves the cached scan without re-listing or re-reading the journal. */
+  fastRead?: { fingerprint: string; headBlobs: string[]; pages: string[] } };
 type StoreLockLease = { active: boolean };
 const storeLocks = new AsyncLocalStorage<ReadonlyMap<string, StoreLockLease>>();
 type StorePublication = { epoch: number; active: Promise<void> | null };
@@ -207,6 +211,21 @@ function publicationFor(root: string): StorePublication {
   let state = publications.get(root);
   if (!state) { state = { epoch: 0, active: null }; publications.set(root, state); }
   return state;
+}
+/** Deep-freeze a built status so the memoised master can be handed to every reader as-is:
+ * a caller mutating its status throws instead of poisoning the projection every other
+ * reader sees, which is what the per-read structuredClone used to pay for. Rows are
+ * replaced, never mutated in place (see apply()), so freezing the frame values the status
+ * shares with the scan cannot block a later transaction; already-frozen subtrees (rows a
+ * previous status froze) are skipped, so a rebuild after one write only walks what is new. */
+function deepFreeze(value: unknown): void {
+  const seen = new WeakSet<object>(), stack: unknown[] = [value];
+  while (stack.length) {
+    const current = stack.pop();
+    if (!current || typeof current !== "object" || seen.has(current) || Object.isFrozen(current)) continue;
+    seen.add(current); Object.freeze(current);
+    for (const child of Object.values(current)) stack.push(child);
+  }
 }
 /** One background audit per journal per process, shared by every instance serving it: its
  * failure must poison all of them, not just the instance that happened to schedule it. */
@@ -504,6 +523,8 @@ export class SupervisionStore {
     ownership: Scan["ownership"]; problems: number; bytes: number; status: SupervisionStatus } | null = null;
   private projectionSizeMemo: { snapshot: object; capacityHash: string | null; frames: Scan["frames"]; framesSize: number;
     ownership: Scan["ownership"]; ownershipLength: number; transactions: Scan["transactions"] | undefined; transactionsLength: number; size: number } | null = null;
+  /** Blob ids referenced by the event anchorHash most recently verified, by sequence. */
+  private lastAnchor: { sequence: number; blobs: string[] } | null = null;
   private readonly actor: SupervisionActor;
   constructor(dataRoot: string, home: string, private readonly options: SupervisionStoreOptions = {}) {
     this.homeId = workflowHomeIdentity(home); // Never realpath; exactly the existing durable namespace.
@@ -1630,13 +1651,15 @@ export class SupervisionStore {
   }
   /** The checkpoint is a derived index, never authority. On each instance's first use the
    * entire journal is validated before its in-memory projection can be trusted. Unchanged
-   * prefix bytes are thereafter audited explicitly; its anchor is checked on EVERY read.
+   * prefix bytes are thereafter audited explicitly; its anchor is checked on every read
+   * whose journal fingerprint moved (see journalFingerprint).
    */
   private async directories(): Promise<string> {
     // Durable entry names, not directory write times: Windows can report a directory's earlier
     // write time late, with no new write, and a stat-only signature then forced a full journal
     // check on an untouched store. Names catch exactly the adds/removes a directory time would,
-    // while file contents stay pinned by the checkpoint anchor checked on every warm read.
+    // while file contents stay pinned by the checkpoint anchor checked whenever the
+    // journal fingerprint moves.
     const segment = async (path: string, nested: boolean): Promise<string[]> => {
       const s = await stat(path, { bigint: true }), names: string[] = [];
       for (const entry of (await readdir(path, { withFileTypes: true })).sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0)) {
@@ -1658,7 +1681,7 @@ export class SupervisionStore {
     return [0, 1, 2].every(i => a[i]?.join("\n") === b[i]?.join("\n"));
   }
   private async anchorHash(sequence: number): Promise<string | null> {
-    if (!sequence) return null;
+    if (!sequence) { this.lastAnchor = { sequence: 0, blobs: [] }; return null; }
     await Promise.all(["event", "tip", "publication"].map(suffix => stat(this.file(sequence, suffix))));
     const event = verifyHash(TransactionSchema.parse(await readCanonical(this.file(sequence, "event"))));
     const tip = verifyHash(AnyAnchorSchema.parse(await readCanonical(this.file(sequence, "tip"))));
@@ -1667,6 +1690,7 @@ export class SupervisionStore {
       !tip.format.includes("tip") || marker.format !== publicationFormat(anchorVersion(tip)) || tip.transactionHash !== event.hash ||
       digest({ ...marker, format: tip.format, hash: tip.hash }) !== digest(tip)) fail("HELD", "Checkpoint anchor identity mismatch.");
     await this.checkBlobs(event.body.mutations);
+    this.lastAnchor = { sequence, blobs: event.body.mutations.flatMap(m => m.kind === "blob" ? [m.value.id] : []) };
     return digest({ event: event.hash, tip: tip.hash, publication: marker.hash });
   }
   private async readCheckpoint(): Promise<Checkpoint> {
@@ -1934,9 +1958,75 @@ export class SupervisionStore {
       }
     }
   }
+  /** Cheap change signal for an unchanged warm read: stat identities (dev/ino/size/mtimeNs)
+   * of the journal directories - root, transactions and every page, blobs, coordinators -
+   * and of the exact files a full warm read re-reads (checkpoint, identity, capacity, the
+   * head anchor trio, the head coordinator and its release, the blobs the head event
+   * references), plus existence probes for the next sequence's trio and the next
+   * coordinator generation, which is where a partial publication or a claim first lands.
+   * A published write in any process replaces the checkpoint and adds files, so it moves
+   * the fingerprint and the next read takes the ordinary warm path; a spurious directory
+   * mtime (Windows can report one late) costs one full warm read, never a stale serve.
+   * Content edits that preserve size and mtime are the explicit audit's business, exactly
+   * as prefix-byte edits always were for warm reads. */
+  private journalPages(directories: string): string[] {
+    const segments = JSON.parse(directories) as string[][], pages = new Set<string>();
+    for (const name of segments[1] ?? []) { const slash = name.indexOf("/"); if (slash > 0) pages.add(name.slice(0, slash)); }
+    return [...pages].sort();
+  }
+  private async journalFingerprint(pages: string[], scan: Scan, headBlobs: string[]): Promise<string> {
+    const sequence = scan.sequence, coordinator = scan.coordinators.at(-1);
+    const paths = [this.root, join(this.root, "transactions"), join(this.root, "blobs"), join(this.root, "coordinators"),
+      ...pages.map(page => join(this.root, "transactions", page)),
+      join(this.root, "checkpoint.json"), join(this.root, "identity.json"), join(this.root, "capacity.json"),
+      ...(sequence ? [this.file(sequence, "event"), this.file(sequence, "tip"), this.file(sequence, "publication")] : []),
+      this.file(sequence + 1, "event"), this.file(sequence + 1, "tip"), this.file(sequence + 1, "publication"),
+      join(this.root, "coordinators", `${pad((coordinator?.generation ?? 0) + 1)}.json`),
+      ...(coordinator ? [join(this.root, "coordinators", `${pad(coordinator.generation)}.json`),
+        join(this.root, "coordinators", `${pad(coordinator.generation)}.release.json`)] : []),
+      ...headBlobs.map(id => join(this.root, "blobs", id))];
+    const stats = await Promise.all(paths.map(async path => {
+      try { const s = await stat(path, { bigint: true }); return `${s.dev}:${s.ino}:${s.size}:${s.mtimeNs}`; }
+      catch (error) {
+        // Only a genuinely absent probe is "missing". Any other stat failure must move the
+        // fingerprint, so rethrow: scan() routes it to the full checked scan, never a serve.
+        if (["ENOENT", "ENOTDIR"].includes(String((error as NodeJS.ErrnoException).code))) return "missing";
+        throw error;
+      }
+    }));
+    return `${sequence}|${stats.join("|")}`;
+  }
+  /** Whether the journal still sits at the checkpoint and directory names a fingerprint was
+   * taken over. The checkpoint re-read matters: a rename-over replaces its content without
+   * changing any directory name, so names alone could bind a fingerprint computed from a
+   * newer checkpoint's stat to the older scan that was validated against the previous one. */
+  private async fingerprintStable(directories: string, checkpoint: Checkpoint): Promise<boolean> {
+    try { return directories === await this.directories() && (await this.readCheckpoint()).hash === checkpoint.hash; }
+    catch { return false; }
+  }
+  /** A fingerprint fit to establish, or null: captured twice around the stable check and
+   * required equal, with the head anchor re-verified last. The double capture catches a
+   * rename-over of the head trio (anchor migration/rollback replace those files under the
+   * same names before rebuilding the checkpoint) landing during establishment; the anchor
+   * re-check catches one that completed before the first capture, which names and the
+   * still-old checkpoint hash cannot see. Establishment is best-effort: any failure just
+   * leaves the next read on the full warm path. */
+  private async establishedFingerprint(directories: string, checkpoint: Checkpoint, scan: Scan, headBlobs: string[], pages: string[]): Promise<string | null> {
+    try {
+      const first = await this.journalFingerprint(pages, scan, headBlobs);
+      if (!await this.fingerprintStable(directories, checkpoint)) return null;
+      if (await this.journalFingerprint(pages, scan, headBlobs) !== first) return null;
+      if (checkpoint.anchorHash !== await this.anchorHash(checkpoint.sequence)) return null;
+      return first;
+    } catch { return null; }
+  }
   private async warmScan(cached: CachedScan): Promise<Scan> {
     // The first advance from a restart cache may cross an unbounded tail; later warm reads keep the bound.
     const coldTail = this.coldCacheTail; this.coldCacheTail = false;
+    if (cached.fastRead) {
+      if (await this.journalFingerprint(cached.fastRead.pages, cached.scan, cached.fastRead.headBlobs) === cached.fastRead.fingerprint) return cached.scan;
+      delete cached.fastRead; // Something moved; the full validation below re-establishes it.
+    }
     await this.loadCapacity();
     const checkpoint = await this.readCheckpoint(), before = await this.directories();
     const identity = IdentitySchema.parse(await readCanonical(join(this.root, "identity.json")));
@@ -1944,7 +2034,13 @@ export class SupervisionStore {
     const coordinator = cached.scan.coordinators.at(-1);
     if (coordinator && verifyHash(CoordinatorSchema.parse(await readCanonical(join(this.root, "coordinators", `${pad(coordinator.generation)}.json`)))).hash !== coordinator.hash)
       fail("HELD", "Checkpoint coordinator identity changed.");
-    if (checkpoint.hash === cached.checkpoint.hash && before === cached.directories) return cached.scan;
+    if (checkpoint.hash === cached.checkpoint.hash && before === cached.directories) {
+      const headBlobs = this.lastAnchor?.sequence === checkpoint.sequence ? this.lastAnchor.blobs : [];
+      const pages = this.journalPages(before), fingerprint = await this.establishedFingerprint(before, checkpoint, cached.scan, headBlobs, pages);
+      // Establish only if nothing moved while fingerprinting; the validated return is unaffected either way.
+      if (fingerprint) cached.fastRead = { fingerprint, headBlobs, pages };
+      return cached.scan;
+    }
     const now = JSON.parse(before) as string[][], prior = JSON.parse(cached.directories) as string[][];
     const same = (index: number) => now[index]!.join() === prior[index]!.join();
     if (!same(3)) fail("HELD", "Coordinator metadata changed; validate full history.");
@@ -2006,7 +2102,11 @@ export class SupervisionStore {
       // Directory accounting and coordinator changes cannot be guessed from the event tail.
       if (before !== await this.directories()) throw changedDuringRead;
       if (digest(checkpoint) !== digest(await this.checkpointFor(next))) fail("HELD", "Checkpoint tail digest mismatch.");
-      return await this.cache(next, checkpoint, before, blobs.identities);
+      const headBlobs = this.lastAnchor?.sequence === next.sequence ? this.lastAnchor.blobs : [];
+      const pages = this.journalPages(before), fingerprint = await this.establishedFingerprint(before, checkpoint, next, headBlobs, pages);
+      const advanced = await this.cache(next, checkpoint, before, blobs.identities);
+      if (fingerprint && this.cached?.scan === advanced) this.cached.fastRead = { fingerprint, headBlobs, pages };
+      return advanced;
     }
     fail("HELD", "Checkpoint is not a bounded advance of the cached prefix.");
   }
@@ -2014,7 +2114,7 @@ export class SupervisionStore {
    * Historical corruption holds this instance until a subsequent successful audit/recovery.
    */
   async audit(): Promise<SupervisionStatus> {
-    return this.locked(async () => structuredClone(this.status(await this.checkedFullScan())));
+    return this.locked(async () => this.status(await this.checkedFullScan()));
   }
   /** Rebuild only a derived checkpoint after a full valid history scan. Never reconstruct an
    * authority record or discard a pending transaction. No receiver/agent effects are involved.
@@ -2288,13 +2388,13 @@ export class SupervisionStore {
   adoptValidatedCacheFrom(other: SupervisionStore): boolean {
     if (this.cached || !other.cached || other === this || other.root !== this.root || other.homeId !== this.homeId) return false;
     if (other.cached.scan.problems.length || !other.cached.scan.initialized) return false;
-    this.cached = structuredClone(other.cached);
+    this.cached = structuredClone(other.cached); delete this.cached.fastRead; // This instance still verifies the anchor itself first.
     if (other.capacity) this.capacity = structuredClone(other.capacity);
     return true;
   }
   /** `settleAfterMs` is for status displays only; see reading(). Decisions keep the default. */
   async read(options: { settleAfterMs?: number } = {}): Promise<SupervisionStatus> {
-    return this.reading(async () => structuredClone(this.status(await this.sharedScan())),
+    return this.reading(async () => this.status(await this.sharedScan()),
       options.settleAfterMs === undefined ? undefined : { afterMs: options.settleAfterMs, committed: status => status.freshness === "current" });
   }
   /** Bounded read-only history pages. Continuation pins the inspected head, so concurrent appends cannot silently retarget it. */
@@ -2332,15 +2432,16 @@ export class SupervisionStore {
   }
   /** The status for one validated scan, memoised on that scan's identity: the scoped clock
    * reads several times a beat, and rebuilding this (two capacity serialisations of every
-   * frame and history entry) per read saturated the process on a large journal. Callers
-   * still receive only clones (read()/transactCommand), so the memoised master can never be
-   * mutated through a returned status; a write publishes a fresh Scan and misses the memo. */
+   * frame and history entry) per read saturated the process on a large journal. The built
+   * status is deep-frozen, so read() hands the master itself out: a mutating caller throws
+   * instead of poisoning it. transactCommand's prepare still gets a clone it may mutate;
+   * a write publishes a fresh Scan and misses the memo. */
   private status(snapshot: Scan): SupervisionStatus {
     const memo = this.statusMemo, capacityHash = this.capacity?.hash ?? null;
     if (memo && memo.scan === snapshot && memo.capacityHash === capacityHash && memo.frames === snapshot.frames &&
       memo.transactions === snapshot.transactions && memo.ownership === snapshot.ownership &&
       memo.problems === snapshot.problems.length && memo.bytes === snapshot.bytes) return memo.status;
-    const status = this.buildStatus(snapshot);
+    const status = this.buildStatus(snapshot); deepFreeze(status);
     this.statusMemo = { scan: snapshot, capacityHash, frames: snapshot.frames, transactions: snapshot.transactions,
       ownership: snapshot.ownership, problems: snapshot.problems.length, bytes: snapshot.bytes, status };
     return status;
@@ -2354,7 +2455,7 @@ export class SupervisionStore {
       sequence: snapshot.sequence, hash: snapshot.hash, executable: false, guarantee: "cooperative-storage-only",
       limits: ["This projection grants no effect authority.",
         this.capacity ? "Paged journal: 256 transactions per directory, global hash chain and full startup audit; byte/projection pressure retains reconciliation reserves. No history eviction." : "Pilot index ceilings: new effects stop at 192 transactions; all writes stop at 256; 8 MiB projection plus retained ownership; 32 transactions per incremental read.",
-        "Warm reads trust the validated checkpoint prefix. A restart serves the last fully validated projection cache after re-binding it to the checkpoint and anchor chain and validating the tail; a background full audit then re-verifies every event and anchor, and a divergence surfaces as held on the next read. Anchors are checked on every read.",
+        "Warm reads trust the validated checkpoint prefix. A restart serves the last fully validated projection cache after re-binding it to the checkpoint and anchor chain and validating the tail; a background full audit then re-verifies every event and anchor, and a divergence surfaces as held on the next read. Anchors are checked on every read whose journal fingerprint (checkpoint, anchor and directory stat identities) moved; an unchanged fingerprint serves the last validated prefix without re-listing the journal.",
         "Actor provenance and filesystem ownership are cooperative, not authenticated IPC or receiver fencing.",
         "Process-crash qualification only; coordinated loss of journal and all local metadata can hide truncation."],
       problems: snapshot.problems, versions: [...snapshot.frames.values()].map(({ kind, id, version }) => ({ kind, id, version })),
