@@ -285,6 +285,7 @@ export function backlogColumn(item: BacklogItem): ColumnId {
 export interface CrewMember {
   agent: AgentSummary;
   report: CrewReportSummary | null;
+  reportWarning?: string;
 }
 
 /**
@@ -330,6 +331,7 @@ export function buildCards(
       backlog: item,
       agent: member.agent,
       report: member.report,
+      ...(member.reportWarning ? { reportWarning: member.reportWarning } : {}),
       url: (member.report === null ? null : reportUrl(member.report.text)) ?? item?.url ?? null,
     });
   }
@@ -438,8 +440,9 @@ export async function loadFleet(
   const crew = await Promise.all(
     crewAgents.map(async (agent) => {
       const read = await reports.reportFor(paseo, agent);
-      if (read.state !== "current") warnings.push(`Crew ${agent.title ?? agent.id} (${agent.id}) report ${read.state}; the latest status line is unknown. Any retained report is from an earlier observation.`);
-      return { agent: summarizeAgent(agent), report: read.report };
+      const reportWarning = read.state !== "current" ? `Crew ${agent.title ?? agent.id} (${agent.id}) report ${read.state}; the latest status line is unknown. Any retained report is from an earlier observation.` : undefined;
+      if (reportWarning) warnings.push(reportWarning);
+      return { agent: summarizeAgent(agent), report: read.report, ...(reportWarning ? { reportWarning } : {}) };
     }),
   );
 

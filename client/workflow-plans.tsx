@@ -124,22 +124,24 @@ export function WorkflowSurface({ theme, children, hostId, view, shell, params =
       <Modal.Content>
         {snapshot && plan && selected ? <PlanDialog key={selected.hash} theme={theme} plan={plan} subjectHash={selected.hash} homeId={snapshot.homeId}
           stale={!!query.error || snapshot.subjects[selected.id] !== selected.hash} onRefresh={() => open(selected.id)} busy={busy} error={error} onAct={submit}
-          plans={snapshot.plans} models={models.data?.targets ?? []} hosts={hosts.data?.hosts ?? []} onDiscuss={discussionScope(plan.definition.id) ? () => discussPlan(plan.definition.id) : undefined} /> :
+          plans={snapshot.plans} ruleRefusals={snapshot.ruleRefusals?.filter(r => r.record.planId === plan.definition.id)} models={models.data?.targets ?? []} hosts={hosts.data?.hosts ?? []} onDiscuss={discussionScope(plan.definition.id) ? () => discussPlan(plan.definition.id) : undefined} /> :
           <Text style={{ color: theme.colors.foregroundMuted }}>This plan could not be refreshed. No action has been recorded.</Text>}
       </Modal.Content>
     </Modal>
   </Plans.Provider>;
 }
 
-export function PlanDialog({ theme, plan, subjectHash, stale, busy, error, onAct, onRefresh, models = [], hosts = [], plans = [plan], onDiscuss }: {
+export function PlanDialog({ theme, plan, subjectHash, stale, busy, error, onAct, onRefresh, models = [], hosts = [], plans = [plan], ruleRefusals = [], onDiscuss }: {
   theme: PluginTheme; plan: WorkflowPlan; subjectHash: string; homeId: string; stale: boolean; busy: boolean; error: string | null;
   onAct(command: PlanCaptainCommand): Promise<void>; onRefresh(): void;
   models?: readonly { provider: string; label: string; modes: readonly { id: string; label: string }[]; thinking: readonly { id: string; label: string }[] }[];
   hosts?: readonly { serverId: string; label: string }[];
   plans?: readonly WorkflowPlan[];
+  ruleRefusals?: WorkflowSnapshot["ruleRefusals"];
   onDiscuss?: (() => void) | undefined;
 }) {
   const [mode, setMode] = useState<"changes" | "edit" | "transfer" | null>(null), [text, setText] = useState("");
+  const [showRefusals, setShowRefusals] = useState(false);
   const [target, setTarget] = useState<PlanMode>(planMode(plan)), [criteria, setCriteria] = useState(""), [live, setLive] = useState<"pivotal" | "routine">("pivotal");
   const lines = criteriaLines(criteria), pivotal = target === "firstmate-pivotal";
   const switchChanged = target !== planMode(plan) || pivotal && (lines.join("\n") !== planEscalate(plan).join("\n") || live !== planLiveSteps(plan));
@@ -178,6 +180,12 @@ export function PlanDialog({ theme, plan, subjectHash, stale, busy, error, onAct
       {plan.nodes[node.id]?.evidence ? <Text selectable style={{ color: colors.foregroundMuted }}>{plan.nodes[node.id]!.evidence}</Text> : null}
       {plan.nodes[node.id]?.closedWithoutLanding ? <Text selectable style={{ color: colors.foregroundMuted }}>Closed without landing: {plan.nodes[node.id]!.closedWithoutLanding!.evidence}</Text> : null}
     </View>)}
+    {ruleRefusals.length ? <>
+      <Button theme={theme} label={`${showRefusals ? "Hide" : "Show"} recorded rule refusals (${ruleRefusals.length})`} onPress={() => setShowRefusals(value => !value)} />
+      {showRefusals ? ruleRefusals.map(({ record, historical }) => <Text key={record.id} selectable style={{ color: historical ? colors.foregroundMuted : colors.statusWarning }}>
+        {historical ? "Historical refusal; later accepted progress" : "Rule refusal; review required"} · {record.at} · {record.nodeId} · {record.stage} · {record.attemptId ?? "before attempt admission"} · scope {record.scopeId}: {record.conditions.join("; ")}
+      </Text>) : null}
+    </> : null}
     {plan.history.length ? <Text accessibilityRole="header" style={{ color: colors.foreground, fontWeight: "600" }}>Revision history</Text> : null}
     {plan.history.map((h, i) => <Text key={`${h.revision}:${i}`} style={{ color: colors.foregroundMuted }}>{h.revision} · {h.by === "board:captain" ? "You" : "First mate"} · {h.reason}</Text>)}
     {plan.ownerEvents?.length ? <>
