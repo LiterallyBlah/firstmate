@@ -227,6 +227,8 @@ export class SupervisionActivation {
           // Arm the delivery gate first (idempotent, kept once armed): from here every gated send writes a
           // claim, and pending entries read as preexisting, so the deliveries checked below are exactly the
           // ones `prepare` freezes. Checking unarmed then arming let a delivery change state in between.
+          // A refused prepare leaves it armed on purpose: evidence read unarmed never matches an armed check,
+          // so disarming here would refuse every later prepare while a delivery is pending.
           if (input.op === "prepare") await this.migrator(home, store, actor).arm();
           // No folder listing: it only feeds the picker, and a busy data/ holds far more than its 200-entry cap.
           const evidence = await handoverEvidence(store, home, review, await store.read(), this.options.adapters(home), null, input.evidence.rollback.path);

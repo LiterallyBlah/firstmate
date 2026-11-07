@@ -226,11 +226,15 @@ export function mergeDecisionSnapshot(
   const scoped = (next.scopedSequence ?? -1) >= (previous.scopedSequence ?? -1) ? next : previous;
   const contribution = (s: NeedsYouSnapshot) => (s.scopedDecisions?.filter(r => r.ready).length ?? 0) + new Set(s.scopedHolds?.map(h => h.planId)).size;
   const complete = scoped.scopedComplete === true && next.scopedComplete !== false;
+  // A read that answered while plans were still loading confirms nothing scoped: the retained rows stay
+  // visible but unconfirmed (`scopedComplete` unset, so answer controls stay disabled), without the
+  // "unavailable"/lower-bound wording that a genuinely failed scoped read gets.
+  const loading = next.plansLoading === true;
   return { ...base, scopedDecisions: scoped.scopedDecisions, scopedSequence: scoped.scopedSequence, scopedHolds: scoped.scopedHolds,
     scopeDirectory: scoped.scopeDirectory, scopeFiltersEnabled: next.scopeFiltersEnabled === true,
-    scopedComplete: complete, scopedAnswersEnabled: scoped.scopedAnswersEnabled === true && next.scopedAnswersEnabled !== false,
+    scopedComplete: loading ? undefined : complete, scopedAnswersEnabled: !loading && scoped.scopedAnswersEnabled === true && next.scopedAnswersEnabled !== false,
     maintenanceAnswersEnabled: scoped.maintenanceAnswersEnabled === true && next.maintenanceAnswersEnabled !== false,
-    scopedProblems: complete ? scoped.scopedProblems : [...new Set([...(scoped.scopedProblems ?? []), ...(next.scopedProblems ?? []), "Scoped decisions could not be confirmed; counts are a lower bound."])],
+    scopedProblems: complete || loading ? scoped.scopedProblems : [...new Set([...(scoped.scopedProblems ?? []), ...(next.scopedProblems ?? []), "Scoped decisions could not be confirmed; counts are a lower bound."])],
     scopedPendingAnswerCount: scoped.scopedPendingAnswerCount,
     actionCount: base.actionCount === null ? null : base.actionCount - contribution(base) + contribution(scoped),
     pendingAnswerCount: base.pendingAnswerCount === null ? null : base.pendingAnswerCount - (base.scopedPendingAnswerCount ?? 0) + (scoped.scopedPendingAnswerCount ?? 0) };

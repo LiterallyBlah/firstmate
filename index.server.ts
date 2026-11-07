@@ -208,7 +208,8 @@ export default function contribute(server: PluginServerContext) {
   // 24 s hard cap, and the tail reads race whatever of that cap remains.
   const NEEDS_READ_HARD_CAP_MS = NEEDS_READ_DEADLINE_MS + 4_000;
   // Slow is not unavailable: no problem text, so the count is not shown as hiding decisions. Scoped
-  // completeness stays unset, so scoped answers wait and the client keeps its last confirmed scoped rows.
+  // completeness stays unset; the client keeps its last scoped rows but, for a `plansLoading` read,
+  // marks them unconfirmed (mergeDecisionSnapshot), so their answer controls stay disabled.
   const stillLoading = (snapshot: Awaited<ReturnType<typeof decisions.read>>): NeedsYouSnapshot => ({ ...snapshot, plansLoading: true });
   const readCombinedNeeds = async (given?: Awaited<ReturnType<typeof decisions.read>>) => {
     const started = Date.now();

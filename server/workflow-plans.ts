@@ -38,8 +38,10 @@ const settled = <T,>(work: Promise<T>): Promise<Settled<T>> => work.then(value =
 /** A read's value, or its original error, thrown where the sequential reader would have thrown it. */
 const taken = <T,>(read: Settled<T>): T => { if ("error" in read) throw read.error; return read.value; };
 const terminal = (state: string) => ["done", "landed", "failed", "cancelled"].includes(state);
-/** An attempt recorded cancelled before its launch was ever claimed, so no worker or workspace can exist.
- * A relaunch replaces it like an accounted worker: history and spent budget kept, a new attempt next. */
+/** An attempt recorded cancelled with no claim and no recorded worker or workspace. The store also requires
+ * no launch record (`assertUncreated`); a manual, never-claimed create is excluded only by the first mate's
+ * inspection evidence, as for `release`. A relaunch replaces it like an accounted worker: history and spent
+ * budget kept, a new attempt next. */
 const neverCreated = (state: PlanNodeState) => state.state === "cancelled" && !state.claimed && !state.agentId && !state.workspaceId;
 export const planSubjectHash = (plan: WorkflowPlan) => digest({ definition: plan.definition, revision: plan.revision, status: plan.status, nodes: plan.nodes, owner: planOwner(plan), ownerEvents: plan.ownerEvents, captainActions: plan.captainEvents?.map(e => e.id) ?? [] });
 export const backlogSection = (node: PlanNode, state: string, closedWithoutLanding = false) => terminal(state) && !(node.kind === "run" && node.launch.kind === "ship" && state === "done" && !closedWithoutLanding) ? "done" : state === "planned" ? "queued" : "in-flight";
