@@ -86,8 +86,18 @@ export async function workflowSnapshot(home: string, scoped?: ScopedStatus): Pro
   scoped = await scopedRead;
   const scopedPlans = scoped?.freshness === "current" ? scoped.plans.filter(p => scoped!.backends.some(b => b.planId === p.plan.definition.id && b.ownerScopeId === p.scopeId && b.backend === "scoped")) : [];
   const currentScoped = new Set(scopedPlans.map(p => p.plan.definition.id));
-  // The successful overlay is the current owner. Keep the notice if that owner cannot be read.
-  const replacedLegacyNotices = new Set([...currentScoped].map(id => legacyCutoverWarning(id, "committed")));
+  // A readable same-plan overlay alone cannot reconcile independently persisted ownership.
+  // Only the exact committed sidecar owner, uniquely present in both projections, replaces it.
+  const replacedLegacyNotices = new Set<string>();
+  const gate = cutoverGate(home);
+  for (const id of currentScoped) {
+    if (!read.warnings?.includes(legacyCutoverWarning(id, "committed"))) continue;
+    const owners = scopedPlans.filter(p => p.plan.definition.id === id), backends = scoped!.backends.filter(b => b.planId === id);
+    const committed = await gate.sidecar(id, "committed").catch(() => null);
+    if (committed && owners.length === 1 && owners[0]!.scopeId === committed.scopeId && backends.length === 1 &&
+      backends[0]!.backend === "scoped" && backends[0]!.ownerScopeId === committed.scopeId && ["active", "retired"].includes(backends[0]!.state))
+      replacedLegacyNotices.add(legacyCutoverWarning(id, "committed"));
+  }
   read.warnings = (read.warnings ?? []).filter(w => !replacedLegacyNotices.has(w));
   if (scoped?.freshness === "held") read.problems.push("Scoped plans are held; their retained legacy copies remain historical.");
   const ruleRefusals = (scoped?.ruleViolations ?? []).map(record => ({ record, historical: historicalRuleRefusal(scoped!, record) }));

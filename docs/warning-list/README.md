@@ -8,12 +8,15 @@ The reporting projection now distinguishes that history from current warnings. E
 agent/task/project identity and an unheld, valid, evidence-bearing done/landed node are required
 before a crew report alert can become card context. An ambiguous or reused session, native
 error/permission/running state, held/incomplete read or missing evidence keeps its warning.
+Both the accepted current attempt and the matching attempt must have unique identities;
+the ambiguity search includes every retained attempt and removed node, including same-node reuse.
 The latest session report remains unknown; no report or successful outcome is invented.
 
 A refusal becomes historical only for the same scoped plan/owner/node after later accepted
 progress, and its attempt must remain in that node's lineage when named. Original records
 remain in the existing plan dialog under **Show recorded rule refusals**. A committed legacy
-notice disappears only when the current scoped plan is readable. The legacy writer's refusal
+notice disappears only when its committed sidecar scope matches the unique readable scoped
+plan and backend owner. The legacy writer's refusal
 is unchanged. No journal, policy, authority, card placement or count is rewritten.
 
 `node docs/warning-list/render.mjs` builds both the pinned baseline and current production

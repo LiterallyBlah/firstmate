@@ -24,12 +24,19 @@ export function historicalRuleRefusal(status: SupervisionStatus, refusal: RuleVi
 export function historicalCrewReport(card: FleetCard, plans: readonly WorkflowPlan[]): boolean {
   const agent = card.agent;
   if (!agent || card.remote || !["idle", "closed"].includes(agent.status) || agent.pendingPermissions || agent.lastError) return false;
-  const matches = plans.flatMap(plan => plan.definition.nodes.flatMap(node => {
-    const state = plan.nodes[node.id];
-    return node.kind === "run" && state && attempts(state).some(a => a.agentId === agent.id) ? [{ plan, node, state }] : [];
-  }));
+  // Count attempts, not nodes: a native session may be reused by a replacement within one
+  // node, or by work subsequently removed from the plan. Neither association is unique.
+  const records = plans.flatMap(plan => [
+    ...plan.definition.nodes.map(node => ({ node, state: plan.nodes[node.id], removed: false })),
+    ...(plan.removed ?? []).map(({ node, state }) => ({ node, state, removed: true })),
+  ].flatMap(({ node, state, removed }) => node.kind === "run" && state
+    ? attempts(state).map(attempt => ({ plan, node, state, attempt, removed })) : []));
+  const matches = records.filter(record => record.attempt.agentId === agent.id);
   if (matches.length !== 1) return false;
-  const { plan, node, state } = matches[0]!;
+  const { plan, node, state, attempt, removed } = matches[0]!;
+  if (removed || !state.attempt?.trim() || !attempt.attempt?.trim() ||
+    records.filter(record => record.attempt.attempt === state.attempt).length !== 1 ||
+    records.filter(record => record.attempt.attempt === attempt.attempt).length !== 1) return false;
   return node.kind === "run" && node.launch.host.trim().toLowerCase() === "local" && card.taskId === node.id && card.project === node.launch.project &&
     (!card.backlog?.plan || card.backlog.plan === plan.definition.id) &&
     plan.status !== "held" && plan.status !== "abandoned" && accepted(state);

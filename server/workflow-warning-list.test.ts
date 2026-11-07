@@ -151,3 +151,57 @@ it("answers a real workflow-clock request while three native report reads remain
     expect(fleetSettled).toBe(false); // Disconfirms a direct reporting/role-lock dependency, not all live-stall causes.
   } finally { release({ entries: [] }); await pendingFleet; await stop(); }
 }, 30000);
+
+it("control: uniquely identified accepted history scopes the matching alert", async () => {
+  const { home, scoped, fleet } = await fixture();
+  const result = await withWorkflowFleet(fleet, await workflowSnapshot(home, scoped));
+  expect(result.warnings.some(w => w.startsWith("Crew current (current)"))).toBe(false);
+  expect(result.warnings.some(w => w.startsWith("Crew unknown (unknown)"))).toBe(true);
+});
+
+it.each(["missing-current-attempt", "missing-prior-attempt", "reused-same-node", "reused-removed-node"])("review: preserves global uncertainty for %s", async kind => {
+  const { home, scoped, fleet, plan } = await fixture();
+  const state = plan.nodes.trial!;
+  let agent = "current";
+  if (kind === "missing-current-attempt") delete state.attempt;
+  if (kind === "missing-prior-attempt") { delete state.priorAttempts![0]!.attempt; agent = "prior"; }
+  if (kind === "reused-same-node") state.priorAttempts![0]!.agentId = "current";
+  if (kind === "reused-removed-node") {
+    const node = structuredClone(plan.definition.nodes[0]!); node.id = "removed-other-use";
+    plan.removed = [{ node, state: { state: "failed", attempt: randomUUID(), agentId: "current", evidence: "Retain other use", completedAt: at } }];
+  }
+  const view = WorkflowSnapshotSchema.parse(await workflowSnapshot(home, scoped));
+  const result = await withWorkflowFleet(fleet, view);
+  expect(result.warnings).toContainEqual(expect.stringContaining(`Crew ${agent} (${agent}) report pending`));
+});
+
+it("review: retains the cutover warning if its recorded owner differs from the scoped overlay", async () => {
+  const { home, scoped } = await fixture();
+  await cutoverGate(home).publishSidecar({ format: "firstmate.cutover-sidecar/1", compatibility: 1, stage: "committed", homeId: home, planId: "scheduler",
+    migrationId: randomUUID(), scopeId: randomUUID(), at, sourceHash: "a".repeat(64), inventoryHash: "b".repeat(64), transaction: null,
+    tokens: { plan: "scheduler", nodes: ["trial", "database", "build"], actions: [], agents: ["current", "prior"], tasks: [{ task: "trial", host: "local" }] } });
+  expect((await workflowStore(home).read()).warnings.join()).toContain("legacy history is read-only");
+  const view = await workflowSnapshot(home, scoped);
+  expect([...(view.problems ?? []), ...(view.warnings ?? [])].join()).toContain("legacy history is read-only");
+});
+
+it("review: real store replay can retain the same native identity across distinct attempts", async () => {
+  const { home, scoped, fleet } = await fixture(), store = workflowStore(home);
+  await mkdir(join(home, "data/trial"), { recursive: true });
+  await writeFile(join(home, "data/trial/brief.md"), "Bounded disposable source-replay fixture.");
+  const drafted = (await store.get("scheduler"))!;
+  await store.execute({ op: "approve", plan: "scheduler", expected: drafted.hash, quote: "Approve fixture only" }, randomUUID(), "mate");
+  await store.execute({ op: "start", plan: "scheduler", node: "trial" }, randomUUID(), "mate");
+  const first = (await store.get("scheduler"))!.nodes.trial!.attempt!;
+  await store.execute({ op: "record", plan: "scheduler", node: "trial", attempt: first, state: "failed", agentId: "current", workspaceId: "same-workspace", evidence: "Retained first failure" }, randomUUID(), "mate");
+  await store.execute({ op: "replace", plan: "scheduler", node: "trial", attempt: first, expected: (await store.get("scheduler"))!.hash, kind: "relaunch", budget: { agents: 4, turns: 4 }, evidence: "Deliberate fixture replacement" }, randomUUID(), "mate");
+  await store.execute({ op: "start", plan: "scheduler", node: "trial" }, randomUUID(), "mate");
+  const second = (await store.get("scheduler"))!.nodes.trial!.attempt!;
+  expect(second).not.toBe(first);
+  await store.execute({ op: "record", plan: "scheduler", node: "trial", attempt: second, state: "done", agentId: "current", workspaceId: "same-workspace", evidence: "Accepted fixture second outcome" }, randomUUID(), "mate");
+  const replayed = (await store.get("scheduler"))!;
+  expect(replayed.nodes.trial!.priorAttempts![0]!.agentId).toBe("current");
+  scoped.plans[0]!.plan = replayed;
+  const result = await withWorkflowFleet(fleet, await workflowSnapshot(home, scoped));
+  expect(result.warnings).toContainEqual(expect.stringContaining("Crew current (current) report pending"));
+});
