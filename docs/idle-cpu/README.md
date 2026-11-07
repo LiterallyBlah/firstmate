@@ -39,8 +39,8 @@ the owner remained closed, invalidating an otherwise unchanged fingerprint.
   records. Changed status, permissions or attention still enter the normal path.
   Binding observations persist state transitions; timestamp-only refreshes do not
   change the journal. Stored observations still age to unknown after 60 seconds
-  under the existing projection rule. A quiet owner with no owed work is not
-  looked up merely to refresh display metadata.
+  under the existing projection rule. Owner lookups still observe real state
+  transitions, including a discussion session changing from awake to dormant.
 - Catalog timeline requests coalesce while pending, cache unchanged successful
   observations, and retry negative results after 30, 60, 120, 240, then 300 seconds.
   Board reports use the same bounded retry intervals across timestamp changes.
@@ -86,6 +86,8 @@ instead of one. The targeted store, ingress, lifecycle, continuation, gateway,
 plan-runtime, runtime-wrapper and fleet suite passed 186 tests with at most two workers.
 After the final timestamp-only observation fix, 83 lifecycle, ingress,
 continuation and session-status tests passed; TypeScript also passed.
+The final discussion/lifecycle/session-status check passed 51 tests, including
+the awake-to-dormant discussion-session transition required by the full CI suite.
 
 The live profiling cleanup accidentally scheduled CommonJS `require` in an ESM
 process. Its uncaught error terminated the host at 09:06:17Z; the first mate

@@ -93,8 +93,6 @@ export class SupervisionLifecycle {
         return result(offer.state === "uncertain" ? "uncertain" : "awaiting-owner",
           "The current page needs its owner's explicit acknowledgement and per-event results.", effect?.id ?? null, offer.id);
       }
-      if (!offer && !goal.due && !outboxes.length && !s.inbox.assignments.some(a => a.scopeId === scopeId && a.state === "assigned"))
-        return result("idle", goal.reason);
       let observed;
       try { observed = await observeWithin(this.gateway.receiver, `agent:${binding.agentId}`, () => this.gateway.receiver.findAgent(binding.agentId), this.options.observationTimeoutMs); }
       catch { return result("held", "This owner's observation is unavailable; identity and obligations remain unknown, not absent."); }
