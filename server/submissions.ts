@@ -64,8 +64,22 @@ export async function publishBytes(path: string, bytes: Uint8Array | string,
   const file = await open(temporary, "wx");
   try { await file.writeFile(bytes); await boundary?.("written"); await file.sync(); await boundary?.("synced"); }
   finally { await file.close(); }
-  try { await link(temporary, path); await boundary?.("linked"); }
-  finally { await unlink(temporary).catch(() => {}); }
+  try { await transientRetry(() => link(temporary, path)); await boundary?.("linked"); }
+  finally { await transientRetry(() => unlink(temporary)).catch(() => {}); }
+}
+/** Windows refuses a link or unlink for a moment while another handle (indexer, antivirus,
+ * a lagging close) holds a just-written file: EPERM/EBUSY/EACCES. The link is exclusive, so a
+ * retry can only create the one file or meet EEXIST, which is never retried. Elsewhere these
+ * codes are permanent and fail at once. */
+const TRANSIENT_WINDOWS = new Set(["EPERM", "EBUSY", "EACCES"]);
+async function transientRetry<T>(work: () => Promise<T>): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    try { return await work(); }
+    catch (error) {
+      if (process.platform !== "win32" || !TRANSIENT_WINDOWS.has(String((error as NodeJS.ErrnoException).code)) || attempt >= 39) throw error;
+      await new Promise(resolve => setTimeout(resolve, 25 * Math.min(attempt + 1, 8)));
+    }
+  }
 }
 export async function publish(path: string, value: unknown,
   boundary?: (stage: PublicationBoundary) => Promise<void>): Promise<void> {

@@ -270,6 +270,9 @@ export class PlanRuntime {
     const config = await this.config(), home = resolveHome(config);
     if (config.migration || config.mateLaunch || !config.mateAgentId) return;
     const read = await this.runtime.read(home);
+    // An interrupted final publication holds every write until someone finishes it; the clock
+    // does, through the store's checked recovery (refusals keep the hold and back off).
+    if (read.freshness === "held") { await this.runtime.recoverPendingPublication(home, read); return; }
     if (read.freshness !== "current" || !read.bindings.length) return;
     // The host handle is optional for request processing. Paseo hands one to RPCs and lifecycle hooks only,
     // so a fresh plugin with neither answers store-only scope requests now and defers host-dependent ones.
