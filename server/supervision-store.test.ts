@@ -364,7 +364,15 @@ describe("scoped transaction authority", () => {
       // Rename over the head publication under its existing name, checkpoint untouched,
       // exactly as an anchor migration/rollback replacement lands mid-establishment.
       const temporary = `${file(1, "publication")}.${randomUUID()}.tmp`;
-      await writeFile(temporary, "{replaced"); await rename(temporary, file(1, "publication"));
+      await writeFile(temporary, "{replaced");
+      // Same bounded retry as replaceFile: Windows intermittently refuses a rename over a just-read file.
+      for (let attempt = 0; ; attempt++) {
+        try { await rename(temporary, file(1, "publication")); break; }
+        catch (error) {
+          if (!["EPERM", "EBUSY", "EACCES"].includes(String((error as NodeJS.ErrnoException).code)) || attempt >= 39) throw error;
+          await new Promise(resolve => setTimeout(resolve, 25 * Math.min(attempt + 1, 8)));
+        }
+      }
       resume();
       expect(await establishing).toMatchObject({ freshness: "current", sequence: 1 }); // Validated before the rename.
     } finally { resume(); spy.mockRestore(); }
