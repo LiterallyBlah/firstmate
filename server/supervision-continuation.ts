@@ -292,11 +292,12 @@ export async function recordContinuation(store: SupervisionStore, input: Continu
 /** Restart / lost-callback scan: observe the exact workers of live attempts. Read-only facts for the
  * owner; it neither retargets a native callback, reprompts to "rearm", nor creates a worker.
  */
-export async function livenessScan(status: SupervisionStatus, receiver: GatewayReceiver, options: { scopeId?: string; timeoutMs?: number } = {}) {
+export async function livenessScan(status: SupervisionStatus, receiver: GatewayReceiver, options: { scopeId?: string; timeoutMs?: number; beforeLookup?: () => Promise<void> } = {}) {
   const live = status.attempts.filter(a => a.worker?.hostId.trim().toLowerCase() === "local" && ["active", "prompted"].includes(a.state)).filter(attempt => {
     const task = status.tasks.find(t => t.id === attempt.taskId), node = task ? status.plans.find(p => p.plan.definition.id === task.planId)?.plan.nodes[task.nodeId] : undefined;
     return !!node && LIVE_NODE.includes(node.state) && task?.currentAttempt === attempt.id && (!options.scopeId || task.ownerScopeId === options.scopeId);
   });
+  if (live.length) await options.beforeLookup?.();
   return Promise.all(live.map(async attempt => {
     let found: Awaited<ReturnType<GatewayReceiver["findAgent"]>> = null;
     try { found = await observeWithin(receiver, `agent:${attempt.worker!.agentId}`, () => receiver.findAgent(attempt.worker!.agentId), options.timeoutMs); }

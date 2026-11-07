@@ -238,6 +238,9 @@ function auditFor(root: string): StoreAudit {
 }
 /** Sentinel: journal metadata moved while a warm read was checking it. */
 const changedDuringRead = new Error("Supervision journal changed during a warm read.");
+const RECOVERY_AUDIT_INTERVAL_MS = 60 * 60 * 1000;
+type RecoveryAuditLease = { active: boolean; audit: Promise<SupervisionStatus> | null };
+const recoveryAudits = new AsyncLocalStorage<Map<string, RecoveryAuditLease>>();
 /** A week after migration the /1 anchor backup (about a journal's worth) expires on the next verified writer. */
 const ANCHOR_BACKUP_TTL_MS = 7 * 24 * 3600 * 1000;
 const emptyPrefix = digest({ format: "firstmate.supervision-prefix/1" });
@@ -510,6 +513,7 @@ export class SupervisionStore {
   private projectionCacheWritten = -1;
   private projectionCacheTried = false;
   private coldCacheTail = false;
+  private recoveryAudit: { at: number; fingerprint: string; scan: Scan; pages: string[]; headBlobs: string[] } | null = null;
 
   private cacheServed: { sequence: number; hash: string | null; prefixDigest: string; projection: string;
     transactionsDigest: string; ownershipDigest: string; framesDigest: string } | null = null;
@@ -2114,7 +2118,57 @@ export class SupervisionStore {
    * Historical corruption holds this instance until a subsequent successful audit/recovery.
    */
   async audit(): Promise<SupervisionStatus> {
-    return this.locked(async () => this.status(await this.checkedFullScan()));
+    const lease = recoveryAudits.getStore()?.get(this.root);
+    if (!lease?.active) return this.fullAudit();
+    // A recovery pass audits once, even when several scopes/effects recover concurrently.
+    // Later reads still observe every transaction committed during that pass.
+    lease.audit ??= this.fullAudit();
+    const audited = await lease.audit;
+    return audited.freshness === "current" ? this.read() : audited;
+  }
+  private async fullAudit(): Promise<SupervisionStatus> {
+    return this.locked(async () => {
+      this.recoveryAudit = null;
+      const snapshot = await this.checkedFullScan(), cached = this.cached;
+      if (!snapshot.problems.length && cached?.scan === snapshot) {
+        const pages = this.journalPages(cached.directories), headBlobs = this.lastAnchor?.sequence === snapshot.sequence ? this.lastAnchor.blobs : [];
+        const fingerprint = await this.establishedFingerprint(cached.directories, cached.checkpoint, snapshot, headBlobs, pages);
+        if (fingerprint) this.recoveryAudit = { at: Date.now(), fingerprint, scan: snapshot, pages, headBlobs };
+      }
+      return this.status(snapshot);
+    });
+  }
+  /** Routine beats use the same change signal as warm reads. A changed/missing fingerprint,
+   * a held journal, startup, or the hourly backstop always pays the full historical audit.
+   * Prefix byte edits invisible to stat identities are still caught by explicit/hourly audits.
+   * Actual recovery actions call audit() and force one audit even on an unchanged beat.
+   */
+  async recoveryPass<T>(trigger: "restart" | "heartbeat", run: (status: SupervisionStatus) => Promise<T>): Promise<T> {
+    let status: SupervisionStatus | null = null;
+    if (trigger === "heartbeat") {
+      const previous = this.recoveryAudit;
+      if (previous && Date.now() >= previous.at && Date.now() - previous.at < RECOVERY_AUDIT_INTERVAL_MS && !auditFor(this.root).failure) {
+        try {
+          status = await this.reading(async () => {
+            if (await this.journalFingerprint(previous.pages, previous.scan, previous.headBlobs) !== previous.fingerprint) return null;
+            const current = await this.read();
+            return current.freshness === "current" ? current : null;
+          });
+        } catch { /* A missing/unreadable change signal never authorizes a skip. */ }
+      }
+    }
+    const audited = status === null;
+    status ??= await this.fullAudit();
+    const lease: RecoveryAuditLease = { active: true, audit: audited ? Promise.resolve(status) : null };
+    const passes = new Map(recoveryAudits.getStore()); passes.set(this.root, lease);
+    try { return await recoveryAudits.run(passes, () => run(status)); }
+    finally { lease.active = false; }
+  }
+  /** Force the pass's audit before a receiver action; ordinary event wakes keep their existing gate. */
+  async auditRecoveryAction(): Promise<void> {
+    if (!recoveryAudits.getStore()?.get(this.root)?.active) return;
+    const status = await this.audit();
+    if (status.freshness !== "current") fail("HELD", "Recovery audit failed; no receiver action is admitted.");
   }
   /** Rebuild only a derived checkpoint after a full valid history scan. Never reconstruct an
    * authority record or discard a pending transaction. No receiver/agent effects are involved.

@@ -166,6 +166,10 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Fixed
 
+- Idle recovery no longer replays the supervision journal every minute or rewrites unchanged
+  worker observations. Heartbeats audit on change and hourly, and share one audit across a
+  recovery pass. Failed timeline reads back off, and closed workers are not repeatedly reopened.
+
 - **A plan handover's checked evidence no longer goes stale by itself.** Its inventory fingerprint
   included how full the shared supervision journal was, which every other plan, timer and check moves,
   so a first mate's prepare was refused with "Handover evidence changed" seconds after reading it, with

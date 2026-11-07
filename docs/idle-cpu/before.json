@@ -1,0 +1,10 @@
+{
+  "fixture": "100 scope transactions plus two registered workers",
+  "wallMs": 30149.619,
+  "cpuMs": 10578,
+  "cores": 0.35085020477373197,
+  "beats": 23,
+  "fullScans": 23,
+  "nativeTimelineReads": 23,
+  "journalAppends": 92
+}
