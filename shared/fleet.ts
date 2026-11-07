@@ -157,6 +157,8 @@ export const FleetCardSchema = z.object({
   agent: AgentSummarySchema.nullable(),
   /** The status line the crewmate ended its last turn with. */
   report: CrewReportSchema.nullable(),
+  /** Optional history freshness, retained on the exact card even when a durable outcome supersedes its global alert. */
+  reportWarning: z.string().optional(),
   /** A pull request, from the report or the backlog line. */
   url: z.string().nullable(),
   /**

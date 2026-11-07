@@ -21,6 +21,24 @@ beforeAll(() => { (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REAC
 afterEach(() => { act(() => renderer?.unmount()); renderer = null; });
 const plan = (): WorkflowPlan => ({ definition: workflowFixture(), revision: 1, sequence: 0, hash: "a".repeat(64), posture: "review", status: "review", approvedBudget: { agents: 2, turns: 2 }, nodes: { trial: { state: "planned" }, database: { state: "planned" }, build: { state: "planned" } }, told: [], handled: [], history: [{ revision: 1, at: "2026-10-20T12:00:00Z", by: "mate", reason: "draft" }] });
 function button(label: string) { return renderer!.root.find(n => n.type === ("Pressable" as any) && n.props.accessibilityLabel === label); }
+it("keeps exact historical and current rule refusals inspectable without recording a plan action", async () => {
+  const onAct = vi.fn(), p = plan();
+  const record = { format: "firstmate.rule-violation/1" as const, id: "retained", version: 1 as const, homeId: "home", scopeId: "owner",
+    planId: p.definition.id, nodeId: "trial", attemptId: "failed-attempt", stage: "completion" as const, subjectHash: "a".repeat(64), rules: null,
+    conditions: ["regression example-failure has not passed on this fix"], at: "2026-11-05T12:00:00Z" };
+  await act(async () => { renderer = create(createElement(PlanDialog, { theme, plan: p, subjectHash: "h", homeId: "home", stale: false, busy: false, error: null,
+    onAct, onRefresh() {}, ruleRefusals: [{ record, historical: true }, { record: { ...record, id: "current", nodeId: "build", attemptId: null }, historical: false }] })); });
+  expect(visibleText(renderer!.toJSON())).not.toContain("example-failure");
+  await act(async () => button("Show recorded rule refusals (2)").props.onPress());
+  const text = visibleText(renderer!.toJSON());
+  expect(text).toContain("Historical refusal; later accepted progress");
+  expect(text).toContain("Rule refusal; review required");
+  expect(text).toContain("failed-attempt"); expect(text).toContain("scope owner");
+  expect(text).toContain("regression example-failure has not passed on this fix");
+  await act(async () => button("Hide recorded rule refusals (2)").props.onPress());
+  expect(visibleText(renderer!.toJSON())).not.toContain("example-failure");
+  expect(onAct).not.toHaveBeenCalled();
+});
 it("shows the same build-step progress on task chips as Plans, folding reviews and excluding decisions", async () => {
   const plans = compactPlansFixture(), star = plans[0]!, card = attentionCard("starpath-scheduler-slice13", "ready");
   card.project = "starpath";
