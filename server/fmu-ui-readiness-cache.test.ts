@@ -46,6 +46,15 @@ it("does not let an old pending version overwrite a new observation or reinsert 
   expect(await cache.reportFor(paseo, agent("two"))).toEqual({ report: { state: "done", text: "current" }, state: "current" });
   expect(read).toHaveBeenCalledTimes(3);
 });
+it("retains a closed report as uncertain evidence when its timestamp changes during the only read", async () => {
+  vi.useFakeTimers();
+  const cache = new ReportCache(), pending = deferred<any>(), read = vi.fn(() => pending.promise), paseo = api(read);
+  const first = cache.reportFor(paseo, agent("one", "closed")), second = cache.reportFor(paseo, agent("two", "closed"));
+  pending.resolve(page("done: closed result")); await vi.advanceTimersByTimeAsync(0);
+  await Promise.all([first, second]);
+  expect(await cache.reportFor(paseo, agent("two", "closed"))).toEqual({ report: { state: "done", text: "closed result" }, state: "unavailable" });
+  expect(read).toHaveBeenCalledTimes(1);
+});
 it("backs off repeated provider failures across updatedAt changes, caps retries, and resets after success", async () => {
   vi.useFakeTimers(); vi.spyOn(console, "error").mockImplementation(() => {});
   const cache = new ReportCache(), read = vi.fn().mockRejectedValue(new Error("Provider unavailable")), paseo = api(read);

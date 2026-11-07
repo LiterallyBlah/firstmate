@@ -37,7 +37,7 @@ export class SupervisionEvents {
   private readonly bootId = randomUUID();
   private readonly booted = new Set<string>();
   private readonly catalogReads = new Map<string, { stamp?: string; timelineStamp?: string; sourceVersion?: number;
-    closedAttempted?: boolean; failures: number; retryAfter: number; pending?: Promise<void> }>();
+    closedAttempted?: boolean; closed: boolean; closedGeneration: number; failures: number; retryAfter: number; pending?: Promise<void> }>();
   constructor(readonly store: SupervisionStore, private readonly options: { now?: () => Date; maxPending?: number } = {}) {}
   private now() { return SupervisionUtc.parse((this.options.now?.() ?? new Date()).toISOString()); }
   async admit(raw: unknown, requestId = randomUUID()) {
@@ -197,35 +197,56 @@ export class SupervisionEvents {
     for (const [id, entry] of this.catalogReads) if (!registered.has(id) && !entry.pending) this.catalogReads.delete(id);
     const results = await Promise.allSettled(agents.filter(a => registered.has(a.id)).map(async agent => {
       let entry = this.catalogReads.get(agent.id);
-      if (!entry) { entry = { failures: 0, retryAfter: 0 }; this.catalogReads.set(agent.id, entry); }
+      if (!entry) { entry = { closed: false, closedGeneration: 0, failures: 0, retryAfter: 0 }; this.catalogReads.set(agent.id, entry); }
       const current = entry;
-      if (agent.status !== "closed") delete current.closedAttempted;
-      if (current.pending) return current.pending;
-      const work = (async () => {
-        try {
-          const stamp = digest([agent.updatedAt, agent.status, agent.requiresAttention ?? false, agent.pendingPermissions.map(p => p.id)]);
+      let stamp: string;
+      try {
+        stamp = digest([agent.updatedAt, agent.status, agent.requiresAttention ?? false, agent.pendingPermissions.map(p => p.id)]);
+        // Only native timeline reads coalesce. Fresh permissions/status must be admitted
+        // immediately, even when an older timeline remains pending indefinitely.
+        await serialized(`${this.store.root}:catalog-metadata:${agent.id}`, async () => {
+          if (current.closed !== (agent.status === "closed")) {
+            current.closed = agent.status === "closed"; current.closedGeneration++; delete current.closedAttempted;
+          }
           if (current.stamp !== stamp || s.inbox.sources.some(row => row.id === sourceId("catalog", agent.id) && row.coverage === "gap")) {
             for (const permission of agent.pendingPermissions) await this.admit({ agentId: agent.id, kind: "permission", turnId: null, outcome: null, permissionId: permission.id,
               sourceKind: "catalog", sourceKey: digest([agent.id, permission.id]), epoch: null, cursor: null, maxSeq: null, gaps: [], coverage: "unknown", payload: { permissionId: permission.id } });
             await this.admit({ agentId: agent.id, kind: "catalog", turnId: null, outcome: null, permissionId: null,
-              sourceKind: "catalog", sourceKey: digest([agent.id, agent.updatedAt, agent.status]), epoch: null, cursor: null, maxSeq: null,
+              sourceKind: "catalog", sourceKey: digest([agent.id, stamp]), epoch: null, cursor: null, maxSeq: null,
               gaps: [], coverage: "unknown", payload: { status: agent.status, updatedAt: agent.updatedAt, requiresAttention: agent.requiresAttention, permissions: agent.pendingPermissions.map(p => p.id).slice(0, 32) } });
             current.stamp = stamp;
           }
+        });
+      } catch {
+        await this.recordGap("catalog", agent.id, null, ["fetch-failed"]); return;
+      }
+      if (current.pending) return current.pending;
+      const generation = current.closedGeneration, closed = agent.status === "closed";
+      const stopClosed = () => { if (closed && current.closed && current.closedGeneration === generation) current.closedAttempted = true; };
+      const work = (async () => {
+        try {
           const version = s.inbox.sources.find(row => row.id === sourceId("timeline", agent.id))?.version ?? 0;
           if (agent.status === "running" || agent.status === "initializing" || current.closedAttempted ||
             (current.timelineStamp === stamp && current.sourceVersion === version) || current.retryAfter > Date.now()) return;
-          if (agent.status === "closed") current.closedAttempted = true;
           const page = await this.timeline(paseo, agent.id);
           const source = (await this.store.read()).inbox.sources.find(row => row.id === sourceId("timeline", agent.id));
-          if (page && !page.error && source?.coverage === "bounded") {
+          const prior = s.inbox.sources.find(row => row.id === sourceId("timeline", agent.id))?.cursor;
+          // timeline() marks a valid hasNewer page as a coverage gap, but advances its
+          // safe cursor. That is progress to continue next sweep, not a provider failure.
+          const partial = page?.hasNewer && source?.gaps.length === 1 && source.gaps[0] === "page-gap" &&
+            source.cursor && page.endCursor && source.cursor.epoch === page.endCursor.epoch && source.cursor.seq === page.endCursor.seq &&
+            (!prior || source.cursor.epoch !== prior.epoch || source.cursor.seq > prior.seq);
+          if (page && !page.error && (source?.coverage === "bounded" || partial)) {
             if (!page.hasNewer) current.timelineStamp = stamp;
             else delete current.timelineStamp; // Continue a valid bounded page on the next sweep.
-            current.sourceVersion = source.version; current.failures = 0; current.retryAfter = 0;
+            current.sourceVersion = source!.version; current.failures = 0; current.retryAfter = 0;
+            if (!page.hasNewer) stopClosed();
           } else {
+            stopClosed();
             current.failures++; current.retryAfter = Date.now() + Math.min(300_000, 30_000 * 2 ** Math.min(current.failures - 1, 4));
           }
         } catch {
+          stopClosed();
           current.failures++; current.retryAfter = Date.now() + Math.min(300_000, 30_000 * 2 ** Math.min(current.failures - 1, 4));
           // Persist this subject's failure before waiting for unrelated slow source requests.
           await this.recordGap("catalog", agent.id, null, ["fetch-failed"]);

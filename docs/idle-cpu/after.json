@@ -1,8 +1,8 @@
 {
   "fixture": "100 scope transactions plus two registered workers",
-  "wallMs": 30189.537300000004,
-  "cpuMs": 359,
-  "cores": 0.011891537006100452,
+  "wallMs": 30258.3724,
+  "cpuMs": 500,
+  "cores": 0.016524352116176613,
   "beats": 30,
   "fullScans": 0,
   "nativeTimelineReads": 0,

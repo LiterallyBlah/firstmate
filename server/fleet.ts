@@ -166,10 +166,12 @@ export class ReportCache {
     // until it reopens; polling it must never keep reopening its provider helper.
     if (!current.pending && !current.closedAttempted && !(current.failure && current.failure.retryAfter > Date.now())) {
       if (agent.status === "closed") current.closedAttempted = true;
-      const version = agent.updatedAt;
+      const version = agent.updatedAt, closed = agent.status === "closed";
       const work = Promise.resolve().then(() => paseo.agents.ref(agent.id).timeline.refetch({ direction: "tail", limit: REPORT_TAIL, projection: "projected" }))
         .then(page => {
-          if (current.active && current.updatedAt === version) {
+          // A closed read can be the session's only read. Retain its successful result
+          // across timestamp churn, under its original version (explicitly not current).
+          if (current.active && (current.updatedAt === version || closed && current.closedAttempted)) {
             current.cached = { updatedAt: version, report: parseCrewReport(closingText(page.entries.map(entry => entry.item))) };
             delete current.failure;
           }

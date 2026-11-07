@@ -41,10 +41,15 @@ the owner remained closed, invalidating an otherwise unchanged fingerprint.
   change the journal. Stored observations still age to unknown after 60 seconds
   under the existing projection rule. Owner lookups still observe real state
   transitions, including a discussion session changing from awake to dormant.
-- Catalog timeline requests coalesce while pending, cache unchanged successful
+- Catalog timeline requests coalesce while pending; fresh permissions, attention
+  and status are admitted separately without waiting for the old native request.
+  Polls cache unchanged successful
   observations, and retry negative results after 30, 60, 120, 240, then 300 seconds.
   Board reports use the same bounded retry intervals across timestamp changes.
-  A closed worker gets at most one timeline attempt until observed reopened.
+  A closed worker drains any valid remaining bounded pages, then stops until
+  observed reopened; a negative closed read is not retried by polling.
+  A successful closed report whose timestamp moved during its read is retained
+  under its original version as uncertain evidence.
   Retained reports and source gaps stay explicitly uncertain; no failure proves
   absence, completion, or permission to resend. Valid partial timeline pages
   remain eligible for the next sweep.
@@ -60,9 +65,9 @@ responses are synthetic; there is no daemon, provider or live-home access.
 | Measured revision | Wall seconds | Process CPU seconds | Average cores | Beats | Full scans | Timeline calls | Journal appends |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | Main `dfc12c24` | 30.150 | 10.578 | 0.351 | 23 | 23 | 23 | 92 |
-| Fix | 30.190 | 0.359 | 0.012 | 30 | 0 | 0 | 0 |
+| Fix, after review corrections | 30.258 | 0.500 | 0.017 | 30 | 0 | 0 | 0 |
 
-This is a 96.6% reduction in measured process CPU in the bounded reproduction,
+This is a 95.3% reduction in measured process CPU in the bounded reproduction,
 with more beats completed. It is not an after-install production measurement;
 the production journal is much larger and the installed plugin was not changed.
 Raw counters are in `before.json` and `after.json`.
@@ -82,12 +87,14 @@ The fixture's optional-method fallback also runs unchanged on the main revision.
 
 Nine new regression cases failed on main, including timestamp churn making 11
 native report reads instead of one and repeated catalog sweeps making four reads
-instead of one. The targeted store, ingress, lifecycle, continuation, gateway,
-plan-runtime, runtime-wrapper and fleet suite passed 186 tests with at most two workers.
-After the final timestamp-only observation fix, 83 lifecycle, ingress,
-continuation and session-status tests passed; TypeScript also passed.
-The final discussion/lifecycle/session-status check passed 51 tests, including
-the awake-to-dormant discussion-session transition required by the full CI suite.
+instead of one. The final targeted store, ingress, lifecycle, continuation, gateway,
+runtime, fleet, supervisor-session, projection, discussion and session-status suite
+passed 236 tests across 14 files with at most two workers. TypeScript also passed.
+Three independent-review regressions failed on `b261d67` before correction:
+closed-worker pagination, a closed report racing a timestamp change, and fresh
+permissions/status arriving during an older pending timeline. All three pass in
+the final suite; the table above is re-measured on those corrections, with the same
+unchanged main baseline.
 
 The live profiling cleanup accidentally scheduled CommonJS `require` in an ESM
 process. Its uncaught error terminated the host at 09:06:17Z; the first mate

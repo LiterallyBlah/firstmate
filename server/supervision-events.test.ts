@@ -13,6 +13,36 @@ import type { PluginLifecycleEvents } from "@getpaseo/plugin/server";
 import { digest } from "./submissions";
 
 describe("S02 durable local ingress", () => {
+  it("drains valid remaining pages of a closed worker before stopping its timeline polls", async () => {
+    const f = await inboxFixture(); await f.events.timeline(api(async () => timelinePage()), "worker-a");
+    const pageAt = (seq: number, hasNewer: boolean) => timelinePage({ hasNewer,
+      startCursor: { epoch: "timeline-1", seq }, endCursor: { epoch: "timeline-1", seq },
+      entries: [{ ...timelinePage().entries[0]!, seqStart: seq, seqEnd: seq }] });
+    const read = vi.fn().mockResolvedValueOnce(pageAt(2, true)).mockResolvedValueOnce(pageAt(3, false));
+    const agent = { id: "worker-a", status: "closed", updatedAt: "closed", pendingPermissions: [] } as unknown as PaseoAgent;
+    await f.events.catalog([agent], api(read));
+    await f.events.catalog([agent], api(read));
+    expect(read).toHaveBeenCalledTimes(2);
+    expect((await f.store.read()).inbox.sources.find(s => s.id === sourceId("timeline", agent.id))).toMatchObject({ cursor: { epoch: "timeline-1", seq: 3 }, coverage: "bounded" });
+    const sequence = (await f.store.read()).sequence;
+    await f.events.catalog([agent], api(read)); expect(read).toHaveBeenCalledTimes(2); expect((await f.store.read()).sequence).toBe(sequence);
+  });
+  it("admits new catalog permissions and status while sharing a pending native timeline", async () => {
+    const f = await inboxFixture(); let release!: () => void;
+    const read = vi.fn(() => new Promise<ReturnType<typeof timelinePage>>(resolve => { release = () => resolve(timelinePage()); }));
+    const agent = { id: "worker-a", status: "idle", updatedAt: "same-timestamp", requiresAttention: false, pendingPermissions: [] } as unknown as PaseoAgent;
+    const first = f.events.catalog([agent], api(read)); await vi.waitFor(() => expect(read).toHaveBeenCalledTimes(1));
+    const changed = { ...agent, status: "error", requiresAttention: true, pendingPermissions: [{ id: "permission-new" }] } as unknown as PaseoAgent;
+    const second = f.events.catalog([changed], api(read));
+    try {
+      await vi.waitFor(async () => {
+        const status = await f.store.read();
+        expect(status.inbox.events.some(e => e.envelope.subject.permissionId === "permission-new")).toBe(true);
+        expect(status.inbox.events.filter(e => e.envelope.source.kind === "catalog" && !e.envelope.subject.permissionId).length).toBe(2);
+      }, { timeout: 1000 });
+      expect(read).toHaveBeenCalledTimes(1);
+    } finally { release(); await Promise.all([first, second]); }
+  });
   it("keeps repeated boot and unchanged catalog sweeps inert, but reads a changed agent", async () => {
     const f = await inboxFixture(), read = vi.fn(async () => timelinePage());
     const agent = { id: "worker-a", status: "idle", updatedAt: now.toISOString(), pendingPermissions: [] } as unknown as PaseoAgent;
