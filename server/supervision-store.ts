@@ -239,6 +239,10 @@ function auditFor(root: string): StoreAudit {
 /** Sentinel: journal metadata moved while a warm read was checking it. */
 const changedDuringRead = new Error("Supervision journal changed during a warm read.");
 const RECOVERY_AUDIT_INTERVAL_MS = 60 * 60 * 1000;
+/** Backstop for a remembered pending-publication hold: stat-invisible content edits are re-judged at least this often. */
+const HELD_RECHECK_MS = 10 * 60 * 1000;
+/** The one hold recoverPublication may finish: an exact, fully validated final event and tip with no publication. */
+export const PENDING_PUBLICATION = "Final transaction awaits publication.";
 type RecoveryAuditLease = { active: boolean; audit: Promise<SupervisionStatus> | null };
 const recoveryAudits = new AsyncLocalStorage<Map<string, RecoveryAuditLease>>();
 /** A week after migration the /1 anchor backup (about a journal's worth) expires on the next verified writer. */
@@ -514,6 +518,10 @@ export class SupervisionStore {
   private projectionCacheTried = false;
   private coldCacheTail = false;
   private recoveryAudit: { at: number; fingerprint: string; scan: Scan; pages: string[]; headBlobs: string[] } | null = null;
+  /** A validated "final transaction awaits publication" hold, kept while the journal's stat
+   * fingerprint is unchanged (see rememberHeld), so a stuck hold costs one full replay instead of
+   * one per read. Any write, the missing publication appearing, or the backstop re-validates. */
+  private heldScan: { at: number; fingerprint: string; scan: Scan; pages: string[] } | null = null;
 
   private cacheServed: { sequence: number; hash: string | null; prefixDigest: string; projection: string;
     transactionsDigest: string; ownershipDigest: string; framesDigest: string } | null = null;
@@ -1600,7 +1608,7 @@ export class SupervisionStore {
             fail("HELD", "Transaction projection or retained ownership mismatch.");
           if (!durableNames.has(`${pad(sequence)}.publication.json`)) {
             if (index !== sequences.length - 1) fail("HELD", "Unpublished transaction precedes later history.");
-            result.pending = { event, tip }; fail("HELD", "Final transaction awaits publication.");
+            result.pending = { event, tip }; fail("HELD", PENDING_PUBLICATION);
           }
           const rawMarker = await take(sequence, "publication"); verifyHash(rawMarker as AnyAnchor); const marker = rawMarker as AnyAnchor;
           // The publication is pinned to its fully schema-checked tip: same keys, same fields,
@@ -1926,9 +1934,14 @@ export class SupervisionStore {
     }
   }
   private async checkedFullScan(options: { verifyAllProjections?: boolean; anchorPlan?: AnchorPlanEntry[] } = {}): Promise<Scan> {
-    this.cached = null;
+    this.cached = null; this.heldScan = null;
+    const before = await this.directories().catch(() => null);
     const snapshot = await this.scanFull(options);
-    if (!snapshot.initialized || snapshot.problems.length) return snapshot;
+    if (!snapshot.initialized || snapshot.problems.length) {
+      if (before !== null && snapshot.pending && snapshot.problems.length === 1 && snapshot.problems[0] === PENDING_PUBLICATION)
+        await this.rememberHeld(snapshot, before);
+      return snapshot;
+    }
     try {
       const before = await this.directories(), checkpoint = await this.readCheckpoint();
       if (digest(checkpoint) !== digest(await this.checkpointFor(snapshot)) || before !== await this.directories())
@@ -1947,7 +1960,28 @@ export class SupervisionStore {
       snapshot.frames = new Map(); return snapshot;
     }
   }
+  /** Keep a pending-publication hold only when nothing moved while it was validated: the
+   * directory names before the scan equal those after the fingerprint, so the fingerprint (which
+   * probes the missing publication file itself) describes exactly the journal the scan judged. */
+  private async rememberHeld(scan: Scan, before: string): Promise<void> {
+    try {
+      const pages = this.journalPages(before), fingerprint = await this.journalFingerprint(pages, scan, []);
+      if (before !== await this.directories()) return;
+      this.heldScan = { at: Date.now(), fingerprint, scan, pages };
+    } catch { /* best effort: the next read validates in full */ }
+  }
+  private async heldRead(): Promise<Scan | null> {
+    const held = this.heldScan;
+    if (!held) return null;
+    if (Date.now() >= held.at && Date.now() - held.at < HELD_RECHECK_MS && !auditFor(this.root).failure) {
+      try { if (await this.journalFingerprint(held.pages, held.scan, []) === held.fingerprint) return held.scan; }
+      catch { /* an unreadable change signal never serves the hold */ }
+    }
+    this.heldScan = null; return null;
+  }
   private async scan(): Promise<Scan> {
+    const held = await this.heldRead();
+    if (held) return held;
     if (auditFor(this.root).failure) { this.cached = null; return this.checkedFullScan(); }
     if (!this.cached) await this.loadProjectionCache();
     for (let attempt = 0; ; attempt++) {
@@ -2176,7 +2210,7 @@ export class SupervisionStore {
   async recoverIndex(observed?: { homeId: string; sequence: number; hash: string | null }): Promise<void> {
     this.writable();
     await this.locked(async () => {
-      this.cached = null;
+      this.cached = null; this.heldScan = null;
       const snapshot = await this.scanFull();
       if (snapshot.problems.length || !snapshot.initialized) fail("HELD", snapshot.problems.join(" ") || "No validated journal for index recovery.");
       if (observed && (observed.homeId !== this.homeId || observed.sequence !== snapshot.sequence || observed.hash !== snapshot.hash))
@@ -2374,9 +2408,9 @@ export class SupervisionStore {
     this.writable();
     return this.locked(async () => {
       await this.assertCoordinator();
-      this.cached = null;
+      this.cached = null; this.heldScan = null;
       const snapshot = await this.scanFull();
-      if (snapshot.problems.some(p => p !== "Final transaction awaits publication.")) fail("HELD", snapshot.problems.join(" "));
+      if (snapshot.problems.some(p => p !== PENDING_PUBLICATION)) fail("HELD", snapshot.problems.join(" "));
       if (observed && (observed.homeId !== this.homeId || observed.sequence !== snapshot.sequence || observed.hash !== snapshot.hash))
         fail("STALE", "Recovery observation changed under the publication repair lock.");
       await this.ancestorCheckpoint(snapshot);

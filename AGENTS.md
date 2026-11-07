@@ -53,6 +53,13 @@ that needs to edit one must `structuredClone` it first. An unchanged warm read a
 directory listing: it serves the cached scan when a stat fingerprint of the journal (its directories,
 checkpoint and head-anchor files, plus next-sequence probes) is unchanged, and any movement falls
 back to the full warm validation, anchors included.
+A final transaction whose publication never landed (event and tip durable, the publication only a
+`.tmp`, "Final transaction awaits publication.") is finished by the workflow clock's plan tick through
+`SupervisionRuntime.recoverPendingPublication`, i.e. the store's own checked `recoverPublication` under the
+coordinator with the observed head pinned; a refusal keeps the hold, is logged once per held head and retried
+every 5 minutes. While that hold stands, a store keeps its validated result under the journal's stat
+fingerprint (10-minute backstop) instead of replaying the whole journal on every read. `publishBytes` retries
+a Windows EPERM/EBUSY/EACCES link or unlink; EEXIST is never retried.
 
 Build A overlays the historical unwired S09 notes below: `server/supervision-runtime.ts` owns one
 coordinator per home shared with activation; `server/project-runtime.ts` exposes reviewed registry
