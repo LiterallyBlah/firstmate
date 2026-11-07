@@ -36,6 +36,31 @@ async function integrated() {
   return { ...fx, ingress, inbox, lifecycle, owner, finish };
 }
 type Fixture = Awaited<ReturnType<typeof integrated>>;
+it("does not replay full history on unchanged idle recovery beats", async () => {
+  const f = await integrated(), scan = vi.spyOn(f.store as unknown as { scanFull: () => Promise<unknown> }, "scanFull");
+  await f.lifecycle.recover("restart");
+  const initial = scan.mock.calls.length;
+  for (let n = 0; n < 4; n++) expect(await f.lifecycle.recover("heartbeat")).toEqual({ effects: [], observations: [], wakes: [] });
+  expect(scan).toHaveBeenCalledTimes(initial);
+});
+it("audits one restart recovery pass once across two scope wakes", async () => {
+  const f = await integrated(); await f.owner(1, ["one"]); await f.owner(2, ["two"]);
+  const scan = vi.spyOn(f.store as unknown as { scanFull: () => Promise<unknown> }, "scanFull");
+  expect((await f.lifecycle.recover("restart")).wakes).toHaveLength(2);
+  expect(scan).toHaveBeenCalledTimes(1);
+});
+it("does not invalidate idle recovery with timestamp-only observations of an unavailable owner", async () => {
+  const f = await integrated(), { binding } = await f.owner(1, ["owner-unavailable"]);
+  f.receiver.agents.get(binding.agentId)!.status = "closed";
+  const scan = vi.spyOn(f.store as unknown as { scanFull: () => Promise<unknown> }, "scanFull");
+  await f.lifecycle.recover("restart"); await f.lifecycle.recover("heartbeat"); // Audit the one changed observation.
+  const calls = scan.mock.calls.length, sequence = (await f.store.read()).sequence;
+  let now = Date.now(); const clock = vi.spyOn(Date, "now").mockImplementation(() => now);
+  try {
+    for (let n = 0; n < 3; n++) { now += 60_001; await f.lifecycle.recover("heartbeat"); }
+    expect(scan).toHaveBeenCalledTimes(calls); expect((await f.store.read()).sequence).toBe(sequence);
+  } finally { clock.mockRestore(); }
+});
 it("restart and effect recovery audit old history before any receiver operation", async () => {
   const f = await integrated(), { scope } = await f.owner(1, ["audit-recovery"]);
   await writeFile(join(f.store.root, "transactions/000000000001.event.json"), "{old-corruption");

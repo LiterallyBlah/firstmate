@@ -25,6 +25,8 @@ class ReadOnlySupervisionStore extends SupervisionStore {
   override backend(...args: Parameters<SupervisionStore["backend"]>) { return this.delegate().backend(...args); }
   override validate(...args: Parameters<SupervisionStore["validate"]>) { return this.delegate().validate(...args); }
   override audit(...args: Parameters<SupervisionStore["audit"]>) { return this.delegate().audit(...args); }
+  override recoveryPass<T>(trigger: "restart" | "heartbeat", run: (status: Awaited<ReturnType<SupervisionStore["read"]>>) => Promise<T>) { return this.delegate().recoveryPass(trigger, run); }
+  override auditRecoveryAction() { return this.delegate().auditRecoveryAction(); }
   override adoptValidatedCacheFrom() { return false; }
   override async enableLongLived(..._args: Parameters<SupervisionStore["enableLongLived"]>): Promise<never> { this.refuse(); }
   override async migrateAnchors(..._args: Parameters<SupervisionStore["migrateAnchors"]>): Promise<never> { this.refuse(); }
