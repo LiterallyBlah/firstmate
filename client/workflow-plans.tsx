@@ -295,10 +295,11 @@ export function PlansControl({ theme, selected, onSelect }: { theme: PluginTheme
         <Button theme={theme} label={`Open plan: ${p.definition.title}`} onPress={() => { setShown(false); open(p.definition.id); }} /></View>)}
     </Modal.Content></Modal></>;
 }
-export function PlanNeeds({ theme, snapshot, showUpcoming = true, showReviews = true, compact = false }: { theme: PluginTheme; snapshot?: Pick<NeedsYouSnapshot, "planNow" | "comingUp" | "planProblems"> & { homeId?: string | null } | undefined; showUpcoming?: boolean; showReviews?: boolean; compact?: boolean }) {
+export function PlanNeeds({ theme, snapshot, showUpcoming = true, showReviews = true, compact = false }: { theme: PluginTheme; snapshot?: Pick<NeedsYouSnapshot, "planNow" | "comingUp" | "planProblems" | "plansLoading"> & { homeId?: string | null } | undefined; showUpcoming?: boolean; showReviews?: boolean; compact?: boolean }) {
   const { open } = useWorkflowPlans();
   const [expanded, setExpanded] = useState(false), later = snapshot?.comingUp ?? [];
   return <>{snapshot?.planProblems?.length ? <Text accessibilityRole="alert" style={{ color: theme.colors.statusWarning }}>Some plans are unavailable. The decision count is incomplete. {snapshot.planProblems.join(" ")}</Text> : null}
+    {snapshot?.plansLoading && !snapshot.planProblems?.length ? <Text accessibilityRole="text" style={{ color: theme.colors.foregroundMuted }}>Plans are still loading. Their decisions will appear here when the read finishes.</Text> : null}
     {showReviews ? (snapshot?.planNow ?? []).filter(n => !n.node).map(n => <DecisionTask key={n.plan} theme={theme} compact={compact}
       request={planReviewRequest(n)!} snapshot={{ homeId: snapshot?.homeId ?? null }}
       onConverse={() => {}} onChanged={() => {}} onAnswer={() => open(n.plan)} review />) : null}

@@ -580,7 +580,7 @@ export function DecisionDrawer({
           </View> : null}
           {sourceSnapshot?.scopeFiltersEnabled ? <ScopeInboxFilters snapshot={sourceSnapshot} value={scopeFilter} onChange={setScopeFilter} theme={theme} compact={compact} /> : null}
           {sourceSnapshot?.scopeFiltersEnabled && scopeFilter.kind !== "all" && !allSnapshot?.requests.length && !allSnapshot?.scopedDecisions?.length && !allSnapshot?.scopedHolds?.length && !allSnapshot?.planNow?.length && !allSnapshot?.parked.length ?
-            <Text style={{ color: colors.foregroundMuted }}>{sourceSnapshot.scopedComplete === false || sourceSnapshot.actionCount === null || !presentation.fresh || sourceSnapshot.planProblems?.length ? "No known decisions in this view. Some work still couldn't be checked." : "No current decisions or paused work in this view."}</Text> : null}
+            <Text style={{ color: colors.foregroundMuted }}>{sourceSnapshot.scopedComplete === false || sourceSnapshot.actionCount === null || !presentation.fresh || sourceSnapshot.planProblems?.length || sourceSnapshot.plansLoading ? "No known decisions in this view. Some work still couldn't be checked." : "No current decisions or paused work in this view."}</Text> : null}
           {group(
             "Waiting for you",
             queue.filter((r) => allSnapshot?.requests.some(v => v.id === r.id) && (r.state === "new" || r.state === "seen")),

@@ -12,7 +12,7 @@ import { loadFleet, ReportCache } from "./fleet";
 import { cutoverGate } from "./supervision-gate";
 import { startWorkflowService, workflowStore } from "./workflow-service";
 import { updateFirstmateConfig } from "./config";
-import { workflowSnapshot, withWorkflowFleet } from "./workflow-board";
+import { PLAN_READ_BUDGET_MS, workflowSnapshot, withWorkflowFleet } from "./workflow-board";
 
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
 const at = "2026-11-05T12:00:00Z", completedAt = "2026-11-06T12:00:00Z";
@@ -42,7 +42,7 @@ async function fixture() {
 it("reproduces the production fleet path, scopes historical unknown reports to cards, and retains the unknown current warning", async () => {
   const { home, scoped, fleet } = await fixture();
   const view = WorkflowSnapshotSchema.parse(await workflowSnapshot(home, scoped));
-  const result = await withWorkflowFleet(fleet, view);
+  const result = await withWorkflowFleet(fleet, PLAN_READ_BUDGET_MS, async () => view);
   expect(result.warnings.filter(w => w.startsWith("Crew"))).toEqual([expect.stringContaining("Crew unknown (unknown) report pending")]);
   for (const id of ["current", "prior", "unknown"]) expect(result.cards.find(c => c.agent?.id === id)?.reportWarning).toContain("latest status line is unknown");
   expect(result.cards.find(c => c.agent?.id === "prior")?.report).toBeNull(); // Never invent success for the failed attempt.
@@ -62,7 +62,7 @@ it.each(["running", "error", "permission", "task", "project", "host", "ambiguous
   if (kind === "invalidated") plan.nodes.trial!.invalidated = "Renew evidence";
   if (kind === "held") plan.nodes.trial!.held = true;
   if (kind === "missing-evidence") delete plan.nodes.trial!.evidence;
-  const result = await withWorkflowFleet(fleet, await workflowSnapshot(home, scoped));
+  const result = await withWorkflowFleet(fleet, PLAN_READ_BUDGET_MS, () => workflowSnapshot(home, scoped));
   expect(result.warnings).toContainEqual(expect.stringContaining("Crew current (current) report pending"));
 });
 
@@ -115,7 +115,7 @@ it("keeps corrupted cutover evidence and incomplete plan reads globally visible"
   const { home, scoped, fleet } = await fixture();
   const directory = join(cutoverGate(home).directory, "scheduler");
   await mkdir(directory, { recursive: true }); await writeFile(join(directory, "committed.json"), "{");
-  const result = await withWorkflowFleet(fleet, await workflowSnapshot(home, scoped));
+  const result = await withWorkflowFleet(fleet, PLAN_READ_BUDGET_MS, () => workflowSnapshot(home, scoped));
   expect(result.warnings.join()).toContain("damaged");
   expect(result.warnings).toContainEqual(expect.stringContaining("Crew current (current) report pending"));
 });
@@ -154,7 +154,7 @@ it("answers a real workflow-clock request while three native report reads remain
 
 it("control: uniquely identified accepted history scopes the matching alert", async () => {
   const { home, scoped, fleet } = await fixture();
-  const result = await withWorkflowFleet(fleet, await workflowSnapshot(home, scoped));
+  const result = await withWorkflowFleet(fleet, PLAN_READ_BUDGET_MS, () => workflowSnapshot(home, scoped));
   expect(result.warnings.some(w => w.startsWith("Crew current (current)"))).toBe(false);
   expect(result.warnings.some(w => w.startsWith("Crew unknown (unknown)"))).toBe(true);
 });
@@ -171,7 +171,7 @@ it.each(["missing-current-attempt", "missing-prior-attempt", "reused-same-node",
     plan.removed = [{ node, state: { state: "failed", attempt: randomUUID(), agentId: "current", evidence: "Retain other use", completedAt: at } }];
   }
   const view = WorkflowSnapshotSchema.parse(await workflowSnapshot(home, scoped));
-  const result = await withWorkflowFleet(fleet, view);
+  const result = await withWorkflowFleet(fleet, PLAN_READ_BUDGET_MS, async () => view);
   expect(result.warnings).toContainEqual(expect.stringContaining(`Crew ${agent} (${agent}) report pending`));
 });
 
@@ -202,6 +202,6 @@ it("review: real store replay can retain the same native identity across distinc
   const replayed = (await store.get("scheduler"))!;
   expect(replayed.nodes.trial!.priorAttempts![0]!.agentId).toBe("current");
   scoped.plans[0]!.plan = replayed;
-  const result = await withWorkflowFleet(fleet, await workflowSnapshot(home, scoped));
+  const result = await withWorkflowFleet(fleet, PLAN_READ_BUDGET_MS, () => workflowSnapshot(home, scoped));
   expect(result.warnings).toContainEqual(expect.stringContaining("Crew current (current) report pending"));
 });

@@ -190,8 +190,14 @@ export async function withWorkflowCards(cards: FleetCard[], home: string, workfl
   return result;
 }
 /** Fleet and Needs you share a single plan read/publication snapshot. */
-export async function withWorkflowFleet(fleet: Fleet, workflow?: WorkflowSnapshot): Promise<Fleet> {
-  const view = workflow ?? await workflowSnapshot(fleet.home);
+export async function withWorkflowFleet(fleet: Fleet, budgetMs = PLAN_READ_BUDGET_MS,
+  read: (home: string) => Promise<WorkflowSnapshot> = workflowSnapshot): Promise<Fleet> {
+  // Bounded like the decisions read: a cold plan read on a large home must not take the whole board
+  // past the host's RPC limit. The read carries on and warms the cache for the next poll.
+  const view = await workflowSnapshotWithin(fleet.home, budgetMs, read);
+  // Still loading: no plan evidence, so every crew-report warning stays global.
+  if (!view) return { ...fleet, ...(fleet.needsYou ? { needsYou: { ...fleet.needsYou, plansLoading: true } } : {}),
+    warnings: [...fleet.warnings, "Plans are still loading; plan steps will appear on the next refresh."] };
   // Only a warning carried by its exact card can be superseded; all unrelated/read-failure alerts survive.
   // An incomplete plan read is insufficient evidence even if it retained an older successful projection.
   const historicalReports = new Set((view.problems?.length ? [] : fleet.cards.filter(c => c.reportWarning && historicalCrewReport(c, view.plans))).flatMap(c => c.reportWarning ? [c.reportWarning] : []));

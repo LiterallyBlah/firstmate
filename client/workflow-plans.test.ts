@@ -205,6 +205,21 @@ it("labels a known decision count as a lower bound when any plan is quarantined"
   expect(decisionCountText({ ...snapshot, actionCount: 0 })).toBe("unavailable");
   expect(indicatorState({ ...snapshot, actionCount: 0 })).toMatchObject({ count: null, badge: "!" });
 });
+it("says plans are still loading, without a lower-bound count, until a later read completes", () => {
+  // The decisions read answers without plans once its budget passes. Two listed items and one unreadable held
+  // task are three known items: shown as "3", never as "3+ · some plans unavailable" (hidden decisions).
+  const loading: any = { actionCount: 3, plansLoading: true, freshness: { status: "fresh", problems: [], asOf: null } };
+  expect(indicatorState(loading)).toMatchObject({ count: 3, badge: "3", fresh: false, stale: false, plansLoading: true, label: "Needs you · 3 · checking plans" });
+  expect(indicatorState(loading).accessibilityLabel).toContain("3 items so far; plans still loading");
+  expect(decisionCountText(loading)).toBe("3 · checking plans");
+  expect(indicatorState({ ...loading, actionCount: 0 })).toMatchObject({ count: 0, badge: "0", label: "Checking plans…", fresh: false });
+  // The ledger itself not answering in time is still loading, not "can't read".
+  expect(indicatorState({ ...loading, actionCount: null, freshness: { status: "unknown", problems: ["Decisions are still loading."], asOf: null } })).toMatchObject({ count: null, loading: true, badge: "…", label: "Loading decisions…" });
+  // A genuinely unreadable plan keeps its lower bound, loading or not.
+  expect(decisionCountText({ ...loading, planProblems: ["Plan damaged: hash chain"] })).toBe("3+ · some plans unavailable");
+  // The next poll's complete read recovers on its own.
+  expect(indicatorState({ ...loading, plansLoading: undefined, planNow: [] })).toMatchObject({ badge: "3", fresh: true, label: "Needs you · 3" });
+});
 it("shows separate provenance for captain presses and approvals recorded from chat", async () => {
   const p = plan(); p.captainEvents = [{ id: "one", by: "mate", action: "approve", text: "Just go", at: "2026-10-20T12:00:00Z" }, { id: "two", by: "board:captain", action: "hold", text: "", at: "2026-10-20T12:00:00Z" }];
   await act(async () => { renderer = create(createElement(PlanDialog, { theme, plan: p, subjectHash: "b".repeat(64), homeId: "home", stale: false, busy: false, error: null, onAct: vi.fn(), onRefresh() {} })); });

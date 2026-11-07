@@ -9,7 +9,8 @@ import { PlanDefinitionSchema, type PlanDefinition, type WorkflowPlan } from "..
 import type { WorkflowSnapshot } from "../shared/workflow-rpc";
 import { replayWorkflowEvent, WorkflowPlanStore } from "./workflow-plans";
 import { workflowStore } from "./workflow-service";
-import { PLAN_READ_BUDGET_MS, workflowSnapshotWithin } from "./workflow-board";
+import { PLAN_READ_BUDGET_MS, withWorkflowFleet, workflowSnapshotWithin } from "./workflow-board";
+import type { Fleet } from "../shared/fleet";
 import { updateFirstmateConfig } from "./config";
 import { digest } from "./submissions";
 
@@ -83,6 +84,17 @@ it("137 plans read cold by three callers at once are folded once each, and every
   expect(after[1]!.plans.find(p => p.definition.id === "plan-7")?.sequence).toBe(2);
 }, 600_000);
 
+it("the board's fleet load waits for plans at most its budget, then answers with plans marked loading", async () => {
+  vi.useFakeTimers();
+  const never = vi.fn(() => new Promise<WorkflowSnapshot>(() => {}));
+  const fleet = { home: "C:/home", cards: [], warnings: [], needsYou: { actionCount: 2 } } as unknown as Fleet;
+  const waiting = withWorkflowFleet(fleet, PLAN_READ_BUDGET_MS, never);
+  await vi.advanceTimersByTimeAsync(PLAN_READ_BUDGET_MS);
+  const answered = await waiting;
+  expect(answered.needsYou).toMatchObject({ actionCount: 2, plansLoading: true });
+  expect(answered.needsYou?.planProblems).toBeUndefined();
+  expect(answered.warnings).toEqual([expect.stringContaining("Plans are still loading")]);
+});
 it("the decisions read waits for plans at most its budget, then answers without them", async () => {
   vi.useFakeTimers();
   const never = vi.fn(() => new Promise<WorkflowSnapshot>(() => {}));
@@ -123,12 +135,19 @@ it("firstmate.needs-you.read stays inside the host's RPC limit on a realistic ho
     for (const snapshot of cold) expect(snapshot.planProblems ?? []).toEqual([]);
     started = Date.now(); const warm = await read();
     expect(Date.now() - started).toBeLessThan(10_000); expect(warm.planProblems ?? []).toEqual([]);
-    // However slow the plan store is, the read answers by the budget and says plans are still loading.
+    // However slow the plan store is, the read answers by the budget and says plans are still loading:
+    // a delay, not an unavailable plan, so no plan problem and no claim that scoped reads failed.
     coldCache();
-    vi.spyOn(WorkflowPlanStore.prototype, "read").mockImplementation(() => new Promise(() => {}));
+    let release!: () => void;
+    const slow = new Promise<void>(done => { release = done; }), real = WorkflowPlanStore.prototype.read;
+    const stalled = vi.spyOn(WorkflowPlanStore.prototype, "read").mockImplementation(async function (this: WorkflowPlanStore) { await slow; return real.call(this); });
     started = Date.now(); const loading = await read();
     expect(Date.now() - started).toBeLessThan(PLAN_READ_BUDGET_MS + 10_000);
-    expect(loading.planProblems).toEqual([expect.stringContaining("Plans are still loading")]);
-    expect(loading.scopedComplete).toBe(false);
+    expect(loading.plansLoading).toBe(true);
+    expect(loading.planProblems ?? []).toEqual([]); expect(loading.scopedComplete).not.toBe(false);
+    // Once the slow read finishes, the next read (the app's poll) is complete with no manual retry.
+    release(); stalled.mockRestore();
+    const recovered = await read();
+    expect(recovered.plansLoading).toBeUndefined(); expect(recovered.planProblems ?? []).toEqual([]);
   } finally { await cleanup(); }
 }, 600_000);

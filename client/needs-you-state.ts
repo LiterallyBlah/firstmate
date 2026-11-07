@@ -46,7 +46,8 @@ export function indicatorState(
   read: DecisionReadState = {},
 ) {
   offline = offline || read.error === true || read.readiness === "failed";
-  const loading = !offline && (!snapshot || read.readiness === "loading");
+  // Plans still loading is a delay, never a problem: the total so far is shown plainly, with no "+".
+  const plansLoading = !offline && snapshot?.plansLoading === true;
   const updating = !offline && !!snapshot && read.fetching === true;
   const recordedCount =
     snapshot?.freshness.status === "unknown" ||
@@ -56,9 +57,12 @@ export function indicatorState(
   const partialPlans = recordedCount === null && (snapshot?.planNow?.length ?? 0) > 0;
   const partialScoped = recordedCount === null ? (snapshot?.scopedDecisions?.filter(r => r.ready).length ?? 0) + new Set(snapshot?.scopedHolds?.map(h => h.planId)).size : 0;
   const partialCount = partialPlans || partialScoped > 0;
+  const loading = !offline && (!snapshot || read.readiness === "loading" || (plansLoading && recordedCount === null && !partialCount));
   const unavailablePlans = !!snapshot?.planProblems?.length || snapshot?.scopedComplete === false || read.readiness === "partial";
   const count = partialCount ? (partialPlans ? snapshot!.planNow!.length : 0) + partialScoped : unavailablePlans && recordedCount === 0 ? null : recordedCount;
-  const fresh = !offline && !loading && snapshot?.freshness.status === "fresh" && !unavailablePlans;
+  // Loading plans is not stale data: what has been read is fresh, it is just not everything yet.
+  const freshSoFar = !offline && !loading && snapshot?.freshness.status === "fresh" && !unavailablePlans;
+  const fresh = freshSoFar && !plansLoading;
   const lastUpdated = decisionLastUpdated(snapshot, offline, read);
   const newCount = snapshot?.newCount ?? 0;
   const status = offline ? "stale" : (snapshot?.freshness.status ?? "unknown");
@@ -91,6 +95,7 @@ export function indicatorState(
     .join(" · ");
   return {
     loading,
+    plansLoading,
     updating,
     lastUpdated,
     partialPlans,
@@ -101,17 +106,19 @@ export function indicatorState(
     fresh,
     amber: count !== null && count > 0,
     filled: fresh && newCount > 0,
-    stale: !fresh && count !== null,
+    stale: !freshSoFar && count !== null,
     unavailable: count === null && !loading,
     label:
       loading && count === null ? "Loading decisions…" : count === null
         ? "Can't read decisions"
         : count === 0 && fresh
           ? "Nothing needs you"
-          : `Needs you · ${count}${unavailablePlans ? "+ · some plans unavailable" : partialScoped ? "+ · known actions only" : partialPlans ? "+ · plans only" : ""}${offline ? " · offline" : loading ? " · checking the rest" : ""}`,
+          : count === 0 && plansLoading && !unavailablePlans
+            ? "Checking plans…"
+            : `Needs you · ${count}${unavailablePlans ? "+ · some plans unavailable" : partialScoped ? "+ · known actions only" : partialPlans ? "+ · plans only" : ""}${offline ? " · offline" : plansLoading ? " · checking plans" : loading ? " · checking the rest" : ""}`,
     badge: count === null ? loading ? "…" : "!" : `${count}${partialCount || unavailablePlans ? "+" : ""}`,
     extra,
-    accessibilityLabel: `Needs you, ${loading && count === null ? "loading decisions" : count === null ? "count unavailable" : unavailablePlans ? `at least ${count} items; some plans unavailable` : partialScoped ? `at least ${count} known actions; other decisions unavailable` : partialPlans ? `at least ${count} plan actions; other decisions unavailable` : `${count} items`}${extra ? `, ${extra}` : ""}${lastUpdated ? `, ${lastUpdated}` : ""}. ${explanation}${explanation ? " " : ""}Open decisions`,
+    accessibilityLabel: `Needs you, ${loading && count === null ? "loading decisions" : count === null ? "count unavailable" : unavailablePlans ? `at least ${count} items; some plans unavailable` : partialScoped ? `at least ${count} known actions; other decisions unavailable` : partialPlans ? `at least ${count} plan actions; other decisions unavailable` : plansLoading ? `${count} items so far; plans still loading` : `${count} items`}${extra ? `, ${extra}` : ""}${lastUpdated ? `, ${lastUpdated}` : ""}. ${explanation}${explanation ? " " : ""}Open decisions`,
   };
 }
 
@@ -153,7 +160,7 @@ export function decisionProblems(
 
 /** Reassurance needs a complete fresh global read, including every optional source. */
 export function completeEmptyInbox(snapshot: NeedsYouSnapshot | undefined, offline = false, loading = false): boolean {
-  return !!snapshot && !offline && !loading && snapshot.freshness.status === "fresh" && snapshot.actionCount === 0 &&
+  return !!snapshot && !offline && !loading && !snapshot.plansLoading && snapshot.freshness.status === "fresh" && snapshot.actionCount === 0 &&
     snapshot.scopedComplete !== false && !decisionProblems(snapshot).length && !snapshot.requests.length && !snapshot.parked.length &&
     !snapshot.planNow?.length && !snapshot.comingUp?.length && !snapshot.scopedDecisions?.length && !snapshot.scopedHolds?.length &&
     !snapshot.pendingAnswerCount && !snapshot.scopedPendingAnswerCount && !snapshot.snoozedCount;
@@ -167,7 +174,7 @@ export function decisionCountText(
 ): string {
   const state = indicatorState(snapshot, offline, read);
   if (state.count === null) return state.loading ? "Loading decisions…" : "unavailable";
-  return `${state.badge}${snapshot?.planProblems?.length || snapshot?.scopedComplete === false || read.readiness === "partial" ? " · some plans unavailable" : state.partialScoped ? " · known actions only" : state.partialPlans ? " · plans only" : ""}`;
+  return `${state.badge}${snapshot?.planProblems?.length || snapshot?.scopedComplete === false || read.readiness === "partial" ? " · some plans unavailable" : state.partialScoped ? " · known actions only" : state.partialPlans ? " · plans only" : state.plansLoading ? " · checking plans" : ""}`;
 }
 /** Queue is unfiltered and never changes an already selected ID. */
 export function decisionQueue(requests: readonly NeedsYouRequest[]) {
