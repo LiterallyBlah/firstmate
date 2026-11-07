@@ -361,6 +361,7 @@ export const replayWorkflowEvent = (previous: WorkflowPlan | null, event: Event)
 
 /** The legacy writer refuses a plan whose S07 cutover has frozen or committed. */
 export class LegacyCutoverError extends Error {}
+export const legacyCutoverWarning = (id: string, stage: string) => `Plan ${id} ${stage === "committed" ? "now belongs to its scoped supervisor" : "is held in a scoped cutover"}; its legacy history is read-only.`;
 export class WorkflowPlanStore {
   private static cache = new Map<string, { identity: string; plan: WorkflowPlan | null }>();
   private static reading = new Map<string, Promise<WorkflowPlan | null>>();
@@ -621,7 +622,7 @@ export class WorkflowPlanStore {
         try {
           const plan = await this.get(id);
           const stage = plan ? await this.cutover(id, folders) : null;
-          const warning = stage ? `Plan ${id} ${stage === "committed" ? "now belongs to its scoped supervisor" : "is held in a scoped cutover"}; its legacy history is read-only.` : undefined;
+          const warning = stage ? legacyCutoverWarning(id, stage) : undefined;
           if (plan) outcomes[index] = { plan, ...(warning ? { warning } : {}) };
           else {
             const recovered = await this.recoveries(id);

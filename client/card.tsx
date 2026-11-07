@@ -607,9 +607,10 @@ export function CrewCard({
           {focus ? null : glance}
           {focus ? null : <ItemTagEditor card={card} theme={theme} onChanged={onChanged} />}
           {focus || facts.length === 0 ? null : <Text style={styles.meta}>{facts.join(" · ")}</Text>}
+          {card.reportWarning ? <Text selectable style={[styles.meta, { color: theme.colors.statusWarning }]}>{card.reportWarning}</Text> : null}
           {card.report === null ? null : (
             <Text style={styles.report} numberOfLines={lines}>
-              <Text style={styles.reportState}>{lastSeen ? "Last seen " : ""}{REPORT_STATES[card.report.state] ?? card.report.state}: </Text>
+              <Text style={styles.reportState}>{lastSeen || card.reportWarning ? "Last seen " : ""}{REPORT_STATES[card.report.state] ?? card.report.state}: </Text>
               {card.report.text}
             </Text>
           )}
