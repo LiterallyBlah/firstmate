@@ -197,7 +197,8 @@ under the role/lifecycle lock. `templates/tools/workflow.mjs` is transport only;
 documents commands. The first mate still makes every local worker call. No executor is installed.
 `launch.mjs` records an implicit start before exposing a launch, and pins/claims explicit starts once.
 An abandoned or archived attempt needs deliberate replanning; preparing the same task cannot reset
-its one-run budget. The existing role check is a behavioral guard, not authenticated filesystem IPC.
+its one-run budget. An attempt recorded `cancelled` before any claim (no launch record, worker or workspace)
+is relaunched with `replace --kind relaunch`, keeping its history and spent budget. The existing role check is a behavioral guard, not authenticated filesystem IPC.
 Never treat arbitrary request-file identity as an independent security boundary.
 
 Backlog `(plan:)`, `(needed-by:)` and comma-separated `(blocked-by:)` are optional. Keep the lenient
@@ -220,7 +221,8 @@ and permanently retains the plan id, attempts, budget and scoped reservations. L
 ownership metadata cannot identify unknown lost tasks; restore a backup rather than guessing.
 Reads cache event-file identity; finished implicit plans leave the agenda. A cold read (a fresh process) folds
 each plan once however many callers race it, in place and with bounded read-ahead, and the decisions read waits at
-most `PLAN_READ_BUDGET_MS` for plans before answering with them marked still loading (`workflowSnapshotWithin`). Removal tombstones reconcile scoped backlog
+most `PLAN_READ_BUDGET_MS` for plans before answering with them marked still loading (`workflowSnapshotWithin`): `plansLoading`, shown as "checking plans", never a
+`planProblems` entry or a lower-bound count; the board's fleet load (`withWorkflowFleet`) is bounded the same way. Removal tombstones reconcile scoped backlog
 rows. Explicit release, invalidate/validate and replace transitions preserve history and cumulative
 budget; manual replacement/promotion keeps the workspace and task identity. Legacy unscoped logs
 and missing anchors require deliberate reconciliation, never an automatic budget reset.
