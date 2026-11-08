@@ -2279,11 +2279,15 @@ export class SupervisionStore {
         if (identity.homeId !== this.homeId || checkpoint.sequence < base.sequence) return null;
         const now = JSON.parse(before) as string[][], prior = JSON.parse(previous.directories) as string[][];
         if (now[0]!.join() !== prior[0]!.join() || now[3]!.join() !== prior[3]!.join()) return null;
-        const listed = new Set(now[1]), beyond = (name: string) => {
+        const beyond = (name: string) => {
           const file = name.slice(name.lastIndexOf("/") + 1);
           return /^\d{12}\./.test(file) && Number(file.slice(0, 12)) > base.sequence;
         };
-        if ((prior[1] ?? []).some(name => !beyond(name) && !listed.has(name))) return null;
+        // Exactly the audited names at or below the head: none lost, and none added (a duplicate
+        // copied into another folder, an unknown file) - only names past the head may be new.
+        if ((now[1] ?? []).filter(name => !beyond(name)).join("\n") !== (prior[1] ?? []).filter(name => !beyond(name)).join("\n")) return null;
+        // The coordinator records and releases themselves, re-read and chained as a full scan reads them.
+        if ((await this.coordinators()).map(c => c.hash).join() !== base.coordinators.map(c => c.hash).join()) return null;
         // Nothing past the checkpoint: a pending or unindexed transaction is the full audit's to judge.
         if ((now[1] ?? []).some(name => { const file = name.slice(name.lastIndexOf("/") + 1); return /^\d{12}\./.test(file) && Number(file.slice(0, 12)) > checkpoint.sequence; })) return null;
         const blobs = await this.addedBlobs(previous.blobs);
@@ -2302,8 +2306,11 @@ export class SupervisionStore {
         if ((!this.capacity && next.sequence > SUPERVISION_INDEX_LIMITS.transactions) || this.projectionSize(cached.scan) > (this.capacity?.projectionBytes ?? SUPERVISION_INDEX_LIMITS.projectionBytes)) return null;
         const advanced = await this.auditBase(previous.at, cached.scan, before, checkpoint, blobs.identities);
         if (!advanced) return null;
+        // Never certify a journal the read path refuses.
+        const served = await this.read();
+        if (served.freshness !== "current" || served.sequence !== cached.scan.sequence || served.hash !== cached.scan.hash) return null;
         this.recoveryAudit = advanced; this.auditCounts.incremental++;
-        return this.status(cached.scan);
+        return served;
       } catch { return null; }
     });
   }

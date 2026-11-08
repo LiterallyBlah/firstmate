@@ -69,9 +69,12 @@ it("records a catalog gap when the read fails or stalls, never merely because it
   let settle!: (error?: Error) => void;
   const reconcile = vi.spyOn(f.ingress, "reconcile").mockImplementation(() => new Promise<void>((resolve, reject) => { settle = error => error ? reject(error) : resolve(); }));
   let now = Date.now(); const clock = vi.spyOn(Date, "now").mockImplementation(() => now);
+  const early = vi.spyOn(f.ingress, "recordGap");
   try {
     await lifecycle.recover("heartbeat", {} as never);
-    expect(reconcile).toHaveBeenCalledTimes(1); expect(await gap(), "a slow read was recorded as failed").toBe(false);
+    // Not merely cleared again by the pass's liveness observation: never recorded at all.
+    expect(reconcile).toHaveBeenCalledTimes(1); expect(early, "a slow read was recorded as failed").not.toHaveBeenCalled(); expect(await gap()).toBe(false);
+    early.mockRestore();
     now += 60_000; await lifecycle.recover("heartbeat", {} as never); // Same pending read, still under the stall bound.
     expect(reconcile).toHaveBeenCalledTimes(1); expect(await gap()).toBe(false);
     settle(); await vi.waitFor(() => expect(reconcile.mock.results[0]?.type).toBe("return"));

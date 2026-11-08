@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { cp, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { copyFile, cp, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { SupervisionStore, canonicalProjectionBytes } from "./supervision-store";
@@ -148,6 +148,20 @@ describe("the incremental audit still catches a damaged journal", { timeout: 120
   it("reordered: two unpaged events swapped", async () => {
     const a = file(10, "event"), b = file(11, "event");
     await rename(a, `${a}.x`); await rename(b, a); await rename(`${a}.x`, b);
+    await held();
+  });
+  it("added: a closed-page event duplicated into the unpaged folder", async () => {
+    await copyFile(file(290, "event"), join(store.root, "transactions", "000000000290.event.json"));
+    await held();
+  });
+  it("added: an unknown file in the transactions folder", async () => {
+    await writeFile(join(store.root, "transactions", "junk.json"), "{}");
+    await held();
+  });
+  it("tampered: the newest coordinator record replaced by a damaged copy", async () => {
+    const directory = join(store.root, "coordinators"), newest = (await readdir(directory)).filter(n => /^\d{12}\.json$/.test(n)).sort().at(-1)!;
+    const path = join(directory, newest), bytes = await readFile(path, "utf8");
+    await writeFile(`${path}.swap`, bytes.replace(/"hash":"[0-9a-f]{64}"/, `"hash":"${"0".repeat(64)}"`)); await rename(`${path}.swap`, path);
     await held();
   });
   it("an in-place edit invisible to directory stats is caught by the hourly backstop", async () => {

@@ -59,7 +59,8 @@ served as is, and one that grew is audited incrementally (`incrementalAudit`) fr
 head — the transactions since, validated in order exactly as a warm read validates a tail and
 chained to that head, with the older prefix pinned by stat identities (each file of the unpaged
 first 256 sequences and of the page still filling, each full page's directory, the root receipts),
-its entry names, coordinators and evidence blobs. Any doubt, startup, a restart pass and the
+exactly its entry names (none lost or added at or below the head), the re-read coordinator chain and
+evidence blobs, and a normal read must also report `current`. Any doubt, startup, a restart pass and the
 hourly backstop since the last full audit (`RECOVERY_AUDIT_INTERVAL_MS`) pay the full replay, which
 alone catches in-place byte edits inside a full page. An action inside a pass (`audit()`,
 `auditRecoveryAction`) forces that pass's one routine audit; `audit()` outside a pass stays full.

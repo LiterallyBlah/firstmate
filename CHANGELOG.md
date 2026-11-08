@@ -172,8 +172,10 @@ Git repository or local directory; it is marked private to prevent accidental np
   on the owner's 17,000-event journal it replayed everything (about 150 s of the main thread) almost
   back to back, and the board and Needs you timed out between. That check now verifies only what
   was written since it last looked, chained to what it had already verified, and pins everything
-  older by its files' identities; the full replay stays at startup, after any doubt, and hourly. A
-  tampered, missing or reordered journal file still holds the journal. Also, a repeated observation
+  older by its files' identities, names and coordinator records; the full replay stays at startup,
+  after any doubt, and hourly. A tampered, missing, added or reordered journal file still holds the
+  journal at the next check, except an edit in place inside an older full page, which the hourly
+  full check catches. Also, a repeated observation
   that changes nothing is no longer written, and a worker list that is merely slow is no longer
   recorded as a failed read (only one stalled for 5 minutes is), which had rewritten every
   worker's record twice a minute. Each journal write is also about five times cheaper: sizing the
