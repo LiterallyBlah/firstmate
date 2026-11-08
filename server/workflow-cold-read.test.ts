@@ -2,7 +2,8 @@
 // (firstmate.needs-you.read) waited on that cold read past the host's 30 s RPC limit. On the owner's home
 // (138 plans, about 12,000 events) the first two reads after a start took over 45 s; see the PR for timings.
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import * as filesystem from "node:fs/promises";
+import { mkdir, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
 import { PlanDefinitionSchema, type PlanDefinition, type WorkflowPlan } from "../shared/workflow-plans";
@@ -14,6 +15,10 @@ import type { Fleet } from "../shared/fleet";
 import { updateFirstmateConfig } from "./config";
 import { digest } from "./submissions";
 
+// Real IO; wrapped so one test can hold a single stat open. Node's native ESM namespace is sealed.
+vi.mock(import("node:fs/promises"), async importOriginal => {
+  const actual = await importOriginal(); return { ...actual, stat: vi.fn(actual.stat) as typeof actual.stat };
+});
 const coldCache = () => ((WorkflowPlanStore as unknown as { cache: Map<string, unknown> }).cache).clear();
 afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); });
 
@@ -54,6 +59,36 @@ it("a cold read of a long plan log copies the plan once, not once per event, and
   expect(cold?.sequence).toBe(119);
   expect(digest(cold)).toBe(digest(await replayed(store, "long")));
 }, 120_000);
+
+it("a reader whose stats finish after another reader's fold has completed reuses that fold", async () => {
+  const path = await home(), store = new WorkflowPlanStore(join(path, "ledger"), path);
+  await plan(store, path, "raced", 3);
+  coldCache();
+  // The oldest event is statted only in get()'s full identity round, after it has looked at the cache.
+  const oldest = (await readdir(join(path, "ledger", "raced"))).sort()[0]!, target = join(path, "ledger", "raced", oldest);
+  const real = (await vi.importActual<typeof filesystem>("node:fs/promises")).stat;
+  let reached!: () => void, release!: () => void, armed = true;
+  const inStats = new Promise<void>(resolve => { reached = resolve; }), gate = new Promise<void>(resolve => { release = resolve; });
+  const held = (async (file: Parameters<typeof real>[0], options?: Parameters<typeof real>[1]) => {
+    if (armed && String(file) === target) { armed = false; reached(); await gate; }
+    return real(file, options);
+  }) as typeof real;
+  vi.mocked(filesystem.stat).mockImplementation(held);
+  const proto = WorkflowPlanStore.prototype as unknown as { events(...args: unknown[]): Promise<unknown[]> };
+  const original = proto.events, folds: string[] = [];
+  vi.spyOn(proto, "events").mockImplementation(function (this: WorkflowPlanStore, ...args: unknown[]) {
+    if (args.length === 1) folds.push(String(args[0])); return original.apply(this, args);
+  });
+  try {
+    const late = new WorkflowPlanStore(join(path, "ledger"), path).get("raced");
+    await inStats;
+    const early = await new WorkflowPlanStore(join(path, "ledger"), path).get("raced");
+    expect(folds).toEqual(["raced"]);
+    release();
+    expect(digest(await late)).toBe(digest(early));
+    expect(folds).toEqual(["raced"]);
+  } finally { release(); vi.mocked(filesystem.stat).mockImplementation(real); }
+}, 60_000);
 
 it("137 plans read cold by three callers at once are folded once each, and every caller gets the same plans", async () => {
   const path = await home(), store = new WorkflowPlanStore(join(path, "ledger"), path);

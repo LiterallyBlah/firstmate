@@ -16,6 +16,7 @@ import {
 } from "../shared/supervision";
 import type { WorkflowPlan } from "../shared/workflow-plans";
 import { canonical, canonicalCached, digest, digestCached, publish, publishBytes } from "./submissions";
+import { transientRetry } from "./replace-file";
 import { serialized } from "./serialize";
 import { WorkflowEventSchema } from "./workflow-plans";
 import { mergeOwnership, OwnershipSchema as WorkflowOwnershipSchema, planOwnership, RetirementSchema, workflowHomeIdentity, type WorkflowOwnership } from "./workflow-ownership";
@@ -1810,7 +1811,9 @@ export class SupervisionStore {
       const file = await open(temporary, "wx", 0o600);
       try { await file.writeFile(`${canonical(checkpoint)}\n`); await this.boundary("checkpoint:written"); await file.sync(); await this.boundary("checkpoint:synced"); }
       finally { await file.close(); }
-      await rename(temporary, path); await this.boundary("checkpoint:replaced");
+      // Every transaction renames this file, and every read stats it: one transient Windows refusal here must
+      // not leave a durable transaction with a stale checkpoint, which only explicit index recovery clears.
+      await transientRetry(() => rename(temporary, path)); await this.boundary("checkpoint:replaced");
       await this.cache(snapshot, checkpoint, await this.directories());
     } finally { await rm(temporary, { force: true }); }
   }

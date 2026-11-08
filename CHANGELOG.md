@@ -175,7 +175,8 @@ Git repository or local directory; it is marked private to prevent accidental np
 - **Saving the config and other plugin state survives Windows' momentary file locks.** A queued note for the
   first mate once failed to save with EPERM when Windows briefly refused the rename over `config.json`,
   leaving a `config.json.<id>.tmp` behind. These saves now retry briefly as the journal's own writes do, never
-  leave their temporary file behind, and clear old leftovers after the next successful save.
+  leave their temporary file behind, and clear old leftovers after the next successful save. The journal's
+  `checkpoint.json` retries too: one refused rename there used to hold all scoped work until explicit recovery.
 - **A busy journal no longer pins a core re-checking its whole history every few minutes.** The
   routine recovery check, about once a minute, skipped its full audit only while the journal was
   completely unchanged, and the plugin's own routine observations change it every few seconds; so
