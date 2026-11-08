@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PlanDefinitionSchema, planFinished, planProblems, planWorstCase, type PlanDefinition } from "../shared/workflow-plans";
 import { WorkflowPlanStore, dependenciesMet } from "./workflow-plans";
 import { observeNeedsYou } from "./needs-you-detect";
@@ -86,6 +86,20 @@ describe("plan journal", () => {
     await writeFile(path + ".crash.tmp", "torn"); expect(await store.get("request")).toBeTruthy();
     await writeFile(path, bytes.replace("Build it", "Ship it")); await expect(store.get("request")).rejects.toThrow("hash chain");
     await writeFile(path, bytes); await writeFile(join(root, "request/00000002.json"), bytes); await expect(store.get("request")).rejects.toThrow(/gap|tail/);
+  });
+  it("serves an unchanged plan from its listing, sees appends at once and older in-place edits at the full check", async () => {
+    await draft(); const { launch }: any = await store.execute({ op: "start", plan: "request", node: "build" }, randomUUID(), "mate");
+    const before = (await store.get("request"))!;
+    // A new event is a new name: seen on the next read, no full check needed.
+    await store.execute({ op: "record", plan: "request", node: "build", attempt: launch.workflow.attempt, state: "done", evidence: "Verified report" }, randomUUID(), "mate");
+    const after = (await store.get("request"))!; expect(after.hash).not.toBe(before.hash);
+    // An in-place edit of an older (non-head) event keeps the listing: the full stat identity
+    // still catches it once FULL_IDENTITY_MS has passed, and a fresh store's cold read at once.
+    const path = join(root, "request/00000000.json"), bytes = await readFile(path, "utf8");
+    await writeFile(path, bytes.replace("Build it", "Ship it"));
+    expect((await store.get("request"))!.hash).toBe(after.hash);
+    const now = Date.now(); vi.spyOn(Date, "now").mockReturnValue(now + WorkflowPlanStore.FULL_IDENTITY_MS + 1);
+    try { await expect(store.get("request")).rejects.toThrow("hash chain"); } finally { vi.restoreAllMocks(); }
   });
   it("refuses competing creates and stale revisions without overwriting", async () => {
     const results = await Promise.allSettled([draft(), draft()]); expect(results.filter(r => r.status === "fulfilled")).toHaveLength(1);

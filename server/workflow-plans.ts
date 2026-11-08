@@ -368,7 +368,13 @@ export const replayWorkflowEvent = (previous: WorkflowPlan | null, event: Event)
 export class LegacyCutoverError extends Error {}
 export const legacyCutoverWarning = (id: string, stage: string) => `Plan ${id} ${stage === "committed" ? "now belongs to its scoped supervisor" : "is held in a scoped cutover"}; its legacy history is read-only.`;
 export class WorkflowPlanStore {
-  private static cache = new Map<string, { identity: string; plan: WorkflowPlan | null }>();
+  /** `listing` is the plan's three directory listings and their newest files' stats when `identity`
+   * (every file's stat) was last verified, at `verifiedAt`. Every write this store makes publishes a
+   * new name (exclusive link) or removes one, so an unchanged listing serves the cached fold without
+   * re-statting each file; the full stat identity is still re-checked every FULL_IDENTITY_MS, for an
+   * out-of-band in-place edit of an older file. */
+  private static cache = new Map<string, { identity: string; plan: WorkflowPlan | null; listing?: string; verifiedAt?: number }>();
+  static readonly FULL_IDENTITY_MS = 5 * 60 * 1000;
   private static reading = new Map<string, Promise<WorkflowPlan | null>>();
   constructor(readonly root: string, readonly home: string, private readonly route?: (command: WorkflowCommand) => Promise<void>) {}
   private directory(id: string) { return join(this.root, PlanId.parse(id)); }
@@ -579,14 +585,32 @@ export class WorkflowPlanStore {
   async get(id: string): Promise<WorkflowPlan | null> {
     if (await this.retirement(id)) throw new Error(`Plan ${id} is retired; its history, budget and task reservations remain retained.`);
     const key = `${resolve(this.root)}:${resolve(this.home)}:${id}`, identities: unknown[] = [];
-    for (const directory of [this.directory(id), this.tips(id), this.published(id)]) {
-      let names: string[]; try { names = (await readdir(directory)).sort(); } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e; names = []; }
+    const directories = [this.directory(id), this.tips(id), this.published(id)], listings: string[][] = [];
+    for (const directory of directories) {
+      try { listings.push((await readdir(directory)).sort()); } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e; listings.push([]); }
+    }
+    // The workflow clock lists every plan each second: on a home of 171 plans and 16k files,
+    // statting every file on every listing kept four filesystem threads busy at idle.
+    // The listing plus each directory's newest file's stat (where a torn or rewritten head shows),
+    // like the supervision journal's warm-read fingerprint; older files are the full check's.
+    const heads = await Promise.all(directories.map(async (directory, d) => {
+      const last = listings[d]!.filter(name => /^\d{8}\.json$/.test(name)).at(-1); if (last === undefined) return null;
+      const s = await stat(join(directory, last)); return [last, s.ino, s.size, s.mtimeMs, s.ctimeMs];
+    }));
+    const listing = JSON.stringify([listings, heads]), now = Date.now(), cached = WorkflowPlanStore.cache.get(key);
+    if (cached && cached.listing === listing && cached.verifiedAt !== undefined && now >= cached.verifiedAt && now - cached.verifiedAt < WorkflowPlanStore.FULL_IDENTITY_MS)
+      return structuredClone(cached.plan);
+    for (const [d, directory] of directories.entries()) {
+      const names = listings[d]!;
       // Same identities in the same order; the stats of one directory are only issued together.
       for (const [n, s] of (await Promise.all(names.map(name => stat(join(directory, name))))).entries())
         identities.push([directory, names[n], s.ino, s.size, s.mtimeMs, s.ctimeMs]);
     }
-    const identity = digest(identities), cached = WorkflowPlanStore.cache.get(key);
-    if (cached?.identity === identity) return structuredClone(cached.plan);
+    const identity = digest(identities);
+    if (cached?.identity === identity) {
+      cached.listing = listing; cached.verifiedAt = now;
+      return structuredClone(cached.plan);
+    }
     // Concurrent readers of the same files share one reduction: at startup the workflow clock, the decisions
     // read and the Plans read all arrive cold, and each repeating every event slowed all of them.
     const flight = `${key}\0${identity}`;
@@ -596,7 +620,7 @@ export class WorkflowPlanStore {
         let plan = (await this.events(id)).reduce<WorkflowPlan | null>((plan, event) => reduce(plan, event, true), null);
         if (plan) plan = await this.recoveryHistory(plan);
         if (WorkflowPlanStore.cache.size > 2000) WorkflowPlanStore.cache.clear();
-        WorkflowPlanStore.cache.set(key, { identity, plan }); return plan;
+        WorkflowPlanStore.cache.set(key, { identity, plan, listing, verifiedAt: now }); return plan;
       })();
       const done = () => { if (WorkflowPlanStore.reading.get(flight) === pending) WorkflowPlanStore.reading.delete(flight); };
       WorkflowPlanStore.reading.set(flight, pending); pending.then(done, done);

@@ -57,7 +57,10 @@ A final transaction whose publication never landed (event and tip durable, the p
 `.tmp`, "Final transaction awaits publication.") is finished by the workflow clock's plan tick through
 `SupervisionRuntime.recoverPendingPublication`, i.e. the store's own checked `recoverPublication` under the
 coordinator with the observed head pinned; a refusal keeps the hold, is logged once per held head and retried
-every 5 minutes. While that hold stands, a store keeps its validated result under the journal's stat
+after 5 minutes, then at doubling intervals up to 6 hours while the held head is unchanged. A retained
+anchor-migration receipt (the 7-day rollback window) does not hold writer creation over that lone pending
+publication once every anchor is /2 and the receipt still binds its head (`migrateAnchorsOnce`); any other
+problem still holds, and the receipt's clean-audit expiry runs on a later writer once the publication is finished. While that hold stands, a store keeps its validated result under the journal's stat
 fingerprint (10-minute backstop) instead of replaying the whole journal on every read. `publishBytes` retries
 a Windows EPERM/EBUSY/EACCES link or unlink; EEXIST is never retried.
 
@@ -226,7 +229,10 @@ holds only conflicting scopes; non-plan names are reported warnings. `workflow.m
 the current mate and inspected-file fingerprint, appends evidence without changing damaged files,
 and permanently retains the plan id, attempts, budget and scoped reservations. Legacy missing
 ownership metadata cannot identify unknown lost tasks; restore a backup rather than guessing.
-Reads cache event-file identity; finished implicit plans leave the agenda. A cold read (a fresh process) folds
+Reads cache event-file identity; finished implicit plans leave the agenda. An unchanged plan (same three
+directory listings and the same newest-file stats) is served from cache without statting every file; the full
+per-file stat identity is rechecked every `FULL_IDENTITY_MS` (5 min), since the workflow clock lists every plan
+each second and a 16k-file store otherwise kept the filesystem pool busy at idle. A cold read (a fresh process) folds
 each plan once however many callers race it, in place and with bounded read-ahead, and the decisions read waits at
 most `PLAN_READ_BUDGET_MS` for plans before answering with them marked still loading (`workflowSnapshotWithin`): `plansLoading`, shown as "checking plans", never a
 `planProblems` entry or a lower-bound count; the board's fleet load (`withWorkflowFleet`) is bounded the same way. Removal tombstones reconcile scoped backlog
