@@ -30,6 +30,7 @@ import { scopeAnswerContext } from "./scope-answer-context";
 import { ScopedCaptainDecisionSchema } from "../shared/scoped-captain-decision";
 import { maintenanceAnswerContext, maintenanceCaptainDecision } from "./maintenance-decisions";
 import { planBudgetException } from "../shared/plan-supervisor-limits";
+import { needsYouCount } from "../shared/plan-decisions";
 import { workflowHomeIdentity } from "./workflow-ownership";
 
 /** The freshness problem of a valid read still waiting for a second equal one. */
@@ -77,12 +78,10 @@ export function withScopedNeedsYou(snapshot: NeedsYouSnapshot, status: Supervisi
   const holds = status.operationHolds.filter(h => h.state === "held");
   const holdPlans = new Set(holds.map(h => h.planId));
   const count = rows.filter(r => r.ready).length + holdPlans.size;
-  const priorHoldPlans = new Set(snapshot.scopedHolds?.map(h => h.planId) ?? []);
-  const priorCount = (snapshot.scopedDecisions?.filter(r => r.ready).length ?? 0) + priorHoldPlans.size;
   const pending = status.outbox.filter(o => o.kind === "decision.answer" && o.state === "pending").length;
   if (status.freshness !== "current") problems.push("Scoped decision inventory is incomplete; counts are a lower bound.");
   return { ...snapshot, homeId: snapshot.homeId ?? status.homeId, scopedDecisions: rows, scopedSequence: status.sequence, scopedProblems: problems, scopedHolds: holds, scopedComplete: status.freshness === "current", scopedPendingAnswerCount: pending,
-    actionCount: snapshot.actionCount === null ? count || null : snapshot.actionCount - priorCount + count,
+    actionCount: snapshot.actionCount === null ? count || null : needsYouCount({ ...snapshot, scopedDecisions: rows, scopedHolds: holds }),
     pendingAnswerCount: snapshot.pendingAnswerCount === null ? null : snapshot.pendingAnswerCount - (snapshot.scopedPendingAnswerCount ?? 0) + pending };
 }
 

@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 import { readFile } from "node:fs/promises";
-import type { NeedsYouSnapshot } from "../shared/needs-you";
+import { quarantinesSource, type NeedsYouSnapshot } from "../shared/needs-you";
 import type { PlanNeed, WorkflowSnapshot } from "../shared/workflow-rpc";
 import type { Fleet, FleetCard } from "../shared/fleet";
 import { RemoteSnapshot } from "../shared/remotes";
@@ -17,7 +17,7 @@ import { resolveInHome } from "./files";
 import { resolveHost } from "./remote-cards";
 import { quarantinedDependencyIds, type QuarantinedWorkflow } from "./workflow-ownership";
 import { decisionBriefs } from "./decision-brief";
-import { planDecisionRequest } from "../shared/plan-decisions";
+import { needsYouCount, planDecisionRequest } from "../shared/plan-decisions";
 import { planDecisionReady } from "../shared/plan-readiness";
 
 /** Derive readiness from committed events, never the request's authored date or poll time. */
@@ -151,10 +151,13 @@ export async function withWorkflowNeeds(snapshot: NeedsYouSnapshot, home: string
     const request = planDecisionRequest(n), brief = briefs.find(b => b.requestId === request?.id && b.recordRevision === request?.revision);
     return n.decision && brief ? { ...n, decision: { ...n.decision, brief: { path: brief.path, content: brief.content } } } : n;
   });
-  return { ...snapshot, requests: snapshot.requests.filter(r => !owned(r.source)), parked: snapshot.parked.filter(r => !owned(r)),
-    actionCount: snapshot.actionCount === null ? null : Math.max(0, snapshot.actionCount - removed.filter(r => r.state === "new" || r.state === "seen").length) + view.now.length,
+  // A plan's own decision is the entry for its unreadable backlog line, as the open gate it replaces was.
+  const replaced = removed.filter(r => r.state === "new" || r.state === "seen");
+  const quarantined = snapshot.quarantined?.map(row => row.taskId !== null && replaced.some(r => quarantinesSource([row], r.source)) ? { ...row, hasHold: false } : row);
+  const combined: NeedsYouSnapshot = { ...snapshot, ...(quarantined ? { quarantined } : {}), requests: snapshot.requests.filter(r => !owned(r.source)), parked: snapshot.parked.filter(r => !owned(r)),
     newCount: snapshot.newCount === null ? null : Math.max(0, snapshot.newCount - removed.filter(r => r.state === "new").length),
     planNow, comingUp: view.comingUp, planProblems: problems };
+  return { ...combined, actionCount: snapshot.actionCount === null ? null : needsYouCount(combined) };
 }
 
 /** Pending cards carry scope and no invented worker. Bad plans never affect unrelated cards. */

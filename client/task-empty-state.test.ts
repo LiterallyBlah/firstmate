@@ -7,7 +7,7 @@ import { taskSourceKey } from "./task-presentation";
 vi.mock("react-native", () => ({ Platform: { OS: "web" }, Pressable: "Pressable", Text: "Text", ScrollView: "ScrollView", View: "View" }));
 vi.mock("./card", () => ({ CrewCard: (props: object) => createElement("CrewCard", props) }));
 vi.mock("./decision-tasks", () => ({
-  DecisionTask: (props: object) => createElement("DecisionTask", props), DecisionQueueNote: () => null,
+  DecisionTask: (props: object) => createElement("DecisionTask", props), DecisionQueueNote: () => null, UnreadableHolds: () => null,
 }));
 vi.mock("./workflow-plans", () => ({ PlanNeeds: () => null }));
 import { TaskList } from "./task-list";

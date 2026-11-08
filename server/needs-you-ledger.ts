@@ -14,6 +14,7 @@ import {
   quarantinesSource,
   QuarantinedTaskSchema,
 } from "../shared/needs-you";
+import { needsYouCount } from "../shared/plan-decisions";
 import { normalizeAsk, type NeedsYouDetection } from "./needs-you-detect";
 
 export const NeedsYouLedgerSchema = z
@@ -170,8 +171,10 @@ function missingTaskRows(ledger: NeedsYouLedger, detection: NeedsYouDetection): 
         request.state !== "resolved" && !present.has(request.source.key) &&
         !quarantinesSource(detection.quarantined ?? [], request.source),
     )
-    .map((request) => ({ line: 0, taskId: request.source.taskId, key: request.source.key,
-      hasHold: true, problem: `Task ${request.source.taskId} is missing. Restore its backlog record before answering it.` }));
+    // A line that was unreadable when it vanished may have held a new question, so it keeps that record.
+    .map((request) => ledger.quarantined.find(old => old.line > 0 && old.hasHold && old.key === request.source.key) ??
+      { line: 0, taskId: request.source.taskId, key: request.source.key,
+        hasHold: true, problem: `Task ${request.source.taskId} is missing. Restore its backlog record before answering it.` });
   for (const row of ledger.quarantined) {
     if (!row.hasHold) continue;
     const recovered = row.taskId !== null && detection.sources.filter(source => quarantinesSource([row], source)).length === 1;
@@ -451,17 +454,10 @@ export function needsYouSnapshot(
   const known = ledger?.initializedAt != null;
   const requests = ledger?.requests ?? [];
   const quarantined = ledger?.quarantined ?? [];
-  const unreadHolds = quarantined.filter(row => row.hasHold &&
-    (row.taskId === null || !requests.some(request =>
-      (request.state === "new" || request.state === "seen") && quarantinesSource([row], request.source)))).length;
-  return {
+  const snapshot: NeedsYouSnapshot = {
     homeId: ledger?.homeId ?? null,
     version: ledger?.version ?? 0,
-    actionCount: known
-      ? requests.filter(
-          (entry) => entry.state === "new" || entry.state === "seen",
-        ).length + unreadHolds
-      : null,
+    actionCount: null,
     newCount: known
       ? requests.filter((entry) => entry.state === "new").length
       : null,
@@ -481,4 +477,5 @@ export function needsYouSnapshot(
     quarantined: structuredClone([...quarantined]),
     delivery: "off",
   };
+  return known ? { ...snapshot, actionCount: needsYouCount(snapshot) } : snapshot;
 }

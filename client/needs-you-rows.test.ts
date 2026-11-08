@@ -11,10 +11,12 @@ import { DEFAULT_TASK_LAYOUT } from "../shared/task-layout";
 import type { NeedsYouSnapshot } from "../shared/needs-you";
 import { indicatorState } from "./needs-you-state";
 import { needsYouQueue, scopedEntries } from "./scoped-queue";
-vi.mock("react-native", () => ({ Platform: { OS: "web" }, Pressable: "Pressable", Text: "Text", TextInput: "TextInput", ScrollView: "ScrollView", View: "View" }));
+vi.mock("react-native", () => ({ Platform: { OS: "web", select: (o: { web?: unknown; default?: unknown }) => o.web ?? o.default }, Pressable: "Pressable", Text: "Text", TextInput: "TextInput", ScrollView: "ScrollView", View: "View" }));
 vi.mock("@getpaseo/plugin/client", () => ({ useRpc: () => async () => { throw new Error("No RPC in this test"); } }));
 vi.mock("./card", () => ({ CrewCard: (props: object) => createElement("CrewCard", props) }));
-vi.mock("./decision-tasks", () => ({
+vi.mock("@getpaseo/plugin/client/react-native", () => ({ Icon: "Icon" }));
+vi.mock("./decision-tasks", async importActual => ({
+  ...await importActual<typeof import("./decision-tasks")>(),
   DecisionTask: (props: object) => createElement("DecisionTask", props), DecisionQueueNote: () => null,
 }));
 vi.mock("./workflow-plans", () => ({ PlanNeeds: () => null, useWorkflowPlans: () => ({}), workflowRequestId: () => "id" }));
@@ -38,7 +40,16 @@ async function render(view: "List" | "Board", snapshot: NeedsYouSnapshot) {
   return tree!;
 }
 const rows = (tree: ReactTestRenderer) => tree.root.findAllByType("DecisionTask" as never).length +
-  tree.root.findAll(n => n.props.testID === "scoped-hold" && typeof n.type === "string").length;
+  tree.root.findAll(n => (n.props.testID === "scoped-hold" || n.props.testID === "unreadable-hold") && typeof n.type === "string").length;
+
+it.each(["List", "Board"] as const)("%s draws a row for each unreadable hold it counts", async view => {
+  const snapshot = mixed(false);
+  snapshot.quarantined = [{ line: 111, taskId: "damaged", key: null, hasHold: true, problem: "Line 111, task damaged: Could not read metadata; check parentheses." }];
+  snapshot.actionCount! += 1;
+  const tree = await render(view, snapshot);
+  expect(rows(tree)).toBe(indicatorState(snapshot).count);
+  expect(visibleText(tree.toJSON())).toContain("damaged");
+});
 
 it.each([["List", false], ["List", true], ["Board", false], ["Board", true]] as const)("%s draws exactly the counted rows (scoped: %s)", async (view, scoped) => {
   const snapshot = mixed(scoped), count = indicatorState(snapshot).count;

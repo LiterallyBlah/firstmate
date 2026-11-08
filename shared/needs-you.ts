@@ -52,6 +52,19 @@ export function quarantinesSource(rows: readonly QuarantinedTask[], source: Deci
     row.taskId === null || row.taskId === source.taskId);
 }
 
+/**
+ * Held tasks the backlog cannot show as a decision, one entry each. An open gate is already the entry for
+ * its row. An answered gate speaks only for the row recording that its line is gone (line 0, its own key):
+ * that waits on the first mate, while an unreadable line still in the file may hold a new question.
+ */
+export function unreadableHolds(snapshot: { requests: readonly NeedsYouRequest[]; quarantined?: readonly QuarantinedTask[] | undefined }): QuarantinedTask[] {
+  const open = snapshot.requests.filter(r => r.state === "new" || r.state === "seen");
+  const answered = snapshot.requests.filter(r => r.state === "answer-sent" || r.state === "delivery-uncertain");
+  return (snapshot.quarantined ?? []).filter(row => row.hasHold && (row.taskId === null ||
+    (!open.some(request => quarantinesSource([row], request.source)) &&
+      !(row.line === 0 && row.key !== null && answered.some(request => request.source.key === row.key)))));
+}
+
 export const AnswerSubmissionSchema = z.object({
   submissionId: z.string().min(1).max(200),
   revision,

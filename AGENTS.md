@@ -552,8 +552,9 @@ installed version, listed by digest in `REVIEWED_READER_RUNS` (the S11 smoke run
 
 Needs-you observation quarantines malformed/unresolvable rows individually. Healthy rows still
 reconcile after stable reads; a quarantined gate retains its last good state and rejects mutations.
-The ledger durably keeps unreadable holds, counted once per row unless an actionable gate already
-represents them. Missing/repeated/unknown sections, duplicate identities, comments/NUL and unreadable
+The ledger durably keeps unreadable holds, counted once per row unless an open gate represents
+them (an answered gate speaks only for the row recording that its line is gone). The total is `needsYouCount` (`shared/plan-decisions.ts`), over the same rows List
+and Board draw; each unreadable hold has its own row there (`UnreadableHolds`), opening All. Missing/repeated/unknown sections, duplicate identities, comments/NUL and unreadable
 files remain whole-file failures; a missing gate never resolves. Problems include line numbers and
 task ids, appear in the drawer and indicator description, and unreadable holds link to Board.
 Every decision count, including the Deck legend, uses the server total and labels stale/unavailable
