@@ -2654,11 +2654,15 @@ export class SupervisionStore {
       return { sequence: snapshot.sequence, hash: snapshot.hash, events, next: input.after + events.length < snapshot.sequence ? input.after + events.length : null };
     });
   }
-  /** Content-addressed, confined and bounded; a caller never supplies a filesystem path. */
-  async readBlob(id: string, maxBytes = 512 * 1024): Promise<Uint8Array> {
+  /** Content-addressed, confined and bounded; a caller never supplies a filesystem path.
+   * A caller that has just read this store may pass that status (`committed`) instead of a fresh
+   * read: committed evidence is never removed, so a blob committed in a current status of this
+   * journal stays committed. It must be this store's own read, never a constructed status. */
+  async readBlob(id: string, maxBytes = 512 * 1024, committed?: SupervisionStatus): Promise<Uint8Array> {
     SupervisionHash.parse(id);
     if (!Number.isSafeInteger(maxBytes) || maxBytes < 1 || maxBytes > 512 * 1024) fail("CONFLICT", "Invalid blob read bound.");
-    const status = await this.read();
+    if (committed && committed.homeId !== this.homeId) fail("CONFLICT", "Blob read status belongs to another home.");
+    const status = committed ?? await this.read();
     if (status.freshness !== "current" || !status.versions.some(v => v.kind === "blob" && v.id === id)) fail("HELD", "Only committed evidence in a current journal is readable.");
     const root = await realpath(this.root), directory = await realpath(join(this.root, "blobs")), path = await realpath(join(directory, id));
     const equal = (a: string, b: string) => process.platform === "win32" ? a.toLowerCase() === b.toLowerCase() : a === b;

@@ -81,7 +81,14 @@ anchor-migration receipt (the 7-day rollback window) does not hold writer creati
 publication once every anchor is /2 and the receipt still binds its head (`migrateAnchorsOnce`); any other
 problem still holds, and the receipt's clean-audit expiry runs on a later writer once the publication is finished. While that hold stands, a store keeps its validated result under the journal's stat
 fingerprint (10-minute backstop) instead of replaying the whole journal on every read. `publishBytes` retries
-a Windows EPERM/EBUSY/EACCES link or unlink; EEXIST is never retried.
+a Windows EPERM/EBUSY/EACCES link or unlink; EEXIST is never retried. Every plugin-owned whole-file replacement
+(`config.json`, `watches.json`, `watch-config.json`, the Needs-you ledger, the chat queue, the remote
+catalog, plan projections, scoped routes) goes through `server/replace-file.ts`'s `replaceFile`: the same
+bounded rename retry, its own temporary always removed, and this target's `<name>.<uuid>.tmp` orphans
+older than 10 minutes swept once a replacement lands. `PlanRules.observeFailures` (every scoped clock tick)
+remembers each assigned event judged not a failure by event id and evidence digest (content-addressed, so
+changed evidence is a new digest and is re-read), and passes its own journal read to `readBlob(id, max,
+status)`, so an idle tick reads no evidence and makes one journal read; `evidenceReads` counts its reads.
 
 Build A overlays the historical unwired S09 notes below: `server/supervision-runtime.ts` owns one
 coordinator per home shared with activation; `server/project-runtime.ts` exposes reviewed registry

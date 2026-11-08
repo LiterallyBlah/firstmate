@@ -166,21 +166,38 @@ export class PlanRules {
     }
     for (const v of Object.values(value)) await this.artifacts(v);
   }
+  /** Assigned events whose evidence was already read and judged not a failure: event id → the evidence
+   * digest judged. Evidence is content-addressed (a blob's id is its SHA-256, and readBlob refuses bytes
+   * that do not match it), so the same digest is the same bytes and the same verdict; an event whose
+   * evidence changes names a new digest and is read again. Without this every scoped clock tick re-read
+   * every assigned event's evidence, each read also re-checking the journal: hundreds of reads a second. */
+  private readonly notFailed = new Map<string, string>();
+  /** Evidence reads observeFailures has made, for tests and live diagnosis. */
+  evidenceReads = 0;
   /** Facts, not completions: each observed failed turn keeps one stable regression obligation. */
   async observeFailures() {
     const s = await this.store.read();
     let observed = 0;
+    const assignments = new Map<string, SupervisionStatus["inbox"]["assignments"][number]>();
+    for (const a of s.inbox.assignments) if (a.id === a.primaryEventId && a.scopeId && a.attemptId && !assignments.has(a.id)) assignments.set(a.id, a);
+    const failures = new Set(s.ruleFailures?.map(f => f.id));
+    if (this.notFailed.size > s.inbox.events.length) {
+      const live = new Set(s.inbox.events.map(e => e.id));
+      for (const id of this.notFailed.keys()) if (!live.has(id)) this.notFailed.delete(id);
+    }
     for (const event of s.inbox.events) {
       if (observed >= 16) break;
-      const assignment = s.inbox.assignments.find(a => a.id === event.id && a.id === a.primaryEventId && a.scopeId && a.attemptId);
+      const assignment = assignments.get(event.id);
       const attempt = s.attempts.find(a => a.id === assignment?.attemptId), task = s.tasks.find(t => t.id === attempt?.taskId);
-      if (!assignment?.scopeId || !attempt || !task || s.ruleFailures?.some(f => f.id === stable("live-failure", event.consequenceKey))) continue;
+      if (!assignment?.scopeId || !attempt || !task || failures.has(stable("live-failure", event.consequenceKey))) continue;
       const blob = event.envelope.evidence[0]?.digest;
-      if (!blob) continue;
-      const bytes = await this.store.readBlob(blob);
+      if (!blob || this.notFailed.get(event.id) === blob) continue;
+      this.evidenceReads++;
+      // The journal was read just above: the blob is committed in it, and committed evidence is never removed.
+      const bytes = await this.store.readBlob(blob, undefined, s);
       let payload: unknown;
-      try { payload = JSON.parse(Buffer.from(bytes).toString("utf8")); } catch { continue; }
-      if (!payload || typeof payload !== "object" || !("kind" in payload) || payload.kind !== "failed") continue;
+      try { payload = JSON.parse(Buffer.from(bytes).toString("utf8")); } catch { this.notFailed.set(event.id, blob); continue; }
+      if (!payload || typeof payload !== "object" || !("kind" in payload) || payload.kind !== "failed") { this.notFailed.set(event.id, blob); continue; }
       const value = RuleFailureSchema.parse({ format: "firstmate.rule-failure/1", id: stable("live-failure", event.consequenceKey), version: 1,
         homeId: s.homeId, scopeId: assignment.scopeId, planId: task.planId, nodeId: task.nodeId, attemptId: attempt.id,
         head: event.envelope.subject.head ?? null, at: event.envelope.observedAt, category: "failed-live-turn", description: "Observed failed worker turn; diagnose and reproduce before a changed retry.",

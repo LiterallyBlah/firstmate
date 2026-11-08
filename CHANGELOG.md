@@ -166,6 +166,16 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Fixed
 
+- **An idle plugin no longer keeps two cores busy re-reading evidence.** On every scoped clock tick the
+  live-failure check re-read the evidence file of every assigned worker event that was not a failure, and
+  each read re-checked the whole journal on disk: about 280 reads a second, around 100 filesystem calls each,
+  on the owner's home. It now remembers what it has already judged (by event and evidence digest), so an idle
+  tick reads nothing new; a newly recorded failure is still observed on the next tick, and evidence that
+  changes is read again.
+- **Saving the config and other plugin state survives Windows' momentary file locks.** A queued note for the
+  first mate once failed to save with EPERM when Windows briefly refused the rename over `config.json`,
+  leaving a `config.json.<id>.tmp` behind. These saves now retry briefly as the journal's own writes do, never
+  leave their temporary file behind, and clear old leftovers after the next successful save.
 - **A busy journal no longer pins a core re-checking its whole history every few minutes.** The
   routine recovery check, about once a minute, skipped its full audit only while the journal was
   completely unchanged, and the plugin's own routine observations change it every few seconds; so

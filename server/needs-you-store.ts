@@ -2,12 +2,9 @@
 import { createHash, randomUUID } from "node:crypto";
 import {
   mkdir,
-  open,
   readFile,
   readdir,
   realpath,
-  rename,
-  rm,
 } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import {
@@ -15,6 +12,7 @@ import {
   NeedsYouLedgerSchema,
   type NeedsYouLedger,
 } from "./needs-you-ledger";
+import { replaceFile } from "./replace-file";
 import { serialized } from "./serialize";
 
 export function normalizedHome(path: string): string {
@@ -61,19 +59,7 @@ export async function writeDecisionLedger(
   path: string,
   ledger: NeedsYouLedger,
 ) {
-  const temporary = `${path}.${randomUUID()}.tmp`;
-  try {
-    const file = await open(temporary, "wx", 0o600);
-    try {
-      await file.writeFile(`${JSON.stringify(ledger)}\n`, "utf8");
-      await file.sync();
-    } finally {
-      await file.close();
-    }
-    await rename(temporary, path);
-  } finally {
-    await rm(temporary, { force: true });
-  }
+  await replaceFile(path, `${JSON.stringify(ledger)}\n`, { mode: 0o600, sync: true });
 }
 
 export class NeedsYouStore {

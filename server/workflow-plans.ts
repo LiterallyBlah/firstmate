@@ -1,7 +1,8 @@
 /** Append-only planning ledger. Reads have no effects; no method creates or prompts an agent. */
 import { createHash, randomUUID } from "node:crypto";
 import type { Dirent } from "node:fs";
-import { mkdir, readFile, readdir, rename, writeFile, stat, rm } from "node:fs/promises";
+import { mkdir, readFile, readdir, stat, rm } from "node:fs/promises";
+import { replaceFile } from "./replace-file";
 import { dirname, join, resolve } from "node:path";
 import { z } from "zod";
 import { PlanId, PlanLaunchSchema, PlanDefinitionSchema, PlanPostureSourceSchema, WorkflowCommandSchema, captainReviewRequired, decisionOwner, liveGateAnswered, planOwner, planMode, planEscalate, planLiveSteps, modeOwner, planModeLabel, quotes, sameWords, type PlanMode, type PlanNodeState, planAwaitingReview, planFinished, planPosture, planProblems, planSpent, planWorstCase, type AgendaItem, type PlanDefinition, type WorkflowCommand, type WorkflowPlan, type PlanNode } from "../shared/workflow-plans";
@@ -851,9 +852,7 @@ export class WorkflowPlanStore {
       ownerHistory: plan.ownerEvents?.map(event => `- ${event.at} · ${event.by}: ${event.from} → ${event.to} · ${event.evidence}`).join("\n") || "—",
       actions: (plan.captainEvents ?? []).map(a => `- ${a.at} · ${a.by === "board:captain" ? "Captain pressed" : "Recorded by the first mate from chat"}: ${a.action}${a.text ? ` · ${a.text}` : ""}`).join("\n"),
     });
-    const temporary = `${path.absolute}.${randomUUID()}.tmp`;
-    try { await writeFile(temporary, content, { flag: "wx" }); await rename(temporary, path.absolute); }
-    finally { await rm(temporary, { force: true }); }
+    await replaceFile(path.absolute, content);
   }
   async agenda(): Promise<AgendaItem[]> {
     const { plans, problems, warnings, quarantined } = await this.read(), unavailableDependencies = quarantinedDependencyIds(quarantined), result: AgendaItem[] = [
