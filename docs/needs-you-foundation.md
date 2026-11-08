@@ -37,7 +37,8 @@ Quarantined rows retain existing gates exactly, with actions disabled for those
 gates. If an identity cannot be fully read, matching by task id conservatively
 protects all its scopes; an unreadable id protects all missing gates. A suspected
 hold contributes one read-only attention entry, drawn as its own row in List and Board,
-unless a retained gate that is open or already answered represents it. These rows persist in the ledger, including across restart
+unless an open retained gate represents it. An answered gate speaks only for the row
+recording that its line is gone; an unreadable line still in the file may hold a new question. These rows persist in the ledger, including across restart
 or file failure. Removing a quarantined hold, or losing its hold text in another
 unreadable edit, cannot clear it. A readable task must supply the outcome.
 Snapshots can therefore be fresh with problems: the freshness applies to readable

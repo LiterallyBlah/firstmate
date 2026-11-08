@@ -171,8 +171,10 @@ function missingTaskRows(ledger: NeedsYouLedger, detection: NeedsYouDetection): 
         request.state !== "resolved" && !present.has(request.source.key) &&
         !quarantinesSource(detection.quarantined ?? [], request.source),
     )
-    .map((request) => ({ line: 0, taskId: request.source.taskId, key: request.source.key,
-      hasHold: true, problem: `Task ${request.source.taskId} is missing. Restore its backlog record before answering it.` }));
+    // A line that was unreadable when it vanished may have held a new question, so it keeps that record.
+    .map((request) => ledger.quarantined.find(old => old.line > 0 && old.hasHold && old.key === request.source.key) ??
+      { line: 0, taskId: request.source.taskId, key: request.source.key,
+        hasHold: true, problem: `Task ${request.source.taskId} is missing. Restore its backlog record before answering it.` });
   for (const row of ledger.quarantined) {
     if (!row.hasHold) continue;
     const recovered = row.taskId !== null && detection.sources.filter(source => quarantinesSource([row], source)).length === 1;
