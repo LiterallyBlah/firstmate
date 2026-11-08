@@ -1,7 +1,7 @@
 /** Saved connections live outside the mate's home. The queue only executes
  * explicit CLI requests from the mate; it never chooses or dispatches work. */
-import { randomUUID } from "node:crypto";
-import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rename, rm, stat } from "node:fs/promises";
+import { replaceFile } from "./replace-file";
 import { join } from "node:path";
 import { z } from "zod";
 import { RemoteFollow, RemoteRequest, RemoteSnapshot, SavedHosts, type RemoteConnection, type RemoteHost, type RemoteProfile, type RemoteWorker } from "../shared/remotes";
@@ -19,9 +19,7 @@ const MAX_RECENT_TOOLS_AGENTS = 10;
 const empty = (): RemoteSnapshot => ({ version: 1, localServerId: "", syncedAt: null, syncError: null, hosts: [] });
 export const remoteQueue = () => join(pluginDir(), "remote-requests");
 async function atomic(path: string, value: unknown): Promise<void> {
-  const temp = `${path}.${randomUUID()}.tmp`;
-  try { await writeFile(temp, JSON.stringify(value, null, 2), { mode: 0o600 }); await rename(temp, path); }
-  finally { await rm(temp, { force: true }); }
+  await replaceFile(path, JSON.stringify(value, null, 2), { mode: 0o600 });
 }
 async function optionalJson(path: string): Promise<unknown> {
   try { return JSON.parse(await readFile(path, "utf8")); }

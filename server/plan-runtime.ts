@@ -32,6 +32,7 @@ import { normalizedName } from "../shared/supervision-projects";
 import type { RemoteSnapshot } from "../shared/remotes";
 import { pluginDir } from "./data-dir";
 import { join } from "node:path";
+import { replaceFile } from "./replace-file";
 import { checkGeneralHeadroom, withScopeAdmission } from "./supervision-headroom";
 import type { WorkflowCommand } from "../shared/workflow-plans";
 import { digest } from "./submissions";
@@ -309,8 +310,7 @@ export class PlanRuntime {
       if (digest(routes) !== c.routesHash) {
         const directory = join(pluginDir(), "watch-state", "pr-watch"); await mkdir(directory, { recursive: true });
         // Routing projection only; the authoritative bindings remain in the existing journal.
-        const { writeFile, rename } = await import("node:fs/promises");
-        const temporary = join(directory, "scoped-routes.json.tmp"); await writeFile(temporary, JSON.stringify(routes)); await rename(temporary, join(directory, "scoped-routes.json"));
+        await replaceFile(join(directory, "scoped-routes.json"), JSON.stringify(routes));
         c.routesHash = digest(routes);
       }
       await processScopeRequests(home, { ...this.scopeHandlers(store, home, config.mateAgentId, c), gateway: c.gateway });

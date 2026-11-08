@@ -1,6 +1,7 @@
 /** Routing lives in daemon storage, never in executable script instructions. */
-import { createHash, randomUUID } from "node:crypto";
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdir, readFile } from "node:fs/promises";
+import { replaceFile } from "./replace-file";
 import { dirname } from "node:path";
 import { z } from "zod";
 import { ManagedWatchSchema, WatchNameSchema, WatchRoutingSchema, type ManagedWatch, type WatchRouting } from "../shared/watch-routing";
@@ -19,9 +20,7 @@ export type WatchConfig = z.infer<typeof StoreSchema>;
 type RouteAction = { requestId: string; signature: string; assignmentDigest: string };
 export async function atomicJson(path: string, value: unknown): Promise<void> {
   await mkdir(dirname(path), { recursive: true });
-  const temporary = `${path}.${randomUUID()}.tmp`;
-  await writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`, "utf8");
-  await rename(temporary, path);
+  await replaceFile(path, `${JSON.stringify(value, null, 2)}\n`);
 }
 export class WatchConfigStore {
   constructor(readonly path: string) {}

@@ -1,7 +1,8 @@
 /** Append-only planning ledger. Reads have no effects; no method creates or prompts an agent. */
 import { createHash, randomUUID } from "node:crypto";
 import type { Dirent } from "node:fs";
-import { mkdir, readFile, readdir, rename, writeFile, stat, rm } from "node:fs/promises";
+import { mkdir, readFile, readdir, stat, rm } from "node:fs/promises";
+import { replaceFile } from "./replace-file";
 import { dirname, join, resolve } from "node:path";
 import { z } from "zod";
 import { PlanId, PlanLaunchSchema, PlanDefinitionSchema, PlanPostureSourceSchema, WorkflowCommandSchema, captainReviewRequired, decisionOwner, liveGateAnswered, planOwner, planMode, planEscalate, planLiveSteps, modeOwner, planModeLabel, quotes, sameWords, type PlanMode, type PlanNodeState, planAwaitingReview, planFinished, planPosture, planProblems, planSpent, planWorstCase, type AgendaItem, type PlanDefinition, type WorkflowCommand, type WorkflowPlan, type PlanNode } from "../shared/workflow-plans";
@@ -607,9 +608,12 @@ export class WorkflowPlanStore {
         identities.push([directory, names[n], s.ino, s.size, s.mtimeMs, s.ctimeMs]);
     }
     const identity = digest(identities);
-    if (cached?.identity === identity) {
-      cached.listing = listing; cached.verifiedAt = now;
-      return structuredClone(cached.plan);
+    // Re-read the cache after the stats: a concurrent reader's fold of these same files may have
+    // finished (and left `reading`) while this one was statting, and must not be folded again.
+    const settled = WorkflowPlanStore.cache.get(key);
+    if (settled?.identity === identity) {
+      settled.listing = listing; settled.verifiedAt = now;
+      return structuredClone(settled.plan);
     }
     // Concurrent readers of the same files share one reduction: at startup the workflow clock, the decisions
     // read and the Plans read all arrive cold, and each repeating every event slowed all of them.
@@ -851,9 +855,7 @@ export class WorkflowPlanStore {
       ownerHistory: plan.ownerEvents?.map(event => `- ${event.at} · ${event.by}: ${event.from} → ${event.to} · ${event.evidence}`).join("\n") || "—",
       actions: (plan.captainEvents ?? []).map(a => `- ${a.at} · ${a.by === "board:captain" ? "Captain pressed" : "Recorded by the first mate from chat"}: ${a.action}${a.text ? ` · ${a.text}` : ""}`).join("\n"),
     });
-    const temporary = `${path.absolute}.${randomUUID()}.tmp`;
-    try { await writeFile(temporary, content, { flag: "wx" }); await rename(temporary, path.absolute); }
-    finally { await rm(temporary, { force: true }); }
+    await replaceFile(path.absolute, content);
   }
   async agenda(): Promise<AgendaItem[]> {
     const { plans, problems, warnings, quarantined } = await this.read(), unavailableDependencies = quarantinedDependencyIds(quarantined), result: AgendaItem[] = [

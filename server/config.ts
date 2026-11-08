@@ -6,14 +6,14 @@
  * Read on every call rather than cached: a save from the settings screen has
  * to take effect on the next one, and the file is a few hundred bytes.
  */
-import { randomUUID } from "node:crypto";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 
 import { FirstmateConfigSchema, type FirstmateConfig } from "../shared/fleet";
 import { dataPath, legacyPluginDir, migrateLegacyData } from "./data-dir";
+import { replaceFile } from "./replace-file";
 import { serialized } from "./serialize";
 
 function configPath(): string {
@@ -200,8 +200,6 @@ async function applyConfigPatch(patch: FirstmateConfigPatch): Promise<FirstmateC
   }
   const path = configPath();
   await mkdir(dirname(path), { recursive: true });
-  const temporary = `${path}.${randomUUID()}.tmp`;
-  await writeFile(temporary, `${JSON.stringify(next, null, 2)}\n`, "utf8");
-  await rename(temporary, path);
+  await replaceFile(path, `${JSON.stringify(next, null, 2)}\n`);
   return next;
 }

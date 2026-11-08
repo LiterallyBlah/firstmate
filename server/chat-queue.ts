@@ -1,7 +1,8 @@
 /** Claims precede transport and are never retried. Readiness comes from fresh
  * native status, not the order or identity of lifecycle callbacks. */
 import { createHash, randomUUID } from "node:crypto";
-import { mkdir, readFile, rename, writeFile, stat } from "node:fs/promises";
+import { mkdir, readFile, stat } from "node:fs/promises";
+import { replaceFile } from "./replace-file";
 import { dirname } from "node:path";
 import { z } from "zod";
 import { ChatQueueItemSchema, queueAgent, queueTarget, queueText, type ChatQueueItem, type ChatQueuePayload, type ChatQueueTarget } from "../shared/chat-queue";
@@ -57,11 +58,9 @@ export class ChatQueue {
       const result = await run(state);
       if (before === JSON.stringify(state)) return result;
       await mkdir(dirname(this.path), { recursive: true });
-      const temporary = `${this.path}.${randomUUID()}.tmp`;
       const contents = JSON.stringify(state);
       if (Buffer.byteLength(contents) > 128 * 1024 * 1024) throw new Error("The saved queue is full. Remove an attachment or a message before sending.");
-      await writeFile(temporary, contents, { flag: "wx", flush: true });
-      await rename(temporary, this.path);
+      await replaceFile(this.path, contents, { sync: true });
       this.cached = { identity: await this.identity(), state };
       return result;
     });

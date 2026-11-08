@@ -29,8 +29,8 @@
  * `$PASEO_HOME/plugin-data/firstmate/watches.json`, so a plugin reload neither loses an output a
  * watch has already moved past nor forgets that a failure was reported.
  */
-import { randomUUID } from "node:crypto";
-import { mkdir, readdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile } from "node:fs/promises";
+import { replaceFile } from "./replace-file";
 import { dirname, join } from "node:path";
 import { z } from "zod";
 
@@ -772,9 +772,7 @@ export class WatchRunner {
     const path = this.options.stateFile;
     return serialized(path, async () => {
       await mkdir(dirname(path), { recursive: true });
-      const temporary = `${path}.${randomUUID()}.tmp`;
-      await writeFile(temporary, `${JSON.stringify(state, null, 2)}\n`, "utf8");
-      await rename(temporary, path);
+      await replaceFile(path, `${JSON.stringify(state, null, 2)}\n`);
     }).catch((error: unknown) => {
       console.error(`[firstmate] could not save ${path}:`, error);
       if (strict) throw error;
