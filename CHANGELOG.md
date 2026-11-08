@@ -166,6 +166,16 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Fixed
 
+- **The held journal recovers even while the anchor-migration backup is kept.** A home still inside
+  the one-time anchor migration's 7-day rollback window refused to finish an interrupted final
+  publication ("Anchor migration is incomplete"), so the journal stayed held and every write and
+  scoped read stayed degraded. The checked recovery now runs; any other journal problem still holds.
+  A refused recovery for the same held head now waits 5 minutes, then doubles up to 6 hours, rather
+  than paying two full journal audits every 5 minutes.
+- **Idle CPU from plan reads.** The one-second workflow clock read every plan by statting every file
+  (16,000 on a large home), keeping about a core and a half busy at idle. An unchanged plan is now
+  recognized from its directory listings and newest files; every file is still rechecked every 5 minutes.
+
 - **A plan run cancelled before it ever launched can run again.** When a start was recorded
   `cancelled` with no claim, launch record, worker or workspace (for example, to re-pin its model after
   you changed the crew model), `workflow.mjs start`, a relaunch and a gate-preserving revision all

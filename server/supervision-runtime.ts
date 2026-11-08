@@ -11,6 +11,11 @@ import { serialized } from "./serialize";
 import { primeSupervisionSelfIdentity } from "./supervision-process";
 
 const PUBLICATION_RETRY_MS = 5 * 60 * 1000;
+/** A refusal for the same held head doubles the wait up to this cap: each retry pays a full
+ * audit (and, if writer creation refuses, a coordinator claim/release that moves the journal
+ * fingerprint and so a full validation on the next read), so a stuck hold must not cost that
+ * every five minutes forever. A different head (anything moved) starts again at the base. */
+const PUBLICATION_RETRY_MAX_MS = 6 * 60 * 60 * 1000;
 
 /** Read-only face over the runtime's one shared store: reads delegate to the warm instance
  * (one cache, always current), every write entry point refuses exactly like a never-writable
@@ -53,7 +58,7 @@ export class SupervisionRuntime {
   private readonly active = new Set<Promise<void>>();
   private readonly lock: string;
   /** The last refused automatic publication recovery per home, by the exact held head it judged. */
-  private readonly publicationRecovery = new Map<string, { key: string; at: number }>();
+  private readonly publicationRecovery = new Map<string, { key: string; at: number; wait: number }>();
   constructor(readonly root: string, private readonly create = (root: string, home: string) =>
     new SupervisionStore(root, home, { writable: true, actor: { kind: "system", id: "scoped-runtime", source: "owned-plugin-runtime" } }), readonly features?: FeaturePolicyRuntime) {
     this.reader = new SupervisionStatusReader(root); this.lock = `firstmate.runtime:${root}`;
@@ -134,13 +139,14 @@ export class SupervisionRuntime {
    * otherwise stops every write indefinitely. Only that exact hold qualifies, and only through
    * the store's own checked recoverPublication (full audit under the coordinator, the observed
    * head pinned, nothing invented). A refusal keeps the hold, is reported once per held head and
-   * is retried at most every PUBLICATION_RETRY_MS, never on every clock beat. */
+   * is retried after PUBLICATION_RETRY_MS, then at doubling intervals (capped) while the held
+   * head is unchanged, never on every clock beat. */
   async recoverPendingPublication(home: string, observed?: SupervisionStatus): Promise<boolean> {
     if (this.closed) return false;
     const status = observed ?? await this.read(home);
     if (status.freshness !== "held" || status.problems.length !== 1 || status.problems[0] !== PENDING_PUBLICATION) return false;
     const id = workflowHomeIdentity(home), key = `${status.homeId}:${status.sequence}:${status.hash}`, prior = this.publicationRecovery.get(id);
-    if (prior?.key === key && Date.now() >= prior.at && Date.now() - prior.at < PUBLICATION_RETRY_MS) return false;
+    if (prior?.key === key && Date.now() >= prior.at && Date.now() - prior.at < prior.wait) return false;
     try {
       const receipt = await this.mutate(home, store => store.recoverPublication({ homeId: status.homeId, sequence: status.sequence, hash: status.hash }));
       this.publicationRecovery.delete(id);
@@ -148,7 +154,7 @@ export class SupervisionRuntime {
       return !!receipt;
     } catch (error) {
       if (prior?.key !== key) console.error(`[firstmate] pending journal publication after transaction ${status.sequence} was not recovered automatically; the journal stays held:`, error);
-      this.publicationRecovery.set(id, { key, at: Date.now() });
+      this.publicationRecovery.set(id, { key, at: Date.now(), wait: prior?.key === key ? Math.min(prior.wait * 2, PUBLICATION_RETRY_MAX_MS) : PUBLICATION_RETRY_MS });
       return false;
     }
   }

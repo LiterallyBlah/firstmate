@@ -742,6 +742,16 @@ export class SupervisionStore {
     // migration failure: the ordinary held/recovery machinery owns them, and writer creation
     // must not strand crash recovery by treating them as an unfinished upgrade.
     if (current.problems.length && !receipt) return { migrated: 0, sequence: current.sequence, held: current.legacyAnchors > 0 };
+    // A finished migration whose receipt is still retained (the rollback window) and whose only
+    // problem is an interrupted final publication is not an unfinished upgrade either: every
+    // anchor, the pending tip included, is already /2 and the receipt still binds its recorded
+    // head inside the validated prefix. Holding here deadlocked the journal - finishing the
+    // publication needs a writer, and the writer refused while the publication was pending - so
+    // leave that exact hold to the checked recoverPublication. Any other problem, any /1 anchor
+    // left, or a receipt that no longer binds keeps the migration held.
+    if (receipt && current.pending && current.problems.length === 1 && current.problems[0] === PENDING_PUBLICATION && !current.legacyAnchors)
+      return { migrated: 0, sequence: current.sequence,
+        held: !(receipt.sequence <= current.sequence && current.transactions[receipt.sequence - 1]?.hash === receipt.headHash) };
     if (!current.legacyAnchors && !current.problems.length) {
       // Completed (possibly long ago and since grown): the checked scan already validated the
       // checkpoint over the current anchors; verify the receipt still binds its head.
