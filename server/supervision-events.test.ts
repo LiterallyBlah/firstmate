@@ -98,6 +98,25 @@ describe("S02 durable local ingress", () => {
     expect(s.inbox.events.every(e => e.envelope.certainty !== "verified")).toBe(true);
     await expect(f.events.admit({ ...original, outcome: "failed" }, requestId)).rejects.toMatchObject({ code: "CONFLICT" });
   });
+  it("commits nothing for a repeated observation whose source state is unchanged, but every real change still commits", async () => {
+    const f = await inboxFixture(), catalog = observation({ sourceKind: "catalog", sourceKey: "catalog:same", epoch: null, gaps: [], coverage: "unknown" });
+    const first = await f.events.admit(catalog), recorded = await f.store.read();
+    const row = recorded.inbox.sources.find(s => s.id === sourceId("catalog", catalog.agentId))!;
+    for (let n = 0; n < 3; n++) {
+      const repeat = await f.events.admit(catalog);
+      expect(repeat).toMatchObject({ receipt: null, quiet: true, resultIds: first.resultIds });
+    }
+    let s = await f.store.read();
+    expect(s.sequence).toBe(recorded.sequence); expect(s.inbox.sources.find(x => x.id === row.id)).toEqual(row);
+    // A gap recorded in between is real news, and so is the next read clearing it: both commit.
+    await f.events.recordGap("catalog", catalog.agentId, null, ["fetch-failed"]);
+    expect((await f.store.read()).inbox.sources.find(x => x.id === row.id)).toMatchObject({ coverage: "gap", version: row.version + 1 });
+    expect((await f.events.admit(catalog)).receipt).not.toBeNull();
+    s = await f.store.read(); expect(s.inbox.sources.find(x => x.id === row.id)).toMatchObject({ coverage: "unknown", gaps: [], version: row.version + 2 });
+    // An explicit request id is still a replayable record, never a quiet skip.
+    const id = randomUUID(), explicit = await f.events.admit({ ...catalog, gaps: ["page-gap"] }, id);
+    expect(explicit.receipt).not.toBeNull(); expect((await f.events.admit({ ...catalog, gaps: ["page-gap"] }, id)).receipt).toEqual(explicit.receipt);
+  });
   it("never conflates null turn IDs, permissions or distinct workers", async () => {
     const f = await inboxFixture();
     for (const o of [observation({ turnId: null, sourceKey: "unknown:1" }), observation({ turnId: null, sourceKey: "unknown:2" }),

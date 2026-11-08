@@ -6,7 +6,7 @@ import { SupervisionEventSchema, SupervisionUtc } from "../shared/supervision";
 import { INBOX_LIMITS, InboxSourceSchema, type InboxAssignment, type InboxEvent, type InboxSource } from "../shared/supervision-inbox";
 import type { PaseoAgent, PaseoApi, TimelinePage } from "./host-types";
 import { eventOwners, hasMalformedQuarantine, terminal } from "./supervision-inbox-state";
-import { inboxRef, inboxTransaction } from "./supervision-inbox";
+import { inboxRef, inboxTransaction, type InboxCommit } from "./supervision-inbox";
 import { SupervisionError, SupervisionStore, type SupervisionMutation } from "./supervision-store";
 import { canonical, digest } from "./submissions";
 import { serialized } from "./serialize";
@@ -21,6 +21,15 @@ const ObservationSchema = z.object({ agentId: z.string().min(1).max(256), kind: 
   expectedSourceVersion: z.number().int().nonnegative().optional(),
 }).strict();
 export type LocalObservation = z.infer<typeof ObservationSchema>;
+/** Builder sentinel: the observation repeats what the journal already records; commit nothing. */
+class QuietRepeat extends Error { constructor(readonly eventId: string) { super("Quiet repeat of a recorded observation."); } }
+/** An admission that wrote nothing: the observation and its source state were already recorded. */
+export type QuietAdmission = { receipt: null; resultIds: string[]; replayed: false; quiet: true };
+/** Equal apart from when it was last observed and its row version. */
+function sameSourceState(a: InboxSource, b: InboxSource): boolean {
+  const state = ({ observedAt: _at, version: _version, ...rest }: InboxSource) => canonical(rest);
+  return state(a) === state(b);
+}
 export const sourceId = (kind: InboxSource["kind"], agentId: string | null) => digest([kind, "local", agentId]);
 function jsonObservation(value: unknown): { wire: string; valid: boolean } {
   try {
@@ -40,7 +49,14 @@ export class SupervisionEvents {
     closedAttempted?: boolean; closed: boolean; closedGeneration: number; failures: number; retryAfter: number; pending?: Promise<void> }>();
   constructor(readonly store: SupervisionStore, private readonly options: { now?: () => Date; maxPending?: number } = {}) {}
   private now() { return SupervisionUtc.parse((this.options.now?.() ?? new Date()).toISOString()); }
-  async admit(raw: unknown, requestId = randomUUID()) {
+  async admit(raw: unknown, requestId = randomUUID()): Promise<InboxCommit | QuietAdmission> {
+    try { return await this.admitOnce(raw, requestId); }
+    catch (error) {
+      if (error instanceof QuietRepeat) return { receipt: null, resultIds: [error.eventId], replayed: false, quiet: true };
+      throw error;
+    }
+  }
+  private async admitOnce(raw: unknown, requestId: string) {
     // Only hashes and bounded metadata survive malformed/oversized input. Never retain its prose.
     const encoded = jsonObservation(raw), parsed = ObservationSchema.safeParse(raw), inputHash = digest(encoded.wire);
     const fallback: LocalObservation = { agentId: "unknown", kind: "catalog", turnId: null, outcome: null, permissionId: null,
@@ -60,7 +76,13 @@ export class SupervisionEvents {
       let sourceKey = digest([o.agentId, o.sourceKey]);
       const observationHash = digest([o.kind, o.agentId, o.turnId, o.outcome, o.permissionId, digest(payload)]);
       const known = s.inbox.events.find(e => e.envelope.source.kind === o.sourceKind && e.envelope.source.key === sourceKey && e.envelope.source.epoch === o.epoch);
-      if (known?.observationHash === observationHash) return { mutations: [{ kind: "inbox-source", value: source }], resultIds: [known.id] };
+      if (known?.observationHash === observationHash) {
+        // A repeat of the already-recorded observation that leaves its source row exactly as it is
+        // (only observedAt/version would move) carries no new information: commit nothing, as S08
+        // sources already do for a quiet repeat. Every change - coverage, gaps, epoch, cursor - still commits.
+        if (prior && sameSourceState(prior, source)) throw new QuietRepeat(known.id);
+        return { mutations: [{ kind: "inbox-source", value: source }], resultIds: [known.id] };
+      }
       if (known) {
         malformed = true; sourceKey = digest([sourceKey, observationHash]);
         source.coverage = "gap"; source.gaps = [...new Set([...source.gaps, "malformed" as const])];

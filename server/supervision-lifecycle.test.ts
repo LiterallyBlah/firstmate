@@ -7,7 +7,7 @@ import { activationEffects, supervisorSpend } from "./supervisor-sessions";
 import { continuationInputVersion, deriveContinuation, goalStatus } from "./supervision-continuation";
 import { SupervisionEvents } from "./supervision-events";
 import { SupervisionInbox } from "./supervision-inbox";
-import { SupervisionLifecycle, registerSupervisionLifecycle } from "./supervision-lifecycle";
+import { STALLED_CATALOG_MS, SupervisionLifecycle, registerSupervisionLifecycle } from "./supervision-lifecycle";
 import { handleScopeRequest, scopeRoute, legacyRoute } from "./scope-requests";
 import { WorkflowPlanStore, planSubjectHash } from "./workflow-plans";
 import { SupervisionStore } from "./supervision-store";
@@ -60,6 +60,39 @@ it("does not invalidate idle recovery with timestamp-only observations of an una
     for (let n = 0; n < 3; n++) { now += 60_001; await f.lifecycle.recover("heartbeat"); }
     expect(scan).toHaveBeenCalledTimes(calls); expect((await f.store.read()).sequence).toBe(sequence);
   } finally { clock.mockRestore(); }
+});
+it("records a catalog gap when the read fails or stalls, never merely because it outlived one beat's wait", async () => {
+  const f = await integrated(), { scope } = await f.owner(1, ["catalog"]), started = await f.launch(scope, "catalog");
+  const agentId = (await f.store.read()).attempts.find(a => a.id === started.attemptId)!.worker!.agentId;
+  const lifecycle = new SupervisionLifecycle(f.store, f.ingress, f.inbox, f.sessions, f.gateway, { enabled: true, observationTimeoutMs: 20 });
+  const gap = async () => (await f.store.read()).inbox.sources.find(s => s.kind === "catalog" && s.agentId === agentId)?.gaps.includes("fetch-failed") ?? false;
+  let settle!: (error?: Error) => void;
+  const reconcile = vi.spyOn(f.ingress, "reconcile").mockImplementation(() => new Promise<void>((resolve, reject) => { settle = error => error ? reject(error) : resolve(); }));
+  let now = Date.now(); const clock = vi.spyOn(Date, "now").mockImplementation(() => now);
+  const early = vi.spyOn(f.ingress, "recordGap");
+  try {
+    await lifecycle.recover("heartbeat", {} as never);
+    // Not merely cleared again by the pass's liveness observation: never recorded at all.
+    expect(reconcile).toHaveBeenCalledTimes(1); expect(early, "a slow read was recorded as failed").not.toHaveBeenCalled(); expect(await gap()).toBe(false);
+    early.mockRestore();
+    now += 60_000; await lifecycle.recover("heartbeat", {} as never); // Same pending read, still under the stall bound.
+    expect(reconcile).toHaveBeenCalledTimes(1); expect(await gap()).toBe(false);
+    settle(); await vi.waitFor(() => expect(reconcile.mock.results[0]?.type).toBe("return"));
+    // A read that fails records its gap even though no pass is waiting for it any more.
+    await lifecycle.recover("heartbeat", {} as never); expect(reconcile).toHaveBeenCalledTimes(2);
+    settle(new Error("catalog offline")); await vi.waitFor(async () => expect(await gap()).toBe(true));
+    await f.ingress.admit({ agentId, kind: "catalog", turnId: null, outcome: null, permissionId: null, sourceKind: "catalog", sourceKey: "cleared",
+      epoch: null, cursor: null, maxSeq: null, gaps: [], coverage: "unknown", payload: { status: "idle" } });
+    expect(await gap()).toBe(false);
+    // A read still running past the stall bound is recorded as a gap meanwhile, once. (The pass's
+    // own liveness observation of the worker then supersedes it, as it always has.)
+    const recorded = vi.spyOn(f.ingress, "recordGap");
+    await lifecycle.recover("heartbeat", {} as never); expect(reconcile).toHaveBeenCalledTimes(3); expect(recorded).not.toHaveBeenCalled();
+    now += STALLED_CATALOG_MS; await lifecycle.recover("heartbeat", {} as never);
+    expect(recorded.mock.calls).toEqual([["catalog", agentId, null, ["fetch-failed"]]]);
+    now += 60_000; await lifecycle.recover("heartbeat", {} as never); expect(recorded).toHaveBeenCalledTimes(1);
+    settle();
+  } finally { clock.mockRestore(); reconcile.mockRestore(); }
 });
 it("restart and effect recovery audit old history before any receiver operation", async () => {
   const f = await integrated(), { scope } = await f.owner(1, ["audit-recovery"]);
