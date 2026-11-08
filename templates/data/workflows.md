@@ -128,7 +128,9 @@ Restore backups for investigation, or plan genuinely new work with a new task id
 `release --plan <id> --node <id> --attempt <uuid> --evidence <inspection>` releases only a starting
 intent with no accounted worker and no issued launch record (a dry-run record is harmless). Restarting
 uses that same attempt and budget. Lost prepare replies replay the same transport id. Once a launch
-record exists, inspect it; do not release or repeat creation.
+record exists, inspect it; do not release or repeat creation. To change an unclaimed start's pinned
+agent (for example after the captain changes the crew model), release it, revise the run's `agent`,
+then start again; do not record it `cancelled` for that.
 
 `invalidate --plan <id> --node <id> --attempt <uuid> --evidence <changed assumption>` appends a
 correction without deleting the original outcome or refunding its budget. Dependencies stop using
@@ -150,6 +152,11 @@ For Captain-owned plans, increases over 1.5 times the approved worst case requir
 Explicitly delegated routine relaunches follow the ownership rules below. Start the new intent, make the
 same-workspace calls from charter §7/§8 manually, then record the actual identities against its new
 attempt. The launch helper deliberately remains limited to new worktree creation.
+A run whose current attempt was recorded `cancelled` before its launch was ever claimed (no launch
+record, no worker, no workspace) is relaunched with the same `replace --kind relaunch`; there is no
+worker to stop. It returns to planned with the cancelled attempt kept in history and its budget
+counted, so a revision may then re-pin its `agent`, and its gates stay as they are. Start it again and
+launch it as new work. A claimed attempt, or one with a launch record, still needs inspection.
 
 Qualify a compatible reader and writer before committing a live count above 100. Older readers
 reject such events. After that first event, rollback must retain a capacity-aware reader; deleting

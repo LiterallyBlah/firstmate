@@ -20,11 +20,27 @@ it("keeps crossed independent chains from sharing connector segments", () => {
   expect(sharesSegment(graph.edges[0]!, graph.edges[1]!)).toBe(false);
 });
 
-it("keeps Starpath routes from different sources separate, including aligned entry and exit stubs", () => {
-  const plans = compactPlansFixture(), graph = planGraph(plans[0]!, plans);
+it("keeps Starpath and reader-pass routes from different sources separate, including aligned entry and exit stubs", () => {
+  // Reader-pass has two long edges arriving at one level (s6 and s7 into R1), guarding their separate heights.
+  const plans = compactPlansFixture();
+  for (const graph of plans.slice(0, 2).map(plan => planGraph(plan, plans)))
   for (const edge of graph.edges) for (const other of graph.edges) if (edge.node !== other.node) {
     expect(sharesSegment(edge, other), `${edge.node} → ${edge.to} shares ${other.node} → ${other.to}`).toBe(false);
     expect(edge.points.at(-1)!.x, `${edge.node} → ${edge.to} enters on ${other.node}'s exit`).not.toBeCloseTo(other.points[0]!.x);
+  }
+});
+
+it("never lets another plan's removed entry hide a live definition with the same id", () => {
+  const plan = planGraphFixture(), other = planGraphFixture(), node = plan.definition.nodes[0]!;
+  other.definition.id = "other";
+  other.definition.nodes = [];
+  other.removed = [{ node: { ...node, title: "Retired copy" }, state: plan.nodes[node.id]! }];
+  for (const plans of [[plan, other], [other, plan]]) {
+    const external = planGraphFixture();
+    external.definition.id = "external";
+    external.definition.nodes = [{ ...node, id: "after-root", after: [{ node: node.id, reason: "builds-on", on: "done" }] }];
+    const graph = planGraph(external, [...plans, external]);
+    expect(graph.nodes.find(n => n.id === node.id)).toMatchObject({ removed: false, title: node.title });
   }
 });
 

@@ -492,6 +492,30 @@ it("a real change to launches, dependents, deliveries or the plan still refuses 
     expect((await activation.migrate(command, mate)).migrations[0]).toMatchObject({ planId: "scheduler" });
   } finally { await activation.stop(); await runtime.stop(); }
 });
+it("prepare arms the delivery gate before it checks evidence, so the checked deliveries are the ones frozen", async () => {
+  const mate = { kind: "mate-chat", id: "general", source: SUPERVISE_ACTOR_SOURCE } as const;
+  const { runtime } = await guided();
+  try {
+    await writeFile(join(home, "data/rollback.md"), "Retained FirstMate build: isolated tested build.\nRecovery test: verified.\n");
+    const legacy = workflowStore(home), plan = (await legacy.get("scheduler"))!;
+    await legacy.execute({ op: "captain", plan: "scheduler", revision: plan.revision, subjectHash: planSubjectHash(plan), action: "approve", text: "" }, randomUUID(), "board:captain");
+    const action = (await legacy.get("scheduler"))!.captainEvents!.at(-1)!;
+    await updateFirstmateConfig({ mateNotes: [{ id: `firstmate-plan-${action.id}`, text: "The captain approved Scheduler." }] });
+    const gate = new SupervisionMigrator({ home, store: new SupervisionStore(pluginDir(), home), legacy, adapters: legacyAdapters(null, () => ledger.read()), enabled: true }).gate;
+    // Read while the gate is unarmed: the pending note reads as queued (never sent).
+    expect(await gate.armed()).toBe(null);
+    const { command } = await selectedEvidence("data/rollback.md");
+    // Arming marks that note preexisting (it may have been sent without a claim). The evidence that was
+    // checked must be the evidence that is frozen, so the unarmed read is stale, and nothing is frozen.
+    await expect(activation.migrate(command, mate)).rejects.toMatchObject({ code: "STALE", message: expect.stringContaining("Handover evidence changed") });
+    expect((await gate.armed())?.preexisting).toHaveLength(1);
+    expect(await legacy.cutover("scheduler")).toBe(null); expect(receiver.calls).toEqual([]);
+    // Once armed, a fresh read shows the delivery as uncertain and prepares unchanged.
+    const fresh = await selectedEvidence("data/rollback.md");
+    expect(fresh.selected.inventory).not.toBe(command.evidence.inventory);
+    expect((await activation.migrate(fresh.command, mate)).migrations[0]).toMatchObject({ planId: "scheduler" });
+  } finally { await activation.stop(); await runtime.stop(); }
+});
 it("F6: a first mate replaced between migrate's entry and inner checks refuses before any write", async () => {
   const real = await readFirstmateConfig(); let reads = 0;
   activation = new SupervisionActivation(pluginDir(), { enabled: true, adapters: () => legacyAdapters(null, () => ledger.read()), receiver: () => receiver,

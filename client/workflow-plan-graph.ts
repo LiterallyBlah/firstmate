@@ -12,11 +12,11 @@ const MAX_NODES = 60, MAX_EDGES = 120;
 /** Read-only layout, including external ancestors so a path through another plan is not lost. */
 export function planGraph(plan: WorkflowPlan, plans: readonly WorkflowPlan[]) {
   const catalog = new Map<string, { node: PlanNode; plan: WorkflowPlan; removed: boolean }>();
-  // Match the summary's preference for this plan over automatic copies.
-  for (const p of [...plans.filter(p => p.definition.implicit), ...plans.filter(p => !p.definition.implicit), plan]) {
-    for (const { node } of p.removed ?? []) catalog.set(node.id, { node, plan: p, removed: true });
-    for (const node of p.definition.nodes) catalog.set(node.id, { node, plan: p, removed: false });
-  }
+  // Match the summary's preference for this plan over automatic copies. Every plan's removed
+  // entries go in first, so no plan's history can hide another plan's live definition.
+  const sources = [...plans.filter(p => p.definition.implicit), ...plans.filter(p => !p.definition.implicit), plan];
+  for (const p of sources) for (const { node } of p.removed ?? []) catalog.set(node.id, { node, plan: p, removed: true });
+  for (const p of sources) for (const node of p.definition.nodes) catalog.set(node.id, { node, plan: p, removed: false });
   const entries = new Map<string, GraphNode>(), edges: PlanEdge[] = [];
   const visiting = new Set<string>(), visited = new Set<string>();
   let problem = "";
@@ -43,7 +43,8 @@ export function planGraph(plan: WorkflowPlan, plans: readonly WorkflowPlan[]) {
   const nodes = [...entries.values()];
   const levels: GraphNode[][] = [];
   // Definition order is stable, even when definitions are not topologically sorted.
-  const order = new Map([...catalog.keys()].map((id, index) => [id, index]));
+  const order = new Map<string, number>();
+  for (const p of sources) for (const node of [...(p.removed ?? []).map(r => r.node), ...p.definition.nodes]) if (!order.has(node.id)) order.set(node.id, order.size);
   for (const node of nodes) (levels[node.level] ??= []).push(node);
   for (const level of levels) level.sort((a, b) => (order.get(a.id) ?? -1) - (order.get(b.id) ?? -1));
   const { width: cardWidth, height: cardHeight, gap, stage, header } = GRAPH_CARD;

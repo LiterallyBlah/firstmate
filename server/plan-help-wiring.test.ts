@@ -5,7 +5,8 @@ import { join } from "node:path";
 import { createElement, type ReactNode } from "react";
 import { act, create } from "react-test-renderer";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, expect, it, vi } from "vitest";
+import { WARMUP_TIMEOUT_MS, warmWindowsIdentityProbe } from "../test/supervision-warmup";
 import contribute from "../index.server";
 import { workflowFixture } from "../test/workflow-fixture";
 import { workflowStore } from "./workflow-service";
@@ -28,6 +29,11 @@ vi.mock("../client/workflow-plans", () => ({ workflowRequestId: () => randomUUID
 vi.mock("../client/supervision-activation", () => ({ SupervisionActivationBoard: "ExistingAttachBoard" }));
 import { PlanHelpSurface, PlanHelpAction } from "../client/plan-help";
 vi.setConfig({ testTimeout: 60000 });
+// The real runtime claims a coordinator, which verifies this process's start identity. As in the activation, crash
+// and recovery suites, pay the cold Windows probe once with a long bound before any claim (CI deck-review flake).
+beforeAll(async () => {
+  if (process.platform === "win32") await warmWindowsIdentityProbe();
+}, WARMUP_TIMEOUT_MS + 10000);
 beforeEach(() => writeFile(join(process.env.PASEO_HOME!, "server-id"), "isolated-plan-help-review"));
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs(); });
 function production() {

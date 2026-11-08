@@ -4,7 +4,7 @@ import type { Dirent } from "node:fs";
 import { mkdir, readFile, readdir, rename, writeFile, stat, rm } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { z } from "zod";
-import { PlanId, PlanLaunchSchema, PlanDefinitionSchema, PlanPostureSourceSchema, WorkflowCommandSchema, captainReviewRequired, decisionOwner, liveGateAnswered, planOwner, planMode, planEscalate, planLiveSteps, modeOwner, planModeLabel, quotes, sameWords, type PlanMode, planAwaitingReview, planFinished, planPosture, planProblems, planSpent, planWorstCase, type AgendaItem, type PlanDefinition, type WorkflowCommand, type WorkflowPlan, type PlanNode } from "../shared/workflow-plans";
+import { PlanId, PlanLaunchSchema, PlanDefinitionSchema, PlanPostureSourceSchema, WorkflowCommandSchema, captainReviewRequired, decisionOwner, liveGateAnswered, planOwner, planMode, planEscalate, planLiveSteps, modeOwner, planModeLabel, quotes, sameWords, type PlanMode, type PlanNodeState, planAwaitingReview, planFinished, planPosture, planProblems, planSpent, planWorstCase, type AgendaItem, type PlanDefinition, type WorkflowCommand, type WorkflowPlan, type PlanNode } from "../shared/workflow-plans";
 import { readPlanPosture } from "./workflow-posture";
 import { digest, digestCached, publish } from "./submissions";
 import { serialized } from "./serialize";
@@ -38,6 +38,11 @@ const settled = <T,>(work: Promise<T>): Promise<Settled<T>> => work.then(value =
 /** A read's value, or its original error, thrown where the sequential reader would have thrown it. */
 const taken = <T,>(read: Settled<T>): T => { if ("error" in read) throw read.error; return read.value; };
 const terminal = (state: string) => ["done", "landed", "failed", "cancelled"].includes(state);
+/** An attempt recorded cancelled with no claim and no recorded worker or workspace. The store also requires
+ * no launch record (`assertUncreated`); a manual, never-claimed create is excluded only by the first mate's
+ * inspection evidence, as for `release`. A relaunch replaces it like an accounted worker: history and spent
+ * budget kept, a new attempt next. */
+const neverCreated = (state: PlanNodeState) => state.state === "cancelled" && !state.claimed && !state.agentId && !state.workspaceId;
 export const planSubjectHash = (plan: WorkflowPlan) => digest({ definition: plan.definition, revision: plan.revision, status: plan.status, nodes: plan.nodes, owner: planOwner(plan), ownerEvents: plan.ownerEvents, captainActions: plan.captainEvents?.map(e => e.id) ?? [] });
 export const backlogSection = (node: PlanNode, state: string, closedWithoutLanding = false) => terminal(state) && !(node.kind === "run" && node.launch.kind === "ship" && state === "done" && !closedWithoutLanding) ? "done" : state === "planned" ? "queued" : "in-flight";
 export const samePlanItem = (item: ReturnType<typeof parseBacklog>[number], plan: WorkflowPlan, node: PlanNode) =>
@@ -321,7 +326,7 @@ function reduce(previous: WorkflowPlan | null, event: Event, owned = false): Wor
       const { invalidated: _invalidated, ...valid } = state;
       next.nodes[c.node] = { ...valid, evidence: c.evidence, availableAt: event.at };
     } else {
-      if (c.expected !== previousHash || !state.agentId || !state.workspaceId || state.invalidated || (c.kind === "promote" && (node.launch.kind !== "scout" || state.state !== "done"))) throw new Error("Replacement requires the current accounted worker and verified promotion/relaunch evidence.");
+      if (c.expected !== previousHash || !(c.kind === "relaunch" && neverCreated(state)) && (!state.agentId || !state.workspaceId) || state.invalidated || (c.kind === "promote" && (node.launch.kind !== "scout" || state.state !== "done"))) throw new Error("Replacement requires the current accounted worker and verified promotion/relaunch evidence.");
       const spent = planSpent(next.nodes, next.removed);
       if (c.budget.agents < spent + 1 || c.budget.turns < spent + 1) throw new Error("Replacement needs additional cumulative budget.");
       next.definition.budget = c.budget;
@@ -718,6 +723,8 @@ export class WorkflowPlanStore {
       }
       if (command.op === "implicit" && plans.some(p => p.definition.nodes.some(n => n.id === id))) throw new Error("Task already belongs to a plan; use its recorded start intent.");
       if (command.op === "release") await this.assertUncreated(command.node, command.attempt);
+      // The store's own check that a never-created attempt issued no launch record either.
+      if (command.op === "replace" && previous && !previous.nodes[command.node]?.agentId) await this.assertUncreated(command.node, command.attempt);
       if (command.op === "close") {
         // Quarantine inventories retain identities, not dependency edges. An unreadable
         // plan could hide a landing consumer that would invalidate later commands on repair.

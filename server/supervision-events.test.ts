@@ -12,6 +12,11 @@ import type { PaseoAgent, PaseoApi } from "./host-types";
 import type { PluginLifecycleEvents } from "@getpaseo/plugin/server";
 import { digest } from "./submissions";
 
+/** Each wait is for progress made while another request is deliberately held open; that request never settles
+ * until the test releases it, so only a real deadlock fails here. vi.waitFor's default 1 s guessed at runner
+ * speed, and a loaded windows-latest runner took longer to admit the fast scope's events (CI flake). */
+const eventually = <T>(check: () => T | Promise<T>) => vi.waitFor(check, { timeout: 30_000, interval: 10 });
+
 describe("S02 durable local ingress", () => {
   it("drains valid remaining pages of a closed worker before stopping its timeline polls", async () => {
     const f = await inboxFixture(); await f.events.timeline(api(async () => timelinePage()), "worker-a");
@@ -31,15 +36,15 @@ describe("S02 durable local ingress", () => {
     const f = await inboxFixture(); let release!: () => void;
     const read = vi.fn(() => new Promise<ReturnType<typeof timelinePage>>(resolve => { release = () => resolve(timelinePage()); }));
     const agent = { id: "worker-a", status: "idle", updatedAt: "same-timestamp", requiresAttention: false, pendingPermissions: [] } as unknown as PaseoAgent;
-    const first = f.events.catalog([agent], api(read)); await vi.waitFor(() => expect(read).toHaveBeenCalledTimes(1));
+    const first = f.events.catalog([agent], api(read)); await eventually(() => expect(read).toHaveBeenCalledTimes(1));
     const changed = { ...agent, status: "error", requiresAttention: true, pendingPermissions: [{ id: "permission-new" }] } as unknown as PaseoAgent;
     const second = f.events.catalog([changed], api(read));
     try {
-      await vi.waitFor(async () => {
+      await eventually(async () => {
         const status = await f.store.read();
         expect(status.inbox.events.some(e => e.envelope.subject.permissionId === "permission-new")).toBe(true);
         expect(status.inbox.events.filter(e => e.envelope.source.kind === "catalog" && !e.envelope.subject.permissionId).length).toBe(2);
-      }, { timeout: 1000 });
+      });
       expect(read).toHaveBeenCalledTimes(1);
     } finally { release(); await Promise.all([first, second]); }
   });
@@ -57,7 +62,7 @@ describe("S02 durable local ingress", () => {
     const f = await inboxFixture(); let release!: () => void;
     const read = vi.fn(() => new Promise<never>((_, reject) => { release = () => reject(Error("offline")); }));
     const agent = { id: "worker-a", status: "idle", updatedAt: "one", pendingPermissions: [] } as unknown as PaseoAgent;
-    const first = f.events.catalog([agent], api(read)); await vi.waitFor(() => expect(read).toHaveBeenCalledTimes(1));
+    const first = f.events.catalog([agent], api(read)); await eventually(() => expect(read).toHaveBeenCalledTimes(1));
     const second = f.events.catalog([{ ...agent, updatedAt: "two" }], api(read)); release(); await Promise.all([first, second]);
     const clock = vi.spyOn(Date, "now").mockReturnValue(Date.now() + 29_000);
     try { await f.events.catalog([{ ...agent, updatedAt: "three" }], api(read)); expect(read).toHaveBeenCalledTimes(1); }
@@ -238,7 +243,7 @@ describe("S02 durable local ingress", () => {
     const f = await inboxFixture(); let release!: (p: ReturnType<typeof timelinePage>) => void;
     const agents = ["worker-a", "worker-b"].map(id => ({ id, status: "idle", updatedAt: now.toISOString(), requiresAttention: true, pendingPermissions: [] }) as unknown as PaseoAgent);
     const sweep = f.events.catalog(agents, api((_input, agentId) => agentId === "worker-a" ? new Promise(resolve => { release = resolve; }) : Promise.resolve(timelinePage({ agentId: "worker-b" }))));
-    await vi.waitFor(async () => expect((await f.store.read()).inbox.events.some(e => e.envelope.source.kind === "timeline" && e.envelope.subject.agentId === "worker-b")).toBe(true));
+    await eventually(async () => expect((await f.store.read()).inbox.events.some(e => e.envelope.source.kind === "timeline" && e.envelope.subject.agentId === "worker-b")).toBe(true));
     const b = await f.inbox.prepare(second.scope, 1, true); expect(b.resultIds).toHaveLength(1);
     release(timelinePage()); await sweep;
   });
@@ -249,9 +254,9 @@ describe("S02 durable local ingress", () => {
     const sweep = f.events.catalog([good, malformed], api(() => new Promise(resolve => { release = resolve; })));
     let timeout: unknown;
     try {
-      await vi.waitFor(async () => expect((await f.store.read()).inbox.sources.find(s => s.kind === "catalog" && s.agentId === "worker-b")?.gaps).toContain("fetch-failed"), { timeout: 1000 });
+      await eventually(async () => expect((await f.store.read()).inbox.sources.find(s => s.kind === "catalog" && s.agentId === "worker-b")?.gaps).toContain("fetch-failed"));
     } catch (error) { timeout = error; }
-    await vi.waitFor(() => expect(release).toBeTypeOf("function")); release(timelinePage()); await sweep;
+    await eventually(() => expect(release).toBeTypeOf("function")); release(timelinePage()); await sweep;
     if (timeout) throw timeout;
   });
   it("a failed timeline call exposes one source gap and omits raw error content", async () => {
@@ -271,7 +276,7 @@ describe("S02 durable local ingress", () => {
     const f = await inboxFixture();
     let release!: (p: ReturnType<typeof timelinePage>) => void;
     const slow = f.events.timeline(api(() => new Promise(resolve => { release = resolve; })), "worker-a");
-    await vi.waitFor(() => expect(release).toBeTypeOf("function"));
+    await eventually(() => expect(release).toBeTypeOf("function"));
     await f.events.admit(observation({ agentId: "worker-b", sourceKey: "b:complete" }));
     expect((await f.inbox.prepare(second.scope, 1, true)).resultIds).toHaveLength(1);
     await f.events.recordGap("timeline", "worker-a", "new-epoch", ["boot"]);

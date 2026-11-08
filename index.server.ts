@@ -30,7 +30,7 @@ import { NeedsYouService, readConfiguredDecisionHome } from "./server/needs-you-
 import { needsYouSnapshot } from "./server/needs-you-ledger";
 import { registerNeedsYouRpc } from "./server/needs-you-rpc";
 import { answerDecision } from "./server/decision-answer";
-import { submitDecisionAnswer } from "./shared/needs-you";
+import { submitDecisionAnswer, type NeedsYouSnapshot } from "./shared/needs-you";
 import { pluginDir } from "./server/data-dir";
 import { join } from "node:path";
 import { pageReceiptTimeline } from "./shared/receipts";
@@ -207,9 +207,10 @@ export default function contribute(server: PluginServerContext) {
   // plan budget is what the ledger left of the 20 s deadline; a 2 s floor may spend up to a
   // 24 s hard cap, and the tail reads race whatever of that cap remains.
   const NEEDS_READ_HARD_CAP_MS = NEEDS_READ_DEADLINE_MS + 4_000;
-  const stillLoading = (snapshot: Awaited<ReturnType<typeof decisions.read>>) => ({ ...snapshot,
-    planProblems: ["Plans are still loading. Existing captain decisions remain available; the total is incomplete."],
-    scopedComplete: false, scopedProblems: ["Scoped decisions are still loading. Existing decisions remain available; the total is incomplete."] });
+  // Slow is not unavailable: no problem text, so the count is not shown as hiding decisions. Scoped
+  // completeness stays unset; the client keeps its last scoped rows but, for a `plansLoading` read,
+  // marks them unconfirmed (mergeDecisionSnapshot), so their answer controls stay disabled.
+  const stillLoading = (snapshot: Awaited<ReturnType<typeof decisions.read>>): NeedsYouSnapshot => ({ ...snapshot, plansLoading: true });
   const readCombinedNeeds = async (given?: Awaited<ReturnType<typeof decisions.read>>) => {
     const started = Date.now();
     const left = (cap: number) => Math.max(0, cap - (Date.now() - started));

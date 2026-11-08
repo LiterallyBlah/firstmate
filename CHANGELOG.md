@@ -166,6 +166,25 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Fixed
 
+- **A plan run cancelled before it ever launched can run again.** When a start was recorded
+  `cancelled` with no claim, launch record, worker or workspace (for example, to re-pin its model after
+  you changed the crew model), `workflow.mjs start`, a relaunch and a gate-preserving revision all
+  refused, so the plan could never continue. `replace --kind relaunch` now accepts such a run: the
+  cancelled attempt stays in its history and its budget stays spent, the run returns to planned so a
+  revision can re-pin its agent, and its gates are untouched. A claimed attempt still needs inspection.
+
+- **Needs you no longer reads a slow plan read as hidden decisions.** While plans are still loading
+  the count shows what is known ("Needs you · 3 · checking plans"), not "3+ · some plans unavailable",
+  and recovers on the next poll. A plan that genuinely cannot be read still shows its lower bound. The
+  board's fleet load now waits for plans at most the same budget as the decisions read, instead of
+  running past the host's RPC limit on a cold start.
+
+- **A handover arms its delivery gate before it checks evidence.** The deliveries checked are now
+  exactly those frozen; a pending message no longer changes from queued to unknown in between.
+
+- **Plans graph:** long edges arriving at one level keep separate heights (now covered by a test), and
+  another plan's removed step can no longer hide a live step with the same id.
+
 - Idle recovery no longer replays the supervision journal every minute or rewrites unchanged
   worker observations. Heartbeats audit on change and hourly, and share one audit across a
   recovery pass. Failed timeline reads back off, and closed workers are not repeatedly reopened.

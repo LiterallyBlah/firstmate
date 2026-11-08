@@ -252,6 +252,23 @@ it("merges independent scoped and backlog versions without resurrecting an answe
   expect(merged.maintenanceAnswersEnabled).toBe(true);
   expect(mergeDecisionSnapshot(merged, { ...old, maintenanceAnswersEnabled: false }).maintenanceAnswersEnabled).toBe(false);
 });
+it("keeps retained scoped rows unconfirmed, answers disabled, while plans are still loading, without a lower-bound count", () => {
+  const decision = { id: "d", version: 1, ownerScopeId: "scope", planId: "plan", nodeId: "choose", revision: 1, subjectHash: "a".repeat(64),
+    state: "pending" as const, title: "Choose", question: "Which?", options: [{ id: "yes", label: "Yes" }, { id: "no", label: "No" }], sourceVector: [], answer: null };
+  const confirmed: NeedsYouSnapshot = { ...snapshot(), version: 8, scopedSequence: 9, scopedComplete: true, scopedAnswersEnabled: true,
+    scopedDecisions: [{ decision, ready: true, waitingFor: null, ownerEpoch: 1 }], actionCount: 2 };
+  // The decisions read answered before plans (and the scoped tail) did: only the ledger, marked loading.
+  const loading: NeedsYouSnapshot = { ...snapshot(), version: 8, actionCount: 1, plansLoading: true, freshness: { ...confirmed.freshness, checkedAt: 6000 } };
+  const merged = mergeDecisionSnapshot(confirmed, loading);
+  expect(merged.scopedDecisions).toEqual(confirmed.scopedDecisions);
+  // scoped-needs.tsx disables answers unless scopedComplete === true and answers are enabled.
+  expect(merged.scopedComplete).not.toBe(true); expect(merged.scopedAnswersEnabled).toBe(false);
+  expect(merged.scopedProblems ?? []).toEqual([]);
+  expect(indicatorState(merged)).toMatchObject({ count: 2, badge: "2", label: "Needs you · 2 · checking plans" });
+  // The next complete read confirms them again.
+  const again = mergeDecisionSnapshot(merged, { ...confirmed, freshness: { ...confirmed.freshness, checkedAt: 7000 } });
+  expect(again).toMatchObject({ scopedComplete: true, scopedAnswersEnabled: true });
+});
 it("labels a failed scoped inventory and a disabled backlog count as incomplete while retaining known scoped actions", () => {
   const data = snapshot(), scoped = { ...data, scopedSequence: 2, scopedComplete: false, scopedProblems: ["Scope journal held"], actionCount: 0 };
   expect(indicatorState(scoped)).toMatchObject({ count: null, fresh: false });

@@ -125,6 +125,9 @@ export const NeedsYouSnapshotSchema = z.object({
   planNow: z.array(PlanNeedSchema).optional(),
   comingUp: z.array(PlanNeedSchema).optional(),
   planProblems: z.array(z.string()).optional(),
+  /** The plan (and scoped) reads have not answered yet. Not a problem: the total excludes them until the next
+   * read, which the client's poll makes on its own. A plan that genuinely cannot be read is a `planProblems` entry. */
+  plansLoading: z.boolean().optional(),
   homeId: z.string().nullable(),
   version: z.number().int().nonnegative(),
   /** null means unavailable, never a claim that the queue is empty. */
