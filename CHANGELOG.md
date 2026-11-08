@@ -166,6 +166,19 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Fixed
 
+- **A busy journal no longer pins a core re-checking its whole history every few minutes.** The
+  routine recovery check, about once a minute, skipped its full audit only while the journal was
+  completely unchanged, and the plugin's own routine observations change it every few seconds; so
+  on the owner's 17,000-event journal it replayed everything (about 150 s of the main thread) almost
+  back to back, and the board and Needs you timed out between. That check now verifies only what
+  was written since it last looked, chained to what it had already verified, and pins everything
+  older by its files' identities; the full replay stays at startup, after any doubt, and hourly. A
+  tampered, missing or reordered journal file still holds the journal. Also, a repeated observation
+  that changes nothing is no longer written, and a worker list that is merely slow is no longer
+  recorded as a failed read (only one stalled for 5 minutes is), which had rewritten every
+  worker's record twice a minute. Each journal write is also about five times cheaper: sizing the
+  projection against its limit re-serialised all of it (37 MB on the owner's journal) several times
+  per write, and now sums sizes it has already measured.
 - **The held journal recovers even while the anchor-migration backup is kept.** A home still inside
   the one-time anchor migration's 7-day rollback window refused to finish an interrupted final
   publication ("Anchor migration is incomplete"), so the journal stayed held and every write and

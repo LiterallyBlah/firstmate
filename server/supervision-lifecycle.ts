@@ -19,7 +19,7 @@ import { digest } from "./submissions";
 import type { PaseoApi } from "./host-types";
 import { message, TEMPLATES, type TemplatePath } from "./templates";
 import { INBOX_LIMITS } from "../shared/supervision-inbox";
-import { observeWithin, RECOVERY_OBSERVATION_TIMEOUT_MS } from "./supervision-observation";
+import { ObservationTimeout, observeWithin, RECOVERY_OBSERVATION_TIMEOUT_MS } from "./supervision-observation";
 
 const ACTOR: SupervisionActor = { kind: "system", id: "supervision-lifecycle", source: "plugin/checked-owner-turn" };
 const PENDING = ["reserved", "dispatching", "uncertain", "accepted"];
@@ -31,7 +31,11 @@ export interface ScopeWake {
   scopeId: string; state: "idle" | "held" | "accepted" | "uncertain" | "awaiting-owner";
   reason: string; effectId: string | null; offerId: string | null;
 }
+/** A catalog read still running this long is recorded as a coverage gap while it continues. */
+export const STALLED_CATALOG_MS = 5 * 60_000;
 export class SupervisionLifecycle {
+  /** Each pending catalog read, by observation subject: when it started, and whether its stall was recorded. */
+  private readonly catalogReads = new Map<string, { started: number; recorded: boolean }>();
   constructor(readonly store: SupervisionStore, readonly ingress: SupervisionEvents, readonly inbox: SupervisionInbox,
     readonly sessions: SupervisorSessions, readonly gateway: SupervisionGateway, private readonly options: { enabled?: boolean; observationTimeoutMs?: number;
       context?: (status: SupervisionStatus, scopeId: string) => unknown } = {}) {
@@ -195,11 +199,24 @@ export class SupervisionLifecycle {
         try {
           // No all-scope barrier: each owner wakes as soon as its own bounded observations finish.
           if (paseo) {
-            try { await observeWithin(this.ingress, `${this.store.root}:catalog:${scopeId}`, () => this.ingress.reconcile(paseo, scopeId), this.options.observationTimeoutMs); }
-            catch {
-              const tasks = before.tasks.filter(t => t.ownerScopeId === scopeId);
-              for (const a of before.attempts.filter(a => a.worker?.hostId === "local" && tasks.some(t => t.id === a.taskId)))
-                await this.ingress.recordGap("catalog", a.worker!.agentId, null, ["fetch-failed"]);
+            const tasks = before.tasks.filter(t => t.ownerScopeId === scopeId);
+            const gaps = async () => { for (const a of before.attempts.filter(a => a.worker?.hostId === "local" && tasks.some(t => t.id === a.taskId)))
+              await this.ingress.recordGap("catalog", a.worker!.agentId, null, ["fetch-failed"]); };
+            // A failed read records its gaps when it fails, even after this pass stopped waiting.
+            // Past the deadline the read is still running and its outcome unknown, not failed:
+            // recording fetch-failed then, for the liveness observation below to clear it again,
+            // rewrote every worker's source twice a beat whenever the catalog was slow. A read
+            // stalled past STALLED_CATALOG_MS is recorded as a gap once while it continues.
+            const subject = `${this.store.root}:catalog:${scopeId}`;
+            try {
+              await observeWithin(this.ingress, subject, () => {
+                this.catalogReads.set(subject, { started: Date.now(), recorded: false });
+                return this.ingress.reconcile(paseo, scopeId).catch(async (error: unknown) => { await gaps(); throw error; })
+                  .finally(() => this.catalogReads.delete(subject));
+              }, this.options.observationTimeoutMs);
+            } catch (error) {
+              const read = this.catalogReads.get(subject);
+              if (error instanceof ObservationTimeout && read && !read.recorded && Date.now() - read.started >= STALLED_CATALOG_MS) { read.recorded = true; await gaps(); }
             }
           }
           effects = await Promise.allSettled(selected.filter(e => e.scopeId === scopeId).map(e =>

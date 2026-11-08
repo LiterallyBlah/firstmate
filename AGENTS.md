@@ -53,6 +53,24 @@ that needs to edit one must `structuredClone` it first. An unchanged warm read a
 directory listing: it serves the cached scan when a stat fingerprint of the journal (its directories,
 checkpoint and head-anchor files, plus next-sequence probes) is unchanged, and any movement falls
 back to the full warm validation, anchors included.
+The recovery heartbeat (`SupervisionStore.recoveryPass("heartbeat")`, about once a minute) never
+replays the whole journal on a routine beat: an unchanged journal (the warm-read fingerprint) is
+served as is, and one that grew is audited incrementally (`incrementalAudit`) from the last audited
+head — the transactions since, validated in order exactly as a warm read validates a tail and
+chained to that head, with the older prefix pinned by stat identities (each file of the unpaged
+first 256 sequences and of the page still filling, each full page's directory, the root receipts),
+its entry names, coordinators and evidence blobs. Any doubt, startup, a restart pass and the
+hourly backstop since the last full audit (`RECOVERY_AUDIT_INTERVAL_MS`) pay the full replay, which
+alone catches in-place byte edits inside a full page. An action inside a pass (`audit()`,
+`auditRecoveryAction`) forces that pass's one routine audit; `audit()` outside a pass stays full.
+`auditCounts` reports how beats were judged. Inbox ingress commits nothing for a repeated local
+observation that leaves its source row unchanged apart from `observedAt`/`version` (`QuietAdmission`,
+as S08's quiet repeats), and recovery records a catalog `fetch-failed` gap only when the read fails,
+or once when it has stalled past `STALLED_CATALOG_MS`, never merely for outliving one beat's wait:
+the liveness observation would clear it again, rewriting every worker's source twice a beat.
+`projectionSize` is `canonicalProjectionBytes`: exactly the byte length of the canonical
+projection text, summed from per-row/capsule/history-entry lengths cached by object identity, so it
+relies on rows being replaced, never mutated in place; mutating one would leave its length stale.
 A final transaction whose publication never landed (event and tip durable, the publication only a
 `.tmp`, "Final transaction awaits publication.") is finished by the workflow clock's plan tick through
 `SupervisionRuntime.recoverPendingPublication`, i.e. the store's own checked `recoverPublication` under the

@@ -30,7 +30,7 @@ async function tree(path: string): Promise<unknown> {
     row.isDirectory() ? await tree(join(path, row.name)) : (await readFile(join(path, row.name))).toString("base64")]));
 }
 describe("scoped transaction authority", () => {
-  it("audits recovery startup, writes and the hourly backstop, but not unchanged idle beats", async () => {
+  it("audits recovery startup and the hourly backstop in full, a write incrementally, and nothing on unchanged idle beats", async () => {
     await commit([{ kind: "scope", value: scope(store.homeId) }]);
     const scan = vi.spyOn(store as unknown as { scanFull: () => Promise<unknown> }, "scanFull");
     const beat = () => store.recoveryPass("heartbeat", async status => status);
@@ -41,9 +41,10 @@ describe("scoped transaction authority", () => {
       expect(scan, "idle heartbeat replayed full history").toHaveBeenCalledTimes(1);
       await store.transact(expected([{ kind: "scope", value: scope(store.homeId) }], 1), randomUUID(),
         [{ kind: "scope", value: { ...scope(store.homeId), version: 2 } }]);
-      await beat(); expect(scan).toHaveBeenCalledTimes(2);
-      now += 60 * 60_000; await beat(); expect(scan).toHaveBeenCalledTimes(3);
-      await store.recoveryPass("restart", async status => status); expect(scan).toHaveBeenCalledTimes(4);
+      await beat(); expect(scan, "a write replayed full history").toHaveBeenCalledTimes(1);
+      expect(store.auditCounts).toMatchObject({ full: 1, incremental: 1, unchanged: 4 });
+      now += 60 * 60_000; await beat(); expect(scan).toHaveBeenCalledTimes(2);
+      await store.recoveryPass("restart", async status => status); expect(scan).toHaveBeenCalledTimes(3);
     } finally { clock.mockRestore(); }
   });
   it("shares one forced audit across recovery actions and expires its lease after the pass", async () => {
@@ -51,10 +52,10 @@ describe("scoped transaction authority", () => {
     const scan = vi.spyOn(store as unknown as { scanFull: () => Promise<unknown> }, "scanFull");
     await store.recoveryPass("restart", async () => { await Promise.all([store.audit(), store.audit(), store.auditRecoveryAction()]); });
     expect(scan).toHaveBeenCalledTimes(1);
-    // An unchanged beat can skip initially, but an actual action still forces one full audit.
+    // An unchanged beat can skip initially, but an actual action still forces one (incremental) audit.
     await store.recoveryPass("heartbeat", async () => { await Promise.all([store.audit(), store.auditRecoveryAction()]); });
-    expect(scan).toHaveBeenCalledTimes(2);
-    await store.audit(); expect(scan).toHaveBeenCalledTimes(3);
+    expect(scan).toHaveBeenCalledTimes(1); expect(store.auditCounts).toMatchObject({ full: 1, incremental: 1, unchanged: 1 });
+    await store.audit(); expect(scan).toHaveBeenCalledTimes(2);
   });
   it("falls back to a full audit on fingerprint failure and still detects old corruption", async () => {
     await commit([{ kind: "scope", value: scope(store.homeId) }]);
@@ -69,7 +70,8 @@ describe("scoped transaction authority", () => {
     await beat();
     const scan = vi.spyOn(store as unknown as { scanFull: () => Promise<unknown> }, "scanFull");
     const probe = vi.spyOn(store as unknown as { journalFingerprint: () => Promise<string> }, "journalFingerprint").mockRejectedValueOnce(Error("unreadable stat"));
-    try { expect((await beat()).freshness).toBe("current"); expect(scan).toHaveBeenCalledTimes(1); }
+    // Not skipped: audited, incrementally from the base the first beat's full audit left.
+    try { expect((await beat()).freshness).toBe("current"); expect(scan).not.toHaveBeenCalled(); expect(store.auditCounts).toMatchObject({ unchanged: 0, incremental: 1 }); }
     finally { probe.mockRestore(); }
   });
   it("detects old prefix corruption at the hourly backstop even when the warm fingerprint is unchanged", async () => {

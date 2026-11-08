@@ -203,6 +203,43 @@ type CachedScan = { scan: Scan; checkpoint: Checkpoint; directories: string; blo
    * ids the head event references (whose files the fingerprint also stats). An unchanged
    * fingerprint serves the cached scan without re-listing or re-reading the journal. */
   fastRead?: { fingerprint: string; headBlobs: string[]; pages: string[] } };
+/** Byte length of each row's, capsule's or history entry's canonical text, by object identity.
+ * Projection rows are replaced, never mutated in place (see apply()), and indexed transactions and
+ * ownership capsules are immutable once built, so a length never goes stale. */
+const canonicalLengths = new WeakMap<object, number>();
+function canonicalLength(value: unknown): number {
+  if (value === null || typeof value !== "object") return Buffer.byteLength(canonical(value));
+  let length = canonicalLengths.get(value);
+  if (length === undefined) { length = Buffer.byteLength(canonical(value)); canonicalLengths.set(value, length); }
+  return length;
+}
+/** Exactly Buffer.byteLength(canonical({ frames: [...frames], ownership, historyIndex? })) - the
+ * keys sort frames, historyIndex, ownership, and an array is "[" + elements joined by "," + "]" -
+ * summed from cached per-element lengths. Re-serialising the whole projection to size it cost
+ * about 1.7 s of CPU per write on a 17k-event journal, several times per write. */
+export function canonicalProjectionBytes(frames: Map<string, unknown>, ownership: readonly unknown[], historyIndex: readonly unknown[] | null): number {
+  const list = (count: number, sum: number) => 2 + sum + Math.max(count - 1, 0);
+  let frameSum = 0;
+  for (const [key, frame] of frames) frameSum += 3 + Buffer.byteLength(JSON.stringify(key)) + canonicalLength(frame);
+  let ownershipSum = 0;
+  for (const entry of ownership) ownershipSum += canonicalLength(entry);
+  let size = Buffer.byteLength('{"frames":') + list(frames.size, frameSum) + Buffer.byteLength(',"ownership":') + list(ownership.length, ownershipSum) + 1;
+  if (historyIndex) {
+    let historySum = 0;
+    for (const entry of historyIndex) historySum += canonicalLength(entry);
+    size += Buffer.byteLength(',"historyIndex":') + list(historyIndex.length, historySum);
+  }
+  return size;
+}
+/** The recovery heartbeat's audit base: the head last fully audited, or extended from one
+ * incrementally (`at` stays the full audit's time and drives the long-interval backstop), with
+ * the directory names and blob identities it was verified over, the warm-read fingerprint an
+ * unchanged beat compares, and `prefix`, the stat identities pinning the audited prefix: every
+ * file of the unpaged first 256 sequences and of the page still filling at the audited head,
+ * the directory of each full page (it changes only when one of its entries is added, removed or
+ * replaced), and the root identity and receipts. */
+type RecoveryAuditBase = { at: number; fingerprint: string | null; scan: Scan; pages: string[]; headBlobs: string[];
+  prefix: { paths: string[]; identity: string }; directories: string; blobs: BlobIdentities };
 type StoreLockLease = { active: boolean };
 const storeLocks = new AsyncLocalStorage<ReadonlyMap<string, StoreLockLease>>();
 type StorePublication = { epoch: number; active: Promise<void> | null };
@@ -517,7 +554,9 @@ export class SupervisionStore {
   private projectionCacheWritten = -1;
   private projectionCacheTried = false;
   private coldCacheTail = false;
-  private recoveryAudit: { at: number; fingerprint: string; scan: Scan; pages: string[]; headBlobs: string[] } | null = null;
+  private recoveryAudit: RecoveryAuditBase | null = null;
+  /** How routine recovery audits went, for operators and tests. Never authority. */
+  readonly auditCounts = { full: 0, incremental: 0, unchanged: 0 };
   /** A validated "final transaction awaits publication" hold, kept while the journal's stat
    * fingerprint is unchanged (see rememberHeld), so a stuck hold costs one full replay instead of
    * one per read. Any write, the missing publication appearing, or the backstop re-validates. */
@@ -588,8 +627,7 @@ export class SupervisionStore {
     if (memo && memo.snapshot === snapshot && memo.capacityHash === capacityHash && memo.frames === snapshot.frames &&
       memo.framesSize === snapshot.frames.size && memo.ownership === snapshot.ownership && memo.ownershipLength === snapshot.ownership.length &&
       memo.transactions === snapshot.transactions && memo.transactionsLength === (snapshot.transactions?.length ?? -1)) return memo.size;
-    const size = Buffer.byteLength(canonical({ frames: [...snapshot.frames], ownership: snapshot.ownership,
-      ...(this.capacity ? { historyIndex: snapshot.transactions ?? [] } : {}) }));
+    const size = canonicalProjectionBytes(snapshot.frames, snapshot.ownership, this.capacity ? snapshot.transactions ?? [] : null);
     this.projectionSizeMemo = { snapshot, capacityHash, frames: snapshot.frames, framesSize: snapshot.frames.size,
       ownership: snapshot.ownership, ownershipLength: snapshot.ownership.length, transactions: snapshot.transactions, transactionsLength: snapshot.transactions?.length ?? -1, size };
     return size;
@@ -2103,50 +2141,7 @@ export class SupervisionStore {
     // checkpoints and unrelated directory changes go through a full validation below.
     if (checkpoint.sequence > cached.scan.sequence && checkpoint.sequence - cached.scan.sequence <= (coldTail ? Number.POSITIVE_INFINITY : SUPERVISION_INDEX_LIMITS.tail)) {
       if (cached.checkpoint.anchorHash !== await this.anchorHash(cached.scan.sequence)) fail("HELD", "Prior checkpoint anchor changed.");
-      const next = { ...cached.scan, frames: new Map(cached.scan.frames), transactions: [...cached.scan.transactions], ownership: [...cached.scan.ownership],
-        bytes: cached.scan.bytes + blobs.bytes };
-      const seen = new Set(next.transactions.map(t => t.requestId));
-      let tailProjection: ProjectionAcc = { vector: Buffer.from(cached.scan.projectionVector, "hex"), count: cached.scan.frames.size };
-      let tailOwnership: OwnershipAcc | null = null, tailOwnershipDigest: string | null = null;
-      for (let sequence = next.sequence + 1; sequence <= checkpoint.sequence; sequence++) {
-        const event = parseVerified(TransactionSchema, await readCanonical(this.file(sequence, "event")));
-        const rawTip = await readCanonical(this.file(sequence, "tip")); const tip = parseVerified(AnyAnchorSchema, rawTip);
-        const rawMarker = await readCanonical(this.file(sequence, "publication")); const marker = parseVerified(AnyAnchorSchema, rawMarker);
-        if (event.homeId !== this.homeId || event.sequence !== sequence || event.previous !== next.hash || tip.previous !== next.hash ||
-          tip.homeId !== this.homeId || tip.sequence !== sequence || !tip.format.includes("tip") || marker.format !== publicationFormat(anchorVersion(tip)) || (event.format.endsWith("/2") && !isAnchor2(tip)) || tip.transactionHash !== event.hash ||
-          tip.requestId !== event.requestId || tip.requestHash !== event.requestHash || tip.generation !== event.generation ||
-          cachedDigest(event.body) !== event.requestHash || next.coordinators[event.generation - 1]?.hash !== event.coordinatorHash || seen.has(event.requestId) ||
-          digest({ ...marker, format: tip.format, hash: tip.hash }) !== digest(tip)) fail("HELD", "Checkpoint tail chain/identity mismatch.");
-        await this.checkBlobs(event.body.mutations); checkInboxRequest(event.body.mutations, event.requestId);
-        const applied = this.apply(next.frames, event.body);
-        const appliedProjection = advanceProjection(tailProjection, next.frames, applied.frames, applied.changes);
-        const appliedSet = projectionSetHash(appliedProjection);
-        const appliedFrameDigest = event.format.endsWith("/2") ? null : frameDigest(applied.frames);
-        if (digest(applied.changes) !== digest(event.changes) ||
-          (isAnchor2(tip) && tip.projectionSet !== appliedSet) || (event.format.endsWith("/2") ? appliedSet !== event.projectionHash : appliedFrameDigest !== event.projectionHash) ||
-          (isAnchor2(tip) ? cachedDigest(tip.ownershipDelta) !== cachedDigest(ownershipDeltaFor(applied.changes, applied.frames, anchorReset(sequence)))
-            : ownershipDigestOf(applied.frames) !== anchorOwnershipDigest(tip))) fail("HELD", "Checkpoint tail projection mismatch.");
-        tailProjection = appliedProjection; next.projectionSet = appliedSet; next.projectionVector = appliedProjection.vector.toString("hex");
-        next.projection = event.format.endsWith("/2") ? appliedSet : appliedFrameDigest!;
-        next.frames = applied.frames; next.transactions.push(indexedTransaction(event)); seen.add(event.requestId);
-        if (isAnchor2(tip)) {
-          tailOwnership ??= ownershipAccFromFrames(cached.scan.frames);
-          applyOwnershipDelta(tailOwnership, tip.ownershipDelta);
-          if (tip.ownershipDelta.entries.length || tip.ownershipDelta.reset || tip.ownershipDigest !== tailOwnershipDigest) {
-            const built = buildOwnership(tailOwnership);
-            if (ownershipDigest(built) !== tip.ownershipDigest) fail("HELD", "Checkpoint tail projection mismatch.");
-            tailOwnershipDigest = tip.ownershipDigest;
-            if (!next.ownership.some(o => ownershipDigest(o) === tip.ownershipDigest)) next.ownership.push(built);
-          }
-        } else {
-          next.legacyAnchors++;
-          const tipOwnership = ownershipDigest(tip.ownership);
-          if (!next.ownership.some(o => ownershipDigest(o) === tipOwnership)) next.ownership.push(tip.ownership);
-          tailOwnership = null; tailOwnershipDigest = tipOwnership;
-        }
-        next.sequence = sequence; next.hash = event.hash; next.prefixDigest = extendPrefix(next.prefixDigest, event, tip, marker);
-        next.bytes += Buffer.byteLength(canonical(event) + canonical(tip) + canonical(marker)) + 3;
-      }
+      const next = await this.extendVerified(cached.scan, checkpoint.sequence, blobs.bytes);
       // Directory accounting and coordinator changes cannot be guessed from the event tail.
       if (before !== await this.directories()) throw changedDuringRead;
       if (digest(checkpoint) !== digest(await this.checkpointFor(next))) fail("HELD", "Checkpoint tail digest mismatch.");
@@ -2158,6 +2153,57 @@ export class SupervisionStore {
     }
     fail("HELD", "Checkpoint is not a bounded advance of the cached prefix.");
   }
+  /** Validate and apply the published transactions after `base` through `to`, each chained to the
+   * one before it from base's verified head: identity, request/coordinator binding, evidence,
+   * the replayed projection and ownership against what each tip recorded. Warm reads use it for a
+   * bounded tail; the recovery heartbeat's incremental audit uses it from its last audited head. */
+  private async extendVerified(base: Scan, to: number, addedBytes: number): Promise<Scan> {
+    const next = { ...base, frames: new Map(base.frames), transactions: [...base.transactions], ownership: [...base.ownership],
+      bytes: base.bytes + addedBytes };
+    const seen = new Set(next.transactions.map(t => t.requestId));
+    let tailProjection: ProjectionAcc = { vector: Buffer.from(base.projectionVector, "hex"), count: base.frames.size };
+    let tailOwnership: OwnershipAcc | null = null, tailOwnershipDigest: string | null = null;
+    for (let sequence = next.sequence + 1; sequence <= to; sequence++) {
+      const event = parseVerified(TransactionSchema, await readCanonical(this.file(sequence, "event")));
+      const rawTip = await readCanonical(this.file(sequence, "tip")); const tip = parseVerified(AnyAnchorSchema, rawTip);
+      const rawMarker = await readCanonical(this.file(sequence, "publication")); const marker = parseVerified(AnyAnchorSchema, rawMarker);
+      if (event.homeId !== this.homeId || event.sequence !== sequence || event.previous !== next.hash || tip.previous !== next.hash ||
+        tip.homeId !== this.homeId || tip.sequence !== sequence || !tip.format.includes("tip") || marker.format !== publicationFormat(anchorVersion(tip)) || (event.format.endsWith("/2") && !isAnchor2(tip)) || tip.transactionHash !== event.hash ||
+        tip.requestId !== event.requestId || tip.requestHash !== event.requestHash || tip.generation !== event.generation ||
+        cachedDigest(event.body) !== event.requestHash || next.coordinators[event.generation - 1]?.hash !== event.coordinatorHash || seen.has(event.requestId) ||
+        digest({ ...marker, format: tip.format, hash: tip.hash }) !== digest(tip)) fail("HELD", "Checkpoint tail chain/identity mismatch.");
+      await this.checkBlobs(event.body.mutations); checkInboxRequest(event.body.mutations, event.requestId);
+      const applied = this.apply(next.frames, event.body);
+      const appliedProjection = advanceProjection(tailProjection, next.frames, applied.frames, applied.changes);
+      const appliedSet = projectionSetHash(appliedProjection);
+      const appliedFrameDigest = event.format.endsWith("/2") ? null : frameDigest(applied.frames);
+      if (digest(applied.changes) !== digest(event.changes) ||
+        (isAnchor2(tip) && tip.projectionSet !== appliedSet) || (event.format.endsWith("/2") ? appliedSet !== event.projectionHash : appliedFrameDigest !== event.projectionHash) ||
+        (isAnchor2(tip) ? cachedDigest(tip.ownershipDelta) !== cachedDigest(ownershipDeltaFor(applied.changes, applied.frames, anchorReset(sequence)))
+          : ownershipDigestOf(applied.frames) !== anchorOwnershipDigest(tip))) fail("HELD", "Checkpoint tail projection mismatch.");
+      tailProjection = appliedProjection; next.projectionSet = appliedSet; next.projectionVector = appliedProjection.vector.toString("hex");
+      next.projection = event.format.endsWith("/2") ? appliedSet : appliedFrameDigest!;
+      next.frames = applied.frames; next.transactions.push(indexedTransaction(event)); seen.add(event.requestId);
+      if (isAnchor2(tip)) {
+        tailOwnership ??= ownershipAccFromFrames(base.frames);
+        applyOwnershipDelta(tailOwnership, tip.ownershipDelta);
+        if (tip.ownershipDelta.entries.length || tip.ownershipDelta.reset || tip.ownershipDigest !== tailOwnershipDigest) {
+          const built = buildOwnership(tailOwnership);
+          if (ownershipDigest(built) !== tip.ownershipDigest) fail("HELD", "Checkpoint tail projection mismatch.");
+          tailOwnershipDigest = tip.ownershipDigest;
+          if (!next.ownership.some(o => ownershipDigest(o) === tip.ownershipDigest)) next.ownership.push(built);
+        }
+      } else {
+        next.legacyAnchors++;
+        const tipOwnership = ownershipDigest(tip.ownership);
+        if (!next.ownership.some(o => ownershipDigest(o) === tipOwnership)) next.ownership.push(tip.ownership);
+        tailOwnership = null; tailOwnershipDigest = tipOwnership;
+      }
+      next.sequence = sequence; next.hash = event.hash; next.prefixDigest = extendPrefix(next.prefixDigest, event, tip, marker);
+      next.bytes += Buffer.byteLength(canonical(event) + canonical(tip) + canonical(marker)) + 3;
+    }
+    return next;
+  }
   /** Explicit read-only audit command. Also runs automatically on startup and every recovery.
    * Historical corruption holds this instance until a subsequent successful audit/recovery.
    */
@@ -2166,32 +2212,123 @@ export class SupervisionStore {
     if (!lease?.active) return this.fullAudit();
     // A recovery pass audits once, even when several scopes/effects recover concurrently.
     // Later reads still observe every transaction committed during that pass.
-    lease.audit ??= this.fullAudit();
+    lease.audit ??= this.routineAudit();
     const audited = await lease.audit;
     return audited.freshness === "current" ? this.read() : audited;
   }
   private async fullAudit(): Promise<SupervisionStatus> {
     return this.locked(async () => {
-      this.recoveryAudit = null;
-      const snapshot = await this.checkedFullScan(), cached = this.cached;
-      if (!snapshot.problems.length && cached?.scan === snapshot) {
-        const pages = this.journalPages(cached.directories), headBlobs = this.lastAnchor?.sequence === snapshot.sequence ? this.lastAnchor.blobs : [];
-        const fingerprint = await this.establishedFingerprint(cached.directories, cached.checkpoint, snapshot, headBlobs, pages);
-        if (fingerprint) this.recoveryAudit = { at: Date.now(), fingerprint, scan: snapshot, pages, headBlobs };
-      }
+      this.recoveryAudit = null; this.auditCounts.full++;
+      const at = Date.now(), snapshot = await this.checkedFullScan(), cached = this.cached;
+      if (!snapshot.problems.length && cached?.scan === snapshot) this.recoveryAudit = await this.auditBase(at, snapshot, cached.directories, cached.checkpoint, cached.blobs);
       return this.status(snapshot);
     });
   }
-  /** Routine beats use the same change signal as warm reads. A changed/missing fingerprint,
-   * a held journal, startup, or the hourly backstop always pays the full historical audit.
-   * Prefix byte edits invisible to stat identities are still caught by explicit/hourly audits.
-   * Actual recovery actions call audit() and force one audit even on an unchanged beat.
+  /** The audit base for a head just validated over these directory names, checkpoint and blobs.
+   * Best effort: any failure just leaves the next routine audit full. */
+  private async auditBase(at: number, scan: Scan, directories: string, checkpoint: Checkpoint, blobs: BlobIdentities): Promise<RecoveryAuditBase | null> {
+    try {
+      const pages = this.journalPages(directories), headBlobs = this.lastAnchor?.sequence === scan.sequence ? this.lastAnchor.blobs : [];
+      const fingerprint = await this.establishedFingerprint(directories, checkpoint, scan, headBlobs, pages);
+      const paths = this.prefixPaths(scan.sequence), prefix = { paths, identity: await this.statIdentity(paths) };
+      if (!await this.fingerprintStable(directories, checkpoint)) return null;
+      return { at, fingerprint, scan, pages, headBlobs, prefix, directories, blobs };
+    } catch { return null; }
+  }
+  /** See RecoveryAuditBase: what pins a prefix that ends at `sequence`. */
+  private prefixPaths(sequence: number): string[] {
+    const paths = ["identity.json", "capacity.json", "anchor-migration.json", "anchor-rollback.json"].map(name => join(this.root, name));
+    const files = (from: number, to: number) => { for (let s = from; s <= to; s++) paths.push(this.file(s, "event"), this.file(s, "tip"), this.file(s, "publication")); };
+    files(1, Math.min(sequence, 256));
+    if (sequence > 256) {
+      const head = Math.floor((sequence - 1) / 256);
+      for (let page = 1; page < head; page++) paths.push(join(this.root, "transactions", pad(page)));
+      if (sequence % 256 === 0) paths.push(join(this.root, "transactions", pad(head)));
+      else files(head * 256 + 1, sequence);
+    }
+    return paths;
+  }
+  private async statIdentity(paths: string[]): Promise<string> {
+    const out: string[] = [];
+    for (let i = 0; i < paths.length; i += 256) out.push(...await Promise.all(paths.slice(i, i + 256).map(async path => {
+      try { const s = await stat(path, { bigint: true }); return `${s.dev}:${s.ino}:${s.size}:${s.mtimeNs}`; }
+      catch (error) {
+        // As in journalFingerprint: only a genuinely absent path is "missing"; anything else is a doubt.
+        if (["ENOENT", "ENOTDIR"].includes(String((error as NodeJS.ErrnoException).code))) return "missing";
+        throw error;
+      }
+    })));
+    return digest(out);
+  }
+  /** The heartbeat's routine audit, incremental from its audit base. The audited prefix must be
+   * exactly where it was (the same stat identities, every audited entry name still listed, the
+   * same root names, coordinators and receipts, no evidence blob removed or replaced), and every
+   * transaction published since is validated in order, chained to the base's verified head,
+   * exactly as a warm read validates a tail; the checkpoint must then bind the extended head, and
+   * the head readers are served must be that same head. Null - the caller then pays the full
+   * audit - on any doubt at all. */
+  private async incrementalAudit(previous: RecoveryAuditBase): Promise<SupervisionStatus | null> {
+    return this.locked(async () => {
+      if (this.recoveryAudit !== previous || auditFor(this.root).failure) return null;
+      try {
+        const base = previous.scan;
+        if (await this.statIdentity(previous.prefix.paths) !== previous.prefix.identity) return null;
+        await this.loadCapacity();
+        const checkpoint = await this.readCheckpoint(), before = await this.directories();
+        const identity = IdentitySchema.parse(await readCanonical(join(this.root, "identity.json")));
+        if (identity.homeId !== this.homeId || checkpoint.sequence < base.sequence) return null;
+        const now = JSON.parse(before) as string[][], prior = JSON.parse(previous.directories) as string[][];
+        if (now[0]!.join() !== prior[0]!.join() || now[3]!.join() !== prior[3]!.join()) return null;
+        const listed = new Set(now[1]), beyond = (name: string) => {
+          const file = name.slice(name.lastIndexOf("/") + 1);
+          return /^\d{12}\./.test(file) && Number(file.slice(0, 12)) > base.sequence;
+        };
+        if ((prior[1] ?? []).some(name => !beyond(name) && !listed.has(name))) return null;
+        // Nothing past the checkpoint: a pending or unindexed transaction is the full audit's to judge.
+        if ((now[1] ?? []).some(name => { const file = name.slice(name.lastIndexOf("/") + 1); return /^\d{12}\./.test(file) && Number(file.slice(0, 12)) > checkpoint.sequence; })) return null;
+        const blobs = await this.addedBlobs(previous.blobs);
+        const next = await this.extendVerified(base, checkpoint.sequence, blobs.bytes);
+        if (digest(checkpoint) !== digest(await this.checkpointFor(next)) || before !== await this.directories()) return null;
+        const migration = await this.readAnchorMigration();
+        if (migration && migration.sequence <= next.sequence && next.transactions[migration.sequence - 1]?.hash !== migration.headHash) return null;
+        if (this.capacity && (this.capacity.baseSequence > next.sequence || (this.capacity.baseSequence ? next.transactions[this.capacity.baseSequence - 1]?.hash : null) !== this.capacity.baseHash)) return null;
+        // Readers must be served this very head: a cache that disagrees is a doubt; one behind takes it.
+        let cached = this.cached;
+        if (cached && cached.scan.sequence > next.sequence) return null;
+        if (cached && cached.scan.sequence === next.sequence) {
+          if (cached.scan.hash !== next.hash || cached.scan.prefixDigest !== next.prefixDigest || cached.scan.projectionSet !== next.projectionSet) return null;
+        } else { await this.cache(next, checkpoint, before, blobs.identities); cached = this.cached!; }
+        // The same bound a full scan holds; sized on the served scan, whose size the status read memoises.
+        if ((!this.capacity && next.sequence > SUPERVISION_INDEX_LIMITS.transactions) || this.projectionSize(cached.scan) > (this.capacity?.projectionBytes ?? SUPERVISION_INDEX_LIMITS.projectionBytes)) return null;
+        const advanced = await this.auditBase(previous.at, cached.scan, before, checkpoint, blobs.identities);
+        if (!advanced) return null;
+        this.recoveryAudit = advanced; this.auditCounts.incremental++;
+        return this.status(cached.scan);
+      } catch { return null; }
+    });
+  }
+  /** Incremental from the audit base while it is younger than the backstop interval; otherwise,
+   * or on any doubt, the full historical audit. */
+  private async routineAudit(): Promise<SupervisionStatus> {
+    const previous = this.recoveryAudit;
+    if (previous && Date.now() >= previous.at && Date.now() - previous.at < RECOVERY_AUDIT_INTERVAL_MS && !auditFor(this.root).failure) {
+      const status = await this.incrementalAudit(previous);
+      if (status) return status;
+    }
+    return this.fullAudit();
+  }
+  /** Routine beats never replay the whole journal. An unchanged journal (the warm-read
+   * fingerprint) is served as is; one that only grew is audited incrementally from the last
+   * audited head (incrementalAudit). Startup, any integrity doubt, a held journal and the hourly
+   * backstop since the last full audit pay the full historical audit, which is also what catches
+   * prefix byte edits invisible to stat identities. Recovery actions inside a pass call audit(),
+   * which forces the pass's one routine audit even on an unchanged beat.
    */
   async recoveryPass<T>(trigger: "restart" | "heartbeat", run: (status: SupervisionStatus) => Promise<T>): Promise<T> {
     let status: SupervisionStatus | null = null;
     if (trigger === "heartbeat") {
       const previous = this.recoveryAudit;
-      if (previous && Date.now() >= previous.at && Date.now() - previous.at < RECOVERY_AUDIT_INTERVAL_MS && !auditFor(this.root).failure) {
+      if (previous?.fingerprint && Date.now() >= previous.at && Date.now() - previous.at < RECOVERY_AUDIT_INTERVAL_MS && !auditFor(this.root).failure) {
         try {
           status = await this.reading(async () => {
             if (await this.journalFingerprint(previous.pages, previous.scan, previous.headBlobs) !== previous.fingerprint) return null;
@@ -2199,10 +2336,11 @@ export class SupervisionStore {
             return current.freshness === "current" ? current : null;
           });
         } catch { /* A missing/unreadable change signal never authorizes a skip. */ }
+        if (status) this.auditCounts.unchanged++;
       }
     }
     const audited = status === null;
-    status ??= await this.fullAudit();
+    status ??= trigger === "heartbeat" ? await this.routineAudit() : await this.fullAudit();
     const lease: RecoveryAuditLease = { active: true, audit: audited ? Promise.resolve(status) : null };
     const passes = new Map(recoveryAudits.getStore()); passes.set(this.root, lease);
     try { return await recoveryAudits.run(passes, () => run(status)); }
