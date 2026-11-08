@@ -3,7 +3,7 @@ import { Icon } from "@getpaseo/plugin/client/react-native";
 import { useEffect, useId, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import type { FleetCard } from "../shared/fleet";
-import type { NeedsYouRequest, NeedsYouSnapshot } from "../shared/needs-you";
+import { unreadableHolds, type NeedsYouRequest, type NeedsYouSnapshot } from "../shared/needs-you";
 import { CrewCard, watchOpener } from "./card";
 import { useOpenDecision } from "./decision-action";
 import { taskSourceKey } from "./task-presentation";
@@ -129,6 +129,29 @@ export function DecisionTask({
     </View>
   );
 }
+/** Held tasks the backlog can't show as a decision. Each is in the Needs-you count, so each has a row here. */
+export function UnreadableHolds({ snapshot, theme, compact }: { snapshot?: NeedsYouSnapshot | undefined; theme: PluginTheme; compact: boolean }) {
+  const open = useOpenDecision(), base = useId(), homeId = snapshot?.homeId;
+  if (!snapshot || !homeId) return null;
+  const colors = theme.colors;
+  return <>{unreadableHolds(snapshot).map((row, index) => {
+    const title = row.taskId ?? `Backlog line ${row.line}`, id = `unreadable-hold-${base}-${index}`;
+    return <View key={`${row.key ?? title}:${index}`} testID="unreadable-hold" style={{ flexDirection: "row", alignItems: "center", gap: 8, padding: 5 }}>
+      <Icon name="TriangleAlert" size={14} color={colors.statusWarning} />
+      <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
+        <Text numberOfLines={1} style={{ color: colors.foreground, fontSize: 13, lineHeight: 18, fontWeight: "600" }}>{title}</Text>
+        <Text numberOfLines={2} style={{ color: colors.foreground, fontSize: 12, lineHeight: 17 }}>
+          <Text style={{ color: colors.statusWarning }}>Can't read this task: </Text>{row.problem}
+        </Text>
+      </View>
+      <Pressable nativeID={id} accessibilityRole="button" accessibilityLabel={`Open Needs you to repair ${title}`} onPress={() => open({ homeId, requestId: "all" }, id)}
+        style={{ minHeight: compact ? 44 : 28, justifyContent: "center", paddingHorizontal: 10, borderWidth: 1, borderRadius: 7, borderColor: colors.border, backgroundColor: colors.surface1 }}>
+        <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>Open</Text>
+      </Pressable>
+    </View>;
+  })}</>;
+}
+
 export function DecisionQueueNote({
   theme,
   snapshot,

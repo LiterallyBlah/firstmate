@@ -1,4 +1,4 @@
-import type { NeedsYouRequest, NeedsYouSnapshot } from "./needs-you";
+import { unreadableHolds, type NeedsYouRequest, type NeedsYouSnapshot } from "./needs-you";
 import type { PlanNeed } from "./workflow-rpc";
 
 export const planDecisionId = (need: Pick<PlanNeed, "plan" | "node">) => `plan-decision:${need.plan}:${need.node}`;
@@ -39,6 +39,13 @@ export function planDecisionRequest(need: PlanNeed): NeedsYouRequest | null {
 
 export function planDecisionFor(snapshot: NeedsYouSnapshot | undefined, id: string) {
   return snapshot?.planNow?.find(n => !!n.decision && planDecisionId(n) === id);
+}
+
+/** The Needs-you total, from the same rows List and Board draw, so the number and the list cannot differ. */
+export function needsYouCount(snapshot: NeedsYouSnapshot): number {
+  const open = decisionCardSnapshot(snapshot).requests.filter(r => r.state === "new" || r.state === "seen").length;
+  const scoped = (snapshot.scopedDecisions ?? []).filter(r => r.ready).length + new Set(snapshot.scopedHolds?.map(h => h.planId)).size;
+  return open + scoped + unreadableHolds(snapshot).length;
 }
 
 /** One common queue for the drawer, List and Board; server counts stay untouched. */

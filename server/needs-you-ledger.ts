@@ -14,6 +14,7 @@ import {
   quarantinesSource,
   QuarantinedTaskSchema,
 } from "../shared/needs-you";
+import { needsYouCount } from "../shared/plan-decisions";
 import { normalizeAsk, type NeedsYouDetection } from "./needs-you-detect";
 
 export const NeedsYouLedgerSchema = z
@@ -451,17 +452,10 @@ export function needsYouSnapshot(
   const known = ledger?.initializedAt != null;
   const requests = ledger?.requests ?? [];
   const quarantined = ledger?.quarantined ?? [];
-  const unreadHolds = quarantined.filter(row => row.hasHold &&
-    (row.taskId === null || !requests.some(request =>
-      (request.state === "new" || request.state === "seen") && quarantinesSource([row], request.source)))).length;
-  return {
+  const snapshot: NeedsYouSnapshot = {
     homeId: ledger?.homeId ?? null,
     version: ledger?.version ?? 0,
-    actionCount: known
-      ? requests.filter(
-          (entry) => entry.state === "new" || entry.state === "seen",
-        ).length + unreadHolds
-      : null,
+    actionCount: null,
     newCount: known
       ? requests.filter((entry) => entry.state === "new").length
       : null,
@@ -481,4 +475,5 @@ export function needsYouSnapshot(
     quarantined: structuredClone([...quarantined]),
     delivery: "off",
   };
+  return known ? { ...snapshot, actionCount: needsYouCount(snapshot) } : snapshot;
 }

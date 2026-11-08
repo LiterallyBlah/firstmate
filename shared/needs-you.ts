@@ -52,6 +52,16 @@ export function quarantinesSource(rows: readonly QuarantinedTask[], source: Deci
     row.taskId === null || row.taskId === source.taskId);
 }
 
+/**
+ * Held tasks the backlog cannot show as a decision, one entry each. A retained gate speaks for its own
+ * row: an open one is already its own entry, and an answered one is waiting on the first mate, not the captain.
+ */
+export function unreadableHolds(snapshot: { requests: readonly NeedsYouRequest[]; quarantined?: readonly QuarantinedTask[] | undefined }): QuarantinedTask[] {
+  const speaksFor = snapshot.requests.filter(r => r.state === "new" || r.state === "seen" || r.state === "answer-sent" || r.state === "delivery-uncertain");
+  return (snapshot.quarantined ?? []).filter(row => row.hasHold &&
+    (row.taskId === null || !speaksFor.some(request => quarantinesSource([row], request.source))));
+}
+
 export const AnswerSubmissionSchema = z.object({
   submissionId: z.string().min(1).max(200),
   revision,

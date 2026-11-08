@@ -166,6 +166,10 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Fixed
 
+- **Needs you's count now matches what it lists.** A held task whose backlog line could not be read was
+  counted but never drawn on List or Board, so the header could say 8 above 5 rows. Each one now has its own
+  row, opening All to repair it. A decision you have already answered no longer counts again once its
+  task leaves the backlog. The total and the rows now come from the same function.
 - **An idle plugin no longer keeps two cores busy re-reading evidence.** On every scoped clock tick the
   live-failure check re-read the evidence file of every assigned worker event that was not a failure, and
   each read re-checked the whole journal on disk: about 280 reads a second, around 100 filesystem calls each,
