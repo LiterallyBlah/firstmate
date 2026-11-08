@@ -608,9 +608,12 @@ export class WorkflowPlanStore {
         identities.push([directory, names[n], s.ino, s.size, s.mtimeMs, s.ctimeMs]);
     }
     const identity = digest(identities);
-    if (cached?.identity === identity) {
-      cached.listing = listing; cached.verifiedAt = now;
-      return structuredClone(cached.plan);
+    // Re-read the cache after the stats: a concurrent reader's fold of these same files may have
+    // finished (and left `reading`) while this one was statting, and must not be folded again.
+    const settled = WorkflowPlanStore.cache.get(key);
+    if (settled?.identity === identity) {
+      settled.listing = listing; settled.verifiedAt = now;
+      return structuredClone(settled.plan);
     }
     // Concurrent readers of the same files share one reduction: at startup the workflow clock, the decisions
     // read and the Plans read all arrive cold, and each repeating every event slowed all of them.
