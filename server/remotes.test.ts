@@ -5,8 +5,9 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SavedHosts, type RemoteProfile } from "../shared/remotes";
-import { commandArguments, connectionTarget, redact, remoteEnvironment, remoteError, remoteMutationAgent, RemoteConnectRefused, RemoteService } from "./remotes";
+import { cacheJson, commandArguments, connectionTarget, redact, remoteEnvironment, remoteError, remoteMutationAgent, RemoteConnectRefused, RemoteService } from "./remotes";
 import { fill, readTemplate, TEMPLATES } from "./templates";
+import { serialized } from "./serialize";
 
 const run = promisify(execFile);
 const local: RemoteProfile = { serverId: "local-test", label: "Atlas", connections: [{ id: "local", type: "directTcp", endpoint: "127.0.0.1:6799" }] };
@@ -14,7 +15,7 @@ const remote: RemoteProfile = { serverId: "remote-test", label: "Remote", passwo
 let root = "";
 let service: RemoteService | undefined;
 afterEach(async () => {
-  service?.stop(); service = undefined;
+  await service?.stop(); service = undefined;
   await new Promise((done) => setTimeout(done, 30));
   if (root) await rm(root, { recursive: true, force: true });
   root = ""; vi.unstubAllEnvs();
@@ -122,7 +123,7 @@ describe("independent remote access", () => {
     for (const [kind, text] of Object.entries(damaged)) {
       it(`moves a ${kind} remote-status.json and remote-hosts.json aside, reads them as missing and rebuilds them`, async () => {
         const { directory, home, service: first } = await fixture(async () => success({}));
-        first.stop();
+        await first.stop();
         await writeFile(join(directory, "remote-status.json"), text);
         await writeFile(join(home, "data", "remote-hosts.json"), text);
         const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
@@ -134,8 +135,11 @@ describe("independent remote access", () => {
           expect(JSON.stringify(snapshot)).not.toMatch(/JSON|Unexpected/);
           expect(log.mock.calls.filter(([line]) => String(line).includes("moved aside"))).toHaveLength(2);
         } finally { log.mockRestore(); }
-        expect((await readdir(directory)).filter((name) => name.startsWith("remote-status.json.corrupt-"))).toHaveLength(1);
-        expect((await readdir(join(home, "data"))).filter((name) => name.startsWith("remote-hosts.json.corrupt-"))).toHaveLength(1);
+        for (const [folder, name] of [[directory, "remote-status.json"], [join(home, "data"), "remote-hosts.json"]] as const) {
+          const asides = (await readdir(folder)).filter((entry) => entry.startsWith(`${name}.corrupt-`));
+          expect(asides).toHaveLength(1);
+          expect(await readFile(join(folder, asides[0]!), "utf8")).toBe(text);
+        }
         await service.sync([local, remote]);
         for (const path of [join(directory, "remote-status.json"), join(home, "data", "remote-hosts.json")]) {
           expect(JSON.parse(await readFile(path, "utf8")).hosts.map((host: { serverId: string }) => host.serverId)).toEqual([remote.serverId]);
@@ -144,7 +148,7 @@ describe("independent remote access", () => {
     }
     it("reads a valid cache as it is and moves nothing", async () => {
       const { directory, home, service: first } = await fixture(async () => success({}));
-      first.stop();
+      await first.stop();
       const cached = JSON.parse(await readFile(join(directory, "remote-status.json"), "utf8"));
       cached.hosts[0].projects = [{ projectId: "kept" }];
       await writeFile(join(directory, "remote-status.json"), JSON.stringify(cached));
@@ -153,9 +157,65 @@ describe("independent remote access", () => {
       expect((await readdir(directory)).some((name) => name.includes(".corrupt-"))).toBe(false);
       expect((await readdir(join(home, "data"))).some((name) => name.includes(".corrupt-"))).toBe(false);
     });
+    it("keeps a healthy replacement published between reading the damaged bytes and moving them", async () => {
+      const { directory, service: first } = await fixture(async () => success({}));
+      await first.stop();
+      const path = join(directory, "remote-status.json");
+      const healthy = await readFile(path, "utf8");
+      await writeFile(path, "\0".repeat(4096));
+      const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+      try {
+        // The replacement lands after the damaged bytes were read and failed to parse.
+        const value = await cacheJson(path, () => writeFile(path, healthy));
+        expect(value).toEqual(JSON.parse(healthy));
+        expect(log.mock.calls.some(([line]) => String(line).includes("replaced while being recovered"))).toBe(true);
+      } finally { log.mockRestore(); }
+      expect(await readFile(path, "utf8")).toBe(healthy);
+      expect((await readdir(directory)).some((name) => name.includes(".corrupt-"))).toBe(false);
+    });
+    it("orders recovery against an older service's publication still in the queue", async () => {
+      const { directory, home, service: first } = await fixture(async () => success({}));
+      const damaged = "\0".repeat(4096);
+      let release!: () => void;
+      const gate = serialized("firstmate.remote.snapshot", () => new Promise<void>((done) => { release = done; }));
+      await writeFile(join(directory, "remote-status.json"), damaged);
+      await writeFile(join(home, "data", "remote-hosts.json"), damaged);
+      const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+      try {
+        const publishing = first.syncError(true); // the older service's write queues behind the gate
+        await new Promise((done) => setTimeout(done, 20));
+        service = new RemoteService(async () => success({})); // its recovery queues behind that write
+        await new Promise((done) => setTimeout(done, 20));
+        release(); await gate; await publishing;
+        const snapshot = await service.read();
+        expect(snapshot.hosts.map((host) => host.serverId)).toEqual([remote.serverId]);
+        expect(JSON.stringify(snapshot)).not.toMatch(/Unexpected/);
+      } finally { log.mockRestore(); }
+      for (const [folder, name] of [[directory, "remote-status.json"], [join(home, "data"), "remote-hosts.json"]] as const) {
+        // The published file stays, read whole; the damaged bytes it superseded were never moved over it.
+        expect(JSON.parse(await readFile(join(folder, name), "utf8")).syncError).toMatch(/unavailable/);
+        for (const aside of (await readdir(folder)).filter((entry) => entry.startsWith(`${name}.corrupt-`))) {
+          expect(await readFile(join(folder, aside), "utf8")).toBe(damaged);
+        }
+      }
+      expect((await service.read()).syncError).toMatch(/unavailable/);
+      await first.stop();
+    });
+    it("a stopped service's queued publication writes nothing", async () => {
+      const { directory, service: first } = await fixture(async () => success({}));
+      const path = join(directory, "remote-status.json");
+      const before = await readFile(path, "utf8");
+      let release!: () => void;
+      const gate = serialized("firstmate.remote.snapshot", () => new Promise<void>((done) => { release = done; }));
+      const publishing = first.syncError(true);
+      await new Promise((done) => setTimeout(done, 20));
+      const stopping = first.stop();
+      release(); await gate; await publishing; await stopping;
+      expect(await readFile(path, "utf8")).toBe(before);
+    });
     it("never discards a NUL-filled remotes.json, and names it in the error", async () => {
       const { directory, service: first } = await fixture(async () => success({}));
-      first.stop();
+      await first.stop();
       const saved = "\0".repeat(4096);
       await writeFile(join(directory, "remotes.json"), saved);
       service = new RemoteService(async () => success({}));

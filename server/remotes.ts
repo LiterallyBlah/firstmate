@@ -1,6 +1,6 @@
 /** Saved connections live outside the mate's home. The queue only executes
  * explicit CLI requests from the mate; it never chooses or dispatches work. */
-import { mkdir, readFile, readdir, rename, rm, stat } from "node:fs/promises";
+import { link, mkdir, readFile, readdir, rename, rm, stat } from "node:fs/promises";
 import { replaceFile } from "./replace-file";
 import { join } from "node:path";
 import { z } from "zod";
@@ -26,27 +26,53 @@ async function optionalJson(path: string): Promise<unknown> {
   try { return JSON.parse(await readFile(path, "utf8")); }
   catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return null; throw error; }
 }
-/** A file the service rebuilds on its next publish. Unreadable or not JSON, it is moved aside to
- * `<name>.corrupt-<timestamp>`, logged, and read as missing: a rebuildable cache never wedges the board. */
-export async function cacheJson(path: string): Promise<unknown> {
-  let text: string;
-  try { text = await readFile(path, "utf8"); }
-  catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
-    await quarantine(path, error);
-    return null;
-  }
-  try { return JSON.parse(text); }
-  catch (error) { await quarantine(path, error); return null; }
+/** Every write of the snapshot caches, and every recovery of one, runs in this queue (process-wide,
+ * so an older service's publication is ordered against a newer one's recovery). */
+const SNAPSHOT_QUEUE = "firstmate.remote.snapshot";
+const message = (error: unknown) => (error instanceof Error ? error.message : String(error)).slice(0, 160);
+const parse = (bytes: Buffer): { ok: true; value: unknown } | { ok: false; error: unknown } => {
+  try { return { ok: true, value: JSON.parse(bytes.toString("utf8")) }; } catch (error) { return { ok: false, error }; }
+};
+async function bytesOf(path: string): Promise<Buffer | null> {
+  try { return await readFile(path); } catch { return null; }
 }
-async function quarantine(path: string, error: unknown): Promise<void> {
-  const aside = `${path}.corrupt-${new Date().toISOString().replace(/[:.]/g, "-")}`;
-  try {
-    await rename(path, aside);
-    console.error(`[firstmate] ${path} was unreadable (${error instanceof Error ? error.message.slice(0, 120) : String(error)}); moved aside to ${aside}, to be rebuilt`);
-  } catch (renameError) {
-    console.error(`[firstmate] ${path} was unreadable and could not be moved aside (${renameError instanceof Error ? renameError.message : String(renameError)}); it is ignored and will be rewritten`);
-  }
+/** A file the service rebuilds on its next publish, read under the publishers' queue. One that is not
+ * JSON is moved aside, bytes intact, to `<name>.corrupt-<timestamp>`, logged, and read as missing; one
+ * that cannot be read is logged and read as missing (the next publish replaces it). Only the very bytes
+ * that failed are ever moved: a file replaced meanwhile is kept and read instead. `afterRead` is for tests. */
+export function cacheJson(path: string, afterRead?: () => Promise<void>): Promise<unknown> {
+  return serialized(SNAPSHOT_QUEUE, async () => {
+    let damaged: Buffer;
+    try { damaged = await readFile(path); }
+    catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") console.error(`[firstmate] ${path} could not be read (${message(error)}); it is ignored and will be rewritten`);
+      return null;
+    }
+    const first = parse(damaged);
+    if (first.ok) return first.value;
+    await afterRead?.();
+    const current = await bytesOf(path);
+    if (!current || !current.equals(damaged)) {
+      const replaced = current ? parse(current) : null;
+      console.error(`[firstmate] ${path} was not valid JSON (${message(first.error)}) but was replaced while being recovered; the replacement is kept`);
+      return replaced?.ok ? replaced.value : null;
+    }
+    const aside = `${path}.corrupt-${new Date().toISOString().replace(/[:.]/g, "-")}`;
+    try { await rename(path, aside); }
+    catch (error) {
+      console.error(`[firstmate] ${path} was not valid JSON (${message(first.error)}) and could not be moved aside (${message(error)}); it is ignored and will be rewritten`);
+      return null;
+    }
+    // Belt and braces against a writer outside this process: if what moved is not what failed, put it back.
+    const moved = await bytesOf(aside);
+    if (moved && !moved.equals(damaged)) {
+      try { await link(aside, path); await rm(aside); } catch { /* the canonical file exists again: a newer write */ }
+      console.error(`[firstmate] ${path} changed while being moved aside; the newer file is kept`);
+      return null;
+    }
+    console.error(`[firstmate] ${path} was not valid JSON (${message(first.error)}); moved aside to ${aside}, to be rebuilt`);
+    return null;
+  });
 }
 /** The saved hosts are the source of truth: never discarded, but named when unreadable. */
 async function savedRegistry(path: string): Promise<unknown> {
@@ -334,7 +360,9 @@ export class RemoteService {
   async read(): Promise<RemoteSnapshot> { await this.ready; return structuredClone(this.snapshot); }
   private async publish() {
     if (this.stopped) return;
-    await serialized("firstmate.remote.snapshot", async () => {
+    await serialized(SNAPSHOT_QUEUE, async () => {
+      // Stopped while queued: a newer service may already own these files.
+      if (this.stopped) return;
       await atomic(join(pluginDir(), "remote-status.json"), this.snapshot);
       const home = resolveHome(await readFirstmateConfig());
       try { await stat(join(home, "AGENTS.md")); }
@@ -628,5 +656,9 @@ export class RemoteService {
       if (Date.now() >= this.pollAt) { this.pollAt = Date.now() + 60000; void this.poll().catch(() => { /* Last snapshot retained. */ }); }
     }, 1000);
   }
-  stop() { this.stopped = true; this.controller.abort(); if (this.timer) clearInterval(this.timer); }
+  /** Resolves once any publication already writing has finished; queued ones then write nothing. */
+  stop(): Promise<void> {
+    this.stopped = true; this.controller.abort(); if (this.timer) clearInterval(this.timer);
+    return serialized(SNAPSHOT_QUEUE, async () => undefined);
+  }
 }
