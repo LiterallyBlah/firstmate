@@ -1,6 +1,6 @@
 /** Saved connections live outside the mate's home. The queue only executes
  * explicit CLI requests from the mate; it never chooses or dispatches work. */
-import { mkdir, readFile, readdir, rename, rm, stat } from "node:fs/promises";
+import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { replaceFile } from "./replace-file";
 import { join } from "node:path";
 import { z } from "zod";
@@ -18,12 +18,49 @@ const MAX_FOLLOWED = 50;
 const MAX_RECENT_TOOLS_AGENTS = 10;
 const empty = (): RemoteSnapshot => ({ version: 1, localServerId: "", syncedAt: null, syncError: null, hosts: [] });
 export const remoteQueue = () => join(pluginDir(), "remote-requests");
+/** Flushed before and after the rename: a crash mid-write once left both caches the right size and all NULs. */
 async function atomic(path: string, value: unknown): Promise<void> {
-  await replaceFile(path, JSON.stringify(value, null, 2), { mode: 0o600 });
+  await replaceFile(path, JSON.stringify(value, null, 2), { mode: 0o600, sync: true });
 }
 async function optionalJson(path: string): Promise<unknown> {
   try { return JSON.parse(await readFile(path, "utf8")); }
   catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return null; throw error; }
+}
+/** Every write of the snapshot caches, and every recovery of one, runs in this queue (process-wide,
+ * so an older service's publication is ordered against a newer one's recovery). */
+const SNAPSHOT_QUEUE = "firstmate.remote.snapshot";
+const message = (error: unknown) => (error instanceof Error ? error.message : String(error)).slice(0, 160);
+/** A file the service rebuilds on its next publish, read under the publishers' queue. One that cannot
+ * be read, or is not JSON, is read as missing and logged; for one that is not JSON, the bytes read are
+ * first copied to a new `<name>.corrupt-<timestamp>` (exclusive create). The canonical path is never
+ * moved or renamed: the next publish replaces it atomically, and a file replaced meanwhile is never
+ * touched. `afterRead` is for tests. */
+export function cacheJson(path: string, afterRead?: () => Promise<void>): Promise<unknown> {
+  return serialized(SNAPSHOT_QUEUE, async () => {
+    let damaged: Buffer;
+    try { damaged = await readFile(path); }
+    catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") console.error(`[firstmate] ${path} could not be read (${message(error)}); it is ignored and will be rewritten`);
+      return null;
+    }
+    try { return JSON.parse(damaged.toString("utf8")); }
+    catch (error) {
+      await afterRead?.();
+      const aside = `${path}.corrupt-${new Date().toISOString().replace(/[:.]/g, "-")}`;
+      try {
+        await writeFile(aside, damaged, { flag: "wx", mode: 0o600 });
+        console.error(`[firstmate] ${path} was not valid JSON (${message(error)}); a copy is kept at ${aside}, and it is ignored until the next publish rewrites it`);
+      } catch (copyError) {
+        console.error(`[firstmate] ${path} was not valid JSON (${message(error)}) and could not be copied aside (${message(copyError)}); it is ignored until the next publish rewrites it`);
+      }
+      return null;
+    }
+  });
+}
+/** The saved hosts are the source of truth: never discarded, but named when unreadable. */
+async function savedRegistry(path: string): Promise<unknown> {
+  try { return await optionalJson(path); }
+  catch (error) { throw new Error(`The saved remote hosts (${path}) could not be read: ${error instanceof Error ? error.message : String(error)}`); }
 }
 
 export function connectionTarget(host: RemoteProfile, connection: RemoteConnection): string {
@@ -266,9 +303,12 @@ export class RemoteService {
     await mkdir(remoteQueue(), { recursive: true, mode: 0o700 });
     this.localId = (await readFile(join(paseoHome(), "server-id"), "utf8")).trim();
     this.owner = `${this.localId}:firstmate`;
-    const saved = Registry.safeParse(await optionalJson(join(pluginDir(), "remotes.json")));
+    const saved = Registry.safeParse(await savedRegistry(join(pluginDir(), "remotes.json")));
     if (saved.success) { this.hosts = saved.data.hosts.filter((host) => host.serverId !== this.localId); this.snapshot.syncedAt = saved.data.syncedAt; }
-    const cached = RemoteSnapshot.safeParse(await optionalJson(join(pluginDir(), "remote-status.json")));
+    const cached = RemoteSnapshot.safeParse(await cacheJson(join(pluginDir(), "remote-status.json")));
+    // The home's copy is written, never read, here; a corrupt one is moved aside so its readers
+    // see it missing until the next publish rewrites it.
+    try { await cacheJson(join(resolveHome(await readFirstmateConfig()), "data", "remote-hosts.json")); } catch { /* no home yet */ }
     if (cached.success) this.snapshot = cached.data;
     this.snapshot.localServerId = this.localId;
     this.snapshot.localLabel = saved.success ? saved.data.localLabel : undefined;
@@ -303,7 +343,9 @@ export class RemoteService {
   async read(): Promise<RemoteSnapshot> { await this.ready; return structuredClone(this.snapshot); }
   private async publish() {
     if (this.stopped) return;
-    await serialized("firstmate.remote.snapshot", async () => {
+    await serialized(SNAPSHOT_QUEUE, async () => {
+      // Stopped while queued: a newer service may already own these files.
+      if (this.stopped) return;
       await atomic(join(pluginDir(), "remote-status.json"), this.snapshot);
       const home = resolveHome(await readFirstmateConfig());
       try { await stat(join(home, "AGENTS.md")); }
@@ -597,5 +639,9 @@ export class RemoteService {
       if (Date.now() >= this.pollAt) { this.pollAt = Date.now() + 60000; void this.poll().catch(() => { /* Last snapshot retained. */ }); }
     }, 1000);
   }
-  stop() { this.stopped = true; this.controller.abort(); if (this.timer) clearInterval(this.timer); }
+  /** Resolves once any publication already writing has finished; queued ones then write nothing. */
+  stop(): Promise<void> {
+    this.stopped = true; this.controller.abort(); if (this.timer) clearInterval(this.timer);
+    return serialized(SNAPSHOT_QUEUE, async () => undefined);
+  }
 }

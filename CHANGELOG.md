@@ -166,6 +166,12 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Fixed
 
+- **A crash mid-write can no longer leave Home showing "not valid JSON".** The remote hosts' caches
+  (`remote-status.json` and the home's `data/remote-hosts.json`) are now flushed to disk before they
+  replace the old file. If one is found damaged anyway, it is read as missing, with no banner,
+  its bytes are copied to `<name>.corrupt-<time>` and noted in the plugin log, and the next poll rewrites it.
+  The saved hosts themselves (`remotes.json`) are never thrown away; if that file is damaged, the
+  banner names it. `node tools/remote.mjs hosts` reports a damaged catalog in one clear line.
 - **Needs you's count now matches what it lists.** A held task whose backlog line could not be read was
   counted but never drawn on List or Board, so the header could say 8 above 5 rows. Each one now has its own
   row, opening All to repair it. A decision you have already answered no longer counts again once its

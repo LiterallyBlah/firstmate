@@ -503,7 +503,7 @@ export default function contribute(server: PluginServerContext) {
     await plans.stop();
     await supervisionRuntime.stop();
     watches.stop();
-    remotes.stop();
+    await remotes.stop();
     await decisions.stop();
     uninstallFeatures();
   };

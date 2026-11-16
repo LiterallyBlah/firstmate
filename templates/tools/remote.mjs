@@ -162,10 +162,13 @@ try {
     host = input.host; args = input.args;
   }
   if (host === "hosts") {
-    const text = await readFile(join(home, "data", "remote-hosts.json"), "utf8");
+    const path = join(home, "data", "remote-hosts.json");
+    let text, catalog;
+    try { text = await readFile(path, "utf8"); }
+    catch (error) { throw new Error(error.code === "ENOENT" ? `${path} does not exist yet; the plugin writes it on its next remote poll (about a minute).` : `${path} could not be read: ${error.message}`); }
+    try { catalog = JSON.parse(text); }
+    catch { throw new Error(`${path} is not valid JSON (damaged, perhaps by a crash mid-write); the plugin rewrites it on its next remote poll (about a minute).`); }
     console.log(text);
-    let catalog = {};
-    try { catalog = JSON.parse(text); } catch { /* Printed as it is. */ }
     for (const entry of Array.isArray(catalog?.hosts) ? catalog.hosts : []) {
       const seconds = entry?.clockSkew?.seconds;
       if (typeof seconds === "number" && Math.abs(seconds) >= 180) warnings.add(`Warning: host ${JSON.stringify(entry.label)}'s clock appears to be about ${Math.round(Math.abs(seconds) / 60)} minutes ${seconds < 0 ? "behind" : "ahead of"} this machine's (clockSkew). Its times are shown as the host reports them.`);

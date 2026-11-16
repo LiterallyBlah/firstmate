@@ -31,7 +31,8 @@ export const ORPHAN_AGE_MS = 10 * 60_000;
 
 export type ReplaceOptions = {
   mode?: number;
-  /** fsync the temporary before the rename. */
+  /** fsync the temporary before the rename, and then (where the platform can) its directory, so
+   * a crash leaves either the old file or the whole new one: never one renamed but unwritten. */
   sync?: boolean;
   /** For tests: the platform whose rename refusals are transient. */
   platform?: NodeJS.Platform;
@@ -51,10 +52,21 @@ export async function replaceFile(path: string, data: string | Uint8Array, optio
     try { await file.writeFile(data); if (options.sync) await file.sync(); }
     finally { await file.close(); }
     await transientRetry(() => move(temporary, path), options.platform);
+    if (options.sync) await syncDirectory(dirname(path), options.platform ?? process.platform);
   } finally {
     await transientRetry(() => rm(temporary, { force: true }), options.platform).catch(() => undefined);
   }
   await removeOrphans(path, options.now?.() ?? Date.now()).catch(() => undefined);
+}
+
+/** Makes a rename durable. Windows cannot open a directory for fsync (NTFS journals the rename),
+ * and some filesystems refuse it; either way the file itself is already on disk. */
+async function syncDirectory(directory: string, platform: NodeJS.Platform): Promise<void> {
+  if (platform === "win32") return;
+  try {
+    const handle = await open(directory, "r");
+    try { await handle.sync(); } finally { await handle.close(); }
+  } catch { /* best effort */ }
 }
 
 async function removeOrphans(path: string, now: number): Promise<void> {

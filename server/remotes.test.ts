@@ -5,8 +5,9 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SavedHosts, type RemoteProfile } from "../shared/remotes";
-import { commandArguments, connectionTarget, redact, remoteEnvironment, remoteError, remoteMutationAgent, RemoteConnectRefused, RemoteService } from "./remotes";
+import { cacheJson, commandArguments, connectionTarget, redact, remoteEnvironment, remoteError, remoteMutationAgent, RemoteConnectRefused, RemoteService } from "./remotes";
 import { fill, readTemplate, TEMPLATES } from "./templates";
+import { serialized } from "./serialize";
 
 const run = promisify(execFile);
 const local: RemoteProfile = { serverId: "local-test", label: "Atlas", connections: [{ id: "local", type: "directTcp", endpoint: "127.0.0.1:6799" }] };
@@ -14,7 +15,7 @@ const remote: RemoteProfile = { serverId: "remote-test", label: "Remote", passwo
 let root = "";
 let service: RemoteService | undefined;
 afterEach(async () => {
-  service?.stop(); service = undefined;
+  await service?.stop(); service = undefined;
   await new Promise((done) => setTimeout(done, 30));
   if (root) await rm(root, { recursive: true, force: true });
   root = ""; vi.unstubAllEnvs();
@@ -113,6 +114,126 @@ describe("independent remote access", () => {
     await service.sync([local]);
     expect((await service.read()).hosts).toEqual([]);
     expect(await readFile(join(directory, "remotes.json"), "utf8")).not.toContain(remote.password);
+  });
+  describe("a cache damaged by a crash", () => {
+    const damaged: Record<string, string> = {
+      "NUL-filled": "\0".repeat(4096),
+      "truncated": '{"version":1,"localServerId":"local-test","hosts":[{"serverId":"rem',
+    };
+    for (const [kind, text] of Object.entries(damaged)) {
+      it(`copies a ${kind} remote-status.json and remote-hosts.json aside, leaves them in place, reads them as missing and the next publish overwrites them`, async () => {
+        const { directory, home, service: first } = await fixture(async () => success({}));
+        await first.stop();
+        await writeFile(join(directory, "remote-status.json"), text);
+        await writeFile(join(home, "data", "remote-hosts.json"), text);
+        const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+        try {
+          service = new RemoteService(async () => success({}));
+          const snapshot = await service.read();
+          expect(snapshot.hosts.map((host) => host.serverId)).toEqual([remote.serverId]);
+          expect(snapshot.syncError).toBeNull();
+          expect(JSON.stringify(snapshot)).not.toMatch(/JSON|Unexpected/);
+          expect(log.mock.calls.filter(([line]) => String(line).includes("a copy is kept"))).toHaveLength(2);
+        } finally { log.mockRestore(); }
+        for (const [folder, name] of [[directory, "remote-status.json"], [join(home, "data"), "remote-hosts.json"]] as const) {
+          const asides = (await readdir(folder)).filter((entry) => entry.startsWith(`${name}.corrupt-`));
+          expect(asides).toHaveLength(1);
+          expect(await readFile(join(folder, asides[0]!), "utf8")).toBe(text);
+          expect(await readFile(join(folder, name), "utf8")).toBe(text); // the canonical path is untouched
+        }
+        await service.sync([local, remote]);
+        for (const path of [join(directory, "remote-status.json"), join(home, "data", "remote-hosts.json")]) {
+          expect(JSON.parse(await readFile(path, "utf8")).hosts.map((host: { serverId: string }) => host.serverId)).toEqual([remote.serverId]);
+        }
+      });
+    }
+    it("reads a valid cache as it is and moves nothing", async () => {
+      const { directory, home, service: first } = await fixture(async () => success({}));
+      await first.stop();
+      const cached = JSON.parse(await readFile(join(directory, "remote-status.json"), "utf8"));
+      cached.hosts[0].projects = [{ projectId: "kept" }];
+      await writeFile(join(directory, "remote-status.json"), JSON.stringify(cached));
+      service = new RemoteService(async () => success({}));
+      expect((await service.read()).hosts[0]!.projects).toEqual([{ projectId: "kept" }]);
+      expect((await readdir(directory)).some((name) => name.includes(".corrupt-"))).toBe(false);
+      expect((await readdir(join(home, "data"))).some((name) => name.includes(".corrupt-"))).toBe(false);
+    });
+    it("never touches a healthy replacement published between reading the damaged bytes and copying them", async () => {
+      const { directory, service: first } = await fixture(async () => success({}));
+      await first.stop();
+      const path = join(directory, "remote-status.json");
+      const healthy = await readFile(path, "utf8");
+      const damaged = "\0".repeat(4096);
+      await writeFile(path, damaged);
+      const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+      try {
+        // The replacement lands after the damaged bytes were read and failed to parse.
+        expect(await cacheJson(path, () => writeFile(path, healthy))).toBeNull();
+      } finally { log.mockRestore(); }
+      expect(await readFile(path, "utf8")).toBe(healthy);
+      const asides = (await readdir(directory)).filter((name) => name.startsWith("remote-status.json.corrupt-"));
+      expect(asides).toHaveLength(1);
+      expect(await readFile(join(directory, asides[0]!), "utf8")).toBe(damaged);
+    });
+    it("orders recovery against an older service's publication still in the queue", async () => {
+      const { directory, home, service: first } = await fixture(async () => success({}));
+      const damaged = "\0".repeat(4096);
+      let release!: () => void;
+      const gate = serialized("firstmate.remote.snapshot", () => new Promise<void>((done) => { release = done; }));
+      await writeFile(join(directory, "remote-status.json"), damaged);
+      await writeFile(join(home, "data", "remote-hosts.json"), damaged);
+      const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+      try {
+        const publishing = first.syncError(true); // the older service's write queues behind the gate
+        await new Promise((done) => setTimeout(done, 20));
+        service = new RemoteService(async () => success({})); // its recovery queues behind that write
+        await new Promise((done) => setTimeout(done, 20));
+        release(); await gate; await publishing;
+        const snapshot = await service.read();
+        expect(snapshot.hosts.map((host) => host.serverId)).toEqual([remote.serverId]);
+        expect(JSON.stringify(snapshot)).not.toMatch(/Unexpected/);
+      } finally { log.mockRestore(); }
+      for (const [folder, name] of [[directory, "remote-status.json"], [join(home, "data"), "remote-hosts.json"]] as const) {
+        // The publication landed first, so recovery read it whole and copied nothing.
+        expect(JSON.parse(await readFile(join(folder, name), "utf8")).syncError).toMatch(/unavailable/);
+        expect((await readdir(folder)).some((entry) => entry.startsWith(`${name}.corrupt-`))).toBe(false);
+      }
+      expect((await service.read()).syncError).toMatch(/unavailable/);
+      await first.stop();
+    });
+    it("a stopped service's queued publication writes nothing", async () => {
+      const { directory, service: first } = await fixture(async () => success({}));
+      const path = join(directory, "remote-status.json");
+      const before = await readFile(path, "utf8");
+      let release!: () => void;
+      const gate = serialized("firstmate.remote.snapshot", () => new Promise<void>((done) => { release = done; }));
+      const publishing = first.syncError(true);
+      await new Promise((done) => setTimeout(done, 20));
+      const stopping = first.stop();
+      release(); await gate; await publishing; await stopping;
+      expect(await readFile(path, "utf8")).toBe(before);
+    });
+    it("never discards a NUL-filled remotes.json, and names it in the error", async () => {
+      const { directory, service: first } = await fixture(async () => success({}));
+      await first.stop();
+      const saved = "\0".repeat(4096);
+      await writeFile(join(directory, "remotes.json"), saved);
+      service = new RemoteService(async () => success({}));
+      await expect(service.read()).rejects.toThrow(/saved remote hosts .*remotes\.json.* could not be read/);
+      expect(await readFile(join(directory, "remotes.json"), "utf8")).toBe(saved);
+      expect((await readdir(directory)).some((name) => name.startsWith("remotes.json.corrupt-"))).toBe(false);
+    });
+    it("the helper's hosts reports a damaged catalog in one clear line", async () => {
+      const { directory, home } = await fixture(async () => success({}));
+      const helper = join(home, "tools", "remote.mjs");
+      await writeFile(helper, fill(await readTemplate(TEMPLATES.remoteHelper), { remoteQueueJson: JSON.stringify(join(directory, "remote-requests")) }));
+      await writeFile(join(home, "data", "remote-hosts.json"), "\0".repeat(64));
+      const failed = await run(process.execPath, [helper, "hosts"], { cwd: home, timeout: 10000 }).then(() => null, (error: { stdout: string; stderr: string; code: number }) => error);
+      expect(failed?.code).toBe(1);
+      expect(failed?.stdout).toBe("");
+      expect(failed?.stderr.trim().split(/\r?\n/)).toHaveLength(1);
+      expect(failed?.stderr).toMatch(/remote-hosts\.json is not valid JSON/);
+    }, 15000);
   });
   it("checks host identity, retries only read probes, and never retries a failed creation", async () => {
     const calls: { args: string[]; env: NodeJS.ProcessEnv }[] = [];
