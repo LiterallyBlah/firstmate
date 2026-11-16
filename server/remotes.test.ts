@@ -114,6 +114,67 @@ describe("independent remote access", () => {
     expect((await service.read()).hosts).toEqual([]);
     expect(await readFile(join(directory, "remotes.json"), "utf8")).not.toContain(remote.password);
   });
+  describe("a cache damaged by a crash", () => {
+    const damaged: Record<string, string> = {
+      "NUL-filled": "\0".repeat(4096),
+      "truncated": '{"version":1,"localServerId":"local-test","hosts":[{"serverId":"rem',
+    };
+    for (const [kind, text] of Object.entries(damaged)) {
+      it(`moves a ${kind} remote-status.json and remote-hosts.json aside, reads them as missing and rebuilds them`, async () => {
+        const { directory, home, service: first } = await fixture(async () => success({}));
+        first.stop();
+        await writeFile(join(directory, "remote-status.json"), text);
+        await writeFile(join(home, "data", "remote-hosts.json"), text);
+        const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+        try {
+          service = new RemoteService(async () => success({}));
+          const snapshot = await service.read();
+          expect(snapshot.hosts.map((host) => host.serverId)).toEqual([remote.serverId]);
+          expect(snapshot.syncError).toBeNull();
+          expect(JSON.stringify(snapshot)).not.toMatch(/JSON|Unexpected/);
+          expect(log.mock.calls.filter(([line]) => String(line).includes("moved aside"))).toHaveLength(2);
+        } finally { log.mockRestore(); }
+        expect((await readdir(directory)).filter((name) => name.startsWith("remote-status.json.corrupt-"))).toHaveLength(1);
+        expect((await readdir(join(home, "data"))).filter((name) => name.startsWith("remote-hosts.json.corrupt-"))).toHaveLength(1);
+        await service.sync([local, remote]);
+        for (const path of [join(directory, "remote-status.json"), join(home, "data", "remote-hosts.json")]) {
+          expect(JSON.parse(await readFile(path, "utf8")).hosts.map((host: { serverId: string }) => host.serverId)).toEqual([remote.serverId]);
+        }
+      });
+    }
+    it("reads a valid cache as it is and moves nothing", async () => {
+      const { directory, home, service: first } = await fixture(async () => success({}));
+      first.stop();
+      const cached = JSON.parse(await readFile(join(directory, "remote-status.json"), "utf8"));
+      cached.hosts[0].projects = [{ projectId: "kept" }];
+      await writeFile(join(directory, "remote-status.json"), JSON.stringify(cached));
+      service = new RemoteService(async () => success({}));
+      expect((await service.read()).hosts[0]!.projects).toEqual([{ projectId: "kept" }]);
+      expect((await readdir(directory)).some((name) => name.includes(".corrupt-"))).toBe(false);
+      expect((await readdir(join(home, "data"))).some((name) => name.includes(".corrupt-"))).toBe(false);
+    });
+    it("never discards a NUL-filled remotes.json, and names it in the error", async () => {
+      const { directory, service: first } = await fixture(async () => success({}));
+      first.stop();
+      const saved = "\0".repeat(4096);
+      await writeFile(join(directory, "remotes.json"), saved);
+      service = new RemoteService(async () => success({}));
+      await expect(service.read()).rejects.toThrow(/saved remote hosts .*remotes\.json.* could not be read/);
+      expect(await readFile(join(directory, "remotes.json"), "utf8")).toBe(saved);
+      expect((await readdir(directory)).some((name) => name.startsWith("remotes.json.corrupt-"))).toBe(false);
+    });
+    it("the helper's hosts reports a damaged catalog in one clear line", async () => {
+      const { directory, home } = await fixture(async () => success({}));
+      const helper = join(home, "tools", "remote.mjs");
+      await writeFile(helper, fill(await readTemplate(TEMPLATES.remoteHelper), { remoteQueueJson: JSON.stringify(join(directory, "remote-requests")) }));
+      await writeFile(join(home, "data", "remote-hosts.json"), "\0".repeat(64));
+      const failed = await run(process.execPath, [helper, "hosts"], { cwd: home, timeout: 10000 }).then(() => null, (error: { stdout: string; stderr: string; code: number }) => error);
+      expect(failed?.code).toBe(1);
+      expect(failed?.stdout).toBe("");
+      expect(failed?.stderr.trim().split(/\r?\n/)).toHaveLength(1);
+      expect(failed?.stderr).toMatch(/remote-hosts\.json is not valid JSON/);
+    }, 15000);
+  });
   it("checks host identity, retries only read probes, and never retries a failed creation", async () => {
     const calls: { args: string[]; env: NodeJS.ProcessEnv }[] = [];
     const { service } = await fixture(async (args, env) => {

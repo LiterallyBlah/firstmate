@@ -18,12 +18,40 @@ const MAX_FOLLOWED = 50;
 const MAX_RECENT_TOOLS_AGENTS = 10;
 const empty = (): RemoteSnapshot => ({ version: 1, localServerId: "", syncedAt: null, syncError: null, hosts: [] });
 export const remoteQueue = () => join(pluginDir(), "remote-requests");
+/** Flushed before and after the rename: a crash mid-write once left both caches the right size and all NULs. */
 async function atomic(path: string, value: unknown): Promise<void> {
-  await replaceFile(path, JSON.stringify(value, null, 2), { mode: 0o600 });
+  await replaceFile(path, JSON.stringify(value, null, 2), { mode: 0o600, sync: true });
 }
 async function optionalJson(path: string): Promise<unknown> {
   try { return JSON.parse(await readFile(path, "utf8")); }
   catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return null; throw error; }
+}
+/** A file the service rebuilds on its next publish. Unreadable or not JSON, it is moved aside to
+ * `<name>.corrupt-<timestamp>`, logged, and read as missing: a rebuildable cache never wedges the board. */
+export async function cacheJson(path: string): Promise<unknown> {
+  let text: string;
+  try { text = await readFile(path, "utf8"); }
+  catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    await quarantine(path, error);
+    return null;
+  }
+  try { return JSON.parse(text); }
+  catch (error) { await quarantine(path, error); return null; }
+}
+async function quarantine(path: string, error: unknown): Promise<void> {
+  const aside = `${path}.corrupt-${new Date().toISOString().replace(/[:.]/g, "-")}`;
+  try {
+    await rename(path, aside);
+    console.error(`[firstmate] ${path} was unreadable (${error instanceof Error ? error.message.slice(0, 120) : String(error)}); moved aside to ${aside}, to be rebuilt`);
+  } catch (renameError) {
+    console.error(`[firstmate] ${path} was unreadable and could not be moved aside (${renameError instanceof Error ? renameError.message : String(renameError)}); it is ignored and will be rewritten`);
+  }
+}
+/** The saved hosts are the source of truth: never discarded, but named when unreadable. */
+async function savedRegistry(path: string): Promise<unknown> {
+  try { return await optionalJson(path); }
+  catch (error) { throw new Error(`The saved remote hosts (${path}) could not be read: ${error instanceof Error ? error.message : String(error)}`); }
 }
 
 export function connectionTarget(host: RemoteProfile, connection: RemoteConnection): string {
@@ -266,9 +294,12 @@ export class RemoteService {
     await mkdir(remoteQueue(), { recursive: true, mode: 0o700 });
     this.localId = (await readFile(join(paseoHome(), "server-id"), "utf8")).trim();
     this.owner = `${this.localId}:firstmate`;
-    const saved = Registry.safeParse(await optionalJson(join(pluginDir(), "remotes.json")));
+    const saved = Registry.safeParse(await savedRegistry(join(pluginDir(), "remotes.json")));
     if (saved.success) { this.hosts = saved.data.hosts.filter((host) => host.serverId !== this.localId); this.snapshot.syncedAt = saved.data.syncedAt; }
-    const cached = RemoteSnapshot.safeParse(await optionalJson(join(pluginDir(), "remote-status.json")));
+    const cached = RemoteSnapshot.safeParse(await cacheJson(join(pluginDir(), "remote-status.json")));
+    // The home's copy is written, never read, here; a corrupt one is moved aside so its readers
+    // see it missing until the next publish rewrites it.
+    try { await cacheJson(join(resolveHome(await readFirstmateConfig()), "data", "remote-hosts.json")); } catch { /* no home yet */ }
     if (cached.success) this.snapshot = cached.data;
     this.snapshot.localServerId = this.localId;
     this.snapshot.localLabel = saved.success ? saved.data.localLabel : undefined;
