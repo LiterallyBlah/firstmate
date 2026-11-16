@@ -167,7 +167,7 @@ try {
     try { text = await readFile(path, "utf8"); }
     catch (error) { throw new Error(error.code === "ENOENT" ? `${path} does not exist yet; the plugin writes it on its next remote poll (about a minute).` : `${path} could not be read: ${error.message}`); }
     try { catalog = JSON.parse(text); }
-    catch { throw new Error(`${path} is not valid JSON (damaged, perhaps by a crash mid-write); the plugin moves it aside and rewrites it on its next start or remote poll.`); }
+    catch { throw new Error(`${path} is not valid JSON (damaged, perhaps by a crash mid-write); the plugin rewrites it on its next remote poll (about a minute).`); }
     console.log(text);
     for (const entry of Array.isArray(catalog?.hosts) ? catalog.hosts : []) {
       const seconds = entry?.clockSkew?.seconds;

@@ -121,7 +121,7 @@ describe("independent remote access", () => {
       "truncated": '{"version":1,"localServerId":"local-test","hosts":[{"serverId":"rem',
     };
     for (const [kind, text] of Object.entries(damaged)) {
-      it(`moves a ${kind} remote-status.json and remote-hosts.json aside, reads them as missing and rebuilds them`, async () => {
+      it(`copies a ${kind} remote-status.json and remote-hosts.json aside, leaves them in place, reads them as missing and the next publish overwrites them`, async () => {
         const { directory, home, service: first } = await fixture(async () => success({}));
         await first.stop();
         await writeFile(join(directory, "remote-status.json"), text);
@@ -133,12 +133,13 @@ describe("independent remote access", () => {
           expect(snapshot.hosts.map((host) => host.serverId)).toEqual([remote.serverId]);
           expect(snapshot.syncError).toBeNull();
           expect(JSON.stringify(snapshot)).not.toMatch(/JSON|Unexpected/);
-          expect(log.mock.calls.filter(([line]) => String(line).includes("moved aside"))).toHaveLength(2);
+          expect(log.mock.calls.filter(([line]) => String(line).includes("a copy is kept"))).toHaveLength(2);
         } finally { log.mockRestore(); }
         for (const [folder, name] of [[directory, "remote-status.json"], [join(home, "data"), "remote-hosts.json"]] as const) {
           const asides = (await readdir(folder)).filter((entry) => entry.startsWith(`${name}.corrupt-`));
           expect(asides).toHaveLength(1);
           expect(await readFile(join(folder, asides[0]!), "utf8")).toBe(text);
+          expect(await readFile(join(folder, name), "utf8")).toBe(text); // the canonical path is untouched
         }
         await service.sync([local, remote]);
         for (const path of [join(directory, "remote-status.json"), join(home, "data", "remote-hosts.json")]) {
@@ -157,21 +158,22 @@ describe("independent remote access", () => {
       expect((await readdir(directory)).some((name) => name.includes(".corrupt-"))).toBe(false);
       expect((await readdir(join(home, "data"))).some((name) => name.includes(".corrupt-"))).toBe(false);
     });
-    it("keeps a healthy replacement published between reading the damaged bytes and moving them", async () => {
+    it("never touches a healthy replacement published between reading the damaged bytes and copying them", async () => {
       const { directory, service: first } = await fixture(async () => success({}));
       await first.stop();
       const path = join(directory, "remote-status.json");
       const healthy = await readFile(path, "utf8");
-      await writeFile(path, "\0".repeat(4096));
+      const damaged = "\0".repeat(4096);
+      await writeFile(path, damaged);
       const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
       try {
         // The replacement lands after the damaged bytes were read and failed to parse.
-        const value = await cacheJson(path, () => writeFile(path, healthy));
-        expect(value).toEqual(JSON.parse(healthy));
-        expect(log.mock.calls.some(([line]) => String(line).includes("replaced while being recovered"))).toBe(true);
+        expect(await cacheJson(path, () => writeFile(path, healthy))).toBeNull();
       } finally { log.mockRestore(); }
       expect(await readFile(path, "utf8")).toBe(healthy);
-      expect((await readdir(directory)).some((name) => name.includes(".corrupt-"))).toBe(false);
+      const asides = (await readdir(directory)).filter((name) => name.startsWith("remote-status.json.corrupt-"));
+      expect(asides).toHaveLength(1);
+      expect(await readFile(join(directory, asides[0]!), "utf8")).toBe(damaged);
     });
     it("orders recovery against an older service's publication still in the queue", async () => {
       const { directory, home, service: first } = await fixture(async () => success({}));
@@ -192,11 +194,9 @@ describe("independent remote access", () => {
         expect(JSON.stringify(snapshot)).not.toMatch(/Unexpected/);
       } finally { log.mockRestore(); }
       for (const [folder, name] of [[directory, "remote-status.json"], [join(home, "data"), "remote-hosts.json"]] as const) {
-        // The published file stays, read whole; the damaged bytes it superseded were never moved over it.
+        // The publication landed first, so recovery read it whole and copied nothing.
         expect(JSON.parse(await readFile(join(folder, name), "utf8")).syncError).toMatch(/unavailable/);
-        for (const aside of (await readdir(folder)).filter((entry) => entry.startsWith(`${name}.corrupt-`))) {
-          expect(await readFile(join(folder, aside), "utf8")).toBe(damaged);
-        }
+        expect((await readdir(folder)).some((entry) => entry.startsWith(`${name}.corrupt-`))).toBe(false);
       }
       expect((await service.read()).syncError).toMatch(/unavailable/);
       await first.stop();

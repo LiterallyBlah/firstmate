@@ -1,6 +1,6 @@
 /** Saved connections live outside the mate's home. The queue only executes
  * explicit CLI requests from the mate; it never chooses or dispatches work. */
-import { link, mkdir, readFile, readdir, rename, rm, stat } from "node:fs/promises";
+import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { replaceFile } from "./replace-file";
 import { join } from "node:path";
 import { z } from "zod";
@@ -30,16 +30,11 @@ async function optionalJson(path: string): Promise<unknown> {
  * so an older service's publication is ordered against a newer one's recovery). */
 const SNAPSHOT_QUEUE = "firstmate.remote.snapshot";
 const message = (error: unknown) => (error instanceof Error ? error.message : String(error)).slice(0, 160);
-const parse = (bytes: Buffer): { ok: true; value: unknown } | { ok: false; error: unknown } => {
-  try { return { ok: true, value: JSON.parse(bytes.toString("utf8")) }; } catch (error) { return { ok: false, error }; }
-};
-async function bytesOf(path: string): Promise<Buffer | null> {
-  try { return await readFile(path); } catch { return null; }
-}
-/** A file the service rebuilds on its next publish, read under the publishers' queue. One that is not
- * JSON is moved aside, bytes intact, to `<name>.corrupt-<timestamp>`, logged, and read as missing; one
- * that cannot be read is logged and read as missing (the next publish replaces it). Only the very bytes
- * that failed are ever moved: a file replaced meanwhile is kept and read instead. `afterRead` is for tests. */
+/** A file the service rebuilds on its next publish, read under the publishers' queue. One that cannot
+ * be read, or is not JSON, is read as missing and logged; for one that is not JSON, the bytes read are
+ * first copied to a new `<name>.corrupt-<timestamp>` (exclusive create). The canonical path is never
+ * moved or renamed: the next publish replaces it atomically, and a file replaced meanwhile is never
+ * touched. `afterRead` is for tests. */
 export function cacheJson(path: string, afterRead?: () => Promise<void>): Promise<unknown> {
   return serialized(SNAPSHOT_QUEUE, async () => {
     let damaged: Buffer;
@@ -48,30 +43,18 @@ export function cacheJson(path: string, afterRead?: () => Promise<void>): Promis
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") console.error(`[firstmate] ${path} could not be read (${message(error)}); it is ignored and will be rewritten`);
       return null;
     }
-    const first = parse(damaged);
-    if (first.ok) return first.value;
-    await afterRead?.();
-    const current = await bytesOf(path);
-    if (!current || !current.equals(damaged)) {
-      const replaced = current ? parse(current) : null;
-      console.error(`[firstmate] ${path} was not valid JSON (${message(first.error)}) but was replaced while being recovered; the replacement is kept`);
-      return replaced?.ok ? replaced.value : null;
-    }
-    const aside = `${path}.corrupt-${new Date().toISOString().replace(/[:.]/g, "-")}`;
-    try { await rename(path, aside); }
+    try { return JSON.parse(damaged.toString("utf8")); }
     catch (error) {
-      console.error(`[firstmate] ${path} was not valid JSON (${message(first.error)}) and could not be moved aside (${message(error)}); it is ignored and will be rewritten`);
+      await afterRead?.();
+      const aside = `${path}.corrupt-${new Date().toISOString().replace(/[:.]/g, "-")}`;
+      try {
+        await writeFile(aside, damaged, { flag: "wx", mode: 0o600 });
+        console.error(`[firstmate] ${path} was not valid JSON (${message(error)}); a copy is kept at ${aside}, and it is ignored until the next publish rewrites it`);
+      } catch (copyError) {
+        console.error(`[firstmate] ${path} was not valid JSON (${message(error)}) and could not be copied aside (${message(copyError)}); it is ignored until the next publish rewrites it`);
+      }
       return null;
     }
-    // Belt and braces against a writer outside this process: if what moved is not what failed, put it back.
-    const moved = await bytesOf(aside);
-    if (moved && !moved.equals(damaged)) {
-      try { await link(aside, path); await rm(aside); } catch { /* the canonical file exists again: a newer write */ }
-      console.error(`[firstmate] ${path} changed while being moved aside; the newer file is kept`);
-      return null;
-    }
-    console.error(`[firstmate] ${path} was not valid JSON (${message(first.error)}); moved aside to ${aside}, to be rebuilt`);
-    return null;
   });
 }
 /** The saved hosts are the source of truth: never discarded, but named when unreadable. */
