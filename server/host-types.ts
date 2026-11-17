@@ -22,3 +22,12 @@ export type TimelinePage = Awaited<
 >;
 
 export type TimelineItem = TimelinePage["entries"][number]["item"];
+
+/**
+ * `agent.turn_ended` as older hosts, and tests written for them, deliver it. From Paseo 0.16 the SDK no
+ * longer declares `timeline` and the daemon sends an empty compatibility array, so it is optional here
+ * and never the turn's content: read that with `readEndedTurn` (`server/turn-timeline.ts`).
+ */
+export type LegacyTurnEnded = import("@getpaseo/plugin/server").PluginLifecycleEvents["agent.turn_ended"] & {
+  timeline?: readonly TimelineItem[];
+};

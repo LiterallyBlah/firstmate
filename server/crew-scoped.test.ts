@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { expect, it, vi } from "vitest";
+import { asDelivered } from "../test/turn-page";
 import { CaptainSteers, exitCrew, interruptCrew, registerSteerRelay, relaunchCrew, steerCrew } from "./crew";
 import { workerLabels } from "./supervision-effects";
 import { stopAgent } from "./cli";
@@ -32,8 +33,9 @@ it("the relay refreshes ownership and refuses a pending legacy steer after the w
   f.steers.record(f.agent.id, "old steer");
   let handler: (event: unknown, context: unknown) => Promise<void>;
   registerSteerRelay({ on: (_name: unknown, h: typeof handler) => { handler = h; return () => {}; } } as never, f.steers);
-  await expect(handler!({ agent: { id: f.agent.id, title: f.agent.title }, outcome: { kind: "completed" }, turnId: "t",
-    timeline: [{ type: "user_message", text: "old steer" }, { type: "assistant_message", text: "private scoped answer" }] }, { paseo: f.paseo }))
+  const ended = asDelivered({ agent: { id: f.agent.id, title: f.agent.title }, outcome: { kind: "completed" }, turnId: "t",
+    timeline: [{ type: "user_message", text: "old steer" }, { type: "assistant_message", text: "private scoped answer" }] }, f.paseo);
+  await expect(handler!(ended.event, { paseo: ended.paseo }))
     .rejects.toThrow("legacy board controls and the steer relay");
   expect(queueBurstNote).not.toHaveBeenCalled(); expect(f.send).not.toHaveBeenCalled();
   expect(f.steers.take(f.agent.id, ["old steer"])).toBeNull();

@@ -15,9 +15,10 @@ import { sendWithoutInterrupting } from "./send";
 import type { PaseoApi, TimelineItem } from "./host-types";
 
 const config = () => FirstmateConfigSchema.parse({ home: join(process.env.PASEO_HOME!, "home"), mateAgentId: "mate" });
-const agent = (id = "worker") => ({ id, workspaceId: "workspace", parentAgentId: "predecessor", provider: "codex", cwd: "/work", title: null });
+const agent = (id = "worker") => ({ id, workspaceId: "workspace", parentAgentId: "predecessor", provider: "codex", cwd: "/work", title: null,
+  background: false, metadata: {} });
 const end = (id = "worker", outcome: "completed" | "failed" | "canceled" = "completed"): PluginLifecycleEvents["agent.turn_ended"] => ({
-  agent: agent(id), turnId: "turn", timeline: [], outcome: outcome === "failed" ? { kind: outcome, error: { message: "not retained" } } :
+  agent: agent(id), turnId: "turn", outcome: outcome === "failed" ? { kind: outcome, error: { message: "not retained" } } :
     outcome === "canceled" ? { kind: outcome, reason: "not retained" } : { kind: outcome },
 });
 const tool = (callId = "call", target = "worker"): TimelineItem => ({ type: "tool_call", callId, name: "mcp__paseo__send_agent_prompt", status: "completed", error: null,
@@ -31,8 +32,9 @@ function harness(enabled = true, append?: (path: string, line: string) => Promis
   const readConfig = vi.fn(async () => config());
   const send = vi.fn(async () => {});
   const refresh = vi.fn<() => Promise<{ agent: { labels: Record<string, string> } } | null>>(async () => ({ agent: { labels: { "firstmate.role": "crew" } } }));
-  const refetch = vi.fn(async () => ({ gap: false, reset: false, staleCursor: false, error: null,
-    entries: [{ turnId: "turn", item: tool() }] }));
+  const page = (entries: Array<{ turnId: string; item: TimelineItem }>) => ({ agentId: "mate", epoch: "e", gap: false, reset: false,
+    staleCursor: false, error: null, hasOlder: false, startCursor: null, entries });
+  const refetch = vi.fn(async (_options?: unknown) => page([{ turnId: "turn", item: tool() }]));
   const paseo = { agents: { ref: () => ({ refresh, send, timeline: { refetch } }) } } as unknown as PaseoApi;
   const context = { paseo } as PluginHookContext;
   const handlers = new Map<string, (event: never, context: PluginHookContext) => unknown>();
@@ -45,7 +47,7 @@ function harness(enabled = true, append?: (path: string, line: string) => Promis
   disposals.push(observer.register(server, sample));
   disposals.push(registerReceiptObservers(server, readConfig, observer.ended));
   const emit = <Name extends keyof PluginLifecycleEvents>(name: Name, event: PluginLifecycleEvents[Name]) => handlers.get(name)?.(event as never, context);
-  return { observer, events, emit, setTime: (time: number) => { now = time; }, readConfig, refresh, refetch, paseo, send, sample, handlers };
+  return { observer, events, emit, setTime: (time: number) => { now = time; }, readConfig, refresh, refetch, page, paseo, send, sample, handlers };
 }
 function fleet(cards: FleetCard[]): Fleet {
   return { home: config().home, mate: { id: "mate" }, cards, warnings: [] } as unknown as Fleet;
@@ -115,13 +117,15 @@ describe("detached attention observation", () => {
     expect(h.events.find(event => event.kind === "gap")?.reason).toBe("recording-failed");
   });
 
-  it("reuses the turn timeline for targeted actions, deduplicates calls and never reads another timeline", async () => {
+  it("reads the ended turn back for targeted actions (the hook carries none), deduplicates calls and reads only the lead", async () => {
     const h = harness();
     h.emit("agent.turn_ended", end());
     h.setTime(2000); h.emit("agent.turn_started", { agent: agent("mate"), turnId: "turn" });
-    h.setTime(4000); h.emit("agent.turn_ended", { ...end("mate"), timeline: [tool()] });
-    h.setTime(5000); h.emit("agent.turn_ended", { ...end("mate"), timeline: [tool()] });
+    h.setTime(4000); h.emit("agent.turn_ended", end("mate"));
+    h.setTime(5000); h.emit("agent.turn_ended", end("mate"));
     await h.observer.settled();
+    expect(h.refetch).toHaveBeenCalledWith(expect.objectContaining({ direction: "tail", limit: 1, wholeTurns: true }));
+    expect(h.refetch).toHaveBeenCalledTimes(2);
     expect(h.events.filter(event => event.kind === "action")).toHaveLength(1);
     expect(attentionReport(h.events).incidents[0]).toMatchObject({ actionLatency: { minMs: 1000, maxMs: 3000 } });
     expect(JSON.stringify(h.events)).not.toContain("PRIVATE");
@@ -192,16 +196,32 @@ describe("detached attention observation", () => {
     expect(h.events.filter(event => event.kind === "worker-ended").length).toBeLessThan(256);
   });
 
-  it("does not attribute historical hook tools to the current turn", async () => {
+  it("does not attribute another turn's tools to the ended one, and leaves its actions unknown behind a gap", async () => {
     const h = harness();
-    h.refetch.mockResolvedValue({ gap: false, reset: false, staleCursor: false, error: null, entries: [{ turnId: "old-turn", item: tool() }] });
+    h.refetch.mockResolvedValue(h.page([{ turnId: "old-turn", item: tool() }]));
     h.emit("agent.turn_ended", end());
     h.setTime(2000); h.emit("agent.turn_started", { agent: agent("mate"), turnId: "turn" });
-    h.setTime(3000); h.emit("agent.turn_ended", { ...end("mate"), timeline: [tool()] });
+    h.setTime(3000); h.emit("agent.turn_ended", end("mate"));
     await h.observer.settled();
-    expect(h.events.find(event => event.kind === "action")?.actionSince).toBeNull();
+    expect(h.events.some(event => event.kind === "action")).toBe(false);
+    expect(h.events.find(event => event.kind === "gap")).toMatchObject({ source: "hook", reason: "turn-unreadable" });
     expect(attentionReport(h.events).incidents[0]?.actionLatency).toBeNull();
   });
+
+  it("treats a turn without an id, or a failed or gapped read, as unknown rather than as no actions", async () => {
+    for (const setup of [
+      (h: ReturnType<typeof harness>) => h.emit("agent.turn_ended", { ...end("mate"), turnId: null }),
+      (h: ReturnType<typeof harness>) => { h.refetch.mockRejectedValue(new Error("offline")); h.emit("agent.turn_ended", end("mate")); },
+      (h: ReturnType<typeof harness>) => { h.refetch.mockResolvedValue({ ...h.page([{ turnId: "turn", item: tool() }]), gap: true }); h.emit("agent.turn_ended", end("mate")); },
+    ]) {
+      const h = harness();
+      setup(h);
+      await h.observer.settled();
+      expect(h.events.some(event => event.kind === "action")).toBe(false);
+      expect(h.events.filter(event => event.kind === "gap").map(event => event.reason)).toEqual(["turn-unreadable"]);
+    }
+  });
+
 
   it("binds crew creation to queued task identity and retains recent calls in long histories", () => {
     const created: TimelineItem = { type: "tool_call", callId: "create", name: "mcp__paseo__create_agent", status: "completed", error: null,

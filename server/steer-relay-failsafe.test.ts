@@ -8,6 +8,7 @@ import { readFirstmateConfig, updateFirstmateConfig } from "./config";
 import { CaptainSteers, registerSteerRelay } from "./crew";
 import type { PaseoApi } from "./host-types";
 import { workerLabels } from "./supervision-effects";
+import { asDelivered } from "../test/turn-page";
 
 vi.mock("./cli", () => ({ stopAgent: async () => undefined }));
 
@@ -18,7 +19,11 @@ const crew = { "firstmate.role": "crew" };
 const api = (refresh: () => Promise<unknown>) => ({ agents: { ref: () => ({ refresh, send: async () => undefined }) } }) as unknown as PaseoApi;
 const agent = (extra: object) => async () => ({ agent: { id: WORKER, title: "Build", status: "idle", archivedAt: null, labels: crew, ...extra } });
 
-let handler!: (event: unknown, context: { paseo: PaseoApi }) => Promise<void>;
+let relay!: (event: unknown, context: { paseo: PaseoApi }) => Promise<void>;
+const handler = (ended: typeof event, context: { paseo: PaseoApi }) => {
+  const delivered = asDelivered(ended, context.paseo);
+  return relay(delivered.event, { paseo: delivered.paseo });
+};
 let steers: CaptainSteers;
 beforeEach(async () => {
   const home = join(process.env.PASEO_HOME!, "home");
@@ -26,7 +31,7 @@ beforeEach(async () => {
   await updateFirstmateConfig({ home, mateAgentId: "", migration: null, mateLaunch: null, mateNotes: [] });
   await updateFirstmateConfig({ mateAgentId: "general-mate" });
   steers = new CaptainSteers();
-  registerSteerRelay({ on: (_name: string, h: typeof handler) => { handler = h; return () => undefined; } } as never, steers);
+  registerSteerRelay({ on: (_name: string, h: typeof relay) => { relay = h; return () => undefined; } } as never, steers);
 });
 
 it("a live, unscoped crewmate is relayed as before", async () => {

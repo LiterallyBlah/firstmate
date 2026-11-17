@@ -28,6 +28,8 @@ export type AttentionEvent = {
   actionSince?: number | null;
   /** Temporal association only. Never a causal claim. */
   associatedEvent?: string | null;
-  reason?: "queue-overflow" | "recording-failed" | "fleet-unavailable" | "remote-unavailable" | "subject-missing" | "identity-changed";
+  reason?: "queue-overflow" | "recording-failed" | "fleet-unavailable" | "remote-unavailable" | "subject-missing" | "identity-changed" |
+    /** A lead turn ended whose entries could not be read whole; its actions are unknown. */
+    "turn-unreadable";
 };
 export type AttentionInput = Omit<AttentionEvent, "version" | "run" | "id" | "lead">;

@@ -45,7 +45,7 @@ const InputSchema = z.object({ id: z.string().uuid(), name: z.string(), prompt: 
 }).optional() });
 const StateSchema = z.object({ version: z.literal(1), runs: z.array(RunSchema), inputs: z.array(InputSchema).default([]), scheduled: z.record(z.string(), z.string()).default({}) }).strict();
 type State = z.infer<typeof StateSchema>;
-type Ended = { kind: string; error?: { message: string }; reason?: string; timeline: readonly TimelineItem[] };
+type Ended = { kind: string; error?: { message: string }; reason?: string };
 export interface InspectionOptions {
   root: string;
   paseo: () => PaseoApi | null;

@@ -12,6 +12,7 @@ import type { pageReceiptTimeline } from "../shared/receipts";
 import type { PaseoApi, TimelineItem } from "./host-types";
 import { receiptJournal, receiptJournalEnabled, sha256 } from "./receipts";
 import { canonical } from "./submissions";
+import { readEndedTurn } from "./turn-timeline";
 
 /** Paseo's agent tools whose calls change the crew, the schedules or a permission: the first mate's actions. */
 const MATE_ACTION = /(?:^|__|[.:/])(create_agent|send_agent_prompt|archive_agent|cancel_agent|kill_agent|update_agent|set_agent_mode|respond_to_permission|create_workspace|archive_workspace|create_heartbeat|delete_heartbeat|create_schedule|update_schedule|delete_schedule|pause_schedule|resume_schedule|run_schedule_once)$/;
@@ -37,7 +38,14 @@ export function registerReceiptObservers(server: PluginLifecycleRegistration, re
       const mate = (await readConfig()).mateAgentId.trim();
       if (mate === "") return;
       if (event.agent.id === mate) {
-        const actions = mateActions(event.timeline);
+        // The hook carries no history (an empty array from Paseo 0.16): read the ended turn itself.
+        // A turn that cannot be read whole records nothing: its actions stay unknown, never "none".
+        const turn = await readEndedTurn(context.paseo, mate, event.turnId);
+        if (!turn.complete) {
+          console.error(`[firstmate] receipt journal could not read the first mate's turn ${event.turnId ?? "(no id)"} (${turn.reason}); its actions are not recorded`);
+          return;
+        }
+        const actions = mateActions(turn.items);
         if (actions.length > 0) {
           journal.record({ kind: "mate-actions", mateAgentId: mate, generationOf: mate, turnId: event.turnId,
             outcome: event.outcome.kind, source: "turn_ended", actions });

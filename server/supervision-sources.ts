@@ -21,7 +21,7 @@ import {
   PR_OBSERVATION_FORMAT, PrObservationSchema, Repository, SOURCE_LIMITS,
   type BoardSubmission, type PrCheck, type PrObservation, type PrReadiness, type RemoteCoverage, type SourceBinding,
 } from "../shared/supervision-sources";
-import type { PaseoApi, TimelinePage } from "./host-types";
+import type { LegacyTurnEnded, PaseoApi, TimelinePage } from "./host-types";
 import { inboxRef, inboxTransaction } from "./supervision-inbox";
 import { eventOwners, terminal } from "./supervision-inbox-state";
 import { sourceBindingId } from "./supervision-source-state";
@@ -776,10 +776,10 @@ export class ScopedBoardSteer {
    * An empty one is read back through the public typed refetch, page by page (S02's qualification: same agent,
    * same epoch, no gap, no error), until every open message is found or the pages are older than the oldest open
    * message. Anything short of that is a recorded page gap, never a silent miss. */
-  private async turnItems(event: Pick<PluginLifecycleEvents["agent.turn_ended"], "agent" | "turnId" | "timeline">, open: readonly BoardSubmission[], paseo?: PaseoApi):
+  private async turnItems(event: Pick<LegacyTurnEnded, "agent" | "turnId" | "timeline">, open: readonly BoardSubmission[], paseo?: PaseoApi):
     Promise<{ entries: TurnEntry[]; epoch: string | null; gap: InboxSource["gaps"][number] | null }> {
     const agentId = event.agent.id;
-    if (event.timeline.length) return { entries: (event.timeline as readonly TurnItem[]).map(item => ({ item, turnId: event.turnId ?? null })), epoch: null, gap: null };
+    if (event.timeline?.length) return { entries: (event.timeline as readonly TurnItem[]).map(item => ({ item, turnId: event.turnId ?? null })), epoch: null, gap: null };
     if (!paseo) return { entries: [], epoch: null, gap: "empty-timeline" };
     const oldest = Math.min(...open.map(r => Date.parse(r.createdAt))) - 60_000;
     const wanted = new Set(open.map(r => r.messageId));
@@ -805,7 +805,7 @@ export class ScopedBoardSteer {
    * is inferred and grants nothing more than an inferred observation. A typed read after an inferred match is
    * a new transition for the owner that names the inferred event it supersedes. The answer is always the
    * closing reply of the exact turn that read the message, in that page epoch, never a later turn's. */
-  async turnEnded(event: Pick<PluginLifecycleEvents["agent.turn_ended"], "agent" | "turnId" | "outcome" | "timeline">, paseo?: PaseoApi) {
+  async turnEnded(event: Pick<LegacyTurnEnded, "agent" | "turnId" | "outcome" | "timeline">, paseo?: PaseoApi) {
     if (event.outcome.kind === "canceled") return [];
     const status = await this.store.read();
     const open = status.sources.submissions.filter(x => x.state !== "failed" && x.agentId === event.agent.id && (!x.correlation || x.correlation.certainty === "inferred"));
@@ -856,6 +856,6 @@ function closing(items: readonly { type: string; text?: string }[]): string | nu
 }
 
 /** Explicit future attachment seam, like registerLocalSupervisionIngress. index.server does not call it. */
-export function registerScopedBoardIngress(server: PluginLifecycleRegistration, board: ScopedBoardSteer) {
+export function registerScopedBoardIngress(server: Pick<PluginLifecycleRegistration, "on">, board: ScopedBoardSteer) {
   return server.on("agent.turn_ended", (event, { paseo }) => board.turnEnded(event, paseo).then(() => {}));
 }

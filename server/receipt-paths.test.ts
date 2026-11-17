@@ -7,7 +7,8 @@
 import { mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { asDelivered } from "../test/turn-page";
 
 import { CAPTAIN_STEER_MESSAGE_ID_PREFIX, CREW_LABELS, WATCH_MESSAGE_ID_PREFIX } from "../shared/fleet";
 import { readFirstmateConfig, updateFirstmateConfig } from "./config";
@@ -116,8 +117,10 @@ function fakeServer() {
         return () => {};
       },
     } as never,
+    /** A turn's end goes out as Paseo 0.16 delivers it: no history in the hook, the turn served by refetch. */
     async fire(name: string, event: unknown, context: unknown) {
-      for (const handler of handlers.get(name) ?? []) await handler(event, context);
+      const ending = name === "agent.turn_ended" ? asDelivered(event as Parameters<typeof asDelivered>[0], (context as { paseo?: unknown }).paseo) : null;
+      for (const handler of handlers.get(name) ?? []) await handler(ending?.event ?? event, ending ? { ...(context as object), paseo: ending.paseo } : context);
     },
   };
 }
@@ -328,6 +331,21 @@ describe("with the switch on", () => {
       certainty: "uncertain", reason: "paseo-system-envelope-not-recorded",
     }]);
     expect(events(entries, "mate-actions")).toHaveLength(1);
+  });
+
+  it("records no first-mate actions for a turn it could not read whole: unknown, never none", async () => {
+    await updateFirstmateConfig({ mateAgentId: "mate" });
+    const hooks = fakeServer();
+    registerReceiptObservers(hooks.server, readFirstmateConfig);
+    const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const call = { type: "tool_call", callId: "c1", name: "mcp__paseo__create_agent", status: "completed", error: null, detail: { type: "unknown", input: {}, output: null } };
+    // No turn id; and a turn whose entries the page does not hold.
+    await hooks.fire("agent.turn_ended", { agent: { id: "mate", parentAgentId: null }, turnId: null, outcome: { kind: "completed" }, timeline: [call] }, {});
+    await hooks.fire("agent.turn_ended", { agent: { id: "mate", parentAgentId: null }, turnId: "t1", outcome: { kind: "completed" }, timeline: [] }, {});
+    await receiptJournal()!.settled();
+    expect(events(await journalEntries(), "mate-actions")).toEqual([]);
+    expect(error).toHaveBeenCalledWith(expect.stringContaining("its actions are not recorded"));
+    error.mockRestore();
   });
 
   it("pages a first mate's or crewmate's timeline through the cursor, with its proof of completeness, and changes nothing", async () => {

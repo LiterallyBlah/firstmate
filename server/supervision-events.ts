@@ -4,7 +4,7 @@ import type { PluginLifecycleEvents, PluginLifecycleRegistration } from "@getpas
 import { z } from "zod";
 import { SupervisionEventSchema, SupervisionUtc } from "../shared/supervision";
 import { INBOX_LIMITS, InboxSourceSchema, type InboxAssignment, type InboxEvent, type InboxSource } from "../shared/supervision-inbox";
-import type { PaseoAgent, PaseoApi, TimelinePage } from "./host-types";
+import type { LegacyTurnEnded, PaseoAgent, PaseoApi, TimelinePage } from "./host-types";
 import { eventOwners, hasMalformedQuarantine, terminal } from "./supervision-inbox-state";
 import { inboxRef, inboxTransaction, type InboxCommit } from "./supervision-inbox";
 import { SupervisionError, SupervisionStore, type SupervisionMutation } from "./supervision-store";
@@ -199,13 +199,15 @@ export class SupervisionEvents {
         hasOlder: page.hasOlder, hasNewer: page.hasNewer, error: Boolean(page.error) } } satisfies LocalObservation);
     return page;
   }
-  async ended(event: PluginLifecycleEvents["agent.turn_ended"], paseo: PaseoApi) {
+  async ended(event: LegacyTurnEnded, paseo: PaseoApi) {
+    // Paseo 0.16 sends the hook's timeline empty; the bounded refetch below is then the only evidence.
+    const timeline = event.timeline ?? [];
     const turnId = event.turnId, key = turnId ? digest([event.agent.id, turnId, event.outcome.kind]) : `${this.bootId}:${randomUUID()}`;
-    const empty = event.timeline.length === 0;
+    const empty = timeline.length === 0;
     await this.admit({ agentId: event.agent.id, kind: "turn-ended", turnId, outcome: event.outcome.kind, permissionId: null,
       sourceKind: "hook", sourceKey: key, epoch: this.bootId, cursor: null, maxSeq: null, coverage: "unknown",
       gaps: ["hook-not-durable", ...(!turnId ? ["missing-turn" as const] : []), ...(empty ? ["empty-timeline" as const] : [])],
-      payload: { kind: event.outcome.kind, timelineItems: event.timeline.length, timelineDigests: event.timeline.slice(-32).map(item => ({ type: item.type, digest: digest(item) })) } });
+      payload: { kind: event.outcome.kind, timelineItems: timeline.length, timelineDigests: timeline.slice(-32).map(item => ({ type: item.type, digest: digest(item) })) } });
     if (empty) await this.timeline(paseo, event.agent.id, turnId);
   }
   async permission(agentId: string, permissionId: string, resolved = false) {

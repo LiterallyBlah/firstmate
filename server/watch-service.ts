@@ -209,7 +209,7 @@ export function startWatches(
   const offEnded = server.on("agent.turn_ended", async (event, context) => {
     remember(context.paseo);
     if (event.agent.id && event.agent.cwd.startsWith(join(pluginDir(), "watch-inspections", "workspaces"))) {
-      inspections.endedTurn(event.agent.id, { ...event.outcome, timeline: event.timeline });
+      inspections.endedTurn(event.agent.id, event.outcome);
       return;
     }
     const config = await readConfig();

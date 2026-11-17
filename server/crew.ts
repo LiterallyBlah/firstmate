@@ -27,6 +27,7 @@ import { cutoverGate } from "./supervision-gate";
 import { receiptJournal } from "./receipts";
 import { sendWithoutInterrupting } from "./send";
 import { TEMPLATES, message } from "./templates";
+import { readEndedTurn } from "./turn-timeline";
 import { digest } from "./submissions";
 
 const crewAction = (agentId: string, action: string, text = "") => ({ source: "crew-action" as const,
@@ -89,6 +90,11 @@ export class CaptainSteers {
     const kept = this.fresh(agentId).filter((entry) => entry.text !== text);
     if (kept.length === 0) this.pending.delete(agentId);
     else this.pending.set(agentId, kept);
+  }
+
+  /** Whether any steer to `agentId` is still waiting for the turn that reads it. */
+  hasPending(agentId: string): boolean {
+    return this.fresh(agentId).length > 0;
   }
 
   /** The steers `userMessages` shows were read, removed; null when it shows none of them. */
@@ -220,7 +226,15 @@ export function registerSteerRelay(
   return server.on("agent.turn_ended", async (event, { paseo }) => {
     // A cancelled turn is the one a steer replaced, not the one that answers it.
     if (event.outcome.kind === "canceled") return;
-    const userMessages = event.timeline.flatMap((item) => (item.type === "user_message" ? [item.text] : []));
+    if (!steers.hasPending(event.agent.id)) return;
+    // The hook carries no history (an empty array from Paseo 0.16): read the ended turn itself.
+    // A turn that cannot be read whole is not evidence the steer went unread: it stays pending.
+    const turn = await readEndedTurn(paseo, event.agent.id, event.turnId);
+    if (!turn.complete) {
+      console.error(`[firstmate] could not read turn ${event.turnId ?? "(no id)"} of ${event.agent.id} (${turn.reason}); the captain's words stay pending`);
+      return;
+    }
+    const userMessages = turn.items.flatMap((item) => (item.type === "user_message" ? [item.text] : []));
     const read = steers.takeRead(event.agent.id, userMessages);
     if (read === null) return;
     // Refresh labels here too: a pending legacy steer may predate scoped ownership.
@@ -239,14 +253,14 @@ export function registerSteerRelay(
     for (const messageId of journal === null ? [] : ids) {
       journal!.record({
         kind: "steer-read", messageId, crewAgentId: event.agent.id, turnId: event.turnId,
-        clientMessageIdSeen: event.timeline.some((item) => item.type === "user_message" && item.clientMessageId === messageId),
+        clientMessageIdSeen: turn.items.some((item) => item.type === "user_message" && item.clientMessageId === messageId),
       });
     }
     try {
       const agent = { id: event.agent.id, title: event.agent.title };
       await queueBurstNote(
         paseo,
-        { key: agent.id, part: await relayExchange(captain, closingText(event.timeline)), render: (parts) => relayNote(agent, parts) },
+        { key: agent.id, part: await relayExchange(captain, closingText(turn.entries)), render: (parts) => relayNote(agent, parts) },
         { source: "steer-relay", relates: ids },
       );
     } catch (error) {

@@ -261,7 +261,7 @@ function offerForEffect(s: SupervisionStatus, e: SupervisionEffect) {
 
 /** Concrete hook attachment for a separately qualified, default-off operating runtime.
  * Supervisor turn ends assess the same durable generation. Worker hooks persist facts before wake. */
-export function registerSupervisionLifecycle(server: PluginLifecycleRegistration, lifecycle: SupervisionLifecycle) {
+export function registerSupervisionLifecycle(server: Pick<PluginLifecycleRegistration, "on">, lifecycle: SupervisionLifecycle) {
   lifecycle.assertAttachmentEnabled();
   const wakeAgent = async (agentId: string) => {
     const s = await lifecycle.store.read();

@@ -164,7 +164,7 @@ describe("isolated inspection lifecycle", () => {
     const id = f.created[0]?.agentId;
     if (id) {
       if (scenario === "malformed") { f.agents.get(id)!.status = "idle"; f.timelines.get(id)!.push({ type: "assistant_message", text: "done: fine" } as TimelineItem); }
-      if (scenario === "canceled") f.runner.endedTurn(id, { kind: "canceled", reason: "Stopped", timeline: [] });
+      if (scenario === "canceled") f.runner.endedTurn(id, { kind: "canceled", reason: "Stopped" });
       if (scenario === "permission") f.agents.get(id)!.pendingPermissions = [{ id: "request" }];
       if (scenario === "missing") f.agents.delete(id);
       if (scenario === "timeout") f.clock = Date.now() + INSPECTION_TIMEOUT_MS + 1000;

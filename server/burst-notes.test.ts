@@ -11,6 +11,7 @@ import { CAPTAIN_STEER_MESSAGE_ID_PREFIX, CREW_LABELS } from "../shared/fleet";
 import { readFirstmateConfig, updateFirstmateConfig } from "./config";
 import { CaptainSteers, registerSteerRelay, relayExchange, relayNote, relayText, steerCrew } from "./crew";
 import type { PaseoApi } from "./host-types";
+import { asDelivered } from "../test/turn-page";
 import { BURST_MAX_MS, BURST_QUIET_MS, extendBurstNote, flushMateNotes, queueBurstNote, queueMateNote } from "./mate";
 
 let paseoHome = "";
@@ -66,10 +67,11 @@ function fakeServer() {
     server: { on: (_name: string, handler: (event: unknown, context: unknown) => unknown) => (handlers.push(handler), () => {}) } as never,
     async turnEnded(paseo: PaseoApi, agentId: string, said: string, answer: string) {
       for (const handler of handlers) {
-        await handler({
+        const delivered = asDelivered({
           agent: { id: agentId, title: `Task ${agentId}` }, turnId: "t", outcome: { kind: "completed" },
           timeline: [{ type: "user_message", text: said }, { type: "assistant_message", text: answer }],
-        }, { paseo });
+        }, paseo);
+        await handler(delivered.event, { paseo: delivered.paseo });
       }
     },
   };
