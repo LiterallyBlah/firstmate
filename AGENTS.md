@@ -458,6 +458,7 @@ installed version, listed by digest in `REVIEWED_READER_RUNS` (the S11 smoke run
 | `server/watch-schedule.ts`    | A crontab line → `Schedule`, and whether a local minute matches it. Pure.                  |
 | `server/watch-run.ts`         | One script run: its own process group, a timeout, stdout capped, stderr's tail.           |
 | `server/process-launch.ts`    | Windows desktop/npm CLI entry points and native Node watch launches, without a shell.   |
+| `server/turn-timeline.ts`     | One ended turn read back by id (`readEndedTurn`): the turn-end hook carries no history. |
 | `server/send.ts`              | Sending to an agent without interrupting its turn where the provider allows (`"steer"`), and each send's receipt. |
 | `server/receipts.ts`          | The receipt journal behind `FIRSTMATE_RECEIPT_JOURNAL` (off by default): hash-linked entries, the generation and record ledgers. |
 | `server/receipt-observers.ts`, `shared/receipts.ts` | What the journal observes — the first mate's tool calls, uncertain native finishes — and the read-only timeline-page RPC. |
@@ -769,6 +770,17 @@ Two gaps, and what fills them:
   one. The first turn to end is not always the answer: the one that was running may end first, and a
   provider that cannot steer cancels it. A steer whose send failed is taken back, so it is never
   relayed as said.
+
+  **The hook carries no history.** Paseo 0.16 sends `turn_ended`'s `timeline` as an empty compatibility
+  array (and the SDK no longer declares it), so the turn is read back by id: `readEndedTurn`
+  (`server/turn-timeline.ts`) asks for the latest whole turn (`wholeTurns`, Paseo 0.16.0 — the
+  manifest's floor), keeps the entries with the ended `turnId`, and walks back a few whole turns on one
+  epoch if a newer turn began first. No turn id, a failed, errored, gapped or reset page, or a turn not
+  found is `incomplete`: the relay leaves the steer pending, the receipt journal records no
+  `mate-actions`, and attention timing writes a `turn-unreadable` gap — never "no actions". The relay
+  reads only while a steer is pending. `docs/turn-timeline/daemon-check.mjs` drives it on a throwaway
+  daemon with the synthetic provider, including a held turn the steer cancels. Never read a hook's
+  `timeline`; `LegacyTurnEnded` (`server/host-types.ts`) types it as optional for older tests only.
 
   **One note per burst, not per message.** A conversation in the Converse drawer would otherwise wake
   the first mate once a line. `queueBurstNote` (`server/mate.ts`) keys the note by worker and holds it
@@ -1346,9 +1358,12 @@ quiet. Optional report reads use the existing five-second observation wait, reus
 read and retry settled failures only on a later poll after a thirty-second cooldown (or changed
 subject). Fleet warnings distinguish pending/unavailable history; retained reports are not a fresh
 status claim. Late reads cannot overwrite a changed subject or repopulate removed crew.
-`closingText` joins the assistant messages at the very end — a streamed reply arrives in pieces
-that split anywhere, even mid-word — and `parseCrewReport` looks for the status line only in the last
-few lines, so "the build is done: …" earlier in a message is not a report.
+`closingText` joins the pieces of the last assistant message at the very end — a streamed reply arrives
+in pieces that split anywhere, even mid-word — and only of that message: an entry of another turn or
+`messageId` is another reply. A provider can start a turn itself (a background job finished) with no
+user row between, and gluing its reply onto the one before made "done: PR …/7" + "working: waiting on
+CI" read as Ready. `parseCrewReport` looks for the status line only in the last few lines, so "the
+build is done: …" earlier in a message is not a report.
 
 Columns (`crewPlacement`): a pending permission, an error or a running turn win (blocked, failed,
 working); once the turn has ended the status line decides:
