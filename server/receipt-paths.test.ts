@@ -333,7 +333,14 @@ describe("with the switch on", () => {
     expect(events(entries, "mate-actions")).toHaveLength(1);
   });
 
-  it("records no first-mate actions for a turn it could not read whole: unknown, never none", async () => {
+  /** The receipt observer's handler alone, given `paseo` as is: no turn served on its behalf. */
+  async function registeredObserver(paseo: unknown, event: unknown) {
+    let handler!: (event: unknown, context: unknown) => Promise<void>;
+    registerReceiptObservers({ on: (_name: string, h: typeof handler) => { handler = h; return () => {}; } } as never, readFirstmateConfig);
+    await handler(event, { paseo });
+  }
+
+  it("records a typed gap for a first-mate turn it could not read whole: unknown, never none", async () => {
     await updateFirstmateConfig({ mateAgentId: "mate" });
     const hooks = fakeServer();
     registerReceiptObservers(hooks.server, readFirstmateConfig);
@@ -343,8 +350,20 @@ describe("with the switch on", () => {
     await hooks.fire("agent.turn_ended", { agent: { id: "mate", parentAgentId: null }, turnId: null, outcome: { kind: "completed" }, timeline: [call] }, {});
     await hooks.fire("agent.turn_ended", { agent: { id: "mate", parentAgentId: null }, turnId: "t1", outcome: { kind: "completed" }, timeline: [] }, {});
     await receiptJournal()!.settled();
-    expect(events(await journalEntries(), "mate-actions")).toEqual([]);
-    expect(error).toHaveBeenCalledWith(expect.stringContaining("its actions are not recorded"));
+    // A read that fails outright, too.
+    const offline = { agents: { ref: () => ({ timeline: { refetch: async () => { throw new Error("read offline"); } } }) } };
+    await registeredObserver(offline, { agent: { id: "mate", parentAgentId: null }, turnId: "t2", outcome: { kind: "failed", error: { message: "x" } } });
+    await receiptJournal()!.settled();
+    const entries = await journalEntries();
+    expect(events(entries, "mate-actions")).toEqual([]);
+    expect(events(entries, "mate-turn-unread")).toEqual([
+      { kind: "mate-turn-unread", mateAgentId: "mate", generation: expect.objectContaining({ agentId: "mate" }), turnId: null, outcome: "completed", source: "turn_ended", reason: "no-turn-id" },
+      { kind: "mate-turn-unread", mateAgentId: "mate", generation: expect.objectContaining({ agentId: "mate" }), turnId: "t1", outcome: "completed", source: "turn_ended", reason: "not-found" },
+      { kind: "mate-turn-unread", mateAgentId: "mate", generation: expect.objectContaining({ agentId: "mate" }), turnId: "t2", outcome: "failed", source: "turn_ended", reason: "fetch-failed" },
+    ]);
+    // Observe-only: nothing was sent and no operational state moved.
+    expect((await readFirstmateConfig()).mateNotes).toEqual([]);
+    expect(error).toHaveBeenCalledWith(expect.stringContaining("recorded as a gap"));
     error.mockRestore();
   });
 

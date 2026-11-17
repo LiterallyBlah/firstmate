@@ -181,8 +181,10 @@ Git repository or local directory; it is marked private to prevent accidental np
   `<firstmate-board>` note. It now reads the ended turn back by its id. A turn it cannot read whole
   (no id, a failed or gapped read) leaves your words waiting for the turn that does read them, never
   counted as unread or relayed with another turn's answer. Bursts, cancelled turns and receipts are as
-  before. The opt-in receipt journal and attention timing read the first mate's actions the same way,
-  recording an unreadable turn as unknown (attention marks a gap), never as no actions.
+  before. A steer is matched to the turn by the id it was sent with, one to one, and a steer sent while
+  a turn is being read waits for its own turn. The opt-in receipt journal and attention timing read the
+  first mate's actions the same way; an unreadable turn is a typed `mate-turn-unread` journal entry and
+  an attention gap, never "no actions".
 - **A worker's status no longer borrows the reply before it.** When a worker's background job
   finished and its provider started a turn of its own, the card glued that reply onto the previous one:
   "done: PR …/7" followed by "working: waiting on CI" read as Ready with a broken link. Only one

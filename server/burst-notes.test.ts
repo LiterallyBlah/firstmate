@@ -57,9 +57,14 @@ function fakePaseo() {
         },
       }),
     },
+    sent,
   } as unknown as PaseoApi;
   return { paseo, sent, toMate: () => sent.filter((send) => send.agentId === "mate") };
 }
+
+/** The id `steerCrew` sent `said` to `agentId` with, from the fake's record of sends. */
+const steerId = (paseo: PaseoApi, agentId: string, said: string) =>
+  (paseo as unknown as { sent: Sent[] }).sent.filter((send) => send.agentId === agentId && send.text === said).at(-1)?.options.messageId as string | undefined;
 
 function fakeServer() {
   const handlers: Array<(event: unknown, context: unknown) => unknown> = [];
@@ -69,7 +74,8 @@ function fakeServer() {
       for (const handler of handlers) {
         const delivered = asDelivered({
           agent: { id: agentId, title: `Task ${agentId}` }, turnId: "t", outcome: { kind: "completed" },
-          timeline: [{ type: "user_message", text: said }, { type: "assistant_message", text: answer }],
+          // The turn that read the steer: its user message carries the id the steer was sent with.
+          timeline: [{ type: "user_message", text: said, clientMessageId: steerId(paseo, agentId, said) }, { type: "assistant_message", text: answer }],
         }, paseo);
         await handler(delivered.event, { paseo: delivered.paseo });
       }

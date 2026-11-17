@@ -766,8 +766,11 @@ Two gaps, and what fills them:
 - **A turn the captain started from the board** was prompted by nobody Paseo knows to notify.
   `registerSteerRelay` remembers each steer (`CaptainSteers`, in memory, an hour at most) and sends
   the first mate a `<firstmate-board>` note with what was said and answered — on the first
-  `agent.turn_ended` whose timeline **contains** the steer as a user message, and never on a cancelled
-  one. The first turn to end is not always the answer: the one that was running may end first, and a
+  `agent.turn_ended` whose turn **contains** the steer as a user message, and never on a cancelled
+  one. A steer is matched by its id (`firstmate-crew-steer-…`, recorded as the message's
+  `clientMessageId`), one message to one steer; only an id-less steer from an older caller falls back
+  to its words. Only steers already pending when the hook starts are candidates (`snapshot`, before the
+  read's await), so one the captain sends meanwhile waits for its own turn. The first turn to end is not always the answer: the one that was running may end first, and a
   provider that cannot steer cancels it. A steer whose send failed is taken back, so it is never
   relayed as said.
 
@@ -776,8 +779,9 @@ Two gaps, and what fills them:
   (`server/turn-timeline.ts`) asks for the latest whole turn (`wholeTurns`, Paseo 0.16.0 — the
   manifest's floor), keeps the entries with the ended `turnId`, and walks back a few whole turns on one
   epoch if a newer turn began first. No turn id, a failed, errored, gapped or reset page, or a turn not
-  found is `incomplete`: the relay leaves the steer pending, the receipt journal records no
-  `mate-actions`, and attention timing writes a `turn-unreadable` gap — never "no actions". The relay
+  found is `incomplete`: the relay leaves the steer pending, the receipt journal records a typed
+  `mate-turn-unread` entry with the turn and reason (a read turn is always `mate-actions`, empty or
+  not), and attention timing writes a `turn-unreadable` gap — never "no actions". The relay
   reads only while a steer is pending. `docs/turn-timeline/daemon-check.mjs` drives it on a throwaway
   daemon with the synthetic provider, including a held turn the steer cancels. Never read a hook's
   `timeline`; `LegacyTurnEnded` (`server/host-types.ts`) types it as optional for older tests only.

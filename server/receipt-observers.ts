@@ -39,17 +39,17 @@ export function registerReceiptObservers(server: PluginLifecycleRegistration, re
       if (mate === "") return;
       if (event.agent.id === mate) {
         // The hook carries no history (an empty array from Paseo 0.16): read the ended turn itself.
-        // A turn that cannot be read whole records nothing: its actions stay unknown, never "none".
+        // A turn that cannot be read whole is a typed gap: its actions are unknown, never "none". A turn that was
+        // read is always recorded, its actions possibly empty, so the journal tells the two apart.
         const turn = await readEndedTurn(context.paseo, mate, event.turnId);
         if (!turn.complete) {
-          console.error(`[firstmate] receipt journal could not read the first mate's turn ${event.turnId ?? "(no id)"} (${turn.reason}); its actions are not recorded`);
+          console.error(`[firstmate] receipt journal could not read the first mate's turn ${event.turnId ?? "(no id)"} (${turn.reason}); recorded as a gap`);
+          journal.record({ kind: "mate-turn-unread", mateAgentId: mate, generationOf: mate, turnId: event.turnId?.slice(0, 200) ?? null,
+            outcome: event.outcome.kind, source: "turn_ended", reason: turn.reason });
           return;
         }
-        const actions = mateActions(turn.items);
-        if (actions.length > 0) {
-          journal.record({ kind: "mate-actions", mateAgentId: mate, generationOf: mate, turnId: event.turnId,
-            outcome: event.outcome.kind, source: "turn_ended", actions });
-        }
+        journal.record({ kind: "mate-actions", mateAgentId: mate, generationOf: mate, turnId: event.turnId,
+          outcome: event.outcome.kind, source: "turn_ended", actions: mateActions(turn.items) });
       } else if (event.agent.parentAgentId === mate) {
         journal.record({ kind: "native-finish", childAgentId: event.agent.id, parentAgentId: mate, turnId: event.turnId,
           outcome: event.outcome.kind, certainty: "uncertain", reason: "paseo-system-envelope-not-recorded" });

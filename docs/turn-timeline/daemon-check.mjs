@@ -72,6 +72,8 @@ try {
   const page = await api.agents.ref(crewId).timeline.refetch({ direction: "tail", limit: 1, wholeTurns: true, projection: "projected" });
   const steer = page.entries.find(({ item }) => item.type === "user_message" && item.text === "Use pnpm please");
   assert(steer && typeof steer.turnId === "string", "the steer's entry carries its turn id");
+  // The relay matches a steer only by this id: the daemon records the send's messageId as clientMessageId.
+  assert.match(steer.item.clientMessageId ?? "", /^firstmate-crew-steer-/, "the steer's entry carries its captain-steer id");
   assert(page.entries.every((entry) => entry.turnId === steer.turnId), "a whole-turn tail page is that one turn");
 
   // 2. A held turn, then a steer the provider cannot join: the daemon cancels the held turn (not relayed)
@@ -86,7 +88,7 @@ try {
 
   console.log(JSON.stringify({ daemon: `fresh temporary home, Paseo ${version}`, passed: [
     "plugin with requirements >=0.16.0 installs and runs",
-    "whole-turn tail page carries the steer under its turn id",
+    "whole-turn tail page carries the steer under its turn id, with its captain-steer clientMessageId",
     "idle crewmate: captain steer relayed with its answer despite an empty hook timeline",
     "held turn cancelled by an unjoinable steer is not relayed; the replacing turn's exchange joins the same burst note",
   ] }, null, 2));

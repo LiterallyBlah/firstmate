@@ -19,9 +19,13 @@ import type { PaseoApi, TimelineItem, TimelinePage } from "./host-types";
 /** Whole turns walked back past the newest before giving up: turns rarely start this fast. */
 export const TURN_READ_PAGES = 4;
 
+/** Why a turn could not be read whole. Recorded as is by the receipt journal, so only ever extended. */
+export const TURN_READ_GAPS = ["no-turn-id", "fetch-failed", "page-error", "page-gap", "epoch-changed", "not-found"] as const;
+export type TurnReadGap = typeof TURN_READ_GAPS[number];
+
 export type TurnRead =
   | { complete: true; turnId: string; items: TimelineItem[]; entries: TimelinePage["entries"] }
-  | { complete: false; reason: "no-turn-id" | "fetch-failed" | "page-error" | "page-gap" | "epoch-changed" | "not-found" };
+  | { complete: false; reason: TurnReadGap };
 
 export async function readEndedTurn(paseo: PaseoApi, agentId: string, turnId: string | null, pages = TURN_READ_PAGES): Promise<TurnRead> {
   if (!turnId) return { complete: false, reason: "no-turn-id" };

@@ -149,4 +149,38 @@ describe("the captain-steer relay on an empty hook timeline", () => {
     expect(note?.text).toContain("first");
     expect(note?.text).toContain("second");
   });
+
+  it("a steer sent while the ended turn is being read waits for its own turn, even with the same words", async () => {
+    // The review's race: the read awaits, the captain sends again, and the earlier turn must not take the later steer.
+    let resolveRead!: (page: TimelinePage) => void;
+    const held = new Promise<TimelinePage>((resolve) => { resolveRead = resolve; });
+    const refetch = vi.fn(() => held);
+    const paseo = { agents: { ref: () => ({ refresh: async () => ({ agent: { id: "w", title: "W", archivedAt: null, labels: { "firstmate.role": "crew" } } }),
+      send: async () => undefined, timeline: { refetch } }) } } as unknown as PaseoApi;
+    steers.record("w", "again", "firstmate-crew-steer-1");
+    const first = relay(ended("t1"), { paseo });
+    steers.record("w", "again", "firstmate-crew-steer-2");
+    resolveRead(turnPage("w", "t1", [user("again", "firstmate-crew-steer-1"), reply("first answer")]));
+    await first;
+    expect(steers.hasPending("w")).toBe(true);
+    expect((await notes())[0]!.text.match(/again/g)).toHaveLength(1);
+    // The later steer is taken by the turn that carries its id, and its answer joins the burst.
+    await relay(ended("t2"), { paseo: timeline([turnPage("w", "t2", [user("again", "firstmate-crew-steer-2"), reply("second answer")])]).paseo() });
+    expect(steers.hasPending("w")).toBe(false);
+    expect((await notes())[0]!.text).toContain("second answer");
+  });
+
+  it("matches one steer to one message by its id, and the id-less fallback never takes a captain's tagged message", async () => {
+    steers.record("w", "again", "firstmate-crew-steer-1");
+    steers.record("w", "again", "firstmate-crew-steer-2");
+    steers.record("w", "again"); // an older caller's steer, without an id
+    // The turn read the second tagged steer only: the first waits, and so does the id-less one, whose words
+    // appear only inside a message that belongs to a tagged steer.
+    await relay(ended("t1"), { paseo: timeline([turnPage("w", "t1", [user("again", "firstmate-crew-steer-2"), reply("ok")])]).paseo() });
+    expect(steers.snapshot("w").map((steer) => steer.messageId)).toEqual(["firstmate-crew-steer-1", undefined]);
+    // A message without a captain-steer id reads the id-less steer, once; a matching text never stands in for an id.
+    await relay(ended("t2"), { paseo: timeline([turnPage("w", "t2", [user("again", "firstmate-mate-ask-9"), user("again"), reply("ok")])]).paseo() });
+    expect(steers.snapshot("w").map((steer) => steer.messageId)).toEqual(["firstmate-crew-steer-1"]);
+  });
+
 });
