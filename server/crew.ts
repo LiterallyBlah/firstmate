@@ -124,10 +124,15 @@ export class CaptainSteers {
    * Of `candidates` — a `snapshot` taken when the turn ended — the steers `messages` shows it read, removed by
    * identity; null when none. One message reads one steer. A steer with an id is read only by a user message
    * carrying that id (the daemon records it as `clientMessageId`); a steer without one, from an older caller,
-   * only by a message that carries no captain-steer id and contains its words. Steers recorded since stay.
+   * only by a message that carries no captain-steer id and contains its words. Steers recorded since stay; a
+   * steer already claimed by another callback, or forgotten, is never read again.
    */
   takeTurn(agentId: string, candidates: readonly PendingSteer[], messages: readonly { text: string; clientMessageId?: string | undefined }[]):
     Array<{ text: string; messageId?: string | undefined }> | null {
+    // Only steers still pending: another end callback for the same turn may have claimed one since the snapshot,
+    // or `forget` taken it back. Matching and removal below are synchronous, so exactly one callback claims each.
+    const live = new Set(this.fresh(agentId));
+    candidates = candidates.filter((steer) => live.has(steer));
     const used = new Set<number>(), read = new Set<PendingSteer>();
     const claim = (steer: PendingSteer, matches: (message: (typeof messages)[number]) => boolean) => {
       const index = messages.findIndex((message, at) => !used.has(at) && matches(message));

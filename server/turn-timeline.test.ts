@@ -183,4 +183,38 @@ describe("the captain-steer relay on an empty hook timeline", () => {
     expect(steers.snapshot("w").map((steer) => steer.messageId)).toEqual(["firstmate-crew-steer-1"]);
   });
 
+
+  /** A crewmate whose timeline answers every read with one held page, released by the returned function. */
+  function heldRead() {
+    let release!: (page: TimelinePage) => void;
+    const held = new Promise<TimelinePage>((resolve) => { release = resolve; });
+    const paseo = { agents: { ref: () => ({ refresh: async () => ({ agent: { id: "w", title: "W", archivedAt: null, labels: { "firstmate.role": "crew" } } }),
+      send: async () => undefined, timeline: { refetch: () => held } }) } } as unknown as PaseoApi;
+    return { paseo, release };
+  }
+
+  it("two end callbacks for one turn, both reading before either resolves, relay the exchange once", async () => {
+    steers.record("w", "use pnpm", "firstmate-crew-steer-1");
+    const { paseo, release } = heldRead();
+    const first = relay(ended("t1"), { paseo }), second = relay(ended("t1"), { paseo });
+    release(turnPage("w", "t1", [user("use pnpm", "firstmate-crew-steer-1"), reply("switched")]));
+    await Promise.all([first, second]);
+    const relayed = await notes();
+    expect(relayed).toHaveLength(1);
+    expect(relayed[0]!.text.match(/use pnpm/g)).toHaveLength(1);
+    expect(relayed[0]!.text.match(/switched/g)).toHaveLength(1);
+    expect(steers.hasPending("w")).toBe(false);
+  });
+
+  it("a steer taken back while its turn is being read is neither relayed nor revived", async () => {
+    steers.record("w", "use pnpm", "firstmate-crew-steer-1");
+    const { paseo, release } = heldRead();
+    const ending = relay(ended("t1"), { paseo });
+    steers.forget("w", "use pnpm");
+    release(turnPage("w", "t1", [user("use pnpm", "firstmate-crew-steer-1"), reply("switched")]));
+    await ending;
+    expect(await notes()).toEqual([]);
+    expect(steers.hasPending("w")).toBe(false);
+  });
+
 });
