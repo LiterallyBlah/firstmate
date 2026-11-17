@@ -1,6 +1,6 @@
 /** Local, explicit observe-only ingress. Exported adapters are NOT started by the plugin in S02. */
 import { randomUUID } from "node:crypto";
-import type { PluginLifecycleEvents, PluginLifecycleRegistration } from "@getpaseo/plugin/server";
+import type { PluginLifecycleRegistration } from "@getpaseo/plugin/server";
 import { z } from "zod";
 import { SupervisionEventSchema, SupervisionUtc } from "../shared/supervision";
 import { INBOX_LIMITS, InboxSourceSchema, type InboxAssignment, type InboxEvent, type InboxSource } from "../shared/supervision-inbox";

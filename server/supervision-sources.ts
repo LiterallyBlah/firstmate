@@ -11,7 +11,7 @@ import { capacityHeld } from "../shared/supervision-capacity";
 import { createHash, randomUUID } from "node:crypto";
 import { lstat, readdir, readFile, rm } from "node:fs/promises";
 import { join, posix } from "node:path";
-import type { PluginLifecycleEvents, PluginLifecycleRegistration } from "@getpaseo/plugin/server";
+import type { PluginLifecycleRegistration } from "@getpaseo/plugin/server";
 import type { z } from "zod";
 import { CAPTAIN_STEER_MESSAGE_ID_PREFIX } from "../shared/fleet";
 import { SupervisionEventSchema, SupervisionUtc, type SupervisionStatus } from "../shared/supervision";
