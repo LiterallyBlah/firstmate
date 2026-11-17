@@ -108,7 +108,7 @@ use synthetic fixture data and current components, not a live fleet.
 
 ## Install this fork
 
-Requires **Paseo 0.11 or newer** on the daemon and app, a configured agent provider, Git, and the
+Requires **Paseo 0.16 or newer** on the daemon and app, a configured agent provider, Git, and the
 `paseo` CLI on the daemon machine. Enable **Agent tools** when FirstMate prompts: the first mate
 needs Paseo's agent tools to create workspaces and manage workers. An already-running mate needs to
 resume or reload its session after the tool set changes.

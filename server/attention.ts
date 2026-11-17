@@ -8,6 +8,7 @@ import type { RemoteSnapshot } from "../shared/remotes";
 import { resolveHome } from "./config";
 import type { PaseoApi } from "./host-types";
 import { attentionActions, attentionKey, attentionStates, cardKey, workerKey } from "./attention-projection";
+import { readEndedTurn } from "./turn-timeline";
 
 export const ATTENTION_ENV = "FIRSTMATE_ATTENTION_OBSERVE";
 export const attentionEnabled = (env: NodeJS.ProcessEnv = process.env) => /^(1|true|yes|on)$/i.test((env[ATTENTION_ENV] ?? "").trim());
@@ -154,20 +155,18 @@ export class AttentionObserver {
         this.turns.delete(ended.turnId ?? "unknown");
         await this.write({ kind: "lead-ended", at, source: "hook", turn, outcome: ended.outcome.kind,
           ...(ended.outcome.kind === "canceled" ? { associatedEvent: this.latest && this.latest.at <= at ? this.latest.id : null } : {}) });
-        const actions = attentionActions(ended.timeline);
-        // Hook timelines include earlier turns. Reuse the collector's exact call/turn binding rule
-        // against a bounded SDK page; no transcript is retained and missing coverage stays unknown.
-        const page = actions.length && ended.turnId ? await context.paseo.agents.ref(event.agent.id).timeline.refetch({
-          direction: "tail", limit: 200, projection: "projected",
-        }).catch(() => { warn(); return null; }) : null;
-        const binding = (action: { call: string; subject: string; tool: string }) => `${action.call}:${action.subject}:${action.tool}`;
-        const currentCalls = new Set(page && !page.gap && !page.reset && !page.staleCursor && !page.error ?
-          page.entries.filter(entry => entry.turnId === ended.turnId && entry.item.type === "tool_call")
-            .flatMap(entry => attentionActions([entry.item]).map(binding)) : []);
-        for (const action of actions) {
+        // The hook carries no history (an empty array from Paseo 0.16): read the ended turn itself. Every
+        // call in it belongs to this turn, so it is bounded by the turn's start. A turn that cannot be read
+        // whole is a gap, never "no actions": nothing is paired across it.
+        const read = await readEndedTurn(context.paseo, event.agent.id, ended.turnId).catch(() => null);
+        if (!read?.complete) {
+          await this.write({ kind: "gap", at, source: "hook", turn, reason: "turn-unreadable" });
+          return;
+        }
+        for (const action of attentionActions(read.items)) {
           if (this.calls.has(action.call)) continue;
           this.calls.add(action.call);
-          await this.write({ kind: "action", at, source: "hook", turn, ...action, actionSince: currentCalls.has(binding(action)) ? since : null });
+          await this.write({ kind: "action", at, source: "hook", turn, ...action, actionSince: since });
         }
       } else if (role === "crew") {
         const requested = name === "agent.permission_requested";

@@ -110,18 +110,28 @@ export async function fetchLiveAgent(paseo: PaseoApi, agentId: string): Promise<
   return agent;
 }
 
+/** A timeline entry, or an item with nothing known of its turn. */
+export type ClosingEntry = { item: TimelineItem; turnId?: string | null | undefined };
+
 /**
- * The text a turn closed with: the assistant messages at the very end of the
- * timeline, joined, since a streamed reply can arrive as several items. Any
- * other item — a tool call, the user's message — ends the search.
+ * The text a turn closed with: the last assistant message at the very end of the
+ * timeline, its pieces joined, since a streamed reply can arrive as several items.
+ * Any other item — a tool call, the user's message — ends the search.
  */
-export function closingText(items: readonly TimelineItem[]): string | null {
+export function closingText(entries: readonly ClosingEntry[]): string | null {
   const parts: string[] = [];
-  for (let index = items.length - 1; index >= 0; index -= 1) {
-    const item = items[index];
-    if (item === undefined) break;
+  let last: ClosingEntry | undefined;
+  for (let index = entries.length - 1; index >= 0; index -= 1) {
+    const entry = entries[index];
+    if (entry === undefined) break;
+    const item = entry.item;
     if (item.type === "assistant_message") {
+      // Only pieces of one message join: a provider streams a reply in chunks that split anywhere. A reply of
+      // another turn or message — a turn the provider started itself after a background job, with no user row
+      // between — is a different report, and gluing it on made "done: PR …" of the turn before read as this one.
+      if (last !== undefined && ((entry.turnId ?? null) !== (last.turnId ?? null) || item.messageId !== (last.item as { messageId?: string }).messageId)) break;
       parts.unshift(item.text);
+      last = entry;
       continue;
     }
     // Plugin rows and notices can land after a turn without being part of it.
@@ -172,7 +182,7 @@ export class ReportCache {
           // A closed read can be the session's only read. Retain its successful result
           // across timestamp churn, under its original version (explicitly not current).
           if (current.active && (current.updatedAt === version || closed && current.closedAttempted)) {
-            current.cached = { updatedAt: version, report: parseCrewReport(closingText(page.entries.map(entry => entry.item))) };
+            current.cached = { updatedAt: version, report: parseCrewReport(closingText(page.entries)) };
             delete current.failure;
           }
         }).catch((error: unknown) => {

@@ -27,6 +27,7 @@ import { cutoverGate } from "./supervision-gate";
 import { receiptJournal } from "./receipts";
 import { sendWithoutInterrupting } from "./send";
 import { TEMPLATES, message } from "./templates";
+import { readEndedTurn } from "./turn-timeline";
 import { digest } from "./submissions";
 
 const crewAction = (agentId: string, action: string, text = "") => ({ source: "crew-action" as const,
@@ -74,8 +75,10 @@ const STEER_TTL_MS = 60 * 60 * 1000;
  * first, and a provider that cannot join a running turn cancels it and starts
  * a new one, so the ended turn has to show it read the words.
  */
+type PendingSteer = { text: string; at: number; messageId?: string | undefined };
+
 export class CaptainSteers {
-  private readonly pending = new Map<string, Array<{ text: string; at: number; messageId?: string | undefined }>>();
+  private readonly pending = new Map<string, PendingSteer[]>();
 
   constructor(private readonly now: () => number = Date.now) {}
 
@@ -89,6 +92,11 @@ export class CaptainSteers {
     const kept = this.fresh(agentId).filter((entry) => entry.text !== text);
     if (kept.length === 0) this.pending.delete(agentId);
     else this.pending.set(agentId, kept);
+  }
+
+  /** Whether any steer to `agentId` is still waiting for the turn that reads it. */
+  hasPending(agentId: string): boolean {
+    return this.fresh(agentId).length > 0;
   }
 
   /** The steers `userMessages` shows were read, removed; null when it shows none of them. */
@@ -106,7 +114,41 @@ export class CaptainSteers {
     return read.length === 0 ? null : read.map(({ text, messageId }) => ({ text, messageId }));
   }
 
-  private fresh(agentId: string): Array<{ text: string; at: number; messageId?: string | undefined }> {
+  /** The steers waiting now, by identity: all that a turn ending now can have read. Taken before any await, so a
+   * steer the captain sends while that turn is being read is never among them. */
+  snapshot(agentId: string): readonly PendingSteer[] {
+    return this.fresh(agentId);
+  }
+
+  /**
+   * Of `candidates` — a `snapshot` taken when the turn ended — the steers `messages` shows it read, removed by
+   * identity; null when none. One message reads one steer. A steer with an id is read only by a user message
+   * carrying that id (the daemon records it as `clientMessageId`); a steer without one, from an older caller,
+   * only by a message that carries no captain-steer id and contains its words. Steers recorded since stay; a
+   * steer already claimed by another callback, or forgotten, is never read again.
+   */
+  takeTurn(agentId: string, candidates: readonly PendingSteer[], messages: readonly { text: string; clientMessageId?: string | undefined }[]):
+    Array<{ text: string; messageId?: string | undefined }> | null {
+    // Only steers still pending: another end callback for the same turn may have claimed one since the snapshot,
+    // or `forget` taken it back. Matching and removal below are synchronous, so exactly one callback claims each.
+    const live = new Set(this.fresh(agentId));
+    candidates = candidates.filter((steer) => live.has(steer));
+    const used = new Set<number>(), read = new Set<PendingSteer>();
+    const claim = (steer: PendingSteer, matches: (message: (typeof messages)[number]) => boolean) => {
+      const index = messages.findIndex((message, at) => !used.has(at) && matches(message));
+      if (index >= 0) { used.add(index); read.add(steer); }
+    };
+    for (const steer of candidates) if (steer.messageId !== undefined) claim(steer, (message) => message.clientMessageId === steer.messageId);
+    for (const steer of candidates) if (steer.messageId === undefined) claim(steer, (message) =>
+      !message.clientMessageId?.startsWith(CAPTAIN_STEER_MESSAGE_ID_PREFIX) && message.text.includes(steer.text.trim()));
+    if (read.size === 0) return null;
+    const left = this.fresh(agentId).filter((entry) => !read.has(entry));
+    if (left.length === 0) this.pending.delete(agentId);
+    else this.pending.set(agentId, left);
+    return candidates.filter((entry) => read.has(entry)).map(({ text, messageId }) => ({ text, messageId }));
+  }
+
+  private fresh(agentId: string): PendingSteer[] {
     const cutoff = this.now() - STEER_TTL_MS;
     return (this.pending.get(agentId) ?? []).filter((entry) => entry.at >= cutoff);
   }
@@ -220,8 +262,18 @@ export function registerSteerRelay(
   return server.on("agent.turn_ended", async (event, { paseo }) => {
     // A cancelled turn is the one a steer replaced, not the one that answers it.
     if (event.outcome.kind === "canceled") return;
-    const userMessages = event.timeline.flatMap((item) => (item.type === "user_message" ? [item.text] : []));
-    const read = steers.takeRead(event.agent.id, userMessages);
+    // Only steers already pending as the turn ended can be its answer; one sent during the read below waits for its own.
+    const candidates = steers.snapshot(event.agent.id);
+    if (candidates.length === 0) return;
+    // The hook carries no history (an empty array from Paseo 0.16): read the ended turn itself.
+    // A turn that cannot be read whole is not evidence the steer went unread: it stays pending.
+    const turn = await readEndedTurn(paseo, event.agent.id, event.turnId);
+    if (!turn.complete) {
+      console.error(`[firstmate] could not read turn ${event.turnId ?? "(no id)"} of ${event.agent.id} (${turn.reason}); the captain's words stay pending`);
+      return;
+    }
+    const userMessages = turn.items.flatMap((item) => (item.type === "user_message" ? [{ text: item.text, clientMessageId: item.clientMessageId }] : []));
+    const read = steers.takeTurn(event.agent.id, candidates, userMessages);
     if (read === null) return;
     // Refresh labels here too: a pending legacy steer may predate scoped ownership.
     // Refuse before reading/forwarding the answer or queueing any note to General. Only a deliberate scoped or cutover
@@ -239,14 +291,14 @@ export function registerSteerRelay(
     for (const messageId of journal === null ? [] : ids) {
       journal!.record({
         kind: "steer-read", messageId, crewAgentId: event.agent.id, turnId: event.turnId,
-        clientMessageIdSeen: event.timeline.some((item) => item.type === "user_message" && item.clientMessageId === messageId),
+        clientMessageIdSeen: turn.items.some((item) => item.type === "user_message" && item.clientMessageId === messageId),
       });
     }
     try {
       const agent = { id: event.agent.id, title: event.agent.title };
       await queueBurstNote(
         paseo,
-        { key: agent.id, part: await relayExchange(captain, closingText(event.timeline)), render: (parts) => relayNote(agent, parts) },
+        { key: agent.id, part: await relayExchange(captain, closingText(turn.entries)), render: (parts) => relayNote(agent, parts) },
         { source: "steer-relay", relates: ids },
       );
     } catch (error) {

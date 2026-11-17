@@ -31,6 +31,7 @@ import { readFirstmateConfig } from "./config";
 import { pluginDir } from "./data-dir";
 import { serialized } from "./serialize";
 import { canonical, digest, publish } from "./submissions";
+import { TURN_READ_GAPS } from "./turn-timeline";
 
 export const RECEIPT_JOURNAL_ENV = "FIRSTMATE_RECEIPT_JOURNAL";
 
@@ -100,6 +101,13 @@ const EventSchema = z.discriminatedUnion("kind", [
     kind: z.literal("mate-actions"), mateAgentId: z.string().min(1), generation: GenerationRef.nullable(),
     turnId: z.string().nullable(), outcome: z.enum(["completed", "failed", "canceled"]), source: z.literal("turn_ended"),
     actions: z.array(z.object({ callId: z.string(), name: z.string(), status: z.string(), detailSha256: Sha256 }).strict()).max(500),
+  }).strict(),
+  /** A first-mate turn ended that could not be read whole: its actions are unknown, never none. A turn that was
+   * read is always a `mate-actions` entry, its actions possibly empty, so the two are told apart. */
+  z.object({
+    kind: z.literal("mate-turn-unread"), mateAgentId: z.string().min(1), generation: GenerationRef.nullable(),
+    turnId: z.string().max(200).nullable(), outcome: z.enum(["completed", "failed", "canceled"]), source: z.literal("turn_ended"),
+    reason: z.enum(TURN_READ_GAPS),
   }).strict(),
   /** A crewmate of the first mate ended a turn. Paseo may have sent a finish note; nothing the plugin reads says so. */
   z.object({
@@ -293,7 +301,8 @@ type Draft =
   | ReceiptEvent
   | (Omit<Extract<ReceiptEvent, { kind: "send-attempt" }>, "generation"> & { generationOf: string | null })
   | (Omit<Extract<ReceiptEvent, { kind: "note-queued" }>, "generation"> & { generationOf: string | null })
-  | (Omit<Extract<ReceiptEvent, { kind: "mate-actions" }>, "generation"> & { generationOf: string | null });
+  | (Omit<Extract<ReceiptEvent, { kind: "mate-actions" }>, "generation"> & { generationOf: string | null })
+  | (Omit<Extract<ReceiptEvent, { kind: "mate-turn-unread" }>, "generation"> & { generationOf: string | null });
 
 export interface ReceiptJournalOptions {
   /** The first mate the config names now; "" when none. */

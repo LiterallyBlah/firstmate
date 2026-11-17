@@ -22,4 +22,6 @@ process.env.PASEO_HOME = home;
 
 // Receipt-specific tests may opt in and use their own temporary homes. Everyone
 // else (and any child process) still has this disposable home as a second guard.
-afterAll(() => rm(home, { recursive: true, force: true }));
+// A heavy fixture leaves tens of thousands of entries (supervision-audit-loop: ~35,000), and a loaded Windows
+// runner cannot always delete them in vitest's default 10 s hook; the cleanup gets the tests' own budget.
+afterAll(() => rm(home, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }), 120_000);

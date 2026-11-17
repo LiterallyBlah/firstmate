@@ -19,7 +19,7 @@ export function registerNeedsYouRpc(
     try { return await decoratePlans(snapshot); }
     catch { return { ...snapshot, planProblems: ["Workflow plans unavailable. Existing captain decisions remain available; the total is incomplete."] }; }
   };
-  server.handle(readNeedsYou, () => service.read().then(decorate));
+  server.handle(readNeedsYou, async () => decorate(await service.read()));
   server.handle(markNeedsYouSeen, (input) =>
     service.mutate(input, { kind: "seen" }).then(decorate),
   );

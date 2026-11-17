@@ -30,6 +30,16 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Changed
 
+- **Requires Paseo 0.16.0 or newer.** FirstMate reads an ended turn with Paseo's whole-turn timeline read,
+  which 0.16.0 added; the manifest said 0.11.0 while the code no longer worked there. Stay on an earlier
+  build of this copy for an older daemon. Development and tests now use the 0.16.1 SDK.
+- **The charter and briefs say what Paseo 0.16 does.** A finish note cuts a reply longer than 4,000
+  characters short, status line and all, so the first mate reads the crewmate's last message before
+  calling it stuck, and briefs ask for a short last message. A Paseo daemon restart resumes the same
+  agents and their finish notifications; only a FirstMate restart, migration or handover makes a new first
+  mate whose predecessor's crew will not wake it. An untouched `data/charter.md` follows; an edited one
+  is offered the change through Compare.
+
 - Rewrite the README around this fork's current features, with synthetic screenshots of both Deck
   scenes, Home, List, Board and Chat, plus looping Deck and chat demonstrations replacing the old
   demo; retain prominent upstream credit and the MIT license.
@@ -166,6 +176,19 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Fixed
 
+- **What you say to a worker from the board reaches the first mate again.** Paseo 0.16 sends the
+  turn-end hook's history empty, so the steer relay never found your words and never sent the
+  `<firstmate-board>` note. It now reads the ended turn back by its id. A turn it cannot read whole
+  (no id, a failed or gapped read) leaves your words waiting for the turn that does read them, never
+  counted as unread or relayed with another turn's answer. Bursts, cancelled turns and receipts are as
+  before. A steer is matched to the turn by the id it was sent with, one to one, and a steer sent while
+  a turn is being read waits for its own turn. The opt-in receipt journal and attention timing read the
+  first mate's actions the same way; an unreadable turn is a typed `mate-turn-unread` journal entry and
+  an attention gap, never "no actions".
+- **A worker's status no longer borrows the reply before it.** When a worker's background job
+  finished and its provider started a turn of its own, the card glued that reply onto the previous one:
+  "done: PR …/7" followed by "working: waiting on CI" read as Ready with a broken link. Only one
+  message's pieces are joined now, by turn and message id, in the card and the relayed answer alike.
 - **A crash mid-write can no longer leave Home showing "not valid JSON".** The remote hosts' caches
   (`remote-status.json` and the home's `data/remote-hosts.json`) are now flushed to disk before they
   replace the old file. If one is found damaged anyway, it is read as missing, with no banner,

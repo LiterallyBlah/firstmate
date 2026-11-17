@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { CREW_LABELS, type AgentSummary, type BacklogItem, type ColumnId, type CrewReportSummary } from "../shared/fleet";
 import { parseBacklog } from "./backlog";
-import { waitTarget } from "./crew-report";
+import { parseCrewReport, waitTarget } from "./crew-report";
 import { backlogColumn, backlogPlacement, buildCards, closingText, crewColumn, crewPlacement } from "./fleet";
 import type { TimelineItem } from "./host-types";
 
@@ -191,7 +191,29 @@ describe("closingText", () => {
       { type: "assistant_message", text: "ne: PR https://x/1" },
       { type: "notification", level: "info", message: "later" },
     ] as TimelineItem[];
-    expect(closingText(items)).toBe("All green.\n\ndone: PR https://x/1");
-    expect(closingText([{ type: "user_message", text: "hi" }] as TimelineItem[])).toBeNull();
+    expect(closingText(items.map((item) => ({ item })))).toBe("All green.\n\ndone: PR https://x/1");
+    expect(closingText([{ item: { type: "user_message", text: "hi" } as TimelineItem }])).toBeNull();
+  });
+
+  // A worker reports done, then its background job finishes and the provider starts a turn of its own: no user row
+  // between (Paseo drops `<paseo-system>` and task notices), so the two replies sit side by side in the tail.
+  const selfStarted = [
+    { turnId: "t1", item: { type: "user_message", text: "ship it" } },
+    { turnId: "t1", item: { type: "assistant_message", text: "Opened it.\ndone: PR https://github.com/o/r/pull/7", messageId: "m1" } },
+    { turnId: "t2", item: { type: "assistant_message", text: "CI started again after the rebase.\nworking: waiting on CI run 42", messageId: "m2" } },
+  ] as Array<{ turnId?: string; item: TimelineItem }>;
+
+  it("reads only the latest reply, never one glued onto the turn before it", () => {
+    expect(closingText(selfStarted)).toBe("CI started again after the rebase.\nworking: waiting on CI run 42");
+    expect(parseCrewReport(closingText(selfStarted))).toEqual({ state: "working", text: "waiting on CI run 42" });
+  });
+
+  it("keeps separate replies apart in reopened history, where the turn ids are gone but the message ids are not", () => {
+    const reopened = selfStarted.map(({ item }) => ({ item }));
+    expect(parseCrewReport(closingText(reopened))).toEqual({ state: "working", text: "waiting on CI run 42" });
+    // A message the provider streamed in pieces is still one message.
+    const streamed = [{ turnId: "t1", item: { type: "assistant_message", text: "done: P", messageId: "m1" } },
+      { turnId: "t1", item: { type: "assistant_message", text: "R https://x/1", messageId: "m1" } }] as Array<{ turnId: string; item: TimelineItem }>;
+    expect(closingText(streamed)).toBe("done: PR https://x/1");
   });
 });

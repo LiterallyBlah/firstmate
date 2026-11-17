@@ -147,7 +147,8 @@ describe("prepareHome and the charter", () => {
     // Plan modes: three modes drafted from the captain's words, live steps follow the mode, reserved effects stay captain.
     // Remote-host Supervisors slice 2: a local Supervisor's remote workers, gated live steps and
     // scoped remote permissions stay with that Supervisor, never the board or the remote helper.
-    expect(fingerprint(await pluginCharterTemplate())).toBe("56752424a2f97d66");
+    // Paseo 0.16: a finish note cuts a long reply short; a daemon restart is not a first-mate replacement.
+    expect(fingerprint(await pluginCharterTemplate())).toBe("7b027a32f156dff8");
     expect(agents).toContain("scoped remote workers");
     expect(agents).toContain("`firstmate-pivotal` (you decide routine matters, and pivotal points go to the Captain)");
     expect(agents).toContain("installation, access, discarding work, spending beyond the approved caps");

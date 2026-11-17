@@ -161,7 +161,7 @@ export function describeTool(item: ToolCallItem): Pick<
         icon: "Bot",
         label: "Agent",
         summary: clip(detail.description ?? detail.subAgentType ?? ""),
-        detail: withFailure(clipLines(actions === undefined ? detail.log : actions.join("\n"), DETAIL_LINES, "tail")),
+        detail: withFailure(clipLines(actions === undefined ? detail.log ?? "" : actions.join("\n"), DETAIL_LINES, "tail")),
         markdown: false,
       };
     }
